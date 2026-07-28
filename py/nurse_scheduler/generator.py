@@ -46,6 +46,47 @@ class InputError(Exception):
     pass
 
 
+def _nk_block_plan(total: int, start_with_three: bool = True) -> List[int]:
+    """NK 월 목표 야간일수를 2일/3일 블록으로 최대한 비슷한 비율로 나눈다(S10 최선 근사).
+
+    2*a + 3*b = total 을 만족하는 조합 중 |a-b|(2일/3일 블록 개수차)가 최소인 것을 고른다.
+    (예: 15 → 2일 3개+3일 3개 정확히 1:1, 14 → 2일 4개+3일 2개가 최선의 근사)
+
+    start_with_three: NK 인원이 여럿일 때 서로 다른 값을 줘서 근무/휴식 위상을
+    엇갈리게 한다 — 위상이 같으면 여러 NK가 동시에 OFF인 날이 생겨 그날 일반
+    간호사가 야간을 더 메워야 해 다른 근무 최소인력이 부족해지기 쉽다.
+    """
+    best = None
+    for b in range(0, total // 3 + 1):
+        rem = total - 3 * b
+        if rem < 0 or rem % 2 != 0:
+            continue
+        a = rem // 2
+        diff = abs(a - b)
+        if best is None or diff < best[0]:
+            best = (diff, a, b)
+    if best is None:
+        return [total] if total > 0 else []
+    _, a, b = best
+    plan: List[int] = []
+    while a > 0 or b > 0:
+        if start_with_three:
+            if b > 0:
+                plan.append(3)
+                b -= 1
+            if a > 0:
+                plan.append(2)
+                a -= 1
+        else:
+            if a > 0:
+                plan.append(2)
+                a -= 1
+            if b > 0:
+                plan.append(3)
+                b -= 1
+    return plan
+
+
 class Generator:
     def __init__(self, config: dict,
                  fixed_cells: Optional[Dict[Tuple[str, int], Shift]] = None,
@@ -294,12 +335,12 @@ class Generator:
             while d < self.sch.num_days and self.sch.get(s.id, d) is not None:
                 d += 1
             d += (idx * 3) % 5
+            plan = _nk_block_plan(remaining, start_with_three=(idx % 2 == 0))
+            pi = 0
             while remaining > 0 and d < self.sch.num_days:
-                block = min(3, remaining)
-                # 남은 일수 안에 못 채우면 블록을 당겨서라도 채움
-                days_left = self.sch.num_days - d
-                if remaining > 0 and days_left < remaining + 2 * ((remaining - 1) // 3):
-                    pass  # 그대로 진행 (아래에서 가능한 만큼 배정)
+                block = plan[pi] if pi < len(plan) else min(3, remaining)
+                pi += 1
+                block = min(block, remaining)
                 placed = 0
                 while placed < block and d < self.sch.num_days:
                     if self._cell_free(s.id, d):
@@ -313,7 +354,13 @@ class Generator:
                 if placed >= 2:
                     rest = 2
                     # 남은 야간을 남은 일수에 고르게: 여유 있으면 3일 휴식(S10)
-                    blocks_left = (remaining + 2) // 3
+                    # (2일/3일 혼합 계획이므로 "3일 블록만" 가정한 division 추정 대신
+                    #  실제 계획에 남은 블록 개수를 그대로 사용 — 과소추정 시 rest=3을
+                    #  잘못 허용해 마지막 블록 배정할 날이 모자라는 문제 방지)
+                    if pi < len(plan):
+                        blocks_left = len(plan) - pi
+                    else:
+                        blocks_left = (remaining + 2) // 3
                     need_days = remaining + 2 * max(0, blocks_left - 1)
                     if remaining > 0 and (self.sch.num_days - d - rest - 1) > need_days:
                         rest = 3
@@ -428,36 +475,62 @@ class Generator:
 
     # ------------------------------------------------------------ Step 5
     def assign_nights(self):
+        """S9 강화: 2일 블록 우선 → 불가하면 3일(인당 월 1회 상한) → 그래도
+        불가하면(H1-1 최소인력 보존 우선) 상한을 넘겨서라도 배정하고 위반 기록."""
         nd = self.sch.num_days
+        three_day_count: Dict[str, int] = {}
         for d in range(nd):
             need = self.min_for(d, "N") - self.sch.count_shift(d, Shift.N)
             while need > 0:
-                # 야간 결원이 이어지는 창 길이(≤3)에 블록을 맞춘다
-                # (예: NK 휴식 3일 창이면 3일 블록 — 어긋난 휴식 중첩 방지)
-                window = 0
-                dd = d
-                while dd < nd and window < 3 and \
-                        self.min_for(dd, "N") - self.sch.count_shift(dd, Shift.N) > 0:
-                    window += 1
-                    dd += 1
-                prefer = max(2, window)
                 placed = False
-                for relax in (0, 1, 2, 3):
-                    cand = self._pick_night_candidate(d, relax, prefer)
-                    if cand is not None:
-                        sid, length = cand
-                        self._place_night_block(sid, d, length, relax)
-                        placed = True
-                        break
+                if d + 1 >= nd:
+                    # 월말 단독야간 예외(H2-4) — 상한 개념 없이 1일 블록만
+                    for relax in (0, 1, 2, 3):
+                        cand = self._pick_night_candidate(d, relax, (1,))
+                        if cand is not None:
+                            sid, length = cand
+                            self._place_night_block(sid, d, length, relax)
+                            placed = True
+                            break
+                else:
+                    for relax in (0, 1, 2, 3):
+                        cand = self._pick_night_candidate(d, relax, (2,))
+                        if cand is not None:
+                            sid, length = cand
+                            self._place_night_block(sid, d, length, relax)
+                            placed = True
+                            break
+                    if not placed:
+                        used_up = {sid for sid, c in three_day_count.items() if c >= 1}
+                        for relax in (0, 1, 2, 3):
+                            cand = self._pick_night_candidate(d, relax, (3,), exclude=used_up)
+                            if cand is not None:
+                                sid, length = cand
+                                self._place_night_block(sid, d, length, relax)
+                                three_day_count[sid] = three_day_count.get(sid, 0) + 1
+                                placed = True
+                                break
+                    if not placed:
+                        # 상한을 지키면 못 채움 — 최소인력(H1-1) 보존이 우선이므로
+                        # 상한을 넘겨서라도 배정하고 소프트 위반으로 남긴다.
+                        for relax in (0, 1, 2, 3):
+                            cand = self._pick_night_candidate(d, relax, (3,))
+                            if cand is not None:
+                                sid, length = cand
+                                self._place_night_block(sid, d, length, relax)
+                                three_day_count[sid] = three_day_count.get(sid, 0) + 1
+                                self.sch.log(
+                                    f"[S9] {sid}: {d+1}일 3일블록 월 1회 상한 초과 배정 "
+                                    "(2일 불가·상한 소진, 최소인력(H1-1) 우선)")
+                                placed = True
+                                break
                 if not placed:
                     self.sch.log(f"[H1-1] {d+1}일 야간 최소인력 미달 — 배정 가능 인원 없음")
                     break
                 need -= 1
 
-    def _pick_night_candidate(self, d: int, relax: int,
-                              prefer_len: int = 2) -> Optional[Tuple[str, int]]:
-        nd = self.sch.num_days
-        lengths = (2, 3) if d + 1 < nd else (1,)  # 월말 단독야간(H2-4 예외)만 1일
+    def _pick_night_candidate(self, d: int, relax: int, lengths: Tuple[int, ...],
+                              exclude: Optional[set] = None) -> Optional[Tuple[str, int]]:
         best = None
         best_score = None
         for length in lengths:
@@ -465,6 +538,8 @@ class Generator:
                 if s.is_partjang or s.is_nk or s.no_night:
                     continue
                 if Shift.N not in s.allowed_shifts:
+                    continue
+                if exclude and s.id in exclude:
                     continue
                 if not self._can_night_block(s, d, length, relax):
                     continue
@@ -478,7 +553,6 @@ class Generator:
                 last = self.sch.last_night_day(s.id, d)
                 gap = d - last if last is not None else 99
                 score = (squeeze, s8_pen,
-                         0 if length == prefer_len else 1,  # 결원 창 맞춤(기본 2, S9)
                          self.sch.nights_in_month(s.id),
                          -min(gap, 12), self.sch.workdays_in_month(s.id),
                          self.rng.random() if (self.seed or self.jitter) else 0)
