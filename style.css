@@ -318,3 +318,45 @@ table.compact-grid td.annual-sum, table.compact-grid th.annual-sum-h {
 @media (prefers-color-scheme: dark) {
   td.sd span, td.se span, td.sp span, td.sa span, td.sy span { color: #1C2523; }
 }
+
+/* ---------------------------------------------------------------- 반응형 (좁은 화면 · 폰) */
+@media (max-width: 680px) {
+  html, body { height: auto; }
+  #app { height: auto; min-height: 100vh; }
+  #main { flex-direction: column; }
+  #gridPane { overflow: visible; padding: 10px; }
+  #sidePane { width: auto; border-left: none; border-top: 2px solid var(--accent); }
+
+  header { padding: 8px 12px; }
+  header h1 { font-size: 14px; }
+  .intake-box { padding: 14px 16px; }
+  .form-grid { grid-template-columns: 1fr; }
+
+  table.form-table, table.form-table thead, table.form-table tbody,
+  table.form-table tr, table.form-table td {
+    display: block; width: 100%;
+  }
+  table.form-table thead { display: none; }
+  table.form-table tr {
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px;
+  }
+  table.form-table td {
+    display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line);
+    padding: 6px 0;
+  }
+  table.form-table td:last-child { border-bottom: none; }
+  table.form-table td[data-label]:not([data-label=""])::before {
+    content: attr(data-label); flex: 0 0 30%; font-size: 11px; font-weight: 700; color: var(--sub);
+  }
+  table.form-table td input, table.form-table td select {
+    flex: 1; width: auto !important; min-width: 0;
+  }
+  table.form-table .chk-group { flex: 1; }
+
+  table.grid { font-size: 10.5px; }
+  table.grid td { min-width: 24px; height: 22px; }
+  table.grid td.nm { min-width: 58px; padding: 3px 6px; font-size: 10.5px; }
+  table.grid td.nm .role { display: none; }
+
+  table.compact-grid td.nm, table.compact-grid th.nm { min-width: 40px; }
+}

@@ -326,9 +326,9 @@ function fillForm(cfg) {
 function renderMinStaffTable() {
   const tbody = $("#minStaffTable tbody");
   tbody.innerHTML = MIN_STAFF_ROWS.map(([key, label]) => {
-    const cells = MIN_STAFF_COLS.map(([col]) =>
-      `<td><input type="number" min="0" id="ms_${key}_${col}" value="0"></td>`).join("");
-    return `<tr><td><b>${label}</b></td>${cells}</tr>`;
+    const cells = MIN_STAFF_COLS.map(([col, colLabel]) =>
+      `<td data-label="${colLabel}"><input type="number" min="0" id="ms_${key}_${col}" value="0"></td>`).join("");
+    return `<tr><td data-label="근무"><b>${label}</b></td>${cells}</tr>`;
   }).join("");
 }
 renderMinStaffTable();
@@ -351,17 +351,17 @@ function renderStaffTable() {
       FLAG_OPTIONS.map(([v, l]) => `<option value="${v}" ${v === flagTag ? "selected" : ""}>${l}</option>`).join("") +
       `</select>`;
     return `<tr>
-      <td>${i + 1}</td>
-      <td><input type="text" data-i="${i}" class="nameInp" value="${escAttr(s.id)}"></td>
-      <td><select data-i="${i}" class="roleSel">
+      <td data-label="#">${i + 1}</td>
+      <td data-label="이름"><input type="text" data-i="${i}" class="nameInp" value="${escAttr(s.id)}"></td>
+      <td data-label="직급"><select data-i="${i}" class="roleSel">
             <option ${s.role === "파트장" ? "selected" : ""}>파트장</option>
             <option ${s.role === "리더" ? "selected" : ""}>리더</option>
             <option ${s.role === "간호사" ? "selected" : ""}>간호사</option>
           </select></td>
-      <td><input type="number" data-i="${i}" class="levelInp" min="1" max="5" value="${s.level}" style="width:44px"></td>
-      <td><div class="chk-group">${chk}</div></td>
-      <td>${flagSel}</td>
-      <td><button class="row-del" data-i="${i}" onclick="delStaff(${i})">삭제</button></td>
+      <td data-label="Lv"><input type="number" data-i="${i}" class="levelInp" min="1" max="5" value="${s.level}" style="width:44px"></td>
+      <td data-label="가능근무"><div class="chk-group">${chk}</div></td>
+      <td data-label="비고">${flagSel}</td>
+      <td data-label=""><button class="row-del" data-i="${i}" onclick="delStaff(${i})">삭제</button></td>
     </tr>`;
   }).join("");
   $("#staffCount").textContent = formStaff.length + "명";
@@ -393,13 +393,13 @@ function renderReqTable() {
   const body = $("#reqBody");
   const staffOptions = formStaff.map(s => `<option value="${escAttr(s.id)}">${esc(s.id)}</option>`).join("");
   body.innerHTML = formRequests.map((r, i) => `<tr>
-    <td><select data-i="${i}" class="rq_sid">${staffOptions}</select></td>
-    <td><input type="text" data-i="${i}" class="rq_date" value="${escAttr(r.date || "")}" placeholder="YYYY-MM-DD" style="width:110px"></td>
-    <td><select data-i="${i}" class="rq_type">
+    <td data-label="이름"><select data-i="${i}" class="rq_sid">${staffOptions}</select></td>
+    <td data-label="날짜"><input type="text" data-i="${i}" class="rq_date" value="${escAttr(r.date || "")}" placeholder="YYYY-MM-DD" style="width:110px"></td>
+    <td data-label="유형"><select data-i="${i}" class="rq_type">
       ${["OFF","연차","D","E","N","prn"].map(t => `<option ${r.type===t?"selected":""}>${t}</option>`).join("")}
     </select></td>
-    <td><input type="number" data-i="${i}" class="rq_pri" value="${r.priority}" style="width:44px"></td>
-    <td><button class="row-del" onclick="delReq(${i})">삭제</button></td>
+    <td data-label="우선순위"><input type="number" data-i="${i}" class="rq_pri" value="${r.priority}" style="width:44px"></td>
+    <td data-label=""><button class="row-del" onclick="delReq(${i})">삭제</button></td>
   </tr>`).join("");
   $("#reqCount").textContent = formRequests.length + "건";
   body.querySelectorAll(".rq_sid").forEach(el => { el.value = formRequests[+el.dataset.i].staff_id; el.onchange = e => formRequests[+e.target.dataset.i].staff_id = e.target.value; });
@@ -418,14 +418,14 @@ function renderCarryTable() {
   const body = $("#carryBody");
   const staffOptions = formStaff.map(s => `<option value="${escAttr(s.id)}">${esc(s.id)}</option>`).join("");
   body.innerHTML = formCarryover.map((c, i) => `<tr>
-    <td><select data-i="${i}" class="cy_sid">${staffOptions}</select></td>
-    <td><select data-i="${i}" class="cy_last">
+    <td data-label="이름"><select data-i="${i}" class="cy_sid">${staffOptions}</select></td>
+    <td data-label="마지막근무"><select data-i="${i}" class="cy_last">
       ${["OFF","D","E","N","NK","prn","연차"].map(t => `<option ${c.last_shift_type===t?"selected":""}>${t}</option>`).join("")}
     </select></td>
-    <td><input type="number" data-i="${i}" class="cy_cons" value="${c.consecutive_work_days}" style="width:50px"></td>
-    <td><input type="number" data-i="${i}" class="cy_roff" value="${c.night_block_remaining_off}" style="width:50px"></td>
-    <td><input type="number" data-i="${i}" class="cy_trail" value="${c.trailing_night_count}" style="width:50px"></td>
-    <td><button class="row-del" onclick="delCarry(${i})">삭제</button></td>
+    <td data-label="연속근무일"><input type="number" data-i="${i}" class="cy_cons" value="${c.consecutive_work_days}" style="width:50px"></td>
+    <td data-label="이월OFF일"><input type="number" data-i="${i}" class="cy_roff" value="${c.night_block_remaining_off}" style="width:50px"></td>
+    <td data-label="말일연속야간"><input type="number" data-i="${i}" class="cy_trail" value="${c.trailing_night_count}" style="width:50px"></td>
+    <td data-label=""><button class="row-del" onclick="delCarry(${i})">삭제</button></td>
   </tr>`).join("");
   $("#carryCount").textContent = formCarryover.length + "건";
   body.querySelectorAll(".cy_sid").forEach(el => { el.value = formCarryover[+el.dataset.i].staff_id; el.onchange = e => formCarryover[+e.target.dataset.i].staff_id = e.target.value; });
