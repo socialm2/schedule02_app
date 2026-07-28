@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>간호사 근무표 편집기</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="loadingOverlay">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <p id="loadingMsg">파이썬 실행 환경을 불러오는 중입니다…</p>
+    <p class="loading-sub">처음 열 때만 몇 초~수십 초 걸릴 수 있어요. 이후엔 브라우저에 저장돼 더 빨리 열립니다.</p>
+  </div>
+</div>
+<div id="app" style="display:none">
+  <header>
+    <h1>간호사 근무표 편집기 <span class="version-badge">v0.1</span></h1>
+    <span class="ward-info" id="wardInfo"></span>
+    <div class="spacer"></div>
+    <button id="infoBtn">ℹ️ 프로그램 정보 · 사용법</button>
+  </header>
+
+  <div id="main">
+    <div id="gridPane">
+      <!-- 입력 화면: 업로드 + 직접입력 폼 (샘플 기본값으로 미리 채워짐) -->
+      <div id="intake">
+        <div class="intake-box">
+          <h2>1. 입력 준비</h2>
+          <p class="hint">아래 표는 샘플 병동 데이터로 미리 채워져 있습니다.
+          그대로 <b>바로 생성</b>을 눌러도 되고, 엑셀을 업로드해 값을 통째로 바꾸거나,
+          표를 직접 고쳐서 우리 병동 데이터로 바꿔도 됩니다.</p>
+
+          <div class="upload-row">
+            <input type="file" id="fileInput" accept=".xlsx">
+            <button id="uploadBtn">엑셀 업로드해서 표 채우기</button>
+            <span id="uploadStatus" class="hint"></span>
+          </div>
+
+          <details class="form-sec" open>
+            <summary>설정</summary>
+            <div class="form-grid">
+              <label>병동명 <input type="text" id="f_ward"></label>
+              <label>연월
+                <span class="ym-picker">
+                  <select id="f_year"></select>
+                  <select id="f_month"></select>
+                </span>
+              </label>
+              <label>월 최대야간 <input type="number" id="f_maxnights" style="width:60px"></label>
+              <label><input type="checkbox" id="f_leader8a"> 리더 8A(prn형) 운용</label>
+            </div>
+            <div class="holiday-cal-wrap">
+              <div class="holiday-cal-head">
+                <span class="hint">공휴일 / 대체공휴일 지정 — 날짜를 클릭하면 <b>없음 → 공휴일 → 대체공휴일 → 없음</b> 순으로 바뀝니다 (한국 달력 기준 자동 반영, 필요시 직접 수정 가능)</span>
+                <span class="cal-legend">
+                  <span class="cal-sw"><span class="box hol"></span>공휴일</span>
+                  <span class="cal-sw"><span class="box sub"></span>대체공휴일</span>
+                </span>
+              </div>
+              <div id="holidayCalendar"></div>
+            </div>
+          </details>
+
+          <details class="form-sec" open>
+            <summary>인원 <span class="count-badge" id="staffCount"></span></summary>
+            <div class="tablebox">
+              <table class="form-table" id="staffTable">
+                <thead><tr><th>#</th><th>이름</th><th>직급</th><th>Lv</th>
+                  <th>가능근무</th><th>비고</th><th></th></tr></thead>
+                <tbody id="staffBody"></tbody>
+              </table>
+            </div>
+            <button id="addStaffBtn" class="small">+ 인원 추가</button>
+          </details>
+
+          <details class="form-sec" open>
+            <summary>최소인력</summary>
+            <div class="tablebox">
+              <table class="form-table" id="minStaffTable">
+                <thead><tr><th>근무</th><th>평일</th><th>토요일</th><th>일요일·공휴일</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </details>
+
+          <details class="form-sec">
+            <summary>원티드 신청 <span class="count-badge" id="reqCount"></span> (선택)</summary>
+            <div class="tablebox">
+              <table class="form-table" id="reqTable">
+                <thead><tr><th>이름</th><th>날짜</th><th>유형</th><th>우선순위</th><th></th></tr></thead>
+                <tbody id="reqBody"></tbody>
+              </table>
+            </div>
+            <button id="addReqBtn" class="small">+ 신청 추가</button>
+          </details>
+
+          <details class="form-sec">
+            <summary>전월이월 <span class="count-badge" id="carryCount"></span> (선택)</summary>
+            <div class="upload-row">
+              <input type="file" id="prevMonthInput" accept=".xlsx">
+              <button id="prevMonthBtn" class="small">지난달 확정 엑셀로 자동 채우기</button>
+              <span id="prevMonthStatus" class="hint"></span>
+            </div>
+            <div class="tablebox">
+              <table class="form-table" id="carryTable">
+                <thead><tr><th>이름</th><th>마지막근무</th><th>연속근무일</th><th>이월OFF일</th><th>말일연속야간</th><th></th></tr></thead>
+                <tbody id="carryBody"></tbody>
+              </table>
+            </div>
+            <button id="addCarryBtn" class="small">+ 이월 추가</button>
+          </details>
+
+          <div class="generate-row">
+            <button id="generateBtn" class="primary big">근무표 생성</button>
+            <span id="genStatus" class="hint"></span>
+          </div>
+        </div>
+      </div>
+      <!-- 생성 후 그리드는 이 컨테이너에 렌더링 (intake와 분리 — 서로 파괴하지 않음) -->
+      <div id="gridContent" style="display:none"></div>
+      <!-- 연간 근무표(최근 확정 달들)는 생성된 그리드 바로 아래, 같은 좌측 영역에 표시 -->
+      <div id="annualPane" style="display:none"></div>
+    </div>
+    <div id="sidePane" style="display:none"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="infoModalBackdrop">
+  <div class="modal">
+    <div class="modal-head"><h2>프로그램 정보 · 사용법</h2><button id="closeInfoBtn">✕</button></div>
+    <div class="modal-body" id="infoBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="vendor/pyodide/pyodide.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
