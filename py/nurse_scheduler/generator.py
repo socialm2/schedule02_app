@@ -356,11 +356,20 @@ class Generator:
             if per_person[s.id] > self.params.max_requests_per_person:
                 req.reject_reason = f"월 신청 상한({self.params.max_requests_per_person}건) 초과"
                 continue
-            if self.sch.is_locked(s.id, d):
-                req.reject_reason = (f"고정 배정과 충돌({self.sch.get(s.id, d)}) "
-                                     "— 하드 제약/리더 수정 우선")
-                continue
             t = req.type
+            if self.sch.is_locked(s.id, d):
+                if self.sch.get(s.id, d) == t:
+                    # 리더가 신청과 동일한 근무로 이미 고정 배정해둔 경우 — 반영된 것으로 처리
+                    if t in REST_SHIFTS:
+                        self.sch.requested_off.add((s.id, d))
+                        self._accepted_rest_reqs[(s.id, d)] = req
+                    else:
+                        taken[(d, t)] = taken.get((d, t), 0) + 1
+                    req.accepted = True
+                else:
+                    req.reject_reason = (f"고정 배정과 충돌({self.sch.get(s.id, d)}) "
+                                         "— 하드 제약/리더 수정 우선")
+                continue
             if t in REST_SHIFTS:
                 if not self._off_capacity_ok(d):
                     req.reject_reason = "해당일 최소인력 부족으로 휴무 불가(H1-1)"
