@@ -359,10 +359,12 @@ class Generator:
             t = req.type
             if self.sch.is_locked(s.id, d):
                 if self.sch.get(s.id, d) == t:
-                    # 리더가 신청과 동일한 근무로 이미 고정 배정해둔 경우 — 반영된 것으로 처리
+                    # 리더가 신청과 동일한 근무로 이미 고정 배정해둔 경우 — 반영된 것으로 처리.
+                    # _accepted_rest_reqs에는 넣지 않는다: 그 목록은 나중에 H1-1 미달 시
+                    # _repair_via_revoke_request()가 회수할 수 있는 "일반 신청"용이고,
+                    # 리더가 직접 고정한 칸은 그 어떤 경우에도 되돌려선 안 되기 때문.
                     if t in REST_SHIFTS:
                         self.sch.requested_off.add((s.id, d))
-                        self._accepted_rest_reqs[(s.id, d)] = req
                     else:
                         taken[(d, t)] = taken.get((d, t), 0) + 1
                     req.accepted = True
