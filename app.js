@@ -394,7 +394,7 @@ function renderReqTable() {
   const staffOptions = formStaff.map(s => `<option value="${escAttr(s.id)}">${esc(s.id)}</option>`).join("");
   body.innerHTML = formRequests.map((r, i) => `<tr>
     <td data-label="이름"><select data-i="${i}" class="rq_sid">${staffOptions}</select></td>
-    <td data-label="날짜"><input type="text" data-i="${i}" class="rq_date" value="${escAttr(r.date || "")}" placeholder="YYYY-MM-DD" style="width:110px"></td>
+    <td data-label="날짜"><input type="date" data-i="${i}" class="rq_date" value="${escAttr(r.date || "")}" style="width:140px"></td>
     <td data-label="유형"><select data-i="${i}" class="rq_type">
       ${["OFF","연차","D","E","N","prn"].map(t => `<option ${r.type===t?"selected":""}>${t}</option>`).join("")}
     </select></td>
@@ -737,7 +737,8 @@ function renderSide() {
     html += `<div class="side-sec"><h3>원티드 신청 <span class="count-badge">${r.requests.accepted}/${r.requests.total} 반영</span></h3>` +
       '<table class="mini-table"><tr><th>이름</th><th>날짜</th><th>유형</th><th>결과</th></tr>' +
       r.requests_all.map(q => `<tr><td>${esc(q.staff_id)}</td><td>${esc(q.date)}</td><td>${esc(q.type)}</td>` +
-        `<td class="${q.accepted ? "badge-ok" : "badge-bad"}" title="${escAttr(q.reason)}">${q.accepted ? "수용" : "반려"}</td></tr>`).join("") +
+        `<td class="${q.accepted ? "badge-ok" : "badge-bad"}">${q.accepted ? "수용" :
+          `반려<br><span style="font-weight:400;font-size:10px;color:var(--sub)">${esc(q.reason || "")}</span>`}</td></tr>`).join("") +
       "</table></div>";
   }
 
