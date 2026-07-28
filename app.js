@@ -72,69 +72,84 @@ function showToast(msg, isErr) {
   setTimeout(() => { toast.className = "toast"; }, 2800);
 }
 
-// ================================================================ Pyodide 브릿지
-// 서버(Flask) 없이 브라우저 안에서 Python(nurse_scheduler 엔진)을 직접 돌린다.
+// ================================================================ Pyodide 브릿지 (Web Worker)
+// 서버(Flask) 없이 브라우저 안에서 Python(nurse_scheduler 엔진)을 직접 돌리되,
+// 계산 자체는 별도 Worker 스레드(pyworker.js)에서 실행한다. 근무표 생성처럼
+// 오래 걸리는 계산 중에도 이 메인 스레드(화면)는 얼어붙지 않고 계속 반응한다.
 // api(path, opts)의 시그니처는 원래 fetch 버전과 동일하게 유지해서, 이 함수를
 // 호출하는 나머지 코드는 전혀 손대지 않아도 되게 만들었다.
 
-let pyodide = null;
-let bridge = null;
+let worker = null;
+let _reqId = 0;
+const _pending = new Map();
+
+const HISTORY_PREFIX = "ns_history_";
+
+function _readHistorySnapshot() {
+  const out = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith(HISTORY_PREFIX)) out[k] = localStorage.getItem(k);
+  }
+  return out;
+}
+
+function _applyHistoryPatch(patch) {
+  if (!patch) return;
+  for (const [k, v] of Object.entries(patch)) localStorage.setItem(k, v);
+}
 
 async function bootPyodide() {
   const msg = document.getElementById("loadingMsg");
-  pyodide = await loadPyodide({ indexURL: "vendor/pyodide/" });
-
-  msg.textContent = "필요한 패키지를 설치하는 중…";
-  await pyodide.loadPackage("micropip");
-  const micropip = pyodide.pyimport("micropip");
-  await micropip.install("vendor/wheels/et_xmlfile-2.0.0-py3-none-any.whl");
-  await micropip.install("vendor/wheels/openpyxl-3.1.5-py2.py3-none-any.whl");
-
-  msg.textContent = "근무표 생성 엔진을 불러오는 중…";
-  const zipBuf = await (await fetch("py_app.zip")).arrayBuffer();
-  pyodide.unpackArchive(zipBuf, "zip");
-
-  const sampleBuf = await (await fetch("sample_input.xlsx")).arrayBuffer();
-  pyodide.FS.writeFile("/sample_input.xlsx", new Uint8Array(sampleBuf));
-
-  pyodide.runPython("import sys\nif '/' not in sys.path: sys.path.insert(0, '/')");
-  bridge = pyodide.pyimport("bridge");
-  window.bridge = bridge; // 다운로드 함수 등에서 사용
+  worker = new Worker("pyworker.js");
+  await new Promise((resolve, reject) => {
+    worker.onmessage = (ev) => {
+      const d = ev.data;
+      if (d.type === "boot_progress") { msg.textContent = d.msg; return; }
+      if (d.type === "ready") { resolve(); return; }
+      if (d.type === "boot_error") { reject(new Error(d.error)); return; }
+    };
+    worker.onerror = (e) => reject(new Error(e.message || "Worker 로딩 실패"));
+  });
+  // 부팅 완료 후 메시지 핸들러를 요청/응답(RPC) 방식으로 교체
+  worker.onmessage = (ev) => {
+    const { id, ok, raw, error, binary } = ev.data;
+    const p = _pending.get(id);
+    if (!p) return;
+    _pending.delete(id);
+    if (ok) p.resolve({ raw, binary }); else p.reject(new Error(error));
+  };
+  // 연간 근무표 기록(localStorage)은 Worker 안에서 직접 못 읽으므로, 부팅 직후
+  // 현재 스냅샷을 한 번 넣어준다.
+  await callWorker("/api/_bootstrap_history", { body: JSON.stringify(_readHistorySnapshot()) });
 }
 
-async function callBridge(path, opts) {
-  opts = opts || {};
-  switch (path) {
-    case "/api/sample": return bridge.api_sample();
-    case "/api/upload": return bridge.api_upload(opts._fileBytes);
-    case "/api/upload_prev_month": return bridge.api_upload_prev_month(opts._fileBytes);
-    case "/api/set_config": return bridge.api_set_config(opts.body);
-    case "/api/generate": return bridge.api_generate();
-    case "/api/state": return bridge.api_state();
-    case "/api/edit": return bridge.api_edit(opts.body);
-    case "/api/edit/undo": return bridge.api_edit_undo(opts.body);
-    case "/api/discard": return bridge.api_discard();
-    case "/api/feedback": return bridge.api_feedback();
-    case "/api/apply": return bridge.api_apply();
-    case "/api/finalize": return bridge.api_finalize();
-    case "/api/annual": return bridge.api_annual();
-    default: throw new Error("알 수 없는 경로: " + path);
-  }
+function callWorker(path, opts) {
+  return new Promise((resolve, reject) => {
+    const id = ++_reqId;
+    _pending.set(id, { resolve, reject });
+    worker.postMessage({ id, path, opts: opts || {} });
+  });
 }
 
 async function api(path, opts) {
-  let raw;
+  let raw, binary;
   try {
-    raw = await callBridge(path, opts);
+    ({ raw, binary } = await callWorker(path, opts));
   } catch (e) {
     const message = (e && e.message) ? e.message.split("\n")[0] : String(e);
     showToast(message, true);
     throw e;
   }
+  if (binary) return raw; // 바이너리(xlsx) 응답은 JSON이 아니므로 그대로 반환
   const data = JSON.parse(raw);
   if (data && data.error) {
     showToast(data.error, true);
     throw new Error(data.error);
+  }
+  if (data && data._history_patch) {
+    _applyHistoryPatch(data._history_patch);
+    delete data._history_patch;
   }
   return data;
 }
@@ -151,18 +166,23 @@ function triggerDownload(content, filename, mime) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
-window.downloadXlsx = function () {
-  const bytes = bridge.api_download_xlsx().toJs();
-  triggerDownload(bytes, `schedule_${bridge.download_tag()}.xlsx`,
+// 다운로드 3종은 JSON이 아니라 순수 텍스트/바이너리를 그대로 돌려주므로,
+// JSON.parse를 하는 api() 대신 callWorker()로 원본 응답을 직접 받는다.
+window.downloadXlsx = async function () {
+  const { raw: bytes } = await callWorker("/api/download/xlsx");
+  const { raw: tag } = await callWorker("/api/download_tag");
+  triggerDownload(bytes, `schedule_${tag}.xlsx`,
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 };
-window.downloadReport = function () {
-  triggerDownload(bridge.api_download_report(), `report_${bridge.download_tag()}.txt`,
-    "text/plain;charset=utf-8");
+window.downloadReport = async function () {
+  const { raw: text } = await callWorker("/api/download/report");
+  const { raw: tag } = await callWorker("/api/download_tag");
+  triggerDownload(text, `report_${tag}.txt`, "text/plain;charset=utf-8");
 };
-window.downloadCarryover = function () {
-  triggerDownload(bridge.api_download_carryover(), `carryover_next_${bridge.download_tag()}.json`,
-    "application/json");
+window.downloadCarryover = async function () {
+  const { raw: json } = await callWorker("/api/download/carryover");
+  const { raw: tag } = await callWorker("/api/download_tag");
+  triggerDownload(json, `carryover_next_${tag}.json`, "application/json");
 };
 
 function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
@@ -521,10 +541,21 @@ $("#prevMonthBtn").onclick = async () => {
   } catch (e) {}
 };
 
+// 생성/재생성은 인원이 많으면 수십 초~1~2분 걸릴 수 있다. Worker 덕분에 화면
+// 자체는 멈추지 않지만, 진행 상황을 안내하는 오버레이는 그대로 띄워준다.
+function showGenOverlay(msg) {
+  $("#genOverlayMsg").textContent = msg;
+  $("#genOverlay").style.display = "";
+}
+function hideGenOverlay() {
+  $("#genOverlay").style.display = "none";
+}
+
 $("#generateBtn").onclick = async () => {
   const btn = $("#generateBtn");
   btn.disabled = true;
   $("#genStatus").textContent = "생성 중...";
+  showGenOverlay("근무표를 생성하는 중입니다…");
   try {
     const cfg = buildCfgFromForm();
     await api("/api/set_config", {
@@ -539,6 +570,7 @@ $("#generateBtn").onclick = async () => {
   } finally {
     btn.disabled = false;
     if (!ST) $("#genStatus").textContent = "";
+    hideGenOverlay();
   }
 };
 
@@ -871,9 +903,13 @@ window.discardAll = async function () {
 };
 
 window.applyEdits = async function () {
+  showGenOverlay("수정 사항을 반영해 다시 계산하는 중입니다…");
   try {
     ST = await api("/api/apply", { method: "POST" });
     render();
     showToast(`${ST.round}회차로 재생성 완료`);
-  } catch (e) {}
+  } catch (e) {
+  } finally {
+    hideGenOverlay();
+  }
 };

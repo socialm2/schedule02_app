@@ -9,6 +9,12 @@ webapp/app.py의 Flask 라우트 로직을 그대로 옮기되, HTTP 대신 JS�
 로컬 파일 시스템이 없으므로(브라우저), 웹앱의 webapp/history/*.json 파일 저장은
 브라우저 localStorage로 대체한다. 그 외 로직(생성/편집/피드백/재생성/누적 원장)은
 webapp/app.py와 완전히 동일하다.
+
+이 모듈은 Web Worker 안에서 실행되므로(메인 스레드가 생성 계산 중 멈추지 않게 하려고)
+localStorage에 직접 접근할 수 없다(Worker에는 window.localStorage가 없음). 대신
+메인 스레드가 현재 localStorage 스냅샷을 부팅 직후 `bootstrap_history()`로 넣어주고,
+이 모듈은 그 내용을 메모리 캐시(_hist)에서 읽고 쓴다. 새로 쓴 값은 각 응답의
+"_history_patch" 필드로 실어보내면, 메인 스레드가 그걸 받아 실제 localStorage에 반영한다.
 """
 from __future__ import annotations
 
@@ -27,11 +33,6 @@ from nurse_scheduler.generator import (
 )
 from nurse_scheduler.models import Shift, parse_shift
 from nurse_scheduler.reporting import build_report, format_text_report
-
-try:
-    import js  # Pyodide 안에서만 존재 (localStorage 등 브라우저 전역 접근용)
-except ImportError:  # pragma: no cover - 브라우저 밖에서 import 테스트할 때만
-    js = None
 
 SAMPLE_PATH = "/sample_input.xlsx"
 HISTORY_PREFIX = "ns_history_"
@@ -157,34 +158,54 @@ def _full_state_json() -> str:
 # ---------------------------------------------------------------- 연간 근무표 히스토리
 # webapp/app.py는 webapp/history/YYYY-MM.json 파일에 저장하지만, 브라우저에는
 # 로컬 파일 시스템이 없으므로 localStorage 키(ns_history_YYYY-MM)로 대체한다.
+# 이 모듈은 Worker 안에서 돌아 localStorage에 직접 접근할 수 없으므로, 메인 스레드가
+# bootstrap_history()로 넣어준 스냅샷을 메모리 캐시(_hist)에 두고 그걸로 읽고 쓴다.
+# 새로 쓴 값은 _pending_writes에 모아뒀다가 응답의 "_history_patch" 필드로 실어보낸다.
+
+_hist: dict[str, str] = {}
+_pending_writes: dict[str, str] = {}
+
+
+def bootstrap_history(raw_json: str) -> str:
+    """메인 스레드가 부팅 직후 현재 localStorage 스냅샷을 여기로 넣어준다."""
+    _hist.update(json.loads(raw_json))
+    return json.dumps({"ok": True}, ensure_ascii=False)
+
+
+def _with_history_patch(payload: dict) -> dict:
+    if _pending_writes:
+        payload["_history_patch"] = dict(_pending_writes)
+        _pending_writes.clear()
+    return payload
+
 
 def _history_key(year: int, month: int) -> str:
     return f"{HISTORY_PREFIX}{year:04d}-{month:02d}"
 
 
 def _save_history_entry(entry: dict):
-    js.localStorage.setItem(_history_key(entry["year"], entry["month"]),
-                            json.dumps(entry, ensure_ascii=False))
+    key = _history_key(entry["year"], entry["month"])
+    val = json.dumps(entry, ensure_ascii=False)
+    _hist[key] = val
+    _pending_writes[key] = val
 
 
 def _load_history_entry(year: int, month: int) -> dict | None:
-    raw = js.localStorage.getItem(_history_key(year, month))
+    raw = _hist.get(_history_key(year, month))
     if raw is None:
         return None
     return json.loads(raw)
 
 
 def _history_exists(year: int, month: int) -> bool:
-    return js.localStorage.getItem(_history_key(year, month)) is not None
+    return _history_key(year, month) in _hist
 
 
 def _all_history_year_months():
     out = []
-    n = js.localStorage.length
     pat = re.compile(rf"^{HISTORY_PREFIX}(\d{{4}})-(\d{{2}})$")
-    for i in range(n):
-        k = js.localStorage.key(i)
-        m = pat.match(k) if k else None
+    for k in _hist:
+        m = pat.match(k)
         if m:
             out.append((int(m.group(1)), int(m.group(2))))
     return out
@@ -305,8 +326,9 @@ def api_upload_prev_month(file_bytes) -> str:
             warning = (f"업로드한 파일은 {data['year']}년 {data['month']}월 근무표인데, "
                        f"현재 설정된 달({cur_y}년 {cur_m}월)의 바로 전달({prev_y}년 {prev_m}월)이 "
                        "아닙니다 — 그래도 이월값은 반영합니다.")
-    return json.dumps({"ok": True, "year": data["year"], "month": data["month"],
-                       "carryover": carry, "warning": warning}, ensure_ascii=False)
+    payload = _with_history_patch({"ok": True, "year": data["year"], "month": data["month"],
+                                   "carryover": carry, "warning": warning})
+    return json.dumps(payload, ensure_ascii=False)
 
 
 def api_set_config(body_json: str) -> str:
@@ -446,8 +468,8 @@ def api_finalize() -> str:
     except ApiError as e:
         return _err(str(e))
     _save_history_entry(_current_history_entry())
-    return json.dumps({"ok": True, "saved": f"{S.gen.year}-{S.gen.month:02d}"},
-                      ensure_ascii=False)
+    payload = _with_history_patch({"ok": True, "saved": f"{S.gen.year}-{S.gen.month:02d}"})
+    return json.dumps(payload, ensure_ascii=False)
 
 
 def api_annual() -> str:

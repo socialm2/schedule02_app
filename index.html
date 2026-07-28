@@ -14,6 +14,13 @@
     <p class="loading-sub">처음 열 때만 몇 초~수십 초 걸릴 수 있어요. 이후엔 브라우저에 저장돼 더 빨리 열립니다.</p>
   </div>
 </div>
+<div id="genOverlay" style="display:none">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <p id="genOverlayMsg">근무표를 계산하는 중입니다…</p>
+    <p class="loading-sub" id="genOverlaySub">인원이 많은 병동은 1~2분 정도 걸릴 수 있어요. 창을 닫지 말고 잠시만 기다려주세요.</p>
+  </div>
+</div>
 <div id="app" style="display:none">
   <header>
     <h1>간호사 근무표 편집기 <span class="version-badge">v0.1</span></h1>
@@ -135,7 +142,6 @@
 </div>
 
 <div class="toast" id="toast"></div>
-<script src="vendor/pyodide/pyodide.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
