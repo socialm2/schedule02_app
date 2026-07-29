@@ -100,7 +100,6 @@ class Generator:
         self.staff = self._parse_staff(config["staff"])
         import random
         self.rng = random.Random(seed)
-        self.jitter = False  # 국소 재구성 시 동순위 무작위화 강제
         if seed:
             # 재시도 시 후보 순서·동순위 결정을 바꿔 다른 해를 찾는다 (Step 10 재시도)
             self.rng.shuffle(self.staff)
@@ -555,7 +554,7 @@ class Generator:
                 score = (squeeze, s8_pen,
                          self.sch.nights_in_month(s.id),
                          -min(gap, 12), self.sch.workdays_in_month(s.id),
-                         self.rng.random() if (self.seed or self.jitter) else 0)
+                         self.rng.random())
                 if best_score is None or score < best_score:
                     best_score = score
                     best = (s.id, length)
@@ -691,7 +690,7 @@ class Generator:
                      odo, wk_load,
                      self.sch.workdays_in_month(s.id),
                      -self.sch.offs_in_month(s.id),
-                     self.rng.random() if (self.seed or self.jitter) else 0)
+                     self.rng.random())
             if best_score is None or score < best_score:
                 best_score, best = score, s
         return best
@@ -778,35 +777,30 @@ class Generator:
         lo, hi = max(0, d0 - span), min(sch.num_days - 1, d0 + span)
         snapshot = {s.id: sch.grid[s.id][lo:hi + 1] for s in self.staff}
         base = self.count_deficits()
-        prev_jitter = self.jitter
-        self.jitter = True
-        try:
-            for _ in range(tries):
-                for s in self.staff:
-                    if s.is_partjang or s.is_nk:
-                        continue
-                    for dd in range(lo, hi + 1):
-                        if sch.grid[s.id][dd] in DAY_WORK_SHIFTS \
-                                and not sch.is_locked(s.id, dd):
-                            sch.grid[s.id][dd] = Shift.OFF
+        for _ in range(tries):
+            for s in self.staff:
+                if s.is_partjang or s.is_nk:
+                    continue
                 for dd in range(lo, hi + 1):
-                    for key, sh in (("D", Shift.D), ("E", Shift.E),
-                                    ("prn", Shift.PRN)):
-                        need = self.min_for(dd, key) - sch.count_shift(dd, sh)
-                        while need > 0:
-                            cand = self._pick_day_candidate(dd, sh)
-                            if cand is None:
-                                break
-                            sch.set(cand.id, dd, sh)
-                            need -= 1
-                if self.count_deficits() < base:
-                    sch.log(f"[수리] {d0+1}일 주변({lo+1}~{hi+1}일) 재구성으로 "
-                            f"미달 {base}→{self.count_deficits()}건 (H1-1)")
-                    return True
-                for s in self.staff:
-                    sch.grid[s.id][lo:hi + 1] = list(snapshot[s.id])
-        finally:
-            self.jitter = prev_jitter
+                    if sch.grid[s.id][dd] in DAY_WORK_SHIFTS \
+                            and not sch.is_locked(s.id, dd):
+                        sch.grid[s.id][dd] = Shift.OFF
+            for dd in range(lo, hi + 1):
+                for key, sh in (("D", Shift.D), ("E", Shift.E),
+                                ("prn", Shift.PRN)):
+                    need = self.min_for(dd, key) - sch.count_shift(dd, sh)
+                    while need > 0:
+                        cand = self._pick_day_candidate(dd, sh)
+                        if cand is None:
+                            break
+                        sch.set(cand.id, dd, sh)
+                        need -= 1
+            if self.count_deficits() < base:
+                sch.log(f"[수리] {d0+1}일 주변({lo+1}~{hi+1}일) 재구성으로 "
+                        f"미달 {base}→{self.count_deficits()}건 (H1-1)")
+                return True
+            for s in self.staff:
+                sch.grid[s.id][lo:hi + 1] = list(snapshot[s.id])
         return False
 
     def _repair_via_revoke_request(self, d: int, shift: Shift) -> bool:
