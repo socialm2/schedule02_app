@@ -836,23 +836,43 @@ async function loadAnnualView() {
   const months = [data.current, ...data.history];
   let html = '<div class="annual-months">' + months.map(renderCompactMonth).join("") + "</div>";
 
-  const staffOrder = data.current.staff.map(s => s.id);
-  const avgs = staffOrder.map(sid => {
+  const generalIds = data.current.staff.filter(s => !s.is_nk).map(s => s.id);
+  const nkIds = data.current.staff.filter(s => s.is_nk).map(s => s.id);
+  const avgs = generalIds.map(sid => {
     const c = data.cumulative[sid];
     return c && c.months > 0 ? c.night / c.months : 0;
   }).filter(v => v > 0);
   const teamAvg = avgs.length ? avgs.reduce((a, b) => a + b, 0) / avgs.length : 0;
 
-  html += `<h4 class="annual-sub">누적 합계 (표시된 ${months.length}개월)</h4>` +
-    '<table class="mini-table"><tr><th>이름</th><th>OFF</th><th>야간</th><th>근무</th><th>월평균야간</th></tr>';
-  for (const sid of staffOrder) {
-    const c = data.cumulative[sid] || { off: 0, night: 0, workday: 0, months: 0 };
+  html += `<h4 class="annual-sub">누적 합계 (표시된 ${months.length}개월) — 다음달 배치 참고용</h4>` +
+    '<table class="mini-table"><tr><th>이름</th><th>OFF</th><th>야간</th><th>근무</th>' +
+    '<th>월평균야간</th><th>주말야간</th><th>2일블록</th><th>3일블록</th></tr>';
+  for (const sid of generalIds) {
+    const c = data.cumulative[sid] || { off: 0, night: 0, workday: 0, months: 0,
+      weekend_night: 0, blocks_2: 0, blocks_3: 0, blocks_other: 0 };
     const avg = c.months > 0 ? c.night / c.months : 0;
     const dev = c.months > 1 && teamAvg > 0 && (avg - teamAvg) >= 1.5;
     html += `<tr><td>${esc(sid)}</td><td>${c.off}</td><td>${c.night}</td><td>${c.workday}</td>` +
-      `<td class="${dev ? "badge-bad" : ""}">${avg.toFixed(1)}${dev ? " 야간多" : ""}</td></tr>`;
+      `<td class="${dev ? "badge-bad" : ""}">${avg.toFixed(1)}${dev ? " 야간多" : ""}</td>` +
+      `<td>${c.weekend_night}</td><td>${c.blocks_2}</td>` +
+      `<td class="${c.blocks_3 > 0 ? "badge-bad" : ""}">${c.blocks_3}</td></tr>`;
   }
   html += "</table>";
+
+  if (nkIds.length) {
+    html += `<h4 class="annual-sub">야간전담(NK) 누적 — 참고용, 2:3 블록 혼합이 정상</h4>` +
+      '<table class="mini-table"><tr><th>이름</th><th>OFF</th><th>야간</th>' +
+      '<th>월평균야간</th><th>주말야간</th><th>2일블록</th><th>3일블록</th></tr>';
+    for (const sid of nkIds) {
+      const c = data.cumulative[sid] || { off: 0, night: 0, months: 0,
+        weekend_night: 0, blocks_2: 0, blocks_3: 0 };
+      const avg = c.months > 0 ? c.night / c.months : 0;
+      html += `<tr><td>${esc(sid)}</td><td>${c.off}</td><td>${c.night}</td>` +
+        `<td>${avg.toFixed(1)}</td><td>${c.weekend_night}</td>` +
+        `<td>${c.blocks_2}</td><td>${c.blocks_3}</td></tr>`;
+    }
+    html += "</table>";
+  }
   box.innerHTML = html;
 }
 

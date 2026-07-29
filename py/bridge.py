@@ -243,7 +243,7 @@ def _summary_from_raw_grid(grid: dict, num_days: int):
 def _current_history_entry():
     return {
         "year": S.gen.year, "month": S.gen.month,
-        "staff": [{"id": s.id, "level": s.level} for s in S.sch.staff],
+        "staff": [{"id": s.id, "level": s.level, "is_nk": s.is_nk} for s in S.sch.staff],
         "num_days": S.sch.num_days,
         "grid": _display_grid(),
         "days": _days_meta(),
@@ -256,16 +256,49 @@ def _current_history_entry():
     }
 
 
+def _night_block_counts(row: list) -> tuple:
+    """근무 코드 리스트 하나(한 달치)에서 야간(N/NK) 연속블록 길이별 건수를 센다."""
+    b2 = b3 = other = 0
+    i, n = 0, len(row)
+    while i < n:
+        if row[i] in ("N", "NK"):
+            j = i
+            while j + 1 < n and row[j + 1] in ("N", "NK"):
+                j += 1
+            length = j - i + 1
+            if length == 2:
+                b2 += 1
+            elif length == 3:
+                b3 += 1
+            else:
+                other += 1
+            i = j + 1
+        else:
+            i += 1
+    return b2, b3, other
+
+
 def _cumulative_summary(entries: list, staff_ids: list):
     out = {}
     for sid in staff_ids:
         off = night = workday = months = 0
+        weekend_night = 0
+        blocks_2 = blocks_3 = blocks_other = 0
         for e in entries:
             s = e["summary"].get(sid)
             if s:
                 off += s["off"]; night += s["night"]; workday += s["workday"]
                 months += 1
-        out[sid] = {"off": off, "night": night, "workday": workday, "months": months}
+            row = e.get("grid", {}).get(sid)
+            days = e.get("days")
+            if row and days:
+                weekend_night += sum(1 for v, d in zip(row, days)
+                                     if v in ("N", "NK") and d.get("dow") in ("토", "일"))
+                b2, b3, bo = _night_block_counts(row)
+                blocks_2 += b2; blocks_3 += b3; blocks_other += bo
+        out[sid] = {"off": off, "night": night, "workday": workday, "months": months,
+                    "weekend_night": weekend_night, "blocks_2": blocks_2,
+                    "blocks_3": blocks_3, "blocks_other": blocks_other}
     return out
 
 
