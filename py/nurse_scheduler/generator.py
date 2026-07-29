@@ -554,6 +554,7 @@ class Generator:
                 score = (squeeze, s8_pen,
                          self.sch.nights_in_month(s.id),
                          -min(gap, 12), self.sch.workdays_in_month(s.id),
+                         self.sch.carryover[s.id].recent_night_score,
                          self.rng.random())
                 if best_score is None or score < best_score:
                     best_score = score
@@ -1175,12 +1176,17 @@ class Generator:
                         dd -= 1
                     if blk >= 2:
                         remaining_off = 1
+            old_score = self.sch.carryover[s.id].recent_night_score
+            this_month_nights = self.sch.nights_in_month(s.id)
             out[s.id] = {
                 "last_shift_type": str(last),
                 "consecutive_work_days": run,
                 "night_block_remaining_off": remaining_off,
                 "night_block_in_progress": trailing == 1,
                 "trailing_night_count": trailing,
+                # 최근 몇 달 야간 누적을 감쇠 이동평균으로 근사(대략 최근 3개월 비중)
+                # — 야간을 적게 받은 사람이 다음 몇 달간 우선권을 갖도록 함(S2 장기화).
+                "recent_night_score": round(old_score * (2 / 3) + this_month_nights, 2),
             }
         return out
 
@@ -1282,11 +1288,15 @@ def carryover_from_grid(grid: Dict[str, List[str]], num_days: int) -> Dict[str, 
                     dd -= 1
                 if blk >= 2:
                     remaining_off = 1
+        this_month_nights = sum(1 for v in row if v in NIGHT_SHIFTS)
         out[sid] = {
             "last_shift_type": str(last),
             "consecutive_work_days": run,
             "night_block_remaining_off": remaining_off,
             "night_block_in_progress": trailing == 1,
             "trailing_night_count": trailing,
+            # 그리드 한 장만으로는 그 이전 달의 recent_night_score를 알 수 없으므로
+            # 이번 달 실적만으로 새로 시작한다(그래도 0으로 두는 것보다는 근사가 낫다).
+            "recent_night_score": float(this_month_nights),
         }
     return out

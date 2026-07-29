@@ -75,6 +75,7 @@ class Carryover:
     night_block_remaining_off: int = 0  # 이번 달 초에 이월해야 할 필수 OFF 일수
     night_block_in_progress: bool = False
     trailing_night_count: int = 0  # 전월 말에 이어지던 야간블록 길이(0=없음)
+    recent_night_score: float = 0.0  # 최근 몇 달간의 야간 누적(감쇠) — 야간 배정 형평성용
 
     @classmethod
     def from_dict(cls, d: Optional[dict]) -> "Carryover":
@@ -90,6 +91,7 @@ class Carryover:
             night_block_remaining_off=int(d.get("night_block_remaining_off", 0)),
             night_block_in_progress=in_prog,
             trailing_night_count=trailing,
+            recent_night_score=float(d.get("recent_night_score", 0.0)),
         )
 
 
