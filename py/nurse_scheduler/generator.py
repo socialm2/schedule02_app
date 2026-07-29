@@ -878,9 +878,12 @@ class Generator:
                     self.sch.set(s.id, d, Shift.OFF)
 
     # ------------------------------------------------------------ Step 7 (G4)
-    def fix_alternation(self):
+    def fix_alternation(self) -> int:
+        """S7 퐁당퐁당(ODO/OEO — 고립된 하루 근무) 완화. 한 번 고치면 다른 사람 자리가
+        비어 새로 고칠 여지가 생길 수 있어, 호출부에서 변화 없을 때까지 반복 호출한다."""
         sch = self.sch
         nd = sch.num_days
+        fixed = 0
         for s in self.staff:
             if s.is_partjang or s.is_nk:
                 continue
@@ -893,7 +896,9 @@ class Generator:
                 if not (sch.effective(s.id, d - 1) in REST_SHIFTS
                         and sch.effective(s.id, d + 1) in REST_SHIFTS):
                     continue
-                self._try_transfer(s, d, v) or self._try_swap(s, d, v)
+                if self._try_transfer(s, d, v) or self._try_swap(s, d, v):
+                    fixed += 1
+        return fixed
 
     def _lv3_guard_ok(self, donor: Staff, receiver: Optional[Staff],
                       d: int, shift: Shift) -> bool:
@@ -1205,7 +1210,9 @@ class Generator:
         self.fill_day_shifts()     # Step 6
         self.finalize_offs()
         self.repair_min_staff()    # H1-1 미달 수리
-        self.fix_alternation()     # Step 7
+        for _ in range(5):         # Step 7 — 한 명 고치면 다른 사람 자리가 열려 반복하면 더 줄어듦
+            if self.fix_alternation() == 0:
+                break
         self.equalize_off()        # Step 8
         self.split_long_offs()     # Step 9
         # 수리 ↔ 균등화 반복: 균등화가 만든 빈 자리를 수리가 활용 (Step 10 사전)
@@ -1215,7 +1222,9 @@ class Generator:
             if self.count_deficits() == 0:
                 break
         self.equalize_off()        # 수리로 생긴 편중 재조정 (일별 인원수 보존)
-        self.fix_alternation()     # 최종 퐁당퐁당 완화 (G4 재실행)
+        for _ in range(5):         # 최종 퐁당퐁당 완화 (G4 재실행, 수렴까지 반복)
+            if self.fix_alternation() == 0:
+                break
         return self.sch
 
 
