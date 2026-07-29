@@ -61,6 +61,7 @@ let formHolidays = [];      // ["YYYY-MM-DD", ...] 공휴일
 let formSubHolidays = [];   // ["YYYY-MM-DD", ...] 대체공휴일
 
 const $ = (sel) => document.querySelector(sel);
+const gridPane = $("#gridPane");
 const gridContent = $("#gridContent");
 const annualPane = $("#annualPane");
 const sidePane = $("#sidePane");
@@ -609,6 +610,10 @@ function render() {
   renderGrid();
   renderSide();
   renderAnnualPane();
+  // 모바일은 화면 전체가 스크롤되는 구조라, 생성 전 스크롤 위치가 그대로
+  // 남으면 결과 화면이 맨 아래에서 시작한 것처럼 보인다 — 맨 위(근무표)로 리셋.
+  window.scrollTo(0, 0);
+  gridPane.scrollTop = 0;
 }
 
 function renderGrid() {
@@ -727,8 +732,6 @@ function renderSide() {
 
   html += `<div class="side-sec"><h3>다운로드</h3><div class="download-row">
     <button onclick="downloadXlsx()">근무표 엑셀</button>
-    <button onclick="downloadReport()">검증 리포트 (txt)</button>
-    <button onclick="downloadCarryover()">익월 이월 JSON</button>
   </div></div>`;
 
   // 입력 요약
