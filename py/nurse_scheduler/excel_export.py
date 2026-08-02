@@ -123,3 +123,117 @@ def export_excel(sch: MonthSchedule, days: List[DayInfo], path: str):
     ws.column_dimensions["A"].width = 12
     ws.column_dimensions["B"].width = 4
     wb.save(path)
+
+
+# ---------------------------------------------------------------- 인원표 (다월 자동 연동용)
+
+STAT_FILL = PatternFill("solid", fgColor="E2EFDA")
+NK_ROW_FILL = PatternFill("solid", fgColor="F2E9F7")
+GROUP_FONT = Font(bold=True, size=11, color="808080")
+BOLD = Font(bold=True)
+
+
+def export_staff_table_xlsx(staff, stats: dict, annual_dates: list,
+                             annual_grid: dict, path: str,
+                             last_reflected: str = ""):
+    """'인원표' 내보내기 — 로스터 + 누적통계(형평성 참고용) + 연간 근무 그리드(1/1~, 참고용).
+
+    staff: List[Staff] (현재 인원 명단, 이 순서/구성대로 출력)
+    stats: {staff_id: {"night","workday","off","weekend_night",
+                        "blocks_2","blocks_3","months","recent_night_score"}}
+    annual_dates: [datetime.date, ...] — 1/1부터 이어진 연간 그리드 날짜(오름차순)
+    annual_grid: {staff_id: [code, ...]} — annual_dates와 나란히
+    """
+    from .excel_input import STAFF_TABLE_STATIC_COLS, STAFF_TABLE_STAT_KEYS, STAFF_TABLE_STAT_LABELS
+    from .calendar_utils import WEEKDAY_NAMES
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "인원표"
+
+    n_static = len(STAFF_TABLE_STATIC_COLS)
+    n_stat = len(STAFF_TABLE_STAT_KEYS)
+    first_day_col = 1 + n_static + n_stat  # 1-based
+
+    title = "인원표"
+    if last_reflected:
+        title += f" — {last_reflected}까지 반영"
+    ws.cell(1, 1, title).font = Font(bold=True, size=13)
+
+    ws.cell(2, 1, "[ 인원 정보 ]").font = GROUP_FONT
+    ws.cell(2, 1 + n_static, "[ 누적 통계 (형평성 참고용) ]").font = GROUP_FONT
+    if annual_dates:
+        ws.cell(2, first_day_col, "[ 연간 근무표 (참고용, 1/1 리셋) ]").font = GROUP_FONT
+
+    header_row = 3
+    for i, name in enumerate(STAFF_TABLE_STATIC_COLS):
+        c = ws.cell(header_row, 1 + i, name)
+        c.font = BOLD
+        c.alignment = CENTER
+    for i, name in enumerate(STAFF_TABLE_STAT_LABELS):
+        c = ws.cell(header_row, 1 + n_static + i, name)
+        c.font = BOLD
+        c.alignment = CENTER
+        c.fill = STAT_FILL
+
+    dow_row = header_row + 1
+    for i, d in enumerate(annual_dates):
+        c = first_day_col + i
+        cell = ws.cell(header_row, c, d)
+        cell.number_format = "m/d"
+        cell.font = Font(bold=True, size=9)
+        cell.alignment = CENTER
+        dow = ws.cell(dow_row, c, WEEKDAY_NAMES[d.weekday()])
+        dow.font = Font(bold=True, size=9)
+        dow.alignment = CENTER
+        if d.weekday() >= 5:
+            cell.fill = WEEKEND_FILL
+            dow.fill = WEEKEND_FILL
+        ws.column_dimensions[get_column_letter(c)].width = 4.2
+
+    row0 = dow_row + 1
+    for r, s in enumerate(staff):
+        row = row0 + r
+        is_nk = "night_only" in (s.flags or [])
+        note = []
+        if is_nk:
+            note.append("야간전담")
+        if "pregnant" in (s.flags or []):
+            note.append("임부(야간 금지)")
+        elif "no_night" in (s.flags or []):
+            note.append("야간금지")
+        static_vals = [r + 1, s.id, s.role, f"Lv{s.level}",
+                       ",".join(s.allowed_shifts), ", ".join(note)]
+        for i, v in enumerate(static_vals):
+            c = ws.cell(row, 1 + i, v)
+            c.alignment = CENTER
+            if is_nk:
+                c.fill = NK_ROW_FILL
+
+        st = stats.get(s.id, {})
+        for i, key in enumerate(STAFF_TABLE_STAT_KEYS):
+            v = st.get(key, 0)
+            c = ws.cell(row, 1 + n_static + i, v)
+            c.alignment = CENTER
+            c.fill = NK_ROW_FILL if is_nk else STAT_FILL
+
+        codes = annual_grid.get(s.id, [])
+        for i in range(len(annual_dates)):
+            code = codes[i] if i < len(codes) else ""
+            c = ws.cell(row, first_day_col + i, code)
+            c.alignment = CENTER
+            c.font = Font(size=9)
+            if code in SHIFT_FILLS:
+                c.fill = PatternFill("solid", fgColor=SHIFT_FILLS[code])
+                if code in WHITE_FONT_SHIFTS:
+                    c.font = Font(size=9, color="FFFFFF")
+
+    ws.column_dimensions["A"].width = 6
+    ws.column_dimensions["B"].width = 12
+    ws.column_dimensions["C"].width = 9
+    ws.column_dimensions["D"].width = 8
+    ws.column_dimensions["E"].width = 18
+    ws.column_dimensions["F"].width = 22
+    if annual_dates:
+        ws.freeze_panes = ws.cell(row0, first_day_col)
+    wb.save(path)

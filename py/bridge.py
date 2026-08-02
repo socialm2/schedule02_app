@@ -24,9 +24,10 @@ import re
 
 from nurse_scheduler.calendar_utils import DAY_WEEKDAY, build_calendar
 from nurse_scheduler.constraints import all_hard_checks, check_soft
-from nurse_scheduler.excel_export import export_excel
+from nurse_scheduler.excel_export import export_excel, export_staff_table_xlsx
 from nurse_scheduler.excel_input import (
     ExcelInputError, load_input_xlsx, load_prev_month_schedule_xlsx,
+    load_staff_table_xlsx,
 )
 from nurse_scheduler.generator import (
     Generator, InputError, carryover_from_grid, generate_best,
@@ -48,6 +49,7 @@ class State:
         self.locked_cells: dict[tuple[str, int], Shift] = {}
         self.pending_edits: dict[tuple[str, int], Shift] = {}
         self.round: int = 0
+        self.staff_table_in: dict | None = None
 
 
 S = State()
@@ -302,6 +304,60 @@ def _cumulative_summary(entries: list, staff_ids: list):
     return out
 
 
+def _build_updated_staff_table():
+    """이번 달 생성 결과를 이전 인원표(S.staff_table_in)에 얹어 갱신본을 만든다.
+
+    통계는 항상 "이번 달 실제 생성 결과"만 더해서 한 걸음씩 앞으로 나간다 —
+    전달확정근무표(이어붙이기 규칙용)와는 별개로, 인원표 스스로 다음 입력이 된다.
+    연간 그리드는 해가 바뀌면(1/1) 리셋한다.
+    """
+    import datetime
+
+    prev = S.staff_table_in or {}
+    prev_stats = prev.get("stats", {})
+    prev_dates = prev.get("annual_dates", [])
+    prev_grid = prev.get("annual_grid", {})
+
+    grid = _display_grid()
+    days = _days_meta()
+    next_carry = S.gen.build_next_carryover()
+
+    stats = {}
+    for s in S.sch.staff:
+        row = grid[s.id]
+        b2, b3, _bo = _night_block_counts(row)
+        weekend_night = sum(1 for v, d in zip(row, days)
+                            if v in ("N", "NK") and d["dow"] in ("토", "일"))
+        base = prev_stats.get(s.id, {})
+        stats[s.id] = {
+            "night": base.get("night", 0) + S.sch.nights_in_month(s.id),
+            "workday": base.get("workday", 0) + S.sch.workdays_in_month(s.id),
+            "off": base.get("off", 0) + S.sch.offs_in_month(s.id),
+            "weekend_night": base.get("weekend_night", 0) + weekend_night,
+            "blocks_2": base.get("blocks_2", 0) + b2,
+            "blocks_3": base.get("blocks_3", 0) + b3,
+            "months": base.get("months", 0) + 1,
+            "recent_night_score": next_carry.get(s.id, {}).get("recent_night_score", 0.0),
+        }
+
+    this_year = S.gen.year
+    if prev_dates and prev_dates[0][:4] == str(this_year):
+        base_dates = [datetime.date.fromisoformat(x) for x in prev_dates]
+    else:
+        base_dates = []
+    this_month_dates = [datetime.date(this_year, S.gen.month, d + 1)
+                        for d in range(S.sch.num_days)]
+    annual_dates = base_dates + this_month_dates
+
+    annual_grid = {}
+    for s in S.sch.staff:
+        base_codes = (prev_grid.get(s.id, []) if base_dates else [])
+        base_codes = (base_codes + [""] * len(base_dates))[:len(base_dates)]
+        annual_grid[s.id] = base_codes + list(grid[s.id])
+
+    return stats, annual_dates, annual_grid
+
+
 # ================================================================ API 함수
 # (경로 하나당 함수 하나 — webapp/app.py의 라우트와 1:1 대응)
 
@@ -364,10 +420,35 @@ def api_upload_prev_month(file_bytes) -> str:
     return json.dumps(payload, ensure_ascii=False)
 
 
+def api_upload_staff_table(file_bytes) -> str:
+    """'인원표'(로스터+누적통계+연간그리드) 업로드 — 다월 자동 연동의 시작점."""
+    path = "/tmp_staff_table.xlsx"
+    try:
+        _write_temp_xlsx(file_bytes, path)
+        data = load_staff_table_xlsx(path)
+    except ExcelInputError as e:
+        return _err(f"인원표 엑셀 오류: {e}")
+    except Exception as e:
+        return _err(f"파일을 읽을 수 없습니다: {e}")
+
+    S.staff_table_in = {"stats": data["stats"], "annual_dates": data["annual_dates"],
+                        "annual_grid": data["annual_grid"]}
+    return json.dumps({"ok": True, "staff": data["staff"],
+                       "annual_days": len(data["annual_dates"])}, ensure_ascii=False)
+
+
 def api_set_config(body_json: str) -> str:
     data = json.loads(body_json)
     if not data or not all(k in data for k in ("year", "month", "staff", "params")):
         return _err("입력 형식이 올바르지 않습니다 (year/month/staff/params 필요)")
+    if S.staff_table_in:
+        stats = S.staff_table_in["stats"]
+        carry = dict(data.get("prev_month_carryover") or {})
+        for sid, st in stats.items():
+            entry = dict(carry.get(sid) or {})
+            entry["recent_night_score"] = st.get("recent_night_score", 0.0)
+            carry[sid] = entry
+        data["prev_month_carryover"] = carry
     try:
         Generator(data)
     except InputError as e:
@@ -549,6 +630,20 @@ def api_download_carryover() -> str:
         return "{}"
     carry = S.gen.build_next_carryover()
     return json.dumps(carry, ensure_ascii=False, indent=2)
+
+
+def api_download_staff_table():
+    """'인원표' 갱신본 다운로드 — 다음 달엔 이 파일을 그대로 다시 업로드하면 된다."""
+    try:
+        _require_generated()
+    except ApiError as e:
+        return None
+    stats, annual_dates, annual_grid = _build_updated_staff_table()
+    path = "/tmp_staff_table_out.xlsx"
+    export_staff_table_xlsx(S.sch.staff, stats, annual_dates, annual_grid, path,
+                            last_reflected=f"{S.gen.year}년 {S.gen.month}월")
+    with open(path, "rb") as f:
+        return f.read()
 
 
 def download_tag() -> str:

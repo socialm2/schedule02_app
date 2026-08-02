@@ -9,12 +9,24 @@
   전월이월 — 이름 | 마지막근무 | 연속근무일수 | 이월OFF일수 | 말일연속야간일수 (선택)
 
 비고 키워드: "야간전담" → night_only, "임부" → pregnant, "야간금지"/"야간 금지" → no_night
+
+  인원표 — 다월 자동 연동용(선택 사용). 순번|이름|직급|숙련도|가능근무|비고 +
+           누적통계(최근야간점수|누적야간|누적오프|누적주말야간|누적2일블록|누적3일블록|반영개월수) +
+           연간 근무 그리드(1/1~, 참고용). export_staff_table_xlsx()로 내보내고
+           load_staff_table_xlsx()로 다시 읽어 다음 달 생성에 이어붙인다.
 """
 from __future__ import annotations
 
 from typing import Dict, List, Optional
 
 from .models import Shift, parse_shift
+
+STAFF_TABLE_STATIC_COLS = ["순번", "이름", "직급", "숙련도", "가능근무", "비고"]
+STAFF_TABLE_STAT_KEYS = ["night", "workday", "off", "weekend_night",
+                          "blocks_2", "blocks_3", "months", "recent_night_score"]
+STAFF_TABLE_STAT_LABELS = ["누적야간", "누적근무일", "누적오프", "누적주말야간",
+                            "누적2일블록", "누적3일블록", "반영개월수",
+                            "최근야간점수(참고용)"]
 
 
 class ExcelInputError(Exception):
@@ -230,6 +242,87 @@ def load_prev_month_schedule_xlsx(path: str) -> dict:
         raise ExcelInputError("근무표에서 인원 행을 찾지 못했습니다.")
 
     return {"year": year, "month": month, "num_days": num_days, "grid": grid}
+
+
+# ---------------------------------------------------------------- 인원표 읽기 (다월 자동 연동용)
+
+def load_staff_table_xlsx(path: str) -> dict:
+    """'인원표' 파일 읽기 — 로스터 + 누적 통계(형평성 참고용) + 연간 근무 그리드(1/1~, 참고용).
+
+    반환: {
+      "staff": [{"id","role","level","allowed_shifts","flags"}, ...],
+      "stats": {staff_id: {"recent_night_score","night","off","weekend_night",
+                            "blocks_2","blocks_3","months"}},
+      "annual_dates": ["YYYY-MM-DD", ...],   # 이미 쌓여있던 연간 그리드의 날짜(있으면)
+      "annual_grid": {staff_id: [code, ...]},  # annual_dates와 나란히
+    }
+    """
+    from openpyxl import load_workbook
+
+    wb = load_workbook(path, data_only=True)
+    if "인원표" not in wb.sheetnames:
+        raise ExcelInputError("필수 시트 누락: 인원표")
+
+    rows = _sheet_rows(wb["인원표"])
+    h = _find_header(rows, "순번")
+    if h is None:
+        raise ExcelInputError("인원표 시트에 '순번' 헤더가 없습니다")
+    header_row = rows[h]
+    n_static = len(STAFF_TABLE_STATIC_COLS)
+    n_stat = len(STAFF_TABLE_STAT_KEYS)
+    first_day_idx = n_static + n_stat  # 0-based
+
+    annual_dates: List[str] = []
+    i = first_day_idx
+    while i < len(header_row) and hasattr(header_row[i], "strftime"):
+        annual_dates.append(header_row[i].strftime("%Y-%m-%d"))
+        i += 1
+
+    def _num(r, i) -> float:
+        v = r[i] if i < len(r) else None
+        try:
+            return float(v) if v not in (None, "") else 0.0
+        except (TypeError, ValueError):
+            return 0.0
+
+    staff, stats, annual_grid = [], {}, {}
+    for r in rows[h + 1:]:
+        if not r or r[1] is None or not str(r[1]).strip():
+            continue
+        name = str(r[1]).strip()
+        role = str(r[2] or "간호사").strip()
+        level = _parse_level(r[3])
+        allowed = _split_list(r[4])
+        note = str(r[5] or "") if len(r) > 5 else ""
+        for a in allowed:
+            parse_shift(a)  # 검증
+        staff.append({"id": name, "role": role, "level": level,
+                       "allowed_shifts": allowed, "flags": _parse_flags(note)})
+
+        stats[name] = {
+            "night": int(_num(r, n_static + 0)),
+            "workday": int(_num(r, n_static + 1)),
+            "off": int(_num(r, n_static + 2)),
+            "weekend_night": int(_num(r, n_static + 3)),
+            "blocks_2": int(_num(r, n_static + 4)),
+            "blocks_3": int(_num(r, n_static + 5)),
+            "months": int(_num(r, n_static + 6)),
+            "recent_night_score": round(_num(r, n_static + 7), 2),
+        }
+
+        if annual_dates:
+            codes = []
+            for d in range(len(annual_dates)):
+                idx = first_day_idx + d
+                v = r[idx] if idx < len(r) else None
+                codes.append(str(v).strip() if v not in (None, "") else "")
+            annual_grid[name] = codes
+
+    if not staff:
+        raise ExcelInputError("인원표 시트가 비어 있습니다")
+
+    return {"staff": staff, "stats": stats,
+            "annual_dates": annual_dates, "annual_grid": annual_grid}
 
 
 # ---------------------------------------------------------------- 쓰기

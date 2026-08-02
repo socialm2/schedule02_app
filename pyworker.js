@@ -47,6 +47,7 @@ function callBridge(path, opts) {
     case "/api/sample": return bridge.api_sample();
     case "/api/upload": return bridge.api_upload(opts._fileBytes);
     case "/api/upload_prev_month": return bridge.api_upload_prev_month(opts._fileBytes);
+    case "/api/upload_staff_table": return bridge.api_upload_staff_table(opts._fileBytes);
     case "/api/set_config": return bridge.api_set_config(opts.body);
     case "/api/generate": return bridge.api_generate();
     case "/api/state": return bridge.api_state();
@@ -65,16 +66,22 @@ function callBridge(path, opts) {
       const py = bridge.api_download_xlsx();
       return py ? py.toJs() : null;
     }
+    case "/api/download/staff_table": {
+      const py = bridge.api_download_staff_table();
+      return py ? py.toJs() : null;
+    }
     default: throw new Error("알 수 없는 경로: " + path);
   }
 }
+
+const BINARY_PATHS = new Set(["/api/download/xlsx", "/api/download/staff_table"]);
 
 self.onmessage = async (ev) => {
   const { id, path, opts } = ev.data;
   await bootPromise;
   try {
     const raw = callBridge(path, opts);
-    if (path === "/api/download/xlsx" && raw) {
+    if (BINARY_PATHS.has(path) && raw) {
       // Uint8Array는 구조화 복제로도 전달되지만, transferable로 넘기면 복사 비용이 없다.
       postMessage({ id, ok: true, raw, binary: true }, [raw.buffer]);
     } else {

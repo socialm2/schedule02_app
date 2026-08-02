@@ -4,9 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>간호사 근무표 편집기</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0F6E6B">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div id="authGate">
+  <div class="loading-box">
+    <p style="font-weight:700;font-size:15px">간호사 근무표 편집기</p>
+    <p class="loading-sub">이 병동 전용 앱입니다. 접속 비밀번호를 입력하세요.</p>
+    <form id="authForm" autocomplete="off">
+      <input type="password" id="authInput" placeholder="비밀번호" autocomplete="off">
+      <button type="submit" class="primary">입장</button>
+    </form>
+    <p class="loading-sub" id="authError" style="color:var(--hard);display:none">비밀번호가 올바르지 않습니다.</p>
+  </div>
+</div>
 <div id="loadingOverlay">
   <div class="loading-box">
     <div class="spinner"></div>
@@ -117,6 +132,17 @@
               </table>
             </div>
             <button id="addCarryBtn" class="small">+ 이월 추가</button>
+          </details>
+
+          <details class="form-sec">
+            <summary>인원표 (다월 자동 연동, 선택)</summary>
+            <p class="hint">지난달 생성 후 받은 "인원표" 파일을 올리면 인원 명단과, 야간 형평성이
+            누적된 통계가 이번 달 생성에 자동으로 이어진다. 처음 쓴다면 생략해도 된다.</p>
+            <div class="upload-row">
+              <input type="file" id="staffTableInput" accept=".xlsx">
+              <button id="staffTableBtn" class="small">인원표로 자동 채우기</button>
+              <span id="staffTableStatus" class="hint"></span>
+            </div>
           </details>
 
           <div class="generate-row">

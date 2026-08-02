@@ -1,5 +1,47 @@
 "use strict";
 
+// ================================================================ 접속 비밀번호 게이트
+// 서버가 없는 정적 배포판이라 "진짜 로그인"이 아니라 억제 수준의 문 — 링크를 모르고
+// 우연히 들어오는 걸 막는 용도. 비밀번호를 바꾸려면 아래 새 해시로 교체하면 된다
+// (브라우저 콘솔에서 다음처럼 뽑을 수 있다:
+//   crypto.subtle.digest("SHA-256", new TextEncoder().encode("새비밀번호"))
+//     .then(b => console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")))
+// ). 기본 비밀번호는 "changeme2026" — 배포 전 반드시 바꿀 것.
+const AUTH_HASH = "d4d6209550be592f2663cec93e6ed62a953b8fda4eb15b87d5bc6aad1de578ac";
+const AUTH_KEY = "ns_auth_ok";
+
+async function sha256Hex(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+(function initAuthGate() {
+  const gate = document.getElementById("authGate");
+  if (localStorage.getItem(AUTH_KEY) === "1") {
+    gate.style.display = "none";
+    return;
+  }
+  document.getElementById("authForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const input = document.getElementById("authInput");
+    const hash = await sha256Hex(input.value);
+    if (hash === AUTH_HASH) {
+      localStorage.setItem(AUTH_KEY, "1");
+      gate.style.display = "none";
+    } else {
+      document.getElementById("authError").style.display = "";
+      input.value = "";
+      input.focus();
+    }
+  });
+})();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
+
 const SHIFT_CLASS = {D:"sd", E:"se", N:"sn", NK:"sk", prn:"sp", "8A":"sa", "연차":"sy", OFF:"so"};
 const SHIFT_TEXT = {OFF:"·", "연차":"연", prn:"p"};
 const ALL_SHIFTS = ["D","E","N","NK","prn","8A","OFF","연차"];
@@ -184,6 +226,12 @@ window.downloadCarryover = async function () {
   const { raw: json } = await callWorker("/api/download/carryover");
   const { raw: tag } = await callWorker("/api/download_tag");
   triggerDownload(json, `carryover_next_${tag}.json`, "application/json");
+};
+window.downloadStaffTable = async function () {
+  const { raw: bytes } = await callWorker("/api/download/staff_table");
+  const { raw: tag } = await callWorker("/api/download_tag");
+  triggerDownload(bytes, `인원표_${tag}.xlsx`,
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 };
 
 function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
@@ -542,6 +590,23 @@ $("#prevMonthBtn").onclick = async () => {
   } catch (e) {}
 };
 
+$("#staffTableBtn").onclick = async () => {
+  const f = $("#staffTableInput").files[0];
+  if (!f) { showToast("파일을 선택하세요", true); return; }
+  try {
+    const bytes = new Uint8Array(await f.arrayBuffer());
+    const data = await api("/api/upload_staff_table", { _fileBytes: bytes });
+    formStaff = (data.staff || []).map(s => ({
+      id: s.id, role: s.role, level: s.level,
+      allowed: [...(s.allowed_shifts || [])], flags: [...(s.flags || [])],
+    }));
+    renderStaffTable();
+    $("#staffTableStatus").textContent =
+      `인원 ${formStaff.length}명, 누적 통계 반영 (연간 근무표 ${data.annual_days}일치 포함)`;
+    showToast("인원표에서 인원 명단과 누적 통계를 불러왔습니다");
+  } catch (e) {}
+};
+
 // 생성/재생성은 인원이 많으면 수십 초~1~2분 걸릴 수 있다. Worker 덕분에 화면
 // 자체는 멈추지 않지만, 진행 상황을 안내하는 오버레이는 그대로 띄워준다.
 function showGenOverlay(msg) {
@@ -732,6 +797,7 @@ function renderSide() {
 
   html += `<div class="side-sec"><h3>다운로드</h3><div class="download-row">
     <button onclick="downloadXlsx()">근무표 엑셀</button>
+    <button onclick="downloadStaffTable()">인원표(갱신본)</button>
   </div></div>`;
 
   // 입력 요약

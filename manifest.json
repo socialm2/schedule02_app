@@ -1,0 +1,16 @@
+{
+  "name": "간호사 근무표 편집기",
+  "short_name": "근무표",
+  "description": "브라우저에서 바로 실행되는 간호사 근무표 자동생성 편집기 (서버 없음, 로컬저장)",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F7F8F6",
+  "theme_color": "#0F6E6B",
+  "lang": "ko",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
