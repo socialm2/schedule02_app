@@ -434,7 +434,25 @@ def api_upload_staff_table(file_bytes) -> str:
     S.staff_table_in = {"stats": data["stats"], "annual_dates": data["annual_dates"],
                         "annual_grid": data["annual_grid"]}
     return json.dumps({"ok": True, "staff": data["staff"],
-                       "annual_days": len(data["annual_dates"])}, ensure_ascii=False)
+                       "annual_days": len(data["annual_dates"]),
+                       "last_date": (data["annual_dates"][-1] if data["annual_dates"] else None)},
+                      ensure_ascii=False)
+
+
+def api_staff_table_status() -> str:
+    """지금 서버에 인원표가 반영돼 있는지 — '생성'을 누르면 이게 계속 자동으로 쓰이므로,
+    화면에서 리더가 잊지 않고 확인할 수 있게 상시 조회 가능하게 해둔다."""
+    if not S.staff_table_in:
+        return json.dumps({"loaded": False}, ensure_ascii=False)
+    dates = S.staff_table_in.get("annual_dates") or []
+    return json.dumps({"loaded": True, "staff_count": len(S.staff_table_in.get("stats") or {}),
+                       "annual_days": len(dates), "last_date": (dates[-1] if dates else None)},
+                      ensure_ascii=False)
+
+
+def api_clear_staff_table() -> str:
+    S.staff_table_in = None
+    return json.dumps({"ok": True}, ensure_ascii=False)
 
 
 def api_set_config(body_json: str) -> str:

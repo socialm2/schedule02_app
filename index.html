@@ -20,6 +20,9 @@
       <button type="submit" class="primary">입장</button>
     </form>
     <p class="loading-sub" id="authError" style="color:var(--hard);display:none">비밀번호가 올바르지 않습니다.</p>
+    <p class="loading-sub" id="authUnsupported" style="color:var(--hard);display:none">
+      이 연결(주소창이 https가 아닌 것으로 보입니다)에서는 비밀번호 확인 기능을 쓸 수 없습니다.
+      https 주소로 접속하거나 관리자에게 문의하세요.</p>
   </div>
 </div>
 <div id="loadingOverlay">
@@ -138,9 +141,11 @@
             <summary>인원표 (다월 자동 연동, 선택)</summary>
             <p class="hint">지난달 생성 후 받은 "인원표" 파일을 올리면 인원 명단과, 야간 형평성이
             누적된 통계가 이번 달 생성에 자동으로 이어진다. 처음 쓴다면 생략해도 된다.</p>
+            <p class="hint" id="staffTableActive" style="display:none"></p>
             <div class="upload-row">
               <input type="file" id="staffTableInput" accept=".xlsx">
               <button id="staffTableBtn" class="small">인원표로 자동 채우기</button>
+              <button id="staffTableClearBtn" class="small" style="display:none">반영 해제</button>
               <span id="staffTableStatus" class="hint"></span>
             </div>
           </details>

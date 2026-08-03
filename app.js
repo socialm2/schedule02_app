@@ -21,10 +21,25 @@ async function sha256Hex(text) {
     gate.style.display = "none";
     return;
   }
+  // crypto.subtle은 보안 컨텍스트(https 또는 localhost)에서만 존재한다. 사내망에 http로
+  // 올리는 경우 등 이게 없으면 비밀번호 확인 자체가 불가능하므로, 조용히 먹통되는 대신
+  // 폼을 아예 안 보여주고 이유를 바로 알려준다.
+  if (!window.crypto || !window.crypto.subtle) {
+    document.getElementById("authForm").style.display = "none";
+    document.getElementById("authUnsupported").style.display = "";
+    return;
+  }
   document.getElementById("authForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const input = document.getElementById("authInput");
-    const hash = await sha256Hex(input.value);
+    let hash;
+    try {
+      hash = await sha256Hex(input.value);
+    } catch (err) {
+      document.getElementById("authForm").style.display = "none";
+      document.getElementById("authUnsupported").style.display = "";
+      return;
+    }
     if (hash === AUTH_HASH) {
       localStorage.setItem(AUTH_KEY, "1");
       gate.style.display = "none";
@@ -230,7 +245,7 @@ window.downloadCarryover = async function () {
 window.downloadStaffTable = async function () {
   const { raw: bytes } = await callWorker("/api/download/staff_table");
   const { raw: tag } = await callWorker("/api/download_tag");
-  triggerDownload(bytes, `인원표_${tag}.xlsx`,
+  triggerDownload(bytes, `staff_table_${tag}.xlsx`,
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 };
 
@@ -590,6 +605,34 @@ $("#prevMonthBtn").onclick = async () => {
   } catch (e) {}
 };
 
+async function refreshStaffTableStatus() {
+  let s;
+  try { s = await api("/api/staff_table_status"); } catch (e) { return; }
+  const banner = $("#staffTableActive");
+  const clearBtn = $("#staffTableClearBtn");
+  if (s.loaded) {
+    banner.style.display = "";
+    banner.style.color = "var(--warn)";
+    banner.style.fontWeight = "700";
+    banner.textContent = `⚠ 인원표 반영 중 — ${s.staff_count}명, ${s.last_date || "?"}까지` +
+      ` (연간 ${s.annual_days}일치). "생성"을 누르면 이 값이 계속 자동으로 쓰입니다.` +
+      ` 최신 인원표를 다시 안 올렸다면 확인하세요.`;
+    clearBtn.style.display = "";
+  } else {
+    banner.style.display = "none";
+    clearBtn.style.display = "none";
+  }
+}
+
+$("#staffTableClearBtn").onclick = async () => {
+  try {
+    await api("/api/clear_staff_table", { method: "POST" });
+    await refreshStaffTableStatus();
+    $("#staffTableStatus").textContent = "반영 해제했습니다 — 이번 생성은 처음부터 시작합니다.";
+    showToast("인원표 반영을 해제했습니다");
+  } catch (e) {}
+};
+
 $("#staffTableBtn").onclick = async () => {
   const f = $("#staffTableInput").files[0];
   if (!f) { showToast("파일을 선택하세요", true); return; }
@@ -603,6 +646,7 @@ $("#staffTableBtn").onclick = async () => {
     renderStaffTable();
     $("#staffTableStatus").textContent =
       `인원 ${formStaff.length}명, 누적 통계 반영 (연간 근무표 ${data.annual_days}일치 포함)`;
+    await refreshStaffTableStatus();
     showToast("인원표에서 인원 명단과 누적 통계를 불러왔습니다");
   } catch (e) {}
 };
@@ -659,6 +703,7 @@ $("#generateBtn").onclick = async () => {
   } catch (e) {
     showToast("샘플 로드 실패 — 직접 입력해주세요", true);
   }
+  refreshStaffTableStatus();
 })();
 
 // ================================================================ 그리드 렌더 (생성 후)
