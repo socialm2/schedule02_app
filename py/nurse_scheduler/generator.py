@@ -980,6 +980,130 @@ class Generator:
                 sch.grid[p.id][nd_] = pv
         return False
 
+    # ------------------------------------------------------------ Step 7 보완: 전역 탐색
+    # fix_alternation(위)은 인접일(±1)만 보고, 그 자리에서 "새 문제를 안 만드는지"를
+    # 로컬로만 판단한다 — 실측해보니 검색 폭을 넓히거나 로컬 부작용을 막는 시도 둘 다
+    # 오히려 잔여를 늘렸다(문서화된 실험 참고). 대신 여기서는 완전히 별도 단계로,
+    # "그 달 전체 아무 날짜"를 상대로 이관/맞교환을 시도하되, 채택 기준을 "이 칸 주변에
+    # 새 문제가 생기는지"가 아니라 "전체 고립근무일 수가 늘지 않는지"로 바꾼다 — 국소
+    # 판단의 오류(멀리 있는 부작용을 놓치거나, 나중에 사슬로 풀릴 기회를 막는 것) 없이
+    # 정확한 전역 기준으로 판단한다. 최선노력이며, 호출 횟수 상한으로 대형 병동 성능을 보호한다.
+
+    def _is_isolated_workday(self, sid: str, d: int) -> bool:
+        sch = self.sch
+        if not (0 <= d < sch.num_days):
+            return False
+        if sch.effective(sid, d) not in DAY_WORK_SHIFTS:
+            return False
+        return (sch.effective(sid, d - 1) in REST_SHIFTS
+                and sch.effective(sid, d + 1) in REST_SHIFTS)
+
+    def _local_isolation_score(self, cells) -> int:
+        """cells(=[(직원id, 날짜), ...])만 놓고 센 고립근무일 수.
+
+        이관/맞교환은 딱 이 칸들의 근무값만 바꾸므로, 다른 어떤 칸의 고립 여부도
+        바뀔 수 없다(고립 판정은 자기 자신과 바로 옆 칸만 본다) — 그래서 이 부분합의
+        전/후 비교가 전체 보드를 다시 세는 것과 수학적으로 완전히 같은 결과를 주면서,
+        대형 병동에서도 빠르다(전체 O(인원×일수) 대신 O(1))."""
+        return sum(1 for sid, dd in cells if self._is_isolated_workday(sid, dd))
+
+    def global_fix_alternation(self, max_passes: int = 3, call_budget: int = 4000) -> int:
+        """S7 잔여를 추가로 줄이는 전역 마무리 탐색 — fix_alternation이 끝난 뒤 호출."""
+        sch = self.sch
+        calls = 0
+        fixed_total = 0
+        for _ in range(max_passes):
+            isolated = [(s, d) for s in self.staff if not (s.is_partjang or s.is_nk)
+                       for d in range(sch.num_days)
+                       if not sch.is_locked(s.id, d) and self._is_isolated_workday(s.id, d)]
+            if not isolated:
+                break
+            any_fixed = False
+            for s, d in isolated:
+                if calls > call_budget:
+                    return fixed_total
+                if not self._is_isolated_workday(s.id, d):
+                    continue  # 이번 패스 중 이미 다른 조치로 해소됨
+                v = sch.get(s.id, d)
+                calls += 1
+                if self._try_global_transfer(s, d, v) or self._try_global_swap(s, d, v):
+                    fixed_total += 1
+                    any_fixed = True
+            if not any_fixed:
+                break
+        return fixed_total
+
+    def _try_global_transfer(self, donor: Staff, d: int, shift: Shift) -> bool:
+        sch = self.sch
+        hol = holiday_count(self.days)
+        for r in self.staff:
+            if r.id == donor.id or r.is_partjang or r.is_nk:
+                continue
+            if sch.get(r.id, d) != Shift.OFF or sch.is_locked(r.id, d):
+                continue
+            if sch.workdays_in_month(r.id) > sch.workdays_in_month(donor.id):
+                continue
+            if sch.offs_in_month(r.id) - 1 < max(8, hol - 1):
+                continue
+            if sch.offs_in_month(donor.id) + 1 > hol + 2:
+                continue
+            if not self._lv3_guard_ok(donor, r, d, shift):
+                continue
+            cells = [(donor.id, d - 1), (donor.id, d), (donor.id, d + 1),
+                    (r.id, d - 1), (r.id, d), (r.id, d + 1)]
+            before = self._local_isolation_score(cells)
+            sch.grid[donor.id][d] = Shift.OFF
+            ok = self.can_assign_day(r, d, shift)
+            if ok:
+                sch.set(r.id, d, shift)
+                if self._local_isolation_score(cells) <= before:
+                    sch.log(f"[G4-a 전역] {d+1}일 {shift}: {donor.id} → {r.id} 이관")
+                    return True
+                sch.grid[r.id][d] = Shift.OFF
+            sch.grid[donor.id][d] = shift
+        return False
+
+    def _try_global_swap(self, donor: Staff, d: int, shift: Shift) -> bool:
+        sch = self.sch
+        for nd_ in range(sch.num_days):
+            if nd_ == d:
+                continue
+            for p in self.staff:
+                if p.id == donor.id or p.is_partjang or p.is_nk:
+                    continue
+                pv = sch.get(p.id, nd_)
+                if pv not in DAY_WORK_SHIFTS or sch.is_locked(p.id, nd_):
+                    continue
+                if sch.get(p.id, d) != Shift.OFF or sch.is_locked(p.id, d):
+                    continue
+                if sch.get(donor.id, nd_) != Shift.OFF or sch.is_locked(donor.id, nd_):
+                    continue
+                cells = [(donor.id, d - 1), (donor.id, d), (donor.id, d + 1),
+                        (p.id, d - 1), (p.id, d), (p.id, d + 1),
+                        (donor.id, nd_ - 1), (donor.id, nd_), (donor.id, nd_ + 1),
+                        (p.id, nd_ - 1), (p.id, nd_), (p.id, nd_ + 1)]
+                before = self._local_isolation_score(cells)
+                # Lv3 가드는 O(인원수)라 비용이 크다 — 대형 병동에서 이 이중루프
+                # (일수×인원)와 곱해지면 전체가 너무 느려지므로, 훨씬 싼 하드 제약
+                # 검사(can_assign_day)를 먼저 통과한 후보에게만 적용해 호출 수를 줄인다.
+                sch.grid[donor.id][d] = Shift.OFF
+                sch.grid[p.id][nd_] = Shift.OFF
+                ok = (self.can_assign_day(p, d, shift)
+                      and self.can_assign_day(donor, nd_, pv))
+                if ok and self._lv3_guard_ok(donor, p, d, shift) \
+                        and self._lv3_guard_ok(p, donor, nd_, pv):
+                    sch.set(p.id, d, shift)
+                    sch.set(donor.id, nd_, pv)
+                    if self._local_isolation_score(cells) <= before:
+                        sch.log(f"[G4-b 전역] {donor.id}({d+1}일 {shift}) ↔ "
+                                f"{p.id}({nd_+1}일 {pv}) 맞교환")
+                        return True
+                    sch.grid[p.id][d] = Shift.OFF
+                    sch.grid[donor.id][nd_] = Shift.OFF
+                sch.grid[donor.id][d] = shift
+                sch.grid[p.id][nd_] = pv
+        return False
+
     # ------------------------------------------------------------ Step 8 (G6)
     def equalize_off(self):
         sch = self.sch
@@ -1225,6 +1349,7 @@ class Generator:
         for _ in range(5):         # 최종 퐁당퐁당 완화 (G4 재실행, 수렴까지 반복)
             if self.fix_alternation() == 0:
                 break
+        self.global_fix_alternation()  # 인접일 검색으로 못 줄인 잔여를 전역 탐색으로 마무리
         return self.sch
 
 
