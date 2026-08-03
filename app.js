@@ -6,8 +6,8 @@
 // (브라우저 콘솔에서 다음처럼 뽑을 수 있다:
 //   crypto.subtle.digest("SHA-256", new TextEncoder().encode("새비밀번호"))
 //     .then(b => console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")))
-// ). 기본 비밀번호는 "changeme2026" — 배포 전 반드시 바꿀 것.
-const AUTH_HASH = "d4d6209550be592f2663cec93e6ed62a953b8fda4eb15b87d5bc6aad1de578ac";
+// ).
+const AUTH_HASH = "2cbbfffee7c0a89ffa87b2320543fb71b4bc5443c5ccc4d04723e17c59367355";
 const AUTH_KEY = "ns_auth_ok";
 
 async function sha256Hex(text) {
