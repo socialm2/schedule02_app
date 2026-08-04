@@ -112,6 +112,14 @@
 
           <details class="form-sec">
             <summary>원티드 신청 <span class="count-badge" id="reqCount"></span> (선택)</summary>
+            <p class="hint">월간근무표와 같은 모양(이름|1일|2일|…)의 엑셀에 원티드 표시(D*/E*/N*/8A*/NK*
+            = 그 근무 희망, X = 휴무 희망, 연차류·기타 휴가 표시 = 휴무/연차 희망)를 해서 올리면
+            자동으로 아래 표에 채워진다. 표를 직접 고쳐도 된다.</p>
+            <div class="upload-row">
+              <input type="file" id="wantedInput" accept=".xlsx">
+              <button id="wantedBtn" class="small">원티드 엑셀로 자동 채우기</button>
+              <span id="wantedStatus" class="hint"></span>
+            </div>
             <div class="tablebox">
               <table class="form-table" id="reqTable">
                 <thead><tr><th>이름</th><th>날짜</th><th>유형</th><th>우선순위</th><th></th></tr></thead>

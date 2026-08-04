@@ -27,7 +27,7 @@ from nurse_scheduler.constraints import all_hard_checks, check_soft
 from nurse_scheduler.excel_export import export_excel, export_staff_table_xlsx
 from nurse_scheduler.excel_input import (
     ExcelInputError, load_input_xlsx, load_prev_month_schedule_xlsx,
-    load_staff_table_xlsx,
+    load_staff_table_xlsx, load_wanted_grid_xlsx,
 )
 from nurse_scheduler.generator import (
     Generator, InputError, carryover_from_grid, carryover_from_staff_table,
@@ -419,6 +419,29 @@ def api_upload_prev_month(file_bytes) -> str:
     payload = _with_history_patch({"ok": True, "year": data["year"], "month": data["month"],
                                    "carryover": carry, "warning": warning})
     return json.dumps(payload, ensure_ascii=False)
+
+
+def api_upload_wanted(file_bytes) -> str:
+    """원티드 신청 엑셀(월간근무표와 같은 모양, 별표·X 등 표기) → 신청 목록 자동 변환."""
+    path = "/tmp_wanted.xlsx"
+    try:
+        _write_temp_xlsx(file_bytes, path)
+        data = load_wanted_grid_xlsx(path)
+    except ExcelInputError as e:
+        return _err(f"엑셀 오류: {e}")
+    except Exception as e:
+        return _err(f"파일을 읽을 수 없습니다: {e}")
+
+    warning = None
+    if S.cfg is not None:
+        cur_y, cur_m = int(S.cfg["year"]), int(S.cfg["month"])
+        if (data["year"], data["month"]) != (cur_y, cur_m):
+            warning = (f"업로드한 파일은 {data['year']}년 {data['month']}월 표인데, "
+                       f"현재 설정된 달({cur_y}년 {cur_m}월)과 다릅니다 — "
+                       "그래도 신청 날짜는 파일에 적힌 그대로 반영합니다.")
+    return json.dumps({"ok": True, "year": data["year"], "month": data["month"],
+                       "requests": data["requests"], "unknown_marks": data["unknown_marks"],
+                       "warning": warning}, ensure_ascii=False)
 
 
 def api_upload_staff_table(file_bytes) -> str:

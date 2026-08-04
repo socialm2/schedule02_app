@@ -596,6 +596,22 @@ $("#prevMonthBtn").onclick = async () => {
   } catch (e) {}
 };
 
+$("#wantedBtn").onclick = async () => {
+  const f = $("#wantedInput").files[0];
+  if (!f) { showToast("파일을 선택하세요", true); return; }
+  try {
+    const bytes = new Uint8Array(await f.arrayBuffer());
+    const data = await api("/api/upload_wanted", { _fileBytes: bytes });
+    formRequests = data.requests.map(r => ({ ...r, priority: 1 }));
+    renderReqTable();
+    const unk = (data.unknown_marks || []).length;
+    $("#wantedStatus").textContent =
+      `${data.year}년 ${data.month}월 표에서 ${formRequests.length}건 인식` +
+      (unk ? ` (인식 못 한 표시 ${unk}개: ${data.unknown_marks.join(", ")})` : "");
+    showToast(data.warning || `원티드 ${formRequests.length}건을 자동으로 채웠습니다`, !!data.warning);
+  } catch (e) {}
+};
+
 async function refreshStaffTableStatus() {
   let s;
   try { s = await api("/api/staff_table_status"); } catch (e) { return; }

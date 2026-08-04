@@ -194,29 +194,23 @@ def load_input_xlsx(path: str) -> dict:
     }
 
 
-# ---------------------------------------------------------------- 지난달 확정 근무표 읽기 (이월/히스토리용)
+# ---------------------------------------------------------------- 월간근무표 형태 엑셀 공통 (제목행 + 이름|1일|2일|...)
 
-def load_prev_month_schedule_xlsx(path: str) -> dict:
-    """이 앱이 내보낸(export_excel) 근무표 엑셀을 읽어 그리드로 복원.
+def _parse_monthly_grid_shape(ws):
+    """제목 행(A1) 'YYYY년 M월' + 2행 일자 헤더 + 4행부터 이름|근무... 모양 파싱.
 
-    수기로 값만 고친 파일도 읽을 수 있도록, 서식/수식이 아니라 셀 값만 본다.
-    반환: {"year", "month", "num_days", "grid": {staff_id: [shift_str, ...]}}
+    "월간근무표"(이 앱이 내보낸 근무표) 다운로드/전월이월 자동채움/원티드 업로드가
+    전부 이 모양을 공유한다. 반환: (year, month, num_days, first_day_col).
     """
     import re
-    from openpyxl import load_workbook
-
-    wb = load_workbook(path, data_only=True)
-    ws = wb.active
-
     title = str(ws.cell(1, 1).value or "")
     m = re.match(r"(\d{4})\s*년\s*(\d{1,2})\s*월", title)
     if not m:
         raise ExcelInputError(
             "제목 행(A1)에서 'YYYY년 M월' 형식을 찾지 못했습니다 — "
-            "이 앱에서 내보낸 근무표 엑셀(근무표 엑셀 다운로드)인지 확인하세요."
+            "월간근무표와 같은 모양(이름|1일|2일|...)인지 확인하세요."
         )
     year, month = int(m.group(1)), int(m.group(2))
-
     first_day_col = 3
     col = first_day_col
     while isinstance(ws.cell(2, col).value, (int, float)):
@@ -224,6 +218,22 @@ def load_prev_month_schedule_xlsx(path: str) -> dict:
     num_days = col - first_day_col
     if not (28 <= num_days <= 31):
         raise ExcelInputError(f"일자 열을 인식하지 못했습니다 (인식된 일수: {num_days})")
+    return year, month, num_days, first_day_col
+
+
+# ---------------------------------------------------------------- 지난달 확정 근무표 읽기 (이월/히스토리용)
+
+def load_prev_month_schedule_xlsx(path: str) -> dict:
+    """월간근무표(이 앱이 내보낸 근무표 엑셀)를 읽어 그리드로 복원.
+
+    수기로 값만 고친 파일도 읽을 수 있도록, 서식/수식이 아니라 셀 값만 본다.
+    반환: {"year", "month", "num_days", "grid": {staff_id: [shift_str, ...]}}
+    """
+    from openpyxl import load_workbook
+
+    wb = load_workbook(path, data_only=True)
+    ws = wb.active
+    year, month, num_days, first_day_col = _parse_monthly_grid_shape(ws)
 
     grid: Dict[str, List[str]] = {}
     row = 4
@@ -243,6 +253,64 @@ def load_prev_month_schedule_xlsx(path: str) -> dict:
         raise ExcelInputError("근무표에서 인원 행을 찾지 못했습니다.")
 
     return {"year": year, "month": month, "num_days": num_days, "grid": grid}
+
+
+# ---------------------------------------------------------------- 원티드 신청 읽기 (월간근무표 모양 + 신청 표기)
+
+_WANTED_WORK_CODES = {"D": "D", "E": "E", "N": "N", "8A": "8A", "NK": "NK"}
+_WANTED_AL_CODES = {"연", "연차", "연4"}
+_WANTED_OFF_CODES = {"X", "OFF", "T", "조", "경", "공", "병", "휴", "승", "포", "군", "S/"}
+
+
+def load_wanted_grid_xlsx(path: str) -> dict:
+    """월간근무표와 같은 모양(이름|1일|2일|...) 엑셀에서 원티드 신청만 읽어온다.
+
+    표기 규칙: "D*"/"E*"/"N*"/"8A*"/"NK*"(또는 별표 없는 "NK") = 그 근무 희망,
+    "X"/"연차"류/"연*"/그 외 각종 휴가성 표기(교육·경조사·공가·병가·포상휴가·군휴가 등)는
+    전부 OFF(연차 표기만 연차) 희망으로 해석한다 — 이 앱은 휴가 세부 사유를 구분하지
+    않으므로 전부 "쉬고 싶다"로 합친다. 빈 칸은 그냥 건너뛴다.
+
+    반환: {"year", "month", "requests": [{"staff_id","date","type"}, ...],
+           "unknown_marks": [str, ...]}  # 인식 못 한 표시(참고용)
+    """
+    from openpyxl import load_workbook
+
+    wb = load_workbook(path, data_only=True)
+    ws = wb.active
+    year, month, num_days, first_day_col = _parse_monthly_grid_shape(ws)
+
+    requests: List[dict] = []
+    unknown = set()
+    row = 4
+    while True:
+        name = ws.cell(row, 1).value
+        if name is None or str(name).strip() == "":
+            break
+        sid = str(name).strip()
+        for d in range(num_days):
+            v = ws.cell(row, first_day_col + d).value
+            if v in (None, ""):
+                continue
+            v = str(v).strip()
+            base = v[:-1] if v.endswith("*") else v
+            if base in _WANTED_WORK_CODES:
+                t = _WANTED_WORK_CODES[base]
+            elif base in _WANTED_AL_CODES:
+                t = "연차"
+            elif base in _WANTED_OFF_CODES:
+                t = "OFF"
+            else:
+                unknown.add(v)
+                continue
+            requests.append({"staff_id": sid, "date": f"{year}-{month:02d}-{d + 1:02d}",
+                             "type": t})
+        row += 1
+
+    if not requests and not unknown:
+        raise ExcelInputError("표에서 원티드 표시를 하나도 찾지 못했습니다.")
+
+    return {"year": year, "month": month, "requests": requests,
+           "unknown_marks": sorted(unknown)}
 
 
 # ---------------------------------------------------------------- 인원표 읽기 (다월 자동 연동용)

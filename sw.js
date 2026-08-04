@@ -15,7 +15,7 @@
 // 사용자는 새로 배포해도 계속 옛날 파일을 쓰게 된다(직접 캐시를 지우기 전까지 영구히).
 // 앱 코드(APP_FILES)만 고친 경우는 네트워크 우선이라 안 올려도 된다.
 
-const CACHE_NAME = "ns-sched-v2";
+const CACHE_NAME = "ns-sched-v3";
 
 const APP_FILES = ["./", "index.html", "app.js", "style.css", "pyworker.js", "manifest.json"];
 
