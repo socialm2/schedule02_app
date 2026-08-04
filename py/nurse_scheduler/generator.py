@@ -8,10 +8,17 @@ from typing import Dict, List, Optional, Tuple
 from .calendar_utils import (
     DayInfo, DAY_WEEKDAY, build_calendar, holiday_count, min_staff_for,
 )
+from .constraints import _senior_pool_threshold
 from .models import (
     Carryover, MonthSchedule, Request, Shift, Staff,
     DAY_WORK_SHIFTS, NIGHT_SHIFTS, REST_SHIFTS, WORK_SHIFTS, parse_shift,
 )
+
+# S6 고랩 판정용 근무유형 키 (constraints.check_soft의 S6와 동일 매핑)
+_SENIOR_SHIFT_KEY = {
+    Shift.D: "D", Shift.E: "E", Shift.PRN: "prn", Shift.A8: "prn",
+    Shift.N: "N", Shift.NK: "N",
+}
 
 
 @dataclass
@@ -117,6 +124,27 @@ class Generator:
             for r in (config.get("requests") or [])
         ]
         self.nk_target = 14 if self.month == 2 else 15
+        self.senior_threshold: Dict[str, Optional[int]] = {}
+
+    # ------------------------------------------------------------ S6 고랩 기준선
+    def compute_senior_thresholds(self):
+        """근무유형별 상대 고랩 기준선(constraints._senior_pool_threshold와 동일 정의)을
+        미리 계산해둔다 — 배정 중 가드(_lv3_guard_ok)와 검증(check_soft)이 같은
+        기준을 쓰도록 하기 위함."""
+        pools = {
+            "D": [s for s in self.staff if not s.is_partjang and s.can(Shift.D)],
+            "E": [s for s in self.staff if not s.is_partjang and s.can(Shift.E)],
+            "prn": [s for s in self.staff if not s.is_partjang and s.can(Shift.PRN)],
+            "N": [s for s in self.staff
+                  if not s.is_partjang and (s.is_nk or s.can(Shift.N))],
+        }
+        self.senior_threshold = {key: _senior_pool_threshold(pool)
+                                 for key, pool in pools.items()}
+
+    def _senior_min_level(self, shift: Shift) -> int:
+        key = _SENIOR_SHIFT_KEY.get(shift)
+        th = self.senior_threshold.get(key) if key else None
+        return th if th is not None else 3
 
     # ------------------------------------------------------------ H6-4 목표
     def compute_night_targets(self):
@@ -708,7 +736,8 @@ class Generator:
 
     def _pick_day_candidate(self, d: int, shift: Shift,
                             protect_lower: Optional[int] = None) -> Optional[Staff]:
-        # S6: 아직 Lv3+ 없으면 우선 확보
+        # S6: 아직 고랩(상대 기준선) 없으면 우선 확보
+        min_lv = self._senior_min_level(shift)
         cur_levels = []
         for s in self.staff:
             if s.is_partjang:
@@ -717,7 +746,7 @@ class Generator:
             if v == shift or (shift == Shift.PRN and v == Shift.A8
                               and (s.id, d) in self.sch.leader_8a):
                 cur_levels.append(s.level)
-        need_lv3 = not any(lv >= 3 for lv in cur_levels)
+        need_lv3 = not any(lv >= min_lv for lv in cur_levels)
         weekend = self.days[d].day_type != DAY_WEEKDAY
         best, best_score = None, None
         for s in self.staff:
@@ -736,7 +765,7 @@ class Generator:
                     self.sch.offs_in_month(s.id) - 1 < protect_lower:
                 lower_break = 1
             score = (lower_break,
-                     0 if (need_lv3 and s.level >= 3) else 1,
+                     0 if (need_lv3 and s.level >= min_lv) else 1,
                      odo, wk_load,
                      self.sch.workdays_in_month(s.id),
                      -self.sch.offs_in_month(s.id),
@@ -1024,7 +1053,7 @@ class Generator:
 
     def _lv3_guard_ok(self, donor: Optional[Staff], receiver: Optional[Staff],
                       d: int, shift: Shift) -> bool:
-        """가드③: 이동 후에도 해당 근무 Lv3+ 유지. donor=None이면 순수 추가(제외 없음)."""
+        """가드③: 이동 후에도 해당 근무 고랩(상대 기준선) 유지. donor=None이면 순수 추가(제외 없음)."""
         levels = []
         for s in self.staff:
             if s.is_partjang or (donor is not None and s.id == donor.id):
@@ -1033,7 +1062,8 @@ class Generator:
                 levels.append(s.level)
         if receiver is not None:
             levels.append(receiver.level)
-        return (not levels) or any(lv >= 3 for lv in levels)
+        min_lv = self._senior_min_level(shift)
+        return (not levels) or any(lv >= min_lv for lv in levels)
 
     def _try_transfer(self, donor: Staff, d: int, shift: Shift) -> bool:
         """G4-a: 퐁당퐁당 근무를 인접 근무자가 있는 다른 사람에게 이관."""
@@ -1541,6 +1571,7 @@ class Generator:
     # ------------------------------------------------------------ 실행
     def run(self) -> MonthSchedule:
         self._rebuild_calls = 0
+        self.compute_senior_thresholds()  # S6 근무유형별 상대 고랩 기준선
         self.compute_night_targets()  # H6-4 개인별 월 목표(4/6일) 산정
         self.validate_input()      # Step 0
         self.apply_fixed()         # Step 0.5: 리더 수정분 고정 (재생성 모드)

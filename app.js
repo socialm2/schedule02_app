@@ -177,7 +177,7 @@ async function bootPyodide() {
     _pending.delete(id);
     if (ok) p.resolve({ raw, binary }); else p.reject(new Error(error));
   };
-  // 확정 이력 기록(localStorage)은 Worker 안에서 직접 못 읽으므로, 부팅 직후
+  // 연간 근무표 기록(localStorage)은 Worker 안에서 직접 못 읽으므로, 부팅 직후
   // 현재 스냅샷을 한 번 넣어준다.
   await callWorker("/api/_bootstrap_history", { body: JSON.stringify(_readHistorySnapshot()) });
 }
@@ -260,7 +260,7 @@ const INFO_HTML = `
 바꾼 칸과 관련된 규칙 위반이 있으면 바로 알려줍니다.</li>
 <li><b>재생성 적용</b> — 스테이징한 편집을 고정한 채 나머지를 다시 배정합니다.
 고정된 칸은 빨간 실선 테두리로 표시되고, <b>이후 몇 번을 더 수정해도 이전 고정은 계속 유지됩니다.</b></li>
-<li><b>다운로드</b> — 월간근무표, 연간근무표를 받을 수 있습니다.</li>
+<li><b>다운로드</b> — 근무표 엑셀, 검증 리포트, 다음 달 생성용 이월 데이터를 받을 수 있습니다.</li>
 </ul>
 
 <h3>근무 색상</h3>
@@ -290,9 +290,9 @@ const INFO_HTML = `
 이 화면은 서버가 지금까지 고정한 모든 칸을 계속 기억하므로 몇 번을 다시 만들어도 이전 수정이 사라지지 않습니다.</p>
 
 <h3>다음 달로 넘어갈 때</h3>
-<p>"월간근무표" 표에 <b>지난달 확정 엑셀을 업로드</b>하면 마지막 근무·연속근무일·야간블록 등을
+<p>"전월이월" 표에 <b>지난달 확정 엑셀을 업로드</b>하면 마지막 근무·연속근무일·야간블록 등을
 자동으로 읽어 채워줍니다. 근무표를 다 만든 뒤 "이번 달 확정 저장"을 눌러두면, 다음 달 화면
-아래쪽 <b>확정 이력</b>에 최근 달들이 계속 쌓여 보이고, 사람별 누적 OFF·야간·근무일도 같이 확인할 수 있습니다.</p>
+아래쪽 <b>연간 근무표</b>에 최근 달들이 계속 쌓여 보이고, 사람별 누적 OFF·야간·근무일도 같이 확인할 수 있습니다.</p>
 `;
 
 $("#infoBtn").onclick = () => {
@@ -301,6 +301,80 @@ $("#infoBtn").onclick = () => {
 };
 $("#closeInfoBtn").onclick = () => $("#infoModalBackdrop").classList.remove("show");
 $("#infoModalBackdrop").onclick = (e) => { if (e.target.id === "infoModalBackdrop") e.currentTarget.classList.remove("show"); };
+
+// ================================================================ 입력 양식 안내 모달
+
+const FORMAT_INFO = {
+  input1: {
+    title: "입력① 병동인력표 — 양식 안내",
+    html: `
+<h3>필수 시트 3개</h3>
+<ul>
+<li><b>설정</b> — 항목|값 형식. 연도, 월, 월최대야간, 리더8A운용(Y/N), 공휴일(콤마 구분)</li>
+<li><b>인원</b> — 순번|이름|직급|숙련도(Lv1~5)|가능근무(콤마, 예: D,E,N,prn)|비고.
+비고란에 "야간전담"/"임부"/"야간금지"라고 적으면 자동으로 인식됩니다.</li>
+<li><b>최소인력</b> — 근무(D/E/N/prn) × 평일/토요일/일요일·공휴일 필요 인원수</li>
+</ul>
+<p class="hint">선택 시트로 <b>신청</b>·<b>전월이월</b>도 이 파일 안에 같이 넣을 수 있지만,
+아래 입력②③으로 따로 올리는 편이 더 간편합니다.</p>
+<p><a href="sample_input.xlsx" download>샘플 파일 받기</a>로 정확한 형식을 바로 확인할 수 있습니다.</p>`,
+  },
+  input2: {
+    title: "입력② 전월 확정 근무표 — 양식 안내",
+    html: `
+<h3>이 앱이 만든 "근무표 엑셀"과 같은 모양입니다</h3>
+<ul>
+<li>A1 셀에 "2026년 8월"처럼 연월 제목</li>
+<li>2행에 1일~말일 날짜 헤더(C열부터)</li>
+<li>4행부터 A열에 이름, 그 오른쪽으로 하루씩 근무 코드(D/E/N/NK/prn/OFF/연차 등)</li>
+</ul>
+<p>지난달 이 앱에서 받은 근무표 엑셀을 그대로 다시 올리면 됩니다 — 마지막 며칠의 근무
+패턴에서 연속근무일수·이월OFF일수·말일연속야간을 자동 계산해 "전월이월" 표를 채웁니다.</p>`,
+  },
+  input3: {
+    title: "입력③ 원티드표 — 양식 안내",
+    html: `
+<h3>입력②와 같은 그리드 모양에, 칸마다 신청 표시만 적어서 올립니다</h3>
+<p>이름|1일|2일|…|말일 칸에 아래 표기를 적으면 자동으로 신청 목록으로 바뀝니다
+(뒤에 별표가 있어도 없어도 인식):</p>
+<ul>
+<li><b>근무 희망</b>: <span class="kbd">D</span> <span class="kbd">E</span> <span class="kbd">N</span>
+<span class="kbd">8A</span> <span class="kbd">NK</span> <span class="kbd">T</span>(교육)</li>
+<li><b>휴가유형별 희망</b>: <span class="kbd">연</span>/<span class="kbd">연차</span>,
+<span class="kbd">연4</span>(반차), <span class="kbd">조</span>(조사), <span class="kbd">경</span>(경조사),
+<span class="kbd">공</span>(공가), <span class="kbd">병</span>(병가), <span class="kbd">휴</span>(휴직),
+<span class="kbd">승</span>(승급교육)</li>
+<li><b>단순 OFF 희망</b>: <span class="kbd">X</span> — 그 외 알아보지 못한 표시는 업로드 후
+목록으로 알려드립니다</li>
+</ul>
+<p class="hint">빈 칸은 신청 없음으로 건너뜁니다. 가장 쉬운 방법: 이번 달 근무표를 아무 값이나
+넣어 한 번 생성해 빈 그리드 모양을 받은 뒤, 거기에 표시만 채워 다시 올리세요.</p>`,
+  },
+  input4: {
+    title: "입력④ 인원표 — 양식 안내",
+    html: `
+<h3>지난달 이 앱에서 받은 "인원표(연간근무표)" 엑셀과 같은 모양입니다</h3>
+<ul>
+<li>인원 명단(이름·직급·숙련도·가능근무·비고)</li>
+<li>누적 통계(야간·근무일·OFF·주말야간·2일블록·3일블록·개월수 등, 형평성 참고용)</li>
+<li>연간 근무 그리드(1/1부터 누적, 참고용)</li>
+</ul>
+<p>지난달 생성 후 받은 인원표 파일을 그대로 다시 올리면, 인원 명단과 누적 통계가 이번 달
+생성에 자동으로 이어집니다. 처음 쓴다면 생략해도 됩니다.</p>`,
+  },
+};
+
+document.querySelectorAll(".format-btn").forEach(btn => {
+  btn.onclick = () => {
+    const info = FORMAT_INFO[btn.dataset.format];
+    if (!info) return;
+    $("#formatTitle").textContent = info.title;
+    $("#formatBody").innerHTML = info.html;
+    $("#formatModalBackdrop").classList.add("show");
+  };
+});
+$("#closeFormatBtn").onclick = () => $("#formatModalBackdrop").classList.remove("show");
+$("#formatModalBackdrop").onclick = (e) => { if (e.target.id === "formatModalBackdrop") e.currentTarget.classList.remove("show"); };
 
 // ================================================================ 입력 폼 채우기
 
@@ -464,6 +538,9 @@ $("#addStaffBtn").onclick = () => {
   renderStaffTable();
 };
 
+const REQUEST_TYPES = ["OFF", "연차", "연4", "D", "E", "N", "prn", "8A", "NK", "T",
+                       "조", "경", "공", "병", "휴", "승"];
+
 function renderReqTable() {
   const body = $("#reqBody");
   const staffOptions = formStaff.map(s => `<option value="${escAttr(s.id)}">${esc(s.id)}</option>`).join("");
@@ -471,7 +548,7 @@ function renderReqTable() {
     <td data-label="이름"><select data-i="${i}" class="rq_sid">${staffOptions}</select></td>
     <td data-label="날짜"><input type="date" data-i="${i}" class="rq_date" value="${escAttr(r.date || "")}" style="width:140px"></td>
     <td data-label="유형"><select data-i="${i}" class="rq_type">
-      ${["OFF","연차","D","E","N","prn"].map(t => `<option ${r.type===t?"selected":""}>${t}</option>`).join("")}
+      ${REQUEST_TYPES.map(t => `<option ${r.type===t?"selected":""}>${t}</option>`).join("")}
     </select></td>
     <td data-label="우선순위"><input type="number" data-i="${i}" class="rq_pri" value="${r.priority}" style="width:44px"></td>
     <td data-label=""><button class="row-del" onclick="delReq(${i})">삭제</button></td>
@@ -621,9 +698,9 @@ async function refreshStaffTableStatus() {
     banner.style.display = "";
     banner.style.color = "var(--warn)";
     banner.style.fontWeight = "700";
-    banner.textContent = `⚠ 연간근무표 반영 중 — ${s.staff_count}명, ${s.last_date || "?"}까지` +
+    banner.textContent = `⚠ 인원표 반영 중 — ${s.staff_count}명, ${s.last_date || "?"}까지` +
       ` (연간 ${s.annual_days}일치). "생성"을 누르면 이 값이 계속 자동으로 쓰입니다.` +
-      ` 최신 연간근무표를 다시 안 올렸다면 확인하세요.`;
+      ` 최신 인원표를 다시 안 올렸다면 확인하세요.`;
     clearBtn.style.display = "";
   } else {
     banner.style.display = "none";
@@ -636,7 +713,7 @@ $("#staffTableClearBtn").onclick = async () => {
     await api("/api/clear_staff_table", { method: "POST" });
     await refreshStaffTableStatus();
     $("#staffTableStatus").textContent = "반영 해제했습니다 — 이번 생성은 처음부터 시작합니다.";
-    showToast("연간근무표 반영을 해제했습니다");
+    showToast("인원표 반영을 해제했습니다");
   } catch (e) {}
 };
 
@@ -652,9 +729,9 @@ $("#staffTableBtn").onclick = async () => {
     }));
     renderStaffTable();
     $("#staffTableStatus").textContent =
-      `인원 ${formStaff.length}명, 누적 통계 반영 (연간근무표 ${data.annual_days}일치 포함)`;
+      `인원 ${formStaff.length}명, 누적 통계 반영 (연간 근무표 ${data.annual_days}일치 포함)`;
     await refreshStaffTableStatus();
-    showToast("연간근무표에서 인원 명단과 누적 통계를 불러왔습니다");
+    showToast("인원표에서 인원 명단과 누적 통계를 불러왔습니다");
   } catch (e) {}
 };
 
@@ -851,8 +928,8 @@ function renderSide() {
   html += '<div class="side-sec" id="pendingSec"><h3>편집 중 (미적용)</h3><div id="pendingBody"></div></div>';
 
   html += `<div class="side-sec"><h3>다운로드</h3><div class="download-row">
-    <button onclick="downloadXlsx()">월간근무표</button>
-    <button onclick="downloadStaffTable()">연간근무표</button>
+    <button onclick="downloadXlsx()">근무표 엑셀</button>
+    <button onclick="downloadStaffTable()">인원표(갱신본)</button>
   </div></div>`;
 
   // 입력 요약
@@ -911,7 +988,7 @@ function renderSide() {
 function renderAnnualPane() {
   annualPane.innerHTML = `<div class="annual-pane-box">
     <div class="annual-pane-head">
-      <h2>확정 이력</h2>
+      <h2>연간 근무표</h2>
       <p class="hint">이번 달을 확정 저장하면 다음에 볼 때 최근 달로 계속 쌓여 보입니다.</p>
     </div>
     <button id="finalizeBtn" class="small">📌 이번 달 확정 저장</button>
@@ -920,7 +997,7 @@ function renderAnnualPane() {
   $("#finalizeBtn").onclick = async () => {
     try {
       const r = await api("/api/finalize", { method: "POST" });
-      showToast(`${r.saved} 확정 저장 — 확정 이력에 반영됨`);
+      showToast(`${r.saved} 확정 저장 — 연간 근무표에 반영됨`);
       loadAnnualView();
     } catch (e) {}
   };
@@ -954,7 +1031,7 @@ async function loadAnnualView() {
   try {
     data = await api("/api/annual");
   } catch (e) {
-    box.innerHTML = '<p style="color:var(--sub);font-size:12px">확정 이력을 불러오지 못했습니다.</p>';
+    box.innerHTML = '<p style="color:var(--sub);font-size:12px">연간 근무표를 불러오지 못했습니다.</p>';
     return;
   }
   const months = [data.current, ...data.history];

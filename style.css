@@ -200,6 +200,20 @@ td.disabled { cursor: default; opacity: .55; }
 .intake-box .hint { color: var(--sub); font-size: 12.5px; margin: 0 0 14px; }
 .upload-row { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
 
+.upload-section {
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px 4px; margin-bottom: 20px;
+}
+.upload-section h3 { font-size: 13.5px; margin: 0 0 12px; }
+.upload-section h3 .hint { font-weight: 400; margin-left: 4px; }
+.upload-item { margin-bottom: 14px; }
+.upload-item-label { font-weight: 700; font-size: 12.5px; margin-bottom: 6px; }
+.upload-item-label .hint { font-weight: 400; margin-left: 6px; }
+.upload-item .upload-row { margin-bottom: 6px; }
+.format-btn { white-space: nowrap; }
+.manual-sec-title { font-size: 13.5px; margin: 4px 0 10px; }
+.manual-sec-title .hint { font-weight: 400; margin-left: 4px; }
+
 details.form-sec {
   border: 1px solid var(--line); border-radius: 9px; margin-bottom: 12px; overflow: hidden;
 }

@@ -57,11 +57,53 @@
           그대로 <b>바로 생성</b>을 눌러도 되고, 엑셀을 업로드해 값을 통째로 바꾸거나,
           표를 직접 고쳐서 우리 병동 데이터로 바꿔도 됩니다.</p>
 
-          <div class="upload-row">
-            <input type="file" id="fileInput" accept=".xlsx">
-            <button id="uploadBtn">엑셀 업로드해서 표 채우기</button>
-            <span id="uploadStatus" class="hint"></span>
+          <div class="upload-section">
+            <h3>파일로 채우기 <span class="hint">— 전부 선택사항, 안 올리면 아래에서 직접 입력하면 됩니다</span></h3>
+
+            <div class="upload-item">
+              <div class="upload-item-label">입력① 병동인력표 <span class="hint">필수정보(설정·인원·최소인력)</span></div>
+              <div class="upload-row">
+                <input type="file" id="fileInput" accept=".xlsx">
+                <button id="uploadBtn">업로드</button>
+                <button type="button" class="small format-btn" data-format="input1">양식 안내</button>
+                <span id="uploadStatus" class="hint"></span>
+              </div>
+            </div>
+
+            <div class="upload-item">
+              <div class="upload-item-label">입력② 전월 확정 근무표 <span class="hint">이월정보 자동계산</span></div>
+              <div class="upload-row">
+                <input type="file" id="prevMonthInput" accept=".xlsx">
+                <button id="prevMonthBtn">업로드</button>
+                <button type="button" class="small format-btn" data-format="input2">양식 안내</button>
+                <span id="prevMonthStatus" class="hint"></span>
+              </div>
+            </div>
+
+            <div class="upload-item">
+              <div class="upload-item-label">입력③ 원티드표 <span class="hint">신청 일괄 반영</span></div>
+              <div class="upload-row">
+                <input type="file" id="wantedInput" accept=".xlsx">
+                <button id="wantedBtn">업로드</button>
+                <button type="button" class="small format-btn" data-format="input3">양식 안내</button>
+                <span id="wantedStatus" class="hint"></span>
+              </div>
+            </div>
+
+            <div class="upload-item">
+              <div class="upload-item-label">입력④ 인원표 <span class="hint">다월 자동연동(누적통계 이어받기)</span></div>
+              <p class="hint" id="staffTableActive" style="display:none"></p>
+              <div class="upload-row">
+                <input type="file" id="staffTableInput" accept=".xlsx">
+                <button id="staffTableBtn">업로드</button>
+                <button id="staffTableClearBtn" style="display:none">반영 해제</button>
+                <button type="button" class="small format-btn" data-format="input4">양식 안내</button>
+                <span id="staffTableStatus" class="hint"></span>
+              </div>
+            </div>
           </div>
+
+          <h3 class="manual-sec-title">직접 입력 / 확인 <span class="hint">— 파일을 올리면 여기도 자동으로 채워집니다</span></h3>
 
           <details class="form-sec" open>
             <summary>설정</summary>
@@ -74,7 +116,7 @@
                 </span>
               </label>
               <label>월 최대야간 <input type="number" id="f_maxnights" style="width:60px"></label>
-              <label style="display:none"><input type="checkbox" id="f_leader8a"> 리더 8A(prn형) 운용</label>
+              <label><input type="checkbox" id="f_leader8a"> 리더 8A(prn형) 운용</label>
             </div>
             <div class="holiday-cal-wrap">
               <div class="holiday-cal-head">
@@ -112,14 +154,6 @@
 
           <details class="form-sec">
             <summary>원티드 신청 <span class="count-badge" id="reqCount"></span> (선택)</summary>
-            <p class="hint">월간근무표와 같은 모양(이름|1일|2일|…)의 엑셀에 원티드 표시(D*/E*/N*/8A*/NK*
-            = 그 근무 희망, X = 휴무 희망, 연차류·기타 휴가 표시 = 휴무/연차 희망)를 해서 올리면
-            자동으로 아래 표에 채워진다. 표를 직접 고쳐도 된다.</p>
-            <div class="upload-row">
-              <input type="file" id="wantedInput" accept=".xlsx">
-              <button id="wantedBtn" class="small">원티드 엑셀로 자동 채우기</button>
-              <span id="wantedStatus" class="hint"></span>
-            </div>
             <div class="tablebox">
               <table class="form-table" id="reqTable">
                 <thead><tr><th>이름</th><th>날짜</th><th>유형</th><th>우선순위</th><th></th></tr></thead>
@@ -130,15 +164,7 @@
           </details>
 
           <details class="form-sec">
-            <summary>월간근무표 <span class="count-badge" id="carryCount"></span> (선택 — 지난달 확정 근무표)</summary>
-            <p class="hint">지난달에 실제로 확정된 근무표(엑셀)를 올리면 연속근무일수·마지막근무·
-            야간블록 같은 이월값을 자동으로 계산해준다. 연간근무표를 이미 올렸다면 거기서도
-            자동으로 계산되므로, 이건 연간근무표가 없을 때 대체용으로 쓰면 된다.</p>
-            <div class="upload-row">
-              <input type="file" id="prevMonthInput" accept=".xlsx">
-              <button id="prevMonthBtn" class="small">월간근무표로 자동 채우기</button>
-              <span id="prevMonthStatus" class="hint"></span>
-            </div>
+            <summary>전월이월 <span class="count-badge" id="carryCount"></span> (선택)</summary>
             <div class="tablebox">
               <table class="form-table" id="carryTable">
                 <thead><tr><th>이름</th><th>마지막근무</th><th>연속근무일</th><th>이월OFF일</th><th>말일연속야간</th><th></th></tr></thead>
@@ -146,19 +172,6 @@
               </table>
             </div>
             <button id="addCarryBtn" class="small">+ 이월 추가</button>
-          </details>
-
-          <details class="form-sec">
-            <summary>연간근무표 (다월 자동 연동, 선택)</summary>
-            <p class="hint">지난달 생성 후 받은 "연간근무표" 파일을 올리면 인원 명단과, 야간 형평성이
-            누적된 통계·이월값이 이번 달 생성에 자동으로 이어진다. 처음 쓴다면 생략해도 된다.</p>
-            <p class="hint" id="staffTableActive" style="display:none"></p>
-            <div class="upload-row">
-              <input type="file" id="staffTableInput" accept=".xlsx">
-              <button id="staffTableBtn" class="small">연간근무표로 자동 채우기</button>
-              <button id="staffTableClearBtn" class="small" style="display:none">반영 해제</button>
-              <span id="staffTableStatus" class="hint"></span>
-            </div>
           </details>
 
           <div class="generate-row">
@@ -169,7 +182,7 @@
       </div>
       <!-- 생성 후 그리드는 이 컨테이너에 렌더링 (intake와 분리 — 서로 파괴하지 않음) -->
       <div id="gridContent" style="display:none"></div>
-      <!-- 확정 이력(최근 확정 달들)은 생성된 그리드 바로 아래, 같은 좌측 영역에 표시 -->
+      <!-- 연간 근무표(최근 확정 달들)는 생성된 그리드 바로 아래, 같은 좌측 영역에 표시 -->
       <div id="annualPane" style="display:none"></div>
     </div>
     <div id="sidePane" style="display:none"></div>
@@ -180,6 +193,13 @@
   <div class="modal">
     <div class="modal-head"><h2>프로그램 정보 · 사용법</h2><button id="closeInfoBtn">✕</button></div>
     <div class="modal-body" id="infoBody"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="formatModalBackdrop">
+  <div class="modal">
+    <div class="modal-head"><h2 id="formatTitle">양식 안내</h2><button id="closeFormatBtn">✕</button></div>
+    <div class="modal-body" id="formatBody"></div>
   </div>
 </div>
 

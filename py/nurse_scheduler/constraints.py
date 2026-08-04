@@ -6,6 +6,7 @@
 """
 from __future__ import annotations
 
+import math
 from typing import Dict, List, Optional
 
 from .calendar_utils import DayInfo, DAY_WEEKDAY, holiday_count, min_staff_for
@@ -343,6 +344,22 @@ def _spread(values: List[int]) -> int:
     return (max(values) - min(values)) if values else 0
 
 
+def _senior_pool_threshold(pool: List[Staff]) -> Optional[int]:
+    """근무유형별 '고랩' 상대 레벨 기준선 (S6).
+
+    파트마다 숙련도 분포가 달라 절대 레벨(예: Lv3+)을 고정하면 고레벨이
+    적은 파트는 항상 위반이 나거나 순환이 불가능해진다. 대신 그 근무를
+    할 수 있는 인력 풀 중 상위 30%를 '고랩군'으로 삼되, 그 결과 인원이
+    3명 미만이면(순환을 못 돌릴 만큼 적으면) 최소 3명이 될 때까지(또는
+    풀 전체를 다 쓸 때까지) 기준을 자동으로 넓힌다."""
+    if not pool:
+        return None
+    levels = sorted((s.level for s in pool), reverse=True)
+    n = len(levels)
+    k = min(n, max(3, math.ceil(n * 0.3)))
+    return levels[k - 1]
+
+
 def check_soft(sch: MonthSchedule, days: List[DayInfo], params) -> List[Violation]:
     out: List[Violation] = []
     nd = sch.num_days
@@ -380,7 +397,16 @@ def check_soft(sch: MonthSchedule, days: List[DayInfo], params) -> List[Violatio
             if sp > 2:
                 out.append(Violation("S5", "soft", f"주말 OFF 편차 {sp}일 (>2)"))
 
-    # S6: D/E/prn/N(확장) 각 근무 Lv3+ 최소 1명
+    # S6: D/E/prn/N(확장) 각 근무 고랩(상대 상위 30%, 최소 3명 확보) 최소 1명
+    senior_pools = {
+        "D": [s for s in sch.staff if not s.is_partjang and s.can(Shift.D)],
+        "E": [s for s in sch.staff if not s.is_partjang and s.can(Shift.E)],
+        "prn": [s for s in sch.staff if not s.is_partjang and s.can(Shift.PRN)],
+        "N": [s for s in sch.staff
+              if not s.is_partjang and (s.is_nk or s.can(Shift.N))],
+    }
+    senior_threshold = {key: _senior_pool_threshold(pool)
+                        for key, pool in senior_pools.items()}
     for d in range(nd):
         for key, shift in (("D", Shift.D), ("E", Shift.E),
                            ("prn", Shift.PRN), ("N", Shift.N)):
@@ -396,9 +422,10 @@ def check_soft(sch: MonthSchedule, days: List[DayInfo], params) -> List[Violatio
                     workers.append(s)
                 elif shift not in (Shift.N, Shift.PRN) and v == shift:
                     workers.append(s)
-            if workers and not any(s.level >= 3 for s in workers):
+            th = senior_threshold[key]
+            if workers and th is not None and not any(s.level >= th for s in workers):
                 out.append(Violation("S6", "soft",
-                                     f"{d+1}일 {key} Lv3+ 없음", day=d))
+                                     f"{d+1}일 {key} 고랩(Lv{th}+) 없음", day=d))
 
     # S7: 퐁당퐁당 (O-근무-O)
     for s in generals:
