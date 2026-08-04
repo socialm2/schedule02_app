@@ -202,15 +202,30 @@ td.disabled { cursor: default; opacity: .55; }
 
 .upload-section {
   background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px;
-  padding: 16px 18px 4px; margin-bottom: 20px;
+  padding: 16px 18px; margin-bottom: 20px;
 }
 .upload-section h3 { font-size: 13.5px; margin: 0 0 12px; }
 .upload-section h3 .hint { font-weight: 400; margin-left: 4px; }
 .upload-item { margin-bottom: 14px; }
+.upload-item:last-child { margin-bottom: 0; }
 .upload-item-label { font-weight: 700; font-size: 12.5px; margin-bottom: 6px; }
 .upload-item-label .hint { font-weight: 400; margin-left: 6px; }
-.upload-item .upload-row { margin-bottom: 6px; }
-.format-btn { white-space: nowrap; }
+/* 파일선택 input은 화면에서 숨기고, upload-btn이 대신 클릭을 받아 input.click()으로 연다 */
+.file-input-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+/* 업로드 버튼(파일선택 겸용)과 양식(다운로드 링크) 버튼을 같은 크기로, 한 줄에 배치 */
+.upload-item .upload-row { display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 4px; }
+.upload-btn {
+  flex: 1 1 0; min-width: 0; box-sizing: border-box; text-align: center;
+  font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  border: 1.5px solid var(--line); background: var(--card); color: var(--ink);
+  border-radius: 7px; padding: 8px 10px; transition: background .1s, border-color .1s;
+  text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.upload-btn:hover { border-color: var(--accent); color: var(--accent); }
+#staffTableClearBtn { margin-bottom: 4px; }
 .manual-sec-title { font-size: 13.5px; margin: 4px 0 10px; }
 .manual-sec-title .hint { font-weight: 400; margin-left: 4px; }
 

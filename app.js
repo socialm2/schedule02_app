@@ -112,6 +112,7 @@ function seedHolidaysForYear(year) {
 let ST = null;       // 생성 후 서버 상태 캐시
 let picker = null;
 let formStaff = [];      // [{id, role, level, allowed:[...], flags:[...]}]
+let formLeader8aAsPrn = false;  // UI에서 뺐지만(요청) 업로드된 값은 그대로 보존해서 다시 씀
 let formRequests = [];   // [{staff_id, date, type, priority}]
 let formCarryover = [];  // [{staff_id, last_shift_type, consecutive_work_days, night_block_remaining_off, trailing_night_count}]
 let formHolidays = [];      // ["YYYY-MM-DD", ...] 공휴일
@@ -302,80 +303,6 @@ $("#infoBtn").onclick = () => {
 $("#closeInfoBtn").onclick = () => $("#infoModalBackdrop").classList.remove("show");
 $("#infoModalBackdrop").onclick = (e) => { if (e.target.id === "infoModalBackdrop") e.currentTarget.classList.remove("show"); };
 
-// ================================================================ 입력 양식 안내 모달
-
-const FORMAT_INFO = {
-  input1: {
-    title: "입력① 병동인력표 — 양식 안내",
-    html: `
-<h3>필수 시트 3개</h3>
-<ul>
-<li><b>설정</b> — 항목|값 형식. 연도, 월, 월최대야간, 리더8A운용(Y/N), 공휴일(콤마 구분)</li>
-<li><b>인원</b> — 순번|이름|직급|숙련도(Lv1~5)|가능근무(콤마, 예: D,E,N,prn)|비고.
-비고란에 "야간전담"/"임부"/"야간금지"라고 적으면 자동으로 인식됩니다.</li>
-<li><b>최소인력</b> — 근무(D/E/N/prn) × 평일/토요일/일요일·공휴일 필요 인원수</li>
-</ul>
-<p class="hint">선택 시트로 <b>신청</b>·<b>전월이월</b>도 이 파일 안에 같이 넣을 수 있지만,
-아래 입력②③으로 따로 올리는 편이 더 간편합니다.</p>
-<p><a href="sample_input.xlsx" download>샘플 파일 받기</a>로 정확한 형식을 바로 확인할 수 있습니다.</p>`,
-  },
-  input2: {
-    title: "입력② 전월 확정 근무표 — 양식 안내",
-    html: `
-<h3>이 앱이 만든 "근무표 엑셀"과 같은 모양입니다</h3>
-<ul>
-<li>A1 셀에 "2026년 8월"처럼 연월 제목</li>
-<li>2행에 1일~말일 날짜 헤더(C열부터)</li>
-<li>4행부터 A열에 이름, 그 오른쪽으로 하루씩 근무 코드(D/E/N/NK/prn/OFF/연차 등)</li>
-</ul>
-<p>지난달 이 앱에서 받은 근무표 엑셀을 그대로 다시 올리면 됩니다 — 마지막 며칠의 근무
-패턴에서 연속근무일수·이월OFF일수·말일연속야간을 자동 계산해 "전월이월" 표를 채웁니다.</p>`,
-  },
-  input3: {
-    title: "입력③ 원티드표 — 양식 안내",
-    html: `
-<h3>입력②와 같은 그리드 모양에, 칸마다 신청 표시만 적어서 올립니다</h3>
-<p>이름|1일|2일|…|말일 칸에 아래 표기를 적으면 자동으로 신청 목록으로 바뀝니다
-(뒤에 별표가 있어도 없어도 인식):</p>
-<ul>
-<li><b>근무 희망</b>: <span class="kbd">D</span> <span class="kbd">E</span> <span class="kbd">N</span>
-<span class="kbd">8A</span> <span class="kbd">NK</span> <span class="kbd">T</span>(교육)</li>
-<li><b>휴가유형별 희망</b>: <span class="kbd">연</span>/<span class="kbd">연차</span>,
-<span class="kbd">연4</span>(반차), <span class="kbd">조</span>(조사), <span class="kbd">경</span>(경조사),
-<span class="kbd">공</span>(공가), <span class="kbd">병</span>(병가), <span class="kbd">휴</span>(휴직),
-<span class="kbd">승</span>(승급교육)</li>
-<li><b>단순 OFF 희망</b>: <span class="kbd">X</span> — 그 외 알아보지 못한 표시는 업로드 후
-목록으로 알려드립니다</li>
-</ul>
-<p class="hint">빈 칸은 신청 없음으로 건너뜁니다. 가장 쉬운 방법: 이번 달 근무표를 아무 값이나
-넣어 한 번 생성해 빈 그리드 모양을 받은 뒤, 거기에 표시만 채워 다시 올리세요.</p>`,
-  },
-  input4: {
-    title: "입력④ 인원표 — 양식 안내",
-    html: `
-<h3>지난달 이 앱에서 받은 "인원표(연간근무표)" 엑셀과 같은 모양입니다</h3>
-<ul>
-<li>인원 명단(이름·직급·숙련도·가능근무·비고)</li>
-<li>누적 통계(야간·근무일·OFF·주말야간·2일블록·3일블록·개월수 등, 형평성 참고용)</li>
-<li>연간 근무 그리드(1/1부터 누적, 참고용)</li>
-</ul>
-<p>지난달 생성 후 받은 인원표 파일을 그대로 다시 올리면, 인원 명단과 누적 통계가 이번 달
-생성에 자동으로 이어집니다. 처음 쓴다면 생략해도 됩니다.</p>`,
-  },
-};
-
-document.querySelectorAll(".format-btn").forEach(btn => {
-  btn.onclick = () => {
-    const info = FORMAT_INFO[btn.dataset.format];
-    if (!info) return;
-    $("#formatTitle").textContent = info.title;
-    $("#formatBody").innerHTML = info.html;
-    $("#formatModalBackdrop").classList.add("show");
-  };
-});
-$("#closeFormatBtn").onclick = () => $("#formatModalBackdrop").classList.remove("show");
-$("#formatModalBackdrop").onclick = (e) => { if (e.target.id === "formatModalBackdrop") e.currentTarget.classList.remove("show"); };
-
 // ================================================================ 입력 폼 채우기
 
 function populateYearMonthSelects() {
@@ -441,7 +368,7 @@ function fillForm(cfg) {
   $("#f_month").value = cfg.month;
   const p = cfg.params || {};
   $("#f_maxnights").value = p.off_max_per_month ?? 6;
-  $("#f_leader8a").checked = !!p.leader_8a_as_prn;
+  formLeader8aAsPrn = !!p.leader_8a_as_prn;
   formHolidays = [...(p.holidays || [])];
   formSubHolidays = [...(p.substitute_holidays || [])];
   renderHolidayCalendar();
@@ -623,7 +550,7 @@ function buildCfgFromForm() {
                                  allowed_shifts: s.allowed, flags: s.flags })),
     params: {
       nk_count: nkCount, min_staff: minStaff,
-      leader_8a_as_prn: $("#f_leader8a").checked,
+      leader_8a_as_prn: formLeader8aAsPrn,
       off_max_per_month: parseInt($("#f_maxnights").value || "6", 10),
       holidays, substitute_holidays: subhol, advanced_track_staff: [],
     },
@@ -633,22 +560,27 @@ function buildCfgFromForm() {
 }
 
 // ================================================================ 업로드 / 생성
+// 파일선택 버튼 하나로 통합 — 누르면 파일 대화상자가 뜨고, 파일을 고르는 즉시
+// (별도 "업로드" 클릭 없이) 바로 업로드/반영된다.
+document.querySelectorAll(".upload-btn[data-target]").forEach(btn => {
+  btn.onclick = () => $("#" + btn.dataset.target).click();
+});
 
-$("#uploadBtn").onclick = async () => {
+$("#fileInput").onchange = async () => {
   const f = $("#fileInput").files[0];
-  if (!f) { showToast("파일을 선택하세요", true); return; }
+  if (!f) return;
   try {
     const bytes = new Uint8Array(await f.arrayBuffer());
     const data = await api("/api/upload", { _fileBytes: bytes });
     fillForm(data.cfg);
     $("#uploadStatus").textContent = `"${f.name}" 값으로 표를 채웠습니다 — 검토 후 생성을 누르세요`;
     showToast("업로드한 값으로 표를 채웠습니다");
-  } catch (e) {}
+  } catch (e) {} finally { $("#fileInput").value = ""; }
 };
 
-$("#prevMonthBtn").onclick = async () => {
+$("#prevMonthInput").onchange = async () => {
   const f = $("#prevMonthInput").files[0];
-  if (!f) { showToast("파일을 선택하세요", true); return; }
+  if (!f) return;
   try {
     const bytes = new Uint8Array(await f.arrayBuffer());
     const data = await api("/api/upload_prev_month", { _fileBytes: bytes });
@@ -670,12 +602,12 @@ $("#prevMonthBtn").onclick = async () => {
       `${data.year}년 ${data.month}월 근무표에서 ${matched}명 반영` +
       (skipped ? ` (현재 인원명단과 이름이 안 맞는 ${skipped}명 제외)` : "");
     showToast(data.warning || `${matched}명 이월정보를 자동으로 채웠습니다`, !!data.warning);
-  } catch (e) {}
+  } catch (e) {} finally { $("#prevMonthInput").value = ""; }
 };
 
-$("#wantedBtn").onclick = async () => {
+$("#wantedInput").onchange = async () => {
   const f = $("#wantedInput").files[0];
-  if (!f) { showToast("파일을 선택하세요", true); return; }
+  if (!f) return;
   try {
     const bytes = new Uint8Array(await f.arrayBuffer());
     const data = await api("/api/upload_wanted", { _fileBytes: bytes });
@@ -686,7 +618,7 @@ $("#wantedBtn").onclick = async () => {
       `${data.year}년 ${data.month}월 표에서 ${formRequests.length}건 인식` +
       (unk ? ` (인식 못 한 표시 ${unk}개: ${data.unknown_marks.join(", ")})` : "");
     showToast(data.warning || `원티드 ${formRequests.length}건을 자동으로 채웠습니다`, !!data.warning);
-  } catch (e) {}
+  } catch (e) {} finally { $("#wantedInput").value = ""; }
 };
 
 async function refreshStaffTableStatus() {
@@ -717,9 +649,9 @@ $("#staffTableClearBtn").onclick = async () => {
   } catch (e) {}
 };
 
-$("#staffTableBtn").onclick = async () => {
+$("#staffTableInput").onchange = async () => {
   const f = $("#staffTableInput").files[0];
-  if (!f) { showToast("파일을 선택하세요", true); return; }
+  if (!f) return;
   try {
     const bytes = new Uint8Array(await f.arrayBuffer());
     const data = await api("/api/upload_staff_table", { _fileBytes: bytes });
@@ -732,7 +664,7 @@ $("#staffTableBtn").onclick = async () => {
       `인원 ${formStaff.length}명, 누적 통계 반영 (연간 근무표 ${data.annual_days}일치 포함)`;
     await refreshStaffTableStatus();
     showToast("인원표에서 인원 명단과 누적 통계를 불러왔습니다");
-  } catch (e) {}
+  } catch (e) {} finally { $("#staffTableInput").value = ""; }
 };
 
 // 생성/재생성은 인원이 많으면 수십 초~1~2분 걸릴 수 있다. Worker 덕분에 화면

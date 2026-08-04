@@ -26,6 +26,8 @@ const APP_FILES = ["./", "index.html", "app.js", "style.css", "pyworker.js",
 
 const HEAVY_FILES = [
   "sample_input.xlsx",
+  "templates/template_input1.xlsx", "templates/template_input2.xlsx",
+  "templates/template_input3.xlsx", "templates/template_input4.xlsx",
   "vendor/pyodide/pyodide.js", "vendor/pyodide/pyodide.mjs",
   "vendor/pyodide/pyodide.asm.js", "vendor/pyodide/pyodide.asm.wasm",
   "vendor/pyodide/python_stdlib.zip", "vendor/pyodide/pyodide-lock.json",

@@ -63,43 +63,43 @@
             <div class="upload-item">
               <div class="upload-item-label">입력① 병동인력표 <span class="hint">필수정보(설정·인원·최소인력)</span></div>
               <div class="upload-row">
-                <input type="file" id="fileInput" accept=".xlsx">
-                <button id="uploadBtn">업로드</button>
-                <button type="button" class="small format-btn" data-format="input1">양식 안내</button>
-                <span id="uploadStatus" class="hint"></span>
+                <input type="file" id="fileInput" accept=".xlsx" class="file-input-hidden">
+                <button type="button" class="upload-btn" data-target="fileInput">업로드</button>
+                <a class="upload-btn format-btn" href="templates/template_input1.xlsx" download="양식_입력1_병동인력표.xlsx">양식</a>
               </div>
+              <span id="uploadStatus" class="hint"></span>
             </div>
 
             <div class="upload-item">
               <div class="upload-item-label">입력② 전월 확정 근무표 <span class="hint">이월정보 자동계산</span></div>
               <div class="upload-row">
-                <input type="file" id="prevMonthInput" accept=".xlsx">
-                <button id="prevMonthBtn">업로드</button>
-                <button type="button" class="small format-btn" data-format="input2">양식 안내</button>
-                <span id="prevMonthStatus" class="hint"></span>
+                <input type="file" id="prevMonthInput" accept=".xlsx" class="file-input-hidden">
+                <button type="button" class="upload-btn" data-target="prevMonthInput">업로드</button>
+                <a class="upload-btn format-btn" href="templates/template_input2.xlsx" download="양식_입력2_전월확정근무표.xlsx">양식</a>
               </div>
+              <span id="prevMonthStatus" class="hint"></span>
             </div>
 
             <div class="upload-item">
               <div class="upload-item-label">입력③ 원티드표 <span class="hint">신청 일괄 반영</span></div>
               <div class="upload-row">
-                <input type="file" id="wantedInput" accept=".xlsx">
-                <button id="wantedBtn">업로드</button>
-                <button type="button" class="small format-btn" data-format="input3">양식 안내</button>
-                <span id="wantedStatus" class="hint"></span>
+                <input type="file" id="wantedInput" accept=".xlsx" class="file-input-hidden">
+                <button type="button" class="upload-btn" data-target="wantedInput">업로드</button>
+                <a class="upload-btn format-btn" href="templates/template_input3.xlsx" download="양식_입력3_원티드표.xlsx">양식</a>
               </div>
+              <span id="wantedStatus" class="hint"></span>
             </div>
 
             <div class="upload-item">
               <div class="upload-item-label">입력④ 인원표 <span class="hint">다월 자동연동(누적통계 이어받기)</span></div>
               <p class="hint" id="staffTableActive" style="display:none"></p>
               <div class="upload-row">
-                <input type="file" id="staffTableInput" accept=".xlsx">
-                <button id="staffTableBtn">업로드</button>
-                <button id="staffTableClearBtn" style="display:none">반영 해제</button>
-                <button type="button" class="small format-btn" data-format="input4">양식 안내</button>
-                <span id="staffTableStatus" class="hint"></span>
+                <input type="file" id="staffTableInput" accept=".xlsx" class="file-input-hidden">
+                <button type="button" class="upload-btn" data-target="staffTableInput">업로드</button>
+                <a class="upload-btn format-btn" href="templates/template_input4.xlsx" download="양식_입력4_인원표.xlsx">양식</a>
               </div>
+              <button id="staffTableClearBtn" class="small" style="display:none">반영 해제</button>
+              <span id="staffTableStatus" class="hint"></span>
             </div>
           </div>
 
@@ -116,7 +116,6 @@
                 </span>
               </label>
               <label>월 최대야간 <input type="number" id="f_maxnights" style="width:60px"></label>
-              <label><input type="checkbox" id="f_leader8a"> 리더 8A(prn형) 운용</label>
             </div>
             <div class="holiday-cal-wrap">
               <div class="holiday-cal-head">
@@ -193,13 +192,6 @@
   <div class="modal">
     <div class="modal-head"><h2>프로그램 정보 · 사용법</h2><button id="closeInfoBtn">✕</button></div>
     <div class="modal-body" id="infoBody"></div>
-  </div>
-</div>
-
-<div class="modal-backdrop" id="formatModalBackdrop">
-  <div class="modal">
-    <div class="modal-head"><h2 id="formatTitle">양식 안내</h2><button id="closeFormatBtn">✕</button></div>
-    <div class="modal-body" id="formatBody"></div>
   </div>
 </div>
 

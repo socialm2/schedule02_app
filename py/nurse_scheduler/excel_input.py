@@ -223,6 +223,24 @@ def _parse_monthly_grid_shape(ws):
     return year, month, num_days, first_day_col
 
 
+def _find_grid_sheet(wb):
+    """월간근무표 모양의 시트를 찾는다.
+
+    엑셀에서 마지막으로 보고 있던 시트(wb.active)를 우선 시도하되, 안내/설명용
+    시트가 같이 들어있어 그게 활성 시트로 저장된 경우에도 문제없이 읽히도록
+    나머지 시트를 전부 훑어 'YYYY년 M월' 형식의 진짜 데이터 시트를 찾는다.
+    반환: (ws, year, month, num_days, first_day_col)"""
+    candidates = [wb.active] + [ws for ws in wb.worksheets if ws is not wb.active]
+    last_err = None
+    for ws in candidates:
+        try:
+            year, month, num_days, first_day_col = _parse_monthly_grid_shape(ws)
+            return ws, year, month, num_days, first_day_col
+        except ExcelInputError as e:
+            last_err = e
+    raise last_err or ExcelInputError("월간근무표 모양의 시트를 찾지 못했습니다.")
+
+
 # ---------------------------------------------------------------- 지난달 확정 근무표 읽기 (이월/히스토리용)
 
 def load_prev_month_schedule_xlsx(path: str) -> dict:
@@ -234,8 +252,7 @@ def load_prev_month_schedule_xlsx(path: str) -> dict:
     from openpyxl import load_workbook
 
     wb = load_workbook(path, data_only=True)
-    ws = wb.active
-    year, month, num_days, first_day_col = _parse_monthly_grid_shape(ws)
+    ws, year, month, num_days, first_day_col = _find_grid_sheet(wb)
 
     grid: Dict[str, List[str]] = {}
     row = 4
@@ -282,8 +299,7 @@ def load_wanted_grid_xlsx(path: str) -> dict:
     from openpyxl import load_workbook
 
     wb = load_workbook(path, data_only=True)
-    ws = wb.active
-    year, month, num_days, first_day_col = _parse_monthly_grid_shape(ws)
+    ws, year, month, num_days, first_day_col = _find_grid_sheet(wb)
 
     requests: List[dict] = []
     unknown = set()
