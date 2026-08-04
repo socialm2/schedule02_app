@@ -118,6 +118,23 @@ class Generator:
         ]
         self.nk_target = 14 if self.month == 2 else 15
 
+    # ------------------------------------------------------------ H6-4 목표
+    def compute_night_targets(self):
+        """야간 가능한 일반 간호사에게 이번 달 목표(4일 또는 6일)를 배정한다.
+
+        전월 누적 데이터(carryover.recent_night_score — 감쇠 이동평균)가 적은
+        사람일수록 6일 목표를 받아 장기적으로 균등해지도록 한다(§전월 누적 기반)."""
+        eligible = [s for s in self.staff
+                    if not (s.is_partjang or s.is_nk) and s.can(Shift.N)]
+        if not eligible:
+            return
+        ranked = sorted(
+            eligible,
+            key=lambda s: (self.sch.carryover[s.id].recent_night_score, s.id))
+        six_count = (len(ranked) + 1) // 2  # 홀수면 6일 그룹이 1명 더 많게(적게 한 쪽 우선)
+        for i, s in enumerate(ranked):
+            self.sch.night_target[s.id] = 6 if i < six_count else 4
+
     # ------------------------------------------------------------ 입력 파싱
     @staticmethod
     def _parse_staff(raw: List[dict]) -> List[Staff]:
@@ -177,6 +194,14 @@ class Generator:
             total += 1
         if total > 5:
             return False
+        # H6-1: D/E/prn 연속블록은 4일 이하 (전용 카운트)
+        if shift in DAY_WORK_SHIFTS:
+            day_before = sch.day_work_run_ending(s.id, d - 1) if d > 0 else \
+                (sch.carryover[s.id].consecutive_work_days
+                 if sch.carryover[s.id].last_shift_type in DAY_WORK_SHIFTS else 0)
+            day_after = sch.day_work_run_starting(s.id, d + 1)
+            if day_before + 1 + day_after > 4:
+                return False
         p1 = sch.effective(s.id, d - 1)
         p2 = sch.effective(s.id, d - 2)
         # H2-8: N→주간, N-O→주간 금지
@@ -187,9 +212,18 @@ class Generator:
         # H3-2: E→D, E→prn
         if p1 == Shift.E and shift in (Shift.D, Shift.PRN, Shift.A8):
             return False
+        # H6-3: EOD(E-O-D) 금지
+        if p2 == Shift.E and p1 in REST_SHIFTS and shift == Shift.D:
+            return False
         nxt = sch.get(s.id, d + 1) if d + 1 < sch.num_days else None
         if shift == Shift.E and nxt in (Shift.D, Shift.PRN, Shift.A8):
             return False
+        # H6-3: EOD(E-O-D) 금지 — 반대 방향(E를 놓았을 때 이틀 뒤에 이미 D가 있는 경우)
+        if shift == Shift.E:
+            nxt1 = sch.effective(s.id, d + 1)
+            nxt2 = sch.effective(s.id, d + 2)
+            if nxt1 in REST_SHIFTS and nxt2 == Shift.D:
+                return False
         return True
 
     # ------------------------------------------------------------ Step 0
@@ -217,7 +251,8 @@ class Generator:
         nk_supply = len(nk_staff) * self.nk_target
         generals = [s for s in self.staff
                     if not (s.is_partjang or s.is_nk) and s.can(Shift.N)]
-        capacity = len(generals) * p.max_nights
+        capacity = sum(self.sch.night_target.get(s.id, p.max_nights)
+                       for s in generals)
         if total_night_slots - nk_supply > capacity:
             raise InputError(
                 f"야간 실현 불가: 수요 {total_night_slots} - NK공급 {nk_supply}"
@@ -238,9 +273,16 @@ class Generator:
                 continue
             s = self.sch.by_id[sid]
             self.sch.set(sid, d, shift, lock=True)
+            self.sch.wanted.add((sid, d))
             if shift == Shift.A8 and s.is_leader:
                 self.sch.leader_8a.add((sid, d))
             self.sch.log(f"[수정고정] {sid} {d+1}일 = {shift}")
+            if shift == Shift.LEAVE:
+                # 휴직: 발생일부터 그 달 나머지 기간 전부 제외
+                for dd in range(d + 1, self.sch.num_days):
+                    if not self.sch.is_locked(sid, dd):
+                        self.sch.set(sid, dd, Shift.LEAVE, lock=True)
+                        self.sch.wanted.add((sid, dd))
 
     def complete_partial_night_blocks(self):
         """수정으로 생긴 단독 야간을 2~3일 블록으로 보완하고 뒤 휴식 2일 확보 (H2-4/H2-5)."""
@@ -416,6 +458,7 @@ class Generator:
                         self.sch.requested_off.add((s.id, d))
                     else:
                         taken[(d, t)] = taken.get((d, t), 0) + 1
+                    self.sch.wanted.add((s.id, d))
                     req.accepted = True
                 else:
                     req.reject_reason = (f"고정 배정과 충돌({self.sch.get(s.id, d)}) "
@@ -425,6 +468,8 @@ class Generator:
                 if not self._off_capacity_ok(d):
                     req.reject_reason = "해당일 최소인력 부족으로 휴무 불가(H1-1)"
                     continue
+            elif t == Shift.EDU:
+                pass  # 교육(T)은 근무일수엔 포함되지만 최소인력 대상이 아니므로 인원 제한 없음
             else:
                 if t in NIGHT_SHIFTS and s.no_night:
                     req.reject_reason = "임부/야간불가 야간금지(H2-7)"
@@ -455,6 +500,7 @@ class Generator:
                         continue
             # 채택
             self.sch.set(s.id, d, t, lock=True)
+            self.sch.wanted.add((s.id, d))
             if t == Shift.A8 and s.is_leader:
                 self.sch.leader_8a.add((s.id, d))
             if t in REST_SHIFTS:
@@ -463,6 +509,12 @@ class Generator:
             else:
                 taken[(d, t)] = taken.get((d, t), 0) + 1
             req.accepted = True
+            if t == Shift.LEAVE:
+                # 휴직: 발생일부터 그 달 나머지 기간 전부 제외
+                for dd in range(d + 1, self.sch.num_days):
+                    if not self.sch.is_locked(s.id, dd):
+                        self.sch.set(s.id, dd, Shift.LEAVE, lock=True)
+                        self.sch.wanted.add((s.id, dd))
 
     def _off_capacity_ok(self, d: int) -> bool:
         """d일에 휴무 1명 추가해도 최소인력 채울 수 있는지 (근사)."""
@@ -477,16 +529,16 @@ class Generator:
 
     # ------------------------------------------------------------ Step 5
     def assign_nights(self):
-        """S9 강화: 2일 블록 우선 → 불가하면 3일(인당 월 1회 상한) → 그래도
-        불가하면(H1-1 최소인력 보존 우선) 상한을 넘겨서라도 배정하고 위반 기록."""
+        """일반 간호사: 2일 블록만 배정하며, 개인별 월 목표(4일 또는 6일, H6-4) 내로
+        제한한다. 목표를 지키면 못 채우는 경우(H1-1 최소인력 보존이 최우선) 목표를
+        넘겨서라도 2일 블록으로 배정하고 위반을 기록한다."""
         nd = self.sch.num_days
-        three_day_count: Dict[str, int] = {}
         for d in range(nd):
             need = self.min_for(d, "N") - self.sch.count_shift(d, Shift.N)
             while need > 0:
                 placed = False
                 if d + 1 >= nd:
-                    # 월말 단독야간 예외(H2-4) — 상한 개념 없이 1일 블록만
+                    # 월말 단독야간 예외(H2-4) — 목표 개념 없이 1일 블록만
                     for relax in (0, 1, 2, 3):
                         cand = self._pick_night_candidate(d, relax, (1,))
                         if cand is not None:
@@ -503,27 +555,17 @@ class Generator:
                             placed = True
                             break
                     if not placed:
-                        used_up = {sid for sid, c in three_day_count.items() if c >= 1}
+                        # 월 목표(4/6일)를 지키면 못 채움 — 최소인력(H1-1) 보존이 우선이므로
+                        # 목표를 넘겨서라도 2일 블록으로 배정하고 위반으로 남긴다.
                         for relax in (0, 1, 2, 3):
-                            cand = self._pick_night_candidate(d, relax, (3,), exclude=used_up)
+                            cand = self._pick_night_candidate(
+                                d, relax, (2,), allow_over_target=True)
                             if cand is not None:
                                 sid, length = cand
                                 self._place_night_block(sid, d, length, relax)
-                                three_day_count[sid] = three_day_count.get(sid, 0) + 1
-                                placed = True
-                                break
-                    if not placed:
-                        # 상한을 지키면 못 채움 — 최소인력(H1-1) 보존이 우선이므로
-                        # 상한을 넘겨서라도 배정하고 소프트 위반으로 남긴다.
-                        for relax in (0, 1, 2, 3):
-                            cand = self._pick_night_candidate(d, relax, (3,))
-                            if cand is not None:
-                                sid, length = cand
-                                self._place_night_block(sid, d, length, relax)
-                                three_day_count[sid] = three_day_count.get(sid, 0) + 1
                                 self.sch.log(
-                                    f"[S9] {sid}: {d+1}일 3일블록 월 1회 상한 초과 배정 "
-                                    "(2일 불가·상한 소진, 최소인력(H1-1) 우선)")
+                                    f"[H6-4] {sid}: {d+1}일 야간 — 월 목표(4/6일) 초과 배정 "
+                                    "(2일블록 목표 소진, 최소인력(H1-1) 우선)")
                                 placed = True
                                 break
                 if not placed:
@@ -532,7 +574,7 @@ class Generator:
                 need -= 1
 
     def _pick_night_candidate(self, d: int, relax: int, lengths: Tuple[int, ...],
-                              exclude: Optional[set] = None) -> Optional[Tuple[str, int]]:
+                              allow_over_target: bool = False) -> Optional[Tuple[str, int]]:
         best = None
         best_score = None
         for length in lengths:
@@ -541,9 +583,7 @@ class Generator:
                     continue
                 if Shift.N not in s.allowed_shifts:
                     continue
-                if exclude and s.id in exclude:
-                    continue
-                if not self._can_night_block(s, d, length, relax):
+                if not self._can_night_block(s, d, length, relax, allow_over_target):
                     continue
                 # S8: 배정 시 뒤따르는 강제 OFF가 '신청 OFF'를 잡아먹으면 감점
                 s8_pen = 0
@@ -587,7 +627,8 @@ class Generator:
                 squeeze += 1
         return squeeze
 
-    def _can_night_block(self, s: Staff, d: int, length: int, relax: int) -> bool:
+    def _can_night_block(self, s: Staff, d: int, length: int, relax: int,
+                         allow_over_target: bool = False) -> bool:
         sch = self.sch
         nd = sch.num_days
         for i in range(length):
@@ -597,7 +638,12 @@ class Generator:
         for k in range(length, length + 2):
             if d + k < nd and not self._is_rest_or_free(s.id, d + k):
                 return False
-        # 월 야간 상한 (H2-6, relax>=2부터 상향 H2-9)
+        # 월 야간 목표 (H6-4: 4일 또는 6일만) — H1-1 보존을 위해 부득이할 때만 초과 허용
+        if not allow_over_target:
+            target = sch.night_target.get(s.id, self.params.max_nights)
+            if sch.nights_in_month(s.id) + length > target:
+                return False
+        # 월 야간 상한 (H2-6 안전망, relax>=2부터 상향 H2-9)
         extra = max(0, relax - 1)
         if sch.nights_in_month(s.id) + length > self.params.max_nights + extra:
             return False
@@ -747,6 +793,8 @@ class Generator:
                         continue
                     v = sch.get(a.id, w)
                     if v not in DAY_WORK_SHIFTS or sch.is_locked(a.id, w):
+                        continue
+                    if self._removal_creates_eod(a.id, w):
                         continue
                     sch.grid[a.id][w] = Shift.OFF
                     if not self.can_assign_day(a, d, shift):
@@ -902,6 +950,77 @@ class Generator:
                 if self._try_transfer(s, d, v) or self._try_swap(s, d, v):
                     fixed += 1
         return fixed
+
+    # ------------------------------------------------------------ Step 7b (H6-1)
+    def _short_day_blocks(self) -> List[Tuple[Staff, int, int]]:
+        """길이 1~2일짜리 D/E/prn 연속블록 목록 [(직원, start, end), ...].
+
+        전월에서 이어지는 블록(정확한 시작을 모름)은 건드리지 않는다."""
+        sch = self.sch
+        nd = sch.num_days
+        out: List[Tuple[Staff, int, int]] = []
+        for s in self.staff:
+            if s.is_partjang or s.is_nk:
+                continue
+            d = 0
+            while d < nd:
+                if sch.effective(s.id, d) not in DAY_WORK_SHIFTS:
+                    d += 1
+                    continue
+                start = d
+                while d + 1 < nd and sch.effective(s.id, d + 1) in DAY_WORK_SHIFTS:
+                    d += 1
+                end = d
+                carried = (start == 0
+                          and sch.carryover[s.id].last_shift_type in DAY_WORK_SHIFTS)
+                length = end - start + 1
+                if length < 3 and not carried:
+                    out.append((s, start, end))
+                d = end + 1
+        return out
+
+    def fix_short_day_blocks(self, max_passes: int = 5) -> int:
+        """H6-1: 1~2일짜리 고립 주간근무 블록을 3일 이상으로 확장하거나(우선),
+        확장이 불가하면 다른 사람에게 이관/맞교환한다(fix_alternation과 동일 기법).
+
+        월경계 등에서 인접 블록이 이미 4일 꽉 차 확장·이관이 모두 막히는 경우가
+        남을 수 있다 — 최종 리포트에 H6-1 잔여 위반으로 표시된다(§H1-1과 동일하게
+        최선 노력 후 잔존을 허용하는 방식)."""
+        sch = self.sch
+        fixed_total = 0
+        for _ in range(max_passes):
+            blocks = self._short_day_blocks()
+            if not blocks:
+                break
+            any_fixed = False
+            for s, start, end in blocks:
+                grown = False
+                for dd, vv in ((end + 1, sch.get(s.id, end)),
+                              (start - 1, sch.get(s.id, start))):
+                    if not (0 <= dd < sch.num_days):
+                        continue
+                    if sch.is_locked(s.id, dd) or sch.get(s.id, dd) != Shift.OFF:
+                        continue
+                    if self.can_assign_day(s, dd, vv):
+                        sch.set(s.id, dd, vv)
+                        sch.log(f"[H6-1] {s.id}: {dd+1}일 {vv} 추가 — "
+                                f"단기블록({start+1}~{end+1}일) 확장")
+                        grown = True
+                        any_fixed = True
+                        fixed_total += 1
+                        break
+                if grown:
+                    continue
+                for dd in range(start, end + 1):
+                    if sch.is_locked(s.id, dd):
+                        continue
+                    vv = sch.get(s.id, dd)
+                    if self._try_transfer(s, dd, vv) or self._try_swap(s, dd, vv):
+                        any_fixed = True
+                        fixed_total += 1
+            if not any_fixed:
+                break
+        return fixed_total
 
     def _lv3_guard_ok(self, donor: Optional[Staff], receiver: Optional[Staff],
                       d: int, shift: Shift) -> bool:
@@ -1260,6 +1379,8 @@ class Generator:
             v = sch.get(donor.id, d)
             if v not in DAY_WORK_SHIFTS or sch.is_locked(donor.id, d):
                 continue
+            if self._removal_creates_eod(donor.id, d):
+                continue
             for r in receivers:
                 if sch.get(r.id, d) != Shift.OFF or sch.is_locked(r.id, d):
                     continue
@@ -1312,10 +1433,18 @@ class Generator:
                 continue  # 최소인력 붕괴 금지 (H1-1)
             if not self._lv3_guard_ok(s, None, d, v):
                 continue
+            if self._removal_creates_eod(s.id, d):
+                continue
             sch.grid[s.id][d] = Shift.OFF
             sch.log(f"[G6] {s.id}: OFF 부족 → {d+1}일 {v} 제거")
             return True
         return False
+
+    def _removal_creates_eod(self, sid: str, d: int) -> bool:
+        """이 칸을 비우면(OFF) E-O-D(EOD, H6-3) 패턴이 새로 생기는지."""
+        sch = self.sch
+        return (sch.effective(sid, d - 1) == Shift.E
+                and sch.effective(sid, d + 1) == Shift.D)
 
     # ------------------------------------------------------------ Step 9 (G7)
     def split_long_offs(self):
@@ -1355,6 +1484,8 @@ class Generator:
                 if sch.count_shift(w, v) - 1 < self.min_for(w, key):
                     continue
                 if not self._lv3_guard_ok(s, None, w, v):
+                    continue
+                if self._removal_creates_eod(s.id, w):
                     continue
                 sch.grid[s.id][w] = Shift.OFF
                 if self.can_assign_day(s, m, v):
@@ -1410,6 +1541,7 @@ class Generator:
     # ------------------------------------------------------------ 실행
     def run(self) -> MonthSchedule:
         self._rebuild_calls = 0
+        self.compute_night_targets()  # H6-4 개인별 월 목표(4/6일) 산정
         self.validate_input()      # Step 0
         self.apply_fixed()         # Step 0.5: 리더 수정분 고정 (재생성 모드)
         self.complete_partial_night_blocks()
@@ -1425,6 +1557,9 @@ class Generator:
         for _ in range(5):         # Step 7 — 한 명 고치면 다른 사람 자리가 열려 반복하면 더 줄어듦
             if self.fix_alternation() == 0:
                 break
+        for _ in range(5):         # Step 7b — 1~2일 단기블록을 3~4일로 확장(H6-1)
+            if self.fix_short_day_blocks() == 0:
+                break
         self.equalize_off()        # Step 8
         self.split_long_offs()     # Step 9
         # 수리 ↔ 균등화 반복: 균등화가 만든 빈 자리를 수리가 활용 (Step 10 사전)
@@ -1437,10 +1572,18 @@ class Generator:
         for _ in range(5):         # 최종 퐁당퐁당 완화 (G4 재실행, 수렴까지 반복)
             if self.fix_alternation() == 0:
                 break
+        for _ in range(5):         # 최종 단기블록 확장(H6-1) 재실행
+            if self.fix_short_day_blocks() == 0:
+                break
         self.global_fix_alternation()  # 인접일 검색으로 못 줄인 잔여를 전역 탐색으로 마무리
         self.global_fix_2blocks()      # 2일짜리 고립 블록도 확장해서 마무리
         self.global_fix_alternation()  # 2블록 확장 과정에서 새 1일 고립이 생겼을 수 있어 재정리
         return self.sch
+
+
+# 월경계 등에서 로컬 수리만으로는 구조적으로 0건을 보장하기 어려운 최선노력 하드
+# 규칙 — 이 규칙들만 남으면 재시도를 멈춘다(계속 시도해도 거의 안 줄어들어 시간만 소모).
+_BEST_EFFORT_RULES = {"H6-1", "H6-4", "H4-1"}
 
 
 def generate_best(config: dict,
@@ -1449,29 +1592,39 @@ def generate_best(config: dict,
                   time_budget: float = 120.0) -> Tuple["Generator", MonthSchedule]:
     """하드 위반이 남으면 탐색 순서를 바꿔 재시도하고 최선의 결과를 반환 (Step 10).
 
+    _BEST_EFFORT_RULES를 제외한 하드 규칙이 전부 0건이면 그 시점에서 반환한다
+    (아래 설명 참고).
+
     time_budget(초)을 넘기면 남은 재시도를 중단하고 현재 최선을 반환한다
     (병리적으로 빡빡한 입력에서 무한정 걸리는 것 방지).
     """
     import time as _time
     from .constraints import all_hard_checks
     t0 = _time.time()
-    best = None
+    best = None  # (gen, sch, n_hard, n_strict)
     tried = 0
     for i in range(attempts):
         tried = i + 1
         gen = Generator(config, fixed_cells=fixed_cells, seed=i)
         sch = gen.run()
-        n_hard = len(all_hard_checks(sch, gen.days, gen.params))
+        violations = all_hard_checks(sch, gen.days, gen.params)
+        n_hard = len(violations)
+        n_strict = sum(1 for v in violations if v.rule not in _BEST_EFFORT_RULES)
         if n_hard == 0:
             if i:
                 sch.log(f"[재시도] {i+1}번째 시도에서 하드 위반 0건 달성")
             return gen, sch
-        if best is None or n_hard < best[2]:
-            best = (gen, sch, n_hard)
+        if best is None or (n_strict, n_hard) < (best[3], best[2]):
+            best = (gen, sch, n_hard, n_strict)
+        if n_strict == 0:
+            sch.log(f"[재시도] {i+1}번째 시도에서 필수 하드 위반 0건 — "
+                    f"최선노력 규칙(H6-1/H6-4) 잔여 {n_hard}건만 남아 반환")
+            return gen, sch
         if _time.time() - t0 > time_budget:
             break
-    gen, sch, n_hard = best
-    sch.log(f"[재시도] {tried}회 시도 후에도 하드 위반 {n_hard}건 잔존 — 최선 결과 반환"
+    gen, sch, n_hard, n_strict = best
+    sch.log(f"[재시도] {tried}회 시도 후에도 하드 위반 {n_hard}건 잔존"
+            f"(그중 필수 위반 {n_strict}건) — 최선 결과 반환"
             + (f" (시간 예산 {time_budget:.0f}초 소진)"
                if _time.time() - t0 > time_budget else ""))
     return gen, sch

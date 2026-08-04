@@ -30,8 +30,8 @@ from nurse_scheduler.excel_input import (
     load_staff_table_xlsx, load_wanted_grid_xlsx,
 )
 from nurse_scheduler.generator import (
-    Generator, InputError, carryover_from_grid, carryover_from_staff_table,
-    generate_best,
+    Generator, InputError, _BEST_EFFORT_RULES, carryover_from_grid,
+    carryover_from_staff_table, generate_best,
 )
 from nurse_scheduler.models import Shift, parse_shift
 from nurse_scheduler.reporting import build_report, format_text_report
@@ -108,8 +108,12 @@ def _report_summary():
         for r in S.gen.requests
     ]
     bad_days = [d for d in report["daily"] if not d["ok"]]
+    # H6-1/H6-4/H4-1은 월경계 등에서 로컬 수리만으로 0건을 보장하기 어려운
+    # 최선노력 규칙 — 상세 목록(hard)에는 그대로 남기되, 대표 카운트에서는 제외한다.
+    strict_hard = [v for v in report["hard_violations"]
+                  if v["rule"] not in _BEST_EFFORT_RULES]
     return {
-        "hard_count": len(report["hard_violations"]),
+        "hard_count": len(strict_hard),
         "hard": report["hard_violations"],
         "soft_count": len(report["soft_violations"]),
         "soft": report["soft_violations"],
@@ -281,6 +285,15 @@ def _night_block_counts(row: list) -> tuple:
     return b2, b3, other
 
 
+def _count_shift_codes(row: list, days: list) -> tuple:
+    """행(한 달치 근무 코드)에서 D/E/prn(8A 포함) 개수와 주말·휴일 OFF 개수를 센다."""
+    d_cnt = sum(1 for v in row if v == "D")
+    e_cnt = sum(1 for v in row if v == "E")
+    prn_cnt = sum(1 for v in row if v in ("prn", "8A"))
+    wh_off = sum(1 for v, d in zip(row, days) if v == "OFF" and d.get("weekend"))
+    return d_cnt, e_cnt, prn_cnt, wh_off
+
+
 def _cumulative_summary(entries: list, staff_ids: list):
     out = {}
     for sid in staff_ids:
@@ -329,6 +342,7 @@ def _build_updated_staff_table():
         b2, b3, _bo = _night_block_counts(row)
         weekend_night = sum(1 for v, d in zip(row, days)
                             if v in ("N", "NK") and d["dow"] in ("토", "일"))
+        d_cnt, e_cnt, prn_cnt, wh_off = _count_shift_codes(row, days)
         base = prev_stats.get(s.id, {})
         stats[s.id] = {
             "night": base.get("night", 0) + S.sch.nights_in_month(s.id),
@@ -339,6 +353,10 @@ def _build_updated_staff_table():
             "blocks_3": base.get("blocks_3", 0) + b3,
             "months": base.get("months", 0) + 1,
             "recent_night_score": next_carry.get(s.id, {}).get("recent_night_score", 0.0),
+            "cum_d": base.get("cum_d", 0) + d_cnt,
+            "cum_e": base.get("cum_e", 0) + e_cnt,
+            "cum_prn": base.get("cum_prn", 0) + prn_cnt,
+            "cum_weekend_holiday_off": base.get("cum_weekend_holiday_off", 0) + wh_off,
         }
 
     this_year = S.gen.year

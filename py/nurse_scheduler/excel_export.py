@@ -19,12 +19,28 @@ SHIFT_FILLS = {
     Shift.NK: "7030A0",
     Shift.PRN: "C6E0B4",
     Shift.AL: "FFE699",
+    Shift.EDU: "B4C7E7",
+    Shift.BEREAVE: "808080",
+    Shift.CELEBRATE: "F4B6C2",
+    Shift.AL_HALF: "FFF2CC",
+    Shift.OFFICIAL: "D0CECE",
+    Shift.SICK: "F8C9C4",
+    Shift.LEAVE: "BFBFBF",
+    Shift.PROMO_EDU: "DDEBF7",
 }
-WHITE_FONT_SHIFTS = {Shift.N, Shift.NK}
+WHITE_FONT_SHIFTS = {Shift.N, Shift.NK, Shift.BEREAVE}
 WEEKEND_FILL = PatternFill("solid", fgColor="FCE4EC")
 SUB_FILL = PatternFill("solid", fgColor="FFD966")
 THIN = Border(*[Side(style="thin", color="BFBFBF")] * 4)
 CENTER = Alignment(horizontal="center", vertical="center")
+
+
+def _count_eq(rng: str, code: str) -> str:
+    """원티드 접미사(*)를 무시하고 code와 정확히 일치하는 칸 수를 세는 수식 조각.
+
+    COUNTIF의 "*" 와일드카드는 접두사가 겹치는 코드(N vs NK 등)를 이중 계산하므로
+    대신 SUBSTITUTE로 접미사를 지운 뒤 정확히 비교한다."""
+    return f'SUMPRODUCT(--(SUBSTITUTE({rng},"*","")="{code}"))'
 
 
 def export_excel(sch: MonthSchedule, days: List[DayInfo], path: str):
@@ -72,7 +88,10 @@ def export_excel(sch: MonthSchedule, days: List[DayInfo], path: str):
             partjang_rows.append(row)
         for d in range(nd):
             v = sch.grid[s.id][d]
-            c = ws.cell(row, first_day_col + d, str(v) if v else "")
+            text = str(v) if v else ""
+            if v and (s.id, d) in sch.wanted:
+                text += "*"   # 원티드(신청/관리자 지정) 표시
+            c = ws.cell(row, first_day_col + d, text)
             c.alignment = CENTER
             c.border = THIN
             if v in SHIFT_FILLS:
@@ -82,29 +101,30 @@ def export_excel(sch: MonthSchedule, days: List[DayInfo], path: str):
         a = get_column_letter(first_day_col)
         b = get_column_letter(last_day_col)
         rng = f"{a}{row}:{b}{row}"
-        ws.cell(row, last_day_col + 1, f'=COUNTIF({rng},"OFF")').alignment = CENTER
-        ws.cell(row, last_day_col + 2, f'=COUNTIF({rng},"연차")').alignment = CENTER
+        ws.cell(row, last_day_col + 1, f'={_count_eq(rng, "OFF")}').alignment = CENTER
+        ws.cell(row, last_day_col + 2, f'={_count_eq(rng, "연차")}').alignment = CENTER
         ws.cell(row, last_day_col + 3,
-                f'=COUNTIF({rng},"N")+COUNTIF({rng},"NK")').alignment = CENTER
+                f'={_count_eq(rng, "N")}+{_count_eq(rng, "NK")}').alignment = CENTER
         ws.cell(row, last_day_col + 4,
-                f'={nd}-COUNTIF({rng},"OFF")-COUNTIF({rng},"연차")').alignment = CENTER
+                f'={nd}-{_count_eq(rng, "OFF")}-{_count_eq(rng, "연차")}').alignment = CENTER
         row += 1
 
     # 하단 합계행: 파트장 행 제외 범위로 COUNTIF (G10)
     nurse_top = 4 + len(partjang_rows)
     nurse_bot = row - 1
-    labels = [("D", '=COUNTIF({r},"D")'),
-              ("E", '=COUNTIF({r},"E")'),
-              ("N", '=COUNTIF({r},"N")+COUNTIF({r},"NK")'),
-              ("prn", '=COUNTIF({r},"prn")+COUNTIF({r},"8A")')]
+    labels = [("D", ["D"]),
+              ("E", ["E"]),
+              ("N", ["N", "NK"]),
+              ("prn", ["prn", "8A"])]
     sum_start = row + 1
-    for i, (name, formula) in enumerate(labels):
+    for i, (name, codes) in enumerate(labels):
         rr = sum_start + i
         ws.cell(rr, 1, f"{name} 계").font = Font(bold=True)
         for d in range(nd):
             col = get_column_letter(first_day_col + d)
             rng = f"{col}{nurse_top}:{col}{nurse_bot}"
-            cell = ws.cell(rr, first_day_col + d, formula.format(r=rng))
+            formula = "=" + "+".join(_count_eq(rng, code) for code in codes)
+            cell = ws.cell(rr, first_day_col + d, formula)
             cell.alignment = CENTER
             cell.border = THIN
 

@@ -1,4 +1,4 @@
-# 간호사 근무표 편집기 — 브라우저 전용 버전 (서버 없음)
+# 간호사 근무 생성기 — 브라우저 전용 버전 (서버 없음)
 
 원본 개발 저장소([socialm2/schedule02](https://github.com/socialm2/schedule02), 비공개)의
 Flask 웹앱과 완전히 같은 기능을, 서버 없이 **브라우저 안에서 Python을 직접 돌려서**

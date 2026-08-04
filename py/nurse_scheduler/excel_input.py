@@ -23,10 +23,12 @@ from .models import Shift, parse_shift
 
 STAFF_TABLE_STATIC_COLS = ["순번", "이름", "직급", "숙련도", "가능근무", "비고"]
 STAFF_TABLE_STAT_KEYS = ["night", "workday", "off", "weekend_night",
-                          "blocks_2", "blocks_3", "months", "recent_night_score"]
+                          "blocks_2", "blocks_3", "months", "recent_night_score",
+                          "cum_d", "cum_e", "cum_prn", "cum_weekend_holiday_off"]
 STAFF_TABLE_STAT_LABELS = ["누적야간", "누적근무일", "누적오프", "누적주말야간",
                             "누적2일블록", "누적3일블록", "반영개월수",
-                            "최근야간점수(참고용)"]
+                            "최근야간점수(참고용)",
+                            "누적D", "누적E", "누적prn(8A)", "누적주말휴일오프"]
 
 
 class ExcelInputError(Exception):

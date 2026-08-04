@@ -17,15 +17,30 @@ class Shift(str, Enum):
     PRN = "prn"
     OFF = "OFF"
     AL = "연차"
+    EDU = "T"        # 교육 — 근무일수 포함, 최소인력 제외
+    BEREAVE = "조"     # 조사(예: 사망) — 관리자 지정, 근무인력 제외
+    CELEBRATE = "경"   # 경조사(예: 결혼) — 관리자 지정, 근무인력 제외
+    AL_HALF = "연4"    # 연차(반차) — 0.5 연차 + 0.5 OFF로 집계
+    OFFICIAL = "공"    # 공가 — OFF와 동일 취급, 연차 카운트/잔휴 미반영
+    SICK = "병"        # 병가 — 연속근무일수(H3-1 포함) 계산에서 제외
+    LEAVE = "휴"       # 휴직 — 발생일부터 그 달 나머지 기간 전부 제외
+    PROMO_EDU = "승"   # 승급교육 — 공가와 동일 취급
 
     def __str__(self) -> str:  # 엑셀/리포트 출력용
         return self.value
 
 
-WORK_SHIFTS = {Shift.A8, Shift.D, Shift.E, Shift.N, Shift.NK, Shift.PRN}
+WORK_SHIFTS = {Shift.A8, Shift.D, Shift.E, Shift.N, Shift.NK, Shift.PRN, Shift.EDU}
 NIGHT_SHIFTS = {Shift.N, Shift.NK}
-REST_SHIFTS = {Shift.OFF, Shift.AL}
+REST_SHIFTS = {
+    Shift.OFF, Shift.AL, Shift.BEREAVE, Shift.CELEBRATE, Shift.AL_HALF,
+    Shift.OFFICIAL, Shift.SICK, Shift.LEAVE, Shift.PROMO_EDU,
+}
 DAY_WORK_SHIFTS = {Shift.D, Shift.E, Shift.PRN}  # 주간 일반근무
+LEAVE_SHIFTS = {
+    Shift.AL, Shift.BEREAVE, Shift.CELEBRATE, Shift.AL_HALF,
+    Shift.OFFICIAL, Shift.SICK, Shift.LEAVE, Shift.PROMO_EDU,
+}  # OFF를 제외한 각종 휴가/휴직 유형 (표시·통계 구분용)
 
 
 def parse_shift(value: str) -> Shift:
@@ -60,7 +75,7 @@ class Staff:
         return "pregnant" in self.flags or "no_night" in self.flags
 
     def can(self, shift: Shift) -> bool:
-        if shift in REST_SHIFTS:
+        if shift in REST_SHIFTS or shift == Shift.EDU:
             return True
         if shift in NIGHT_SHIFTS and self.no_night:
             return False
@@ -143,6 +158,10 @@ class MonthSchedule:
         self.relaxed_night_cap: Dict[str, int] = {}
         # 승인된 OFF/연차 신청일 (S8 판단용): {(staff_id, day)}
         self.requested_off: Set[Tuple[str, int]] = set()
+        # 원티드(신청 채택분 + 리더 수정고정분) — 근무표 표시용(*): {(staff_id, day)}
+        self.wanted: Set[Tuple[str, int]] = set()
+        # 개인별 이번 달 나이트 목표(4 또는 6, 야간전담 제외) — H6-4 판정용
+        self.night_target: Dict[str, int] = {}
         self.logs: List[str] = []
 
     # ---------- 기본 접근 ----------
@@ -205,6 +224,27 @@ class MonthSchedule:
         run = 0
         d = day
         while d < self.num_days and self.effective(sid, d) in WORK_SHIFTS:
+            run += 1
+            d += 1
+        return run
+
+    def day_work_run_ending(self, sid: str, day: int) -> int:
+        """day를 포함해 뒤로 이어진 연속 D/E/prn 근무일수(H6-1용, 전월 이월 근사 포함)."""
+        run = 0
+        d = day
+        while d >= 0 and self.effective(sid, d) in DAY_WORK_SHIFTS:
+            run += 1
+            d -= 1
+        if d < 0 and run == day + 1:
+            co = self.carryover[sid]
+            if co.last_shift_type in DAY_WORK_SHIFTS:
+                run += co.consecutive_work_days
+        return run
+
+    def day_work_run_starting(self, sid: str, day: int) -> int:
+        run = 0
+        d = day
+        while d < self.num_days and self.effective(sid, d) in DAY_WORK_SHIFTS:
             run += 1
             d += 1
         return run

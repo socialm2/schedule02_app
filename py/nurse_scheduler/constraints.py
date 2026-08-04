@@ -11,7 +11,7 @@ from typing import Dict, List, Optional
 from .calendar_utils import DayInfo, DAY_WEEKDAY, holiday_count, min_staff_for
 from .models import (
     MonthSchedule, Shift, Staff, Violation,
-    NIGHT_SHIFTS, REST_SHIFTS, WORK_SHIFTS,
+    DAY_WORK_SHIFTS, NIGHT_SHIFTS, REST_SHIFTS, WORK_SHIFTS,
 )
 
 
@@ -97,20 +97,31 @@ def check_h2_nk_quota(sch: MonthSchedule) -> List[Violation]:
 
 
 def check_h2_night_blocks(sch: MonthSchedule) -> List[Violation]:
-    """H2-3(≤3), H2-4(≥2, 월말 단독 예외), H2-5(블록≥2 후 OFF 2일)."""
+    """일반 간호사: H2-3(정확히 2일), H2-4(단독야간 금지, 월말 예외),
+    H2-5(블록 후 OFF 2일). 야간전담(NK)은 기존대로 ≤3일/≥2일(월말 단독 예외)."""
     out = []
     nd = sch.num_days
     for s in sch.staff:
         for (start, end) in night_blocks(sch, s.id):
             length = end - start + 1
-            if length > 3:
-                out.append(Violation("H2-3", "hard",
-                                     f"{s.id} 야간 연속 {length}일 (>3)",
-                                     staff_id=s.id, day=max(start, 0)))
-            if length < 2 and end != nd - 1:
-                out.append(Violation("H2-4", "hard",
-                                     f"{s.id} {end+1}일 단독 야간(월말 아님)",
-                                     staff_id=s.id, day=end))
+            if s.is_nk:
+                if length > 3:
+                    out.append(Violation("H2-3", "hard",
+                                         f"{s.id} 야간 연속 {length}일 (>3)",
+                                         staff_id=s.id, day=max(start, 0)))
+                if length < 2 and end != nd - 1:
+                    out.append(Violation("H2-4", "hard",
+                                         f"{s.id} {end+1}일 단독 야간(월말 아님)",
+                                         staff_id=s.id, day=end))
+            else:
+                if length > 2:
+                    out.append(Violation("H2-3", "hard",
+                                         f"{s.id} 야간 연속 {length}일 (>2, 2일 블록만 허용)",
+                                         staff_id=s.id, day=max(start, 0)))
+                if length < 2 and end != nd - 1:
+                    out.append(Violation("H2-4", "hard",
+                                         f"{s.id} {end+1}일 단독 야간(월말 아님)",
+                                         staff_id=s.id, day=end))
             if length >= 2:
                 for k in (1, 2):
                     d = end + k
@@ -134,6 +145,60 @@ def check_h2_night_cap(sch: MonthSchedule, base_cap: int) -> List[Violation]:
                                  f"{s.id} 월 야간 {n}일 > 상한 {cap}일",
                                  staff_id=s.id))
         # n > base_cap 이지만 cap 이내인 경우는 H2-9 완화 적용분 — sch.logs에 기록됨
+    return out
+
+
+def check_h6_night_quota(sch: MonthSchedule) -> List[Violation]:
+    """H6-4: 일반 간호사(야간 가능자)는 월 야간을 정확히 4일 또는 6일만 (야간전담 제외)."""
+    out = []
+    for s in sch.staff:
+        if s.is_nk or s.is_partjang:
+            continue
+        if not s.can(Shift.N):
+            continue
+        n = sch.nights_in_month(s.id)
+        if n not in (4, 6):
+            out.append(Violation("H6-4", "hard",
+                                 f"{s.id} 월 야간 {n}일 (4일 또는 6일만 허용)",
+                                 staff_id=s.id))
+    return out
+
+
+def _day_work_blocks(sch: MonthSchedule, sid: str) -> List[tuple]:
+    """(start, end) D/E/prn 연속근무 블록 목록 (0-based, 양끝 포함).
+
+    전월에서 이어지는 경우 이월 carryover.consecutive_work_days를 더해
+    시작점을 음수로 표현(night_blocks()와 동일 관례)."""
+    blocks = []
+    d = 0
+    nd = sch.num_days
+    grid = sch.grid[sid]
+    co = sch.carryover[sid]
+    while d < nd:
+        if grid[d] in DAY_WORK_SHIFTS:
+            start = d
+            while d + 1 < nd and grid[d + 1] in DAY_WORK_SHIFTS:
+                d += 1
+            end = d
+            if start == 0 and co.last_shift_type in DAY_WORK_SHIFTS:
+                start = -co.consecutive_work_days
+            blocks.append((start, end))
+        d += 1
+    return blocks
+
+
+def check_h6_day_block_length(sch: MonthSchedule) -> List[Violation]:
+    """H6-1: D/E/prn 연속근무 블록 길이는 3~4일만 (1~2일 단독, 5일 이상 금지)."""
+    out = []
+    for s in sch.staff:
+        if s.is_partjang or s.is_nk:
+            continue
+        for (start, end) in _day_work_blocks(sch, s.id):
+            length = end - start + 1
+            if length < 3 or length > 4:
+                out.append(Violation("H6-1", "hard",
+                                     f"{s.id} 주간근무 연속 {length}일 (3~4일만 허용)",
+                                     staff_id=s.id, day=max(start, 0)))
     return out
 
 
@@ -206,6 +271,21 @@ def check_h3_links(sch: MonthSchedule) -> List[Violation]:
     return out
 
 
+def check_h6_eod(sch: MonthSchedule) -> List[Violation]:
+    """H6-3: EOD(이브닝-오프-데이) 금지 — E → 휴식 1일 → D 패턴 금지."""
+    out = []
+    for s in sch.staff:
+        for d in range(sch.num_days):
+            p2 = sch.effective(s.id, d - 2)
+            p1 = sch.effective(s.id, d - 1)
+            c = sch.effective(s.id, d)
+            if p2 == Shift.E and p1 in REST_SHIFTS and c == Shift.D:
+                out.append(Violation("H6-3", "hard",
+                                     f"{s.id} {d+1}일 E-O-D(EOD) 패턴",
+                                     staff_id=s.id, day=d))
+    return out
+
+
 def check_h4_min_off(sch: MonthSchedule, days: List[DayInfo]) -> List[Violation]:
     out = []
     lower = max(8, holiday_count(days) - 1)
@@ -251,6 +331,9 @@ def all_hard_checks(sch: MonthSchedule, days: List[DayInfo], params) -> List[Vio
     out += check_h3_links(sch)
     out += check_h4_min_off(sch, days)
     out += check_h5_carryover(sch)
+    out += check_h6_night_quota(sch)
+    out += check_h6_day_block_length(sch)
+    out += check_h6_eod(sch)
     return out
 
 
