@@ -74,7 +74,7 @@
                 </span>
               </label>
               <label>월 최대야간 <input type="number" id="f_maxnights" style="width:60px"></label>
-              <label><input type="checkbox" id="f_leader8a"> 리더 8A(prn형) 운용</label>
+              <label style="display:none"><input type="checkbox" id="f_leader8a"> 리더 8A(prn형) 운용</label>
             </div>
             <div class="holiday-cal-wrap">
               <div class="holiday-cal-head">
@@ -131,9 +131,12 @@
 
           <details class="form-sec">
             <summary>월간근무표 <span class="count-badge" id="carryCount"></span> (선택 — 지난달 확정 근무표)</summary>
+            <p class="hint">지난달에 실제로 확정된 근무표(엑셀)를 올리면 연속근무일수·마지막근무·
+            야간블록 같은 이월값을 자동으로 계산해준다. 연간근무표를 이미 올렸다면 거기서도
+            자동으로 계산되므로, 이건 연간근무표가 없을 때 대체용으로 쓰면 된다.</p>
             <div class="upload-row">
               <input type="file" id="prevMonthInput" accept=".xlsx">
-              <button id="prevMonthBtn" class="small">지난달 확정 엑셀로 자동 채우기</button>
+              <button id="prevMonthBtn" class="small">월간근무표로 자동 채우기</button>
               <span id="prevMonthStatus" class="hint"></span>
             </div>
             <div class="tablebox">
@@ -148,7 +151,7 @@
           <details class="form-sec">
             <summary>연간근무표 (다월 자동 연동, 선택)</summary>
             <p class="hint">지난달 생성 후 받은 "연간근무표" 파일을 올리면 인원 명단과, 야간 형평성이
-            누적된 통계가 이번 달 생성에 자동으로 이어진다. 처음 쓴다면 생략해도 된다.</p>
+            누적된 통계·이월값이 이번 달 생성에 자동으로 이어진다. 처음 쓴다면 생략해도 된다.</p>
             <p class="hint" id="staffTableActive" style="display:none"></p>
             <div class="upload-row">
               <input type="file" id="staffTableInput" accept=".xlsx">
