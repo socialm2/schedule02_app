@@ -330,6 +330,21 @@ def check_soft(sch: MonthSchedule, days: List[DayInfo], params) -> List[Violatio
                                      + (" (월경계)" if boundary else " (월중)"),
                                      staff_id=s.id, day=d))
 
+    # S7-2: 2일짜리 고립 근무블록 (O-근무-근무-O)
+    for s in generals:
+        for d in range(nd - 1):
+            cur = sch.effective(s.id, d)
+            nxt = sch.effective(s.id, d + 1)
+            if (cur in WORK_SHIFTS and cur not in NIGHT_SHIFTS
+                    and nxt in WORK_SHIFTS and nxt not in NIGHT_SHIFTS
+                    and sch.effective(s.id, d - 1) in REST_SHIFTS
+                    and sch.effective(s.id, d + 2) in REST_SHIFTS):
+                boundary = (d == 0 or d + 1 == nd - 1)
+                out.append(Violation("S7-2", "soft",
+                                     f"{s.id} {d+1}~{d+2}일 O-{cur}{nxt}-O 2일블록 고립"
+                                     + (" (월경계)" if boundary else " (월중)"),
+                                     staff_id=s.id, day=d))
+
     # S8: 신청 OFF 전날 야간 배제
     for (sid, d) in sorted(sch.requested_off):
         if d - 1 >= 0 and sch.effective(sid, d - 1) in NIGHT_SHIFTS:

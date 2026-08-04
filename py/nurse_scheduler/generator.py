@@ -903,12 +903,12 @@ class Generator:
                     fixed += 1
         return fixed
 
-    def _lv3_guard_ok(self, donor: Staff, receiver: Optional[Staff],
+    def _lv3_guard_ok(self, donor: Optional[Staff], receiver: Optional[Staff],
                       d: int, shift: Shift) -> bool:
-        """가드③: 이동 후에도 해당 근무 Lv3+ 유지."""
+        """가드③: 이동 후에도 해당 근무 Lv3+ 유지. donor=None이면 순수 추가(제외 없음)."""
         levels = []
         for s in self.staff:
-            if s.is_partjang or s.id == donor.id:
+            if s.is_partjang or (donor is not None and s.id == donor.id):
                 continue
             if self.sch.get(s.id, d) == shift:
                 levels.append(s.level)
@@ -1001,14 +1001,41 @@ class Generator:
         return (sch.effective(sid, d - 1) in REST_SHIFTS
                 and sch.effective(sid, d + 1) in REST_SHIFTS)
 
+    def _is_isolated_2block(self, sid: str, d: int) -> bool:
+        """d,d+1 이틀 연속 근무가 앞뒤로 휴무에 둘러싸여 고립된 "2일짜리 블록"인지.
+
+        d+2가 근무이면(3일 이상 블록) 여기 안 걸린다 — 정확히 2일짜리만 잡는다.
+        """
+        sch = self.sch
+        nd = sch.num_days
+        if not (0 <= d and d + 1 < nd):
+            return False
+        if sch.effective(sid, d) not in DAY_WORK_SHIFTS:
+            return False
+        if sch.effective(sid, d + 1) not in DAY_WORK_SHIFTS:
+            return False
+        return (sch.effective(sid, d - 1) in REST_SHIFTS
+                and sch.effective(sid, d + 2) in REST_SHIFTS)
+
     def _local_isolation_score(self, cells) -> int:
-        """cells(=[(직원id, 날짜), ...])만 놓고 센 고립근무일 수.
+        """cells(=[(직원id, 날짜), ...]) 주변만 놓고 센 고립근무(1일+2일블록) 개수.
 
         이관/맞교환은 딱 이 칸들의 근무값만 바꾸므로, 다른 어떤 칸의 고립 여부도
-        바뀔 수 없다(고립 판정은 자기 자신과 바로 옆 칸만 본다) — 그래서 이 부분합의
-        전/후 비교가 전체 보드를 다시 세는 것과 수학적으로 완전히 같은 결과를 주면서,
-        대형 병동에서도 빠르다(전체 O(인원×일수) 대신 O(1))."""
-        return sum(1 for sid, dd in cells if self._is_isolated_workday(sid, dd))
+        바뀔 수 없다(1일 고립 판정은 자기 자신과 바로 옆 칸, 2일블록 고립 판정은
+        최대 ±2칸까지만 본다) — 그래서 각 칸을 ±2 여유를 두고 넓혀서 확인하면
+        이 부분합의 전/후 비교가 전체 보드를 다시 세는 것과 수학적으로 완전히
+        같은 결과를 주면서, 대형 병동에서도 빠르다(전체 O(인원×일수) 대신 O(1))."""
+        expanded = set()
+        for sid, dd in cells:
+            for delta in (-2, -1, 0, 1, 2):
+                expanded.add((sid, dd + delta))
+        score = 0
+        for sid, dd in expanded:
+            if self._is_isolated_workday(sid, dd):
+                score += 1
+            if self._is_isolated_2block(sid, dd):
+                score += 1
+        return score
 
     def global_fix_alternation(self, max_passes: int = 3, call_budget: int = 4000) -> int:
         """S7 잔여를 추가로 줄이는 전역 마무리 탐색 — fix_alternation이 끝난 뒤 호출."""
@@ -1105,6 +1132,64 @@ class Generator:
                     sch.grid[donor.id][nd_] = Shift.OFF
                 sch.grid[donor.id][d] = shift
                 sch.grid[p.id][nd_] = pv
+        return False
+
+    def global_fix_2blocks(self, max_passes: int = 3, call_budget: int = 4000) -> int:
+        """2일짜리 고립 근무블록(O-근무-근무-O)을 인접 휴무일을 근무로 늘려
+        3일 이상 블록으로 확장해 고립을 해소한다 — global_fix_alternation 뒤에 호출.
+        한 명 고치면 다른 사람 자리(OFF)가 새로 열려 반복하면 더 줄어들 수 있어
+        fix_alternation과 같은 방식으로 수렴할 때까지 반복한다."""
+        sch = self.sch
+        calls = 0
+        fixed_total = 0
+        for _ in range(max_passes):
+            blocks = [(s, d) for s in self.staff if not (s.is_partjang or s.is_nk)
+                     for d in range(sch.num_days - 1)
+                     if not sch.is_locked(s.id, d) and not sch.is_locked(s.id, d + 1)
+                     and self._is_isolated_2block(s.id, d)]
+            if not blocks:
+                break
+            any_fixed = False
+            for s, d in blocks:
+                if calls > call_budget:
+                    return fixed_total
+                if not self._is_isolated_2block(s.id, d):
+                    continue  # 이번 패스 중 이미 다른 조치로 해소됨
+                calls += 1
+                if self._try_extend_2block(s, d):
+                    fixed_total += 1
+                    any_fixed = True
+            if not any_fixed:
+                break
+        return fixed_total
+
+    def _try_extend_2block(self, donor: Staff, d: int) -> bool:
+        """d-1(앞) 또는 d+2(뒤) 휴무일 하나를 같은 사람 근무로 바꿔 블록을 늘린다."""
+        sch = self.sch
+        hol = holiday_count(self.days)
+        for ext_d, shift in ((d - 1, sch.get(donor.id, d)),
+                            (d + 2, sch.get(donor.id, d + 1))):
+            if not (0 <= ext_d < sch.num_days):
+                continue
+            if sch.get(donor.id, ext_d) != Shift.OFF or sch.is_locked(donor.id, ext_d):
+                continue
+            if sch.offs_in_month(donor.id) - 1 < max(8, hol - 1):
+                continue  # H4-1: 확장하면 본인 OFF 하한이 깨짐
+            # 가드는 반드시 칸을 바꾸기 전에(현재 그리드 기준으로) 검사해야 한다 —
+            # can_assign_day의 첫 체크(_cell_free)가 "지금 OFF인가"를 보기 때문에,
+            # 먼저 값을 바꿔버리면 항상 실패로 나온다.
+            if not self.can_assign_day(donor, ext_d, shift):
+                continue
+            if not self._lv3_guard_ok(None, donor, ext_d, shift):
+                continue
+            cells = [(donor.id, ext_d)]
+            before = self._local_isolation_score(cells)
+            sch.grid[donor.id][ext_d] = shift
+            if self._local_isolation_score(cells) <= before:
+                sch.log(f"[2블록 확장] {donor.id} {ext_d+1}일 OFF→{shift} "
+                        f"(고립 2일블록 {d+1}~{d+2}일 해소)")
+                return True
+            sch.grid[donor.id][ext_d] = Shift.OFF
         return False
 
     # ------------------------------------------------------------ Step 8 (G6)
@@ -1353,6 +1438,8 @@ class Generator:
             if self.fix_alternation() == 0:
                 break
         self.global_fix_alternation()  # 인접일 검색으로 못 줄인 잔여를 전역 탐색으로 마무리
+        self.global_fix_2blocks()      # 2일짜리 고립 블록도 확장해서 마무리
+        self.global_fix_alternation()  # 2블록 확장 과정에서 새 1일 고립이 생겼을 수 있어 재정리
         return self.sch
 
 
