@@ -259,18 +259,22 @@ def load_prev_month_schedule_xlsx(path: str) -> dict:
 
 # ---------------------------------------------------------------- 원티드 신청 읽기 (월간근무표 모양 + 신청 표기)
 
-_WANTED_WORK_CODES = {"D": "D", "E": "E", "N": "N", "8A": "8A", "NK": "NK"}
-_WANTED_AL_CODES = {"연", "연차", "연4"}
-_WANTED_OFF_CODES = {"X", "OFF", "T", "조", "경", "공", "병", "휴", "승", "포", "군", "S/"}
+_WANTED_WORK_CODES = {"D": "D", "E": "E", "N": "N", "8A": "8A", "NK": "NK", "T": "T"}
+_WANTED_AL_CODES = {"연": "연차", "연차": "연차", "연4": "연4"}
+# 세부 사유가 명확한 휴가류는 각자의 코드로, 그 외(포상휴가·군휴가·미분류 특수코드)는
+# 뭉뚱그려 OFF 희망으로 해석한다.
+_WANTED_LEAVE_CODES = {
+    "조": "조", "경": "경", "공": "공", "병": "병", "휴": "휴", "승": "승",
+}
+_WANTED_OFF_CODES = {"X", "OFF", "포", "군", "S/"}
 
 
 def load_wanted_grid_xlsx(path: str) -> dict:
     """월간근무표와 같은 모양(이름|1일|2일|...) 엑셀에서 원티드 신청만 읽어온다.
 
-    표기 규칙: "D*"/"E*"/"N*"/"8A*"/"NK*"(또는 별표 없는 "NK") = 그 근무 희망,
-    "X"/"연차"류/"연*"/그 외 각종 휴가성 표기(교육·경조사·공가·병가·포상휴가·군휴가 등)는
-    전부 OFF(연차 표기만 연차) 희망으로 해석한다 — 이 앱은 휴가 세부 사유를 구분하지
-    않으므로 전부 "쉬고 싶다"로 합친다. 빈 칸은 그냥 건너뛴다.
+    표기 규칙: "D*"/"E*"/"N*"/"8A*"/"NK*"/"T*"(또는 별표 없이도 인식) = 그 근무 희망,
+    "조"/"경"/"공"/"병"/"휴"/"승"/"연"/"연차"/"연4" = 각자의 휴가유형 희망,
+    "X"/그 외 미분류 표기(포상휴가·군휴가 등)는 OFF 희망으로 해석한다. 빈 칸은 건너뛴다.
 
     반환: {"year", "month", "requests": [{"staff_id","date","type"}, ...],
            "unknown_marks": [str, ...]}  # 인식 못 한 표시(참고용)
@@ -298,7 +302,9 @@ def load_wanted_grid_xlsx(path: str) -> dict:
             if base in _WANTED_WORK_CODES:
                 t = _WANTED_WORK_CODES[base]
             elif base in _WANTED_AL_CODES:
-                t = "연차"
+                t = _WANTED_AL_CODES[base]
+            elif base in _WANTED_LEAVE_CODES:
+                t = _WANTED_LEAVE_CODES[base]
             elif base in _WANTED_OFF_CODES:
                 t = "OFF"
             else:
