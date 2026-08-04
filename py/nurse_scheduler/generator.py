@@ -1434,3 +1434,29 @@ def carryover_from_grid(grid: Dict[str, List[str]], num_days: int) -> Dict[str, 
             "recent_night_score": float(this_month_nights),
         }
     return out
+
+
+# ---------------------------------------------------------------- 연간근무표 → 이월값 역산
+def carryover_from_staff_table(annual_dates: List[str], annual_grid: Dict[str, List[str]],
+                               year: int, month: int) -> Dict[str, dict]:
+    """'연간근무표'의 연간 그리드에서 직전 달 구간만 잘라 carryover_from_grid로 역산.
+
+    annual_dates에 직전 달 1일~말일이 빠짐없이 이어져 있는 경우에만 계산하고,
+    아직 그만큼 안 쌓였거나 중간에 구멍이 있으면 빈 dict를 돌려준다(호출 쪽에서
+    이월 없이 진행하거나 다른 값으로 채우면 됨).
+    """
+    import calendar as _cal
+    import datetime as _dt
+    py, pm = (year - 1, 12) if month == 1 else (year, month - 1)
+    ndays = _cal.monthrange(py, pm)[1]
+    prev_dates = [_dt.date(py, pm, d).isoformat() for d in range(1, ndays + 1)]
+    try:
+        idxs = [annual_dates.index(d) for d in prev_dates]
+    except ValueError:
+        return {}
+    if idxs != list(range(idxs[0], idxs[0] + ndays)):
+        return {}
+    start = idxs[0]
+    sliced = {sid: row[start:start + ndays] for sid, row in annual_grid.items()
+             if len(row) >= start + ndays}
+    return carryover_from_grid(sliced, ndays)

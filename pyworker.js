@@ -61,9 +61,8 @@ function callBridge(path, opts) {
     case "/api/finalize": return bridge.api_finalize();
     case "/api/annual": return bridge.api_annual();
     case "/api/_bootstrap_history": return bridge.bootstrap_history(opts.body);
-    case "/api/download_tag": return bridge.download_tag();
-    case "/api/download/report": return bridge.api_download_report();
-    case "/api/download/carryover": return bridge.api_download_carryover();
+    case "/api/download_filename/xlsx": return bridge.download_filename_schedule();
+    case "/api/download_filename/staff_table": return bridge.download_filename_staff_table();
     case "/api/download/xlsx": {
       const py = bridge.api_download_xlsx();
       return py ? py.toJs() : null;

@@ -122,7 +122,7 @@
           </details>
 
           <details class="form-sec">
-            <summary>전월이월 <span class="count-badge" id="carryCount"></span> (선택)</summary>
+            <summary>월간근무표 <span class="count-badge" id="carryCount"></span> (선택 — 지난달 확정 근무표)</summary>
             <div class="upload-row">
               <input type="file" id="prevMonthInput" accept=".xlsx">
               <button id="prevMonthBtn" class="small">지난달 확정 엑셀로 자동 채우기</button>
@@ -138,13 +138,13 @@
           </details>
 
           <details class="form-sec">
-            <summary>인원표 (다월 자동 연동, 선택)</summary>
-            <p class="hint">지난달 생성 후 받은 "인원표" 파일을 올리면 인원 명단과, 야간 형평성이
+            <summary>연간근무표 (다월 자동 연동, 선택)</summary>
+            <p class="hint">지난달 생성 후 받은 "연간근무표" 파일을 올리면 인원 명단과, 야간 형평성이
             누적된 통계가 이번 달 생성에 자동으로 이어진다. 처음 쓴다면 생략해도 된다.</p>
             <p class="hint" id="staffTableActive" style="display:none"></p>
             <div class="upload-row">
               <input type="file" id="staffTableInput" accept=".xlsx">
-              <button id="staffTableBtn" class="small">인원표로 자동 채우기</button>
+              <button id="staffTableBtn" class="small">연간근무표로 자동 채우기</button>
               <button id="staffTableClearBtn" class="small" style="display:none">반영 해제</button>
               <span id="staffTableStatus" class="hint"></span>
             </div>
@@ -158,7 +158,7 @@
       </div>
       <!-- 생성 후 그리드는 이 컨테이너에 렌더링 (intake와 분리 — 서로 파괴하지 않음) -->
       <div id="gridContent" style="display:none"></div>
-      <!-- 연간 근무표(최근 확정 달들)는 생성된 그리드 바로 아래, 같은 좌측 영역에 표시 -->
+      <!-- 확정 이력(최근 확정 달들)은 생성된 그리드 바로 아래, 같은 좌측 영역에 표시 -->
       <div id="annualPane" style="display:none"></div>
     </div>
     <div id="sidePane" style="display:none"></div>

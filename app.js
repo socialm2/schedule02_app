@@ -177,7 +177,7 @@ async function bootPyodide() {
     _pending.delete(id);
     if (ok) p.resolve({ raw, binary }); else p.reject(new Error(error));
   };
-  // 연간 근무표 기록(localStorage)은 Worker 안에서 직접 못 읽으므로, 부팅 직후
+  // 확정 이력 기록(localStorage)은 Worker 안에서 직접 못 읽으므로, 부팅 직후
   // 현재 스냅샷을 한 번 넣어준다.
   await callWorker("/api/_bootstrap_history", { body: JSON.stringify(_readHistorySnapshot()) });
 }
@@ -224,28 +224,19 @@ function triggerDownload(content, filename, mime) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
-// 다운로드 3종은 JSON이 아니라 순수 텍스트/바이너리를 그대로 돌려주므로,
+// 다운로드는 JSON이 아니라 순수 바이너리를 그대로 돌려주므로,
 // JSON.parse를 하는 api() 대신 callWorker()로 원본 응답을 직접 받는다.
+// 파일명(병동명 포함, 회차 포함)은 서버(bridge.py) 쪽에서 만들어서 그대로 쓴다.
 window.downloadXlsx = async function () {
   const { raw: bytes } = await callWorker("/api/download/xlsx");
-  const { raw: tag } = await callWorker("/api/download_tag");
-  triggerDownload(bytes, `schedule_${tag}.xlsx`,
+  const { raw: filename } = await callWorker("/api/download_filename/xlsx");
+  triggerDownload(bytes, filename,
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-};
-window.downloadReport = async function () {
-  const { raw: text } = await callWorker("/api/download/report");
-  const { raw: tag } = await callWorker("/api/download_tag");
-  triggerDownload(text, `report_${tag}.txt`, "text/plain;charset=utf-8");
-};
-window.downloadCarryover = async function () {
-  const { raw: json } = await callWorker("/api/download/carryover");
-  const { raw: tag } = await callWorker("/api/download_tag");
-  triggerDownload(json, `carryover_next_${tag}.json`, "application/json");
 };
 window.downloadStaffTable = async function () {
   const { raw: bytes } = await callWorker("/api/download/staff_table");
-  const { raw: tag } = await callWorker("/api/download_tag");
-  triggerDownload(bytes, `staff_table_${tag}.xlsx`,
+  const { raw: filename } = await callWorker("/api/download_filename/staff_table");
+  triggerDownload(bytes, filename,
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 };
 
@@ -269,7 +260,7 @@ const INFO_HTML = `
 바꾼 칸과 관련된 규칙 위반이 있으면 바로 알려줍니다.</li>
 <li><b>재생성 적용</b> — 스테이징한 편집을 고정한 채 나머지를 다시 배정합니다.
 고정된 칸은 빨간 실선 테두리로 표시되고, <b>이후 몇 번을 더 수정해도 이전 고정은 계속 유지됩니다.</b></li>
-<li><b>다운로드</b> — 근무표 엑셀, 검증 리포트, 다음 달 생성용 이월 데이터를 받을 수 있습니다.</li>
+<li><b>다운로드</b> — 월간근무표, 연간근무표를 받을 수 있습니다.</li>
 </ul>
 
 <h3>근무 색상</h3>
@@ -299,9 +290,9 @@ const INFO_HTML = `
 이 화면은 서버가 지금까지 고정한 모든 칸을 계속 기억하므로 몇 번을 다시 만들어도 이전 수정이 사라지지 않습니다.</p>
 
 <h3>다음 달로 넘어갈 때</h3>
-<p>"전월이월" 표에 <b>지난달 확정 엑셀을 업로드</b>하면 마지막 근무·연속근무일·야간블록 등을
+<p>"월간근무표" 표에 <b>지난달 확정 엑셀을 업로드</b>하면 마지막 근무·연속근무일·야간블록 등을
 자동으로 읽어 채워줍니다. 근무표를 다 만든 뒤 "이번 달 확정 저장"을 눌러두면, 다음 달 화면
-아래쪽 <b>연간 근무표</b>에 최근 달들이 계속 쌓여 보이고, 사람별 누적 OFF·야간·근무일도 같이 확인할 수 있습니다.</p>
+아래쪽 <b>확정 이력</b>에 최근 달들이 계속 쌓여 보이고, 사람별 누적 OFF·야간·근무일도 같이 확인할 수 있습니다.</p>
 `;
 
 $("#infoBtn").onclick = () => {
@@ -614,9 +605,9 @@ async function refreshStaffTableStatus() {
     banner.style.display = "";
     banner.style.color = "var(--warn)";
     banner.style.fontWeight = "700";
-    banner.textContent = `⚠ 인원표 반영 중 — ${s.staff_count}명, ${s.last_date || "?"}까지` +
+    banner.textContent = `⚠ 연간근무표 반영 중 — ${s.staff_count}명, ${s.last_date || "?"}까지` +
       ` (연간 ${s.annual_days}일치). "생성"을 누르면 이 값이 계속 자동으로 쓰입니다.` +
-      ` 최신 인원표를 다시 안 올렸다면 확인하세요.`;
+      ` 최신 연간근무표를 다시 안 올렸다면 확인하세요.`;
     clearBtn.style.display = "";
   } else {
     banner.style.display = "none";
@@ -629,7 +620,7 @@ $("#staffTableClearBtn").onclick = async () => {
     await api("/api/clear_staff_table", { method: "POST" });
     await refreshStaffTableStatus();
     $("#staffTableStatus").textContent = "반영 해제했습니다 — 이번 생성은 처음부터 시작합니다.";
-    showToast("인원표 반영을 해제했습니다");
+    showToast("연간근무표 반영을 해제했습니다");
   } catch (e) {}
 };
 
@@ -645,9 +636,9 @@ $("#staffTableBtn").onclick = async () => {
     }));
     renderStaffTable();
     $("#staffTableStatus").textContent =
-      `인원 ${formStaff.length}명, 누적 통계 반영 (연간 근무표 ${data.annual_days}일치 포함)`;
+      `인원 ${formStaff.length}명, 누적 통계 반영 (연간근무표 ${data.annual_days}일치 포함)`;
     await refreshStaffTableStatus();
-    showToast("인원표에서 인원 명단과 누적 통계를 불러왔습니다");
+    showToast("연간근무표에서 인원 명단과 누적 통계를 불러왔습니다");
   } catch (e) {}
 };
 
@@ -841,8 +832,8 @@ function renderSide() {
   html += '<div class="side-sec" id="pendingSec"><h3>편집 중 (미적용)</h3><div id="pendingBody"></div></div>';
 
   html += `<div class="side-sec"><h3>다운로드</h3><div class="download-row">
-    <button onclick="downloadXlsx()">근무표 엑셀</button>
-    <button onclick="downloadStaffTable()">인원표(갱신본)</button>
+    <button onclick="downloadXlsx()">월간근무표</button>
+    <button onclick="downloadStaffTable()">연간근무표</button>
   </div></div>`;
 
   // 입력 요약
@@ -901,7 +892,7 @@ function renderSide() {
 function renderAnnualPane() {
   annualPane.innerHTML = `<div class="annual-pane-box">
     <div class="annual-pane-head">
-      <h2>연간 근무표</h2>
+      <h2>확정 이력</h2>
       <p class="hint">이번 달을 확정 저장하면 다음에 볼 때 최근 달로 계속 쌓여 보입니다.</p>
     </div>
     <button id="finalizeBtn" class="small">📌 이번 달 확정 저장</button>
@@ -910,7 +901,7 @@ function renderAnnualPane() {
   $("#finalizeBtn").onclick = async () => {
     try {
       const r = await api("/api/finalize", { method: "POST" });
-      showToast(`${r.saved} 확정 저장 — 연간 근무표에 반영됨`);
+      showToast(`${r.saved} 확정 저장 — 확정 이력에 반영됨`);
       loadAnnualView();
     } catch (e) {}
   };
@@ -944,7 +935,7 @@ async function loadAnnualView() {
   try {
     data = await api("/api/annual");
   } catch (e) {
-    box.innerHTML = '<p style="color:var(--sub);font-size:12px">연간 근무표를 불러오지 못했습니다.</p>';
+    box.innerHTML = '<p style="color:var(--sub);font-size:12px">확정 이력을 불러오지 못했습니다.</p>';
     return;
   }
   const months = [data.current, ...data.history];

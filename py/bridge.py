@@ -30,7 +30,8 @@ from nurse_scheduler.excel_input import (
     load_staff_table_xlsx,
 )
 from nurse_scheduler.generator import (
-    Generator, InputError, carryover_from_grid, generate_best,
+    Generator, InputError, carryover_from_grid, carryover_from_staff_table,
+    generate_best,
 )
 from nurse_scheduler.models import Shift, parse_shift
 from nurse_scheduler.reporting import build_report, format_text_report
@@ -305,10 +306,10 @@ def _cumulative_summary(entries: list, staff_ids: list):
 
 
 def _build_updated_staff_table():
-    """이번 달 생성 결과를 이전 인원표(S.staff_table_in)에 얹어 갱신본을 만든다.
+    """이번 달 생성 결과를 이전 연간근무표(S.staff_table_in)에 얹어 갱신본을 만든다.
 
     통계는 항상 "이번 달 실제 생성 결과"만 더해서 한 걸음씩 앞으로 나간다 —
-    전달확정근무표(이어붙이기 규칙용)와는 별개로, 인원표 스스로 다음 입력이 된다.
+    월간근무표(이어붙이기 규칙용)와는 별개로, 연간근무표 스스로 다음 입력이 된다.
     연간 그리드는 해가 바뀌면(1/1) 리셋한다.
     """
     import datetime
@@ -421,13 +422,13 @@ def api_upload_prev_month(file_bytes) -> str:
 
 
 def api_upload_staff_table(file_bytes) -> str:
-    """'인원표'(로스터+누적통계+연간그리드) 업로드 — 다월 자동 연동의 시작점."""
+    """'연간근무표'(로스터+누적통계+연간그리드) 업로드 — 다월 자동 연동의 시작점."""
     path = "/tmp_staff_table.xlsx"
     try:
         _write_temp_xlsx(file_bytes, path)
         data = load_staff_table_xlsx(path)
     except ExcelInputError as e:
-        return _err(f"인원표 엑셀 오류: {e}")
+        return _err(f"연간근무표 엑셀 오류: {e}")
     except Exception as e:
         return _err(f"파일을 읽을 수 없습니다: {e}")
 
@@ -440,7 +441,7 @@ def api_upload_staff_table(file_bytes) -> str:
 
 
 def api_staff_table_status() -> str:
-    """지금 서버에 인원표가 반영돼 있는지 — '생성'을 누르면 이게 계속 자동으로 쓰이므로,
+    """지금 서버에 연간근무표가 반영돼 있는지 — '생성'을 누르면 이게 계속 자동으로 쓰이므로,
     화면에서 리더가 잊지 않고 확인할 수 있게 상시 조회 가능하게 해둔다."""
     if not S.staff_table_in:
         return json.dumps({"loaded": False}, ensure_ascii=False)
@@ -461,7 +462,14 @@ def api_set_config(body_json: str) -> str:
         return _err("입력 형식이 올바르지 않습니다 (year/month/staff/params 필요)")
     if S.staff_table_in:
         stats = S.staff_table_in["stats"]
-        carry = dict(data.get("prev_month_carryover") or {})
+        annual_dates = S.staff_table_in.get("annual_dates") or []
+        annual_grid = S.staff_table_in.get("annual_grid") or {}
+        carry = {}
+        if annual_dates:
+            carry.update(carryover_from_staff_table(
+                annual_dates, annual_grid, int(data["year"]), int(data["month"])))
+        for sid, v in (data.get("prev_month_carryover") or {}).items():
+            carry[sid] = v
         for sid, st in stats.items():
             entry = dict(carry.get(sid) or {})
             entry["recent_night_score"] = st.get("recent_night_score", 0.0)
@@ -632,26 +640,8 @@ def api_download_xlsx():
         return f.read()
 
 
-def api_download_report() -> str:
-    try:
-        _require_generated()
-    except ApiError as e:
-        return ""
-    report = build_report(S.sch, S.gen.days, S.gen.params, S.gen.requests)
-    return format_text_report(report, S.gen.year, S.gen.month)
-
-
-def api_download_carryover() -> str:
-    try:
-        _require_generated()
-    except ApiError as e:
-        return "{}"
-    carry = S.gen.build_next_carryover()
-    return json.dumps(carry, ensure_ascii=False, indent=2)
-
-
 def api_download_staff_table():
-    """'인원표' 갱신본 다운로드 — 다음 달엔 이 파일을 그대로 다시 업로드하면 된다."""
+    """'연간근무표' 갱신본 다운로드 — 다음 달엔 이 파일을 그대로 다시 업로드하면 된다."""
     try:
         _require_generated()
     except ApiError as e:
@@ -664,7 +654,25 @@ def api_download_staff_table():
         return f.read()
 
 
-def download_tag() -> str:
+_FILENAME_UNSAFE = re.compile(r'[\\/:*?"<>|\s]+')
+
+
+def _download_filename(kind: str) -> str:
+    """다운로드 파일명 = {종류}_{병동명}_{연도}-{월}.xlsx (병동명 없으면 생략)."""
+    ward = (S.cfg or {}).get("ward_id", "") if S.cfg else ""
+    ward = _FILENAME_UNSAFE.sub("", str(ward or "").strip())
+    parts = [kind] + ([ward] if ward else []) + [f"{S.gen.year}-{S.gen.month:02d}"]
+    return "_".join(parts) + ".xlsx"
+
+
+def download_filename_schedule() -> str:
     if S.gen is None:
-        return "미생성"
-    return f"{S.gen.year}-{S.gen.month:02d}_r{S.round}"
+        return "월간근무표.xlsx"
+    name = _download_filename("월간근무표")
+    return name[:-5] + f"_r{S.round}.xlsx"
+
+
+def download_filename_staff_table() -> str:
+    if S.gen is None:
+        return "연간근무표.xlsx"
+    return _download_filename("연간근무표")
