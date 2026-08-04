@@ -398,11 +398,14 @@ class Generator:
                 req.reject_reason = "해당 월이 아님"
                 continue
             d = dt.day - 1
-            per_person[s.id] = per_person.get(s.id, 0) + 1
-            if per_person[s.id] > self.params.max_requests_per_person:
-                req.reject_reason = f"월 신청 상한({self.params.max_requests_per_person}건) 초과"
-                continue
             t = req.type
+            # 월 신청 상한은 근무형 신청(D/E/N/8A/NK/prn)만 카운트한다 — 휴무/연차는
+            # 병가·경조사 등 사유가 다양해 인원수 제한 취지와 안 맞으므로 제외(§5).
+            if t in WORK_SHIFTS:
+                per_person[s.id] = per_person.get(s.id, 0) + 1
+                if per_person[s.id] > self.params.max_requests_per_person:
+                    req.reject_reason = f"월 신청 상한({self.params.max_requests_per_person}건) 초과"
+                    continue
             if self.sch.is_locked(s.id, d):
                 if self.sch.get(s.id, d) == t:
                     # 리더가 신청과 동일한 근무로 이미 고정 배정해둔 경우 — 반영된 것으로 처리.
