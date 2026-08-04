@@ -126,6 +126,9 @@ td.so span { color: var(--sub); }
 
 td.locked { outline: 2.5px solid var(--hard); outline-offset: -2.5px; }
 td.pending { outline: 2px dashed var(--warn); outline-offset: -2px; }
+/* 원티드(신청·리더지정) 반영 칸 — 근무유형 색은 유지한 채 노란 틴트를 덧씌워 표시 */
+td.wanted span { box-shadow: inset 0 0 0 999px rgba(255, 214, 0, .38); }
+.wanted-swatch { background: rgba(255, 214, 0, .55); border: 1px solid rgba(154, 107, 18, .5); }
 td.cell:hover:not(.disabled) { filter: brightness(.94); }
 td.disabled { cursor: default; opacity: .55; }
 

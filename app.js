@@ -736,6 +736,7 @@ function render() {
 function renderGrid() {
   const lockedSet = new Set(ST.locked);
   const pendingSet = new Set(ST.pending);
+  const wantedSet = new Set(ST.wanted || []);
 
   let html = '<div class="legend">';
   const legendItems = [["D","#BDD7EE"],["E","#F8CBAD"],["N","#1F3864"],["NK","#7030A0"],
@@ -744,6 +745,7 @@ function renderGrid() {
   html += `<span class="sw">· = OFF</span>`;
   html += `<span class="sw"><span style="outline:2px solid var(--hard);width:13px;height:13px;display:inline-block"></span>확정(고정)</span>`;
   html += `<span class="sw"><span style="outline:2px dashed var(--warn);width:13px;height:13px;display:inline-block"></span>미적용 편집</span>`;
+  html += `<span class="sw"><span class="box wanted-swatch"></span>원티드 반영</span>`;
   html += `<button id="backToInputBtn" class="small" style="margin-left:auto">← 입력으로 돌아가기(새로 만들기)</button>`;
   html += "</div>";
 
@@ -760,6 +762,7 @@ function renderGrid() {
       const cls = ["cell", shiftClass(v)];
       if (lockedSet.has(key)) cls.push("locked");
       if (pendingSet.has(key)) cls.push("pending");
+      if (wantedSet.has(key)) cls.push("wanted");
       const disabled = s.is_partjang;
       if (disabled) cls.push("disabled");
       html += `<td class="${cls.join(" ")}" data-sid="${escAttr(s.id)}" data-day="${d}" ${disabled ? "" : `onclick="openPicker(event,'${escAttr(s.id)}',${d})"`}>` +

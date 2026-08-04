@@ -137,6 +137,10 @@ def _pending_keys():
     return [f"{sid}:{d}" for (sid, d) in S.pending_edits]
 
 
+def _wanted_keys():
+    return [f"{sid}:{d}" for (sid, d) in S.sch.wanted]
+
+
 def _full_state():
     p = S.gen.params
     return {
@@ -148,6 +152,7 @@ def _full_state():
         "grid": _display_grid(),
         "locked": _locked_keys(),
         "pending": _pending_keys(),
+        "wanted": _wanted_keys(),
         "round": S.round,
         "params_summary": {
             "min_staff": p.min_staff, "max_nights": p.max_nights,
