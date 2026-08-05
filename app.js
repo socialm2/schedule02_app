@@ -677,10 +677,10 @@ function hideGenOverlay() {
   $("#genOverlay").style.display = "none";
 }
 
-$("#generateBtn").onclick = async () => {
-  const btn = $("#generateBtn");
-  btn.disabled = true;
-  $("#genStatus").textContent = "생성 중...";
+async function runGenerate(btn, statusEl) {
+  const btns = [$("#generateBtn"), $("#generateBtnMid")].filter(Boolean);
+  btns.forEach(b => b.disabled = true);
+  if (statusEl) statusEl.textContent = "생성 중...";
   showGenOverlay("근무표를 생성하는 중입니다…");
   try {
     const cfg = buildCfgFromForm();
@@ -692,13 +692,18 @@ $("#generateBtn").onclick = async () => {
     render();
     showToast("근무표 생성 완료");
   } catch (e) {
-    $("#genStatus").textContent = "";
+    if (statusEl) statusEl.textContent = "";
   } finally {
-    btn.disabled = false;
-    if (!ST) $("#genStatus").textContent = "";
+    btns.forEach(b => b.disabled = false);
+    if (!ST && statusEl) statusEl.textContent = "";
     hideGenOverlay();
   }
-};
+}
+$("#generateBtn").onclick = () => runGenerate($("#generateBtn"), $("#genStatus"));
+const generateBtnMid = $("#generateBtnMid");
+if (generateBtnMid) {
+  generateBtnMid.onclick = () => runGenerate(generateBtnMid, $("#genStatusMid"));
+}
 
 // 페이지 로드 시: Pyodide(브라우저 안 Python) 부팅 → 샘플 데이터로 폼 기본 채움
 (async function boot() {

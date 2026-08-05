@@ -103,6 +103,12 @@
             </div>
           </div>
 
+          <div class="generate-row generate-row-mid">
+            <button id="generateBtnMid" class="primary big">근무표 생성</button>
+            <span id="genStatusMid" class="hint"></span>
+          </div>
+
+          <div class="manual-section">
           <h3 class="manual-sec-title">직접 입력 / 확인 <span class="hint">— 파일을 올리면 여기도 자동으로 채워집니다</span></h3>
 
           <details class="form-sec" open>
@@ -130,18 +136,6 @@
           </details>
 
           <details class="form-sec" open>
-            <summary>인원 <span class="count-badge" id="staffCount"></span></summary>
-            <div class="tablebox">
-              <table class="form-table" id="staffTable">
-                <thead><tr><th>#</th><th>이름</th><th>직급</th><th>Lv</th>
-                  <th>가능근무</th><th>비고</th><th></th></tr></thead>
-                <tbody id="staffBody"></tbody>
-              </table>
-            </div>
-            <button id="addStaffBtn" class="small">+ 인원 추가</button>
-          </details>
-
-          <details class="form-sec" open>
             <summary>최소인력</summary>
             <div class="tablebox">
               <table class="form-table" id="minStaffTable">
@@ -164,6 +158,8 @@
 
           <details class="form-sec">
             <summary>전월이월 <span class="count-badge" id="carryCount"></span> (선택)</summary>
+            <p class="hint">보통은 위 <b>입력② 전월 확정 근무표</b>를 업로드하면 이 표가 자동으로 채워집니다.
+            직접 입력은 지난달 근무표를 하루하루 세어야 해서 번거로우니, 입력②가 없을 때만 예외적으로 쓰세요.</p>
             <div class="tablebox">
               <table class="form-table" id="carryTable">
                 <thead><tr><th>이름</th><th>마지막근무</th><th>연속근무일</th><th>이월OFF일</th><th>말일연속야간</th><th></th></tr></thead>
@@ -172,6 +168,19 @@
             </div>
             <button id="addCarryBtn" class="small">+ 이월 추가</button>
           </details>
+
+          <details class="form-sec" open>
+            <summary>인원 <span class="count-badge" id="staffCount"></span></summary>
+            <div class="tablebox">
+              <table class="form-table" id="staffTable">
+                <thead><tr><th>#</th><th>이름</th><th>직급</th><th>Lv</th>
+                  <th>가능근무</th><th>비고</th><th></th></tr></thead>
+                <tbody id="staffBody"></tbody>
+              </table>
+            </div>
+            <button id="addStaffBtn" class="small">+ 인원 추가</button>
+          </details>
+          </div>
 
           <div class="generate-row">
             <button id="generateBtn" class="primary big">근무표 생성</button>
