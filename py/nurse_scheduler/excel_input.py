@@ -401,6 +401,10 @@ def load_staff_table_xlsx(path: str) -> dict:
             "blocks_3": int(_num(r, n_static + 5)),
             "months": int(_num(r, n_static + 6)),
             "recent_night_score": round(_num(r, n_static + 7), 2),
+            "cum_d": int(_num(r, n_static + 8)),
+            "cum_e": int(_num(r, n_static + 9)),
+            "cum_prn": int(_num(r, n_static + 10)),
+            "cum_weekend_holiday_off": int(_num(r, n_static + 11)),
         }
 
         if annual_dates:
