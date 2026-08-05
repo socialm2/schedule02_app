@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>간호사 근무표 자동생성 — 원페이지 요약 (v0.4)</title>
+<style>
+:root {
+  --paper: #F7F8F6; --ink: #1C2523; --sub: #5A6763; --accent: #0F6E6B;
+  --accent-soft: #E3EEEC; --hard: #B5472E; --hard-soft: #F6E8E3;
+  --ok: #2E7D4F; --ok-soft: #E4F0E8; --line: #D8DEDB; --card: #FFFFFF;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --paper: #141B1A; --ink: #E4E9E6; --sub: #9BA8A4; --accent: #4FB3AE;
+    --accent-soft: #1C2E2C; --hard: #E07B5F; --hard-soft: #2E211C; --ok: #6FBF8E;
+    --ok-soft: #1D2B22; --line: #2C3634; --card: #1B2321; }
+}
+:root[data-theme="dark"] { --paper: #141B1A; --ink: #E4E9E6; --sub: #9BA8A4; --accent: #4FB3AE;
+  --accent-soft: #1C2E2C; --hard: #E07B5F; --hard-soft: #2E211C; --ok: #6FBF8E;
+  --ok-soft: #1D2B22; --line: #2C3634; --card: #1B2321; }
+:root[data-theme="light"] { --paper: #F7F8F6; --ink: #1C2523; --sub: #5A6763; --accent: #0F6E6B;
+  --accent-soft: #E3EEEC; --hard: #B5472E; --hard-soft: #F6E8E3; --ok: #2E7D4F;
+  --ok-soft: #E4F0E8; --line: #D8DEDB; --card: #FFFFFF; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink);
+  font-family: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR",
+    "Malgun Gothic", system-ui, sans-serif; }
+.page { max-width: 900px; margin: 0 auto; padding: 22px 26px 30px; }
+header { border-bottom: 3px solid var(--accent); padding-bottom: 10px; margin-bottom: 14px;
+  display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 6px; }
+h1 { font-size: 21px; font-weight: 800; margin: 0; letter-spacing: -.01em; }
+.ver { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--accent); font-weight: 700; }
+.grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 14px; }
+.col { min-width: 0; }
+.steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+.steps li { counter-increment: step; position: relative; padding: 6px 0 6px 30px; font-size: 13px;
+  line-height: 1.45; border-bottom: 1px dashed var(--line); }
+.steps li:last-child { border-bottom: none; }
+.steps li::before { content: counter(step); position: absolute; left: 0; top: 6px;
+  width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #fff;
+  font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.steps b { font-weight: 700; }
+h2 { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--accent); margin: 0 0 6px; }
+.box { background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px 13px; margin-bottom: 12px; }
+.box p, .box li { font-size: 12px; line-height: 1.5; margin: 3px 0; }
+.box ul { margin: 3px 0; padding-left: 16px; }
+.legend { display: flex; flex-wrap: wrap; gap: 5px; margin: 4px 0 0; }
+.sw { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 1px 7px;
+  border-radius: 4px; font-family: "JetBrains Mono", monospace; }
+.warn { background: var(--hard-soft); border-color: var(--hard); }
+.warn h2 { color: var(--hard); }
+.filetable { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.filetable th { text-align: left; color: var(--sub); font-weight: 700; padding: 3px 4px;
+  border-bottom: 1px solid var(--line); }
+.filetable td { padding: 3px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.filetable tr:last-child td { border-bottom: none; }
+code { font-family: "JetBrains Mono", monospace; font-size: .92em; background: var(--accent-soft);
+  padding: 0 4px; border-radius: 3px; }
+footer { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line);
+  color: var(--sub); font-size: 10.5px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; }
+@media print {
+  body { background: #fff; }
+  .page { max-width: none; padding: 8mm 10mm; }
+  .box { break-inside: avoid; }
+  a { color: inherit; text-decoration: none; }
+}
+@media (max-width: 640px) {
+  .grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <h1>간호사 근무표 자동생성 — 원페이지 요약</h1>
+  <span class="ver">v0.4 · 리더용 1장 요약</span>
+</header>
+
+<div class="grid">
+<div class="col">
+
+<h2>사용 순서</h2>
+<ol class="steps">
+<li><b>링크 접속</b> — 설치 없이 브라우저로 열면 끝. 처음엔 샘플 데이터가 이미 채워져 있다.</li>
+<li><b>입력 파일 올리기</b> — 병동인력표(입력①)만 있으면 시작 가능. 각 업로드 칸 옆 <b>양식</b> 버튼으로
+40명 규모 실제 예시(설명 포함)를 받아 우리 병동 값으로 고쳐 올리면 된다.</li>
+<li><b>최소인력·원티드 확인</b> — 화면 하단에서 요일별 필요 인원, 직원 신청 내역을 검토·수정한다.</li>
+<li><b>근무표 생성</b> 클릭 — 인원 많으면(40명대) 최대 <b>2분</b> 정도 걸릴 수 있다. 창 닫지 말 것.</li>
+<li><b>결과 확인</b> — 그리드 + 검증 요약이 뜬다. 하드 위반이 남아도 프로그램 오류가 아니라 "이 조건으로는
+100% 못 지켰다"는 정직한 표시다(우측 하단 <b>자주 묻는 질문</b> 참고).</li>
+<li><b>필요하면 칸 클릭해서 수정</b> → <b>피드백 확인</b> → <b>재생성 적용</b>. 고친 칸은 재생성해도 절대
+안 바뀐다.</li>
+<li><b>다운로드</b> — "근무표 엑셀"을 받아 부서에 배포. "인원표(갱신본)"은 보관해뒀다가 다음 달 입력④로
+다시 올리면 누적 통계가 이어진다.</li>
+</ol>
+
+</div>
+<div class="col">
+
+<div class="box">
+<h2>입력 파일 4종</h2>
+<table class="filetable">
+<tr><th>파일</th><th>내용</th><th>필수</th></tr>
+<tr><td><b>입력①</b></td><td>설정+인원+최소인력</td><td>필수</td></tr>
+<tr><td><b>입력②</b></td><td>전월 확정 근무표(이월용)</td><td>선택</td></tr>
+<tr><td><b>입력③</b></td><td>원티드표(근무/휴무 신청)</td><td>선택</td></tr>
+<tr><td><b>입력④</b></td><td>인원표(다월 자동연동)</td><td>선택</td></tr>
+</table>
+</div>
+
+<div class="box">
+<h2>화면 색상 · 테두리</h2>
+<div class="legend">
+<span class="sw" style="background:#BDD7EE">D</span>
+<span class="sw" style="background:#F8CBAD">E</span>
+<span class="sw" style="background:#1F3864;color:#fff">N</span>
+<span class="sw" style="background:#7030A0;color:#fff">NK</span>
+<span class="sw" style="background:#C6E0B4">prn</span>
+<span class="sw" style="background:#D9D9D9">8A</span>
+<span class="sw" style="background:#FFE699">연차</span>
+</div>
+<ul>
+<li><b style="color:#B5472E">빨간 실선</b> = 확정(고정) 칸 — 재생성해도 안 바뀜</li>
+<li><b style="color:#C77C1E">주황 점선</b> = 아직 적용 안 한 편집(스테이징)</li>
+</ul>
+</div>
+
+<div class="box warn">
+<h2>꼭 기억할 것</h2>
+<ul>
+<li>브라우저 전용판은 데이터가 <b>그 기기·그 브라우저에만</b> 저장된다 — 확정본은 꼭 엑셀로 다운로드해 보관.</li>
+<li>"입력으로 돌아가기"를 누르면 지금까지의 편집이 <b>전부 초기화</b>된다.</li>
+<li>업로드 파일의 "안내" 시트는 지우지 않고 그대로 올려도 된다.</li>
+</ul>
+</div>
+
+</div>
+</div>
+
+<footer>
+<span>간호사 근무표 자동생성 · v0.4 · 처음 써본다면 <a href="quick-start.html">빠른시작가이드</a> 참고 · <a href="../index.html">앱으로 돌아가기</a></span>
+<span>인쇄용 — Ctrl/Cmd+P로 A4 1장에 출력됨</span>
+</footer>
+
+</div>
+</body>
+</html>

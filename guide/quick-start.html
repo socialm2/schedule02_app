@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>간호사 근무표 자동생성 — 빠른시작가이드 (v0.4)</title>
+<style>
+:root {
+  --paper: #F7F8F6; --ink: #1C2523; --sub: #5A6763; --accent: #0F6E6B;
+  --accent-soft: #E3EEEC; --hard: #B5472E; --hard-soft: #F6E8E3;
+  --ok: #2E7D4F; --ok-soft: #E4F0E8; --warn: #9A6B12; --warn-soft: #FBF1DC;
+  --line: #D8DEDB; --card: #FFFFFF; --code-bg: #EDF1EF;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --paper: #141B1A; --ink: #E4E9E6; --sub: #9BA8A4; --accent: #4FB3AE;
+    --accent-soft: #1C2E2C; --hard: #E07B5F; --hard-soft: #2E211C; --ok: #6FBF8E;
+    --ok-soft: #1D2B22; --warn: #E0B84C; --warn-soft: #332B14;
+    --line: #2C3634; --card: #1B2321; --code-bg: #222C2A; }
+}
+:root[data-theme="dark"] { --paper: #141B1A; --ink: #E4E9E6; --sub: #9BA8A4; --accent: #4FB3AE;
+  --accent-soft: #1C2E2C; --hard: #E07B5F; --hard-soft: #2E211C; --ok: #6FBF8E;
+  --ok-soft: #1D2B22; --warn: #E0B84C; --warn-soft: #332B14;
+  --line: #2C3634; --card: #1B2321; --code-bg: #222C2A; }
+:root[data-theme="light"] { --paper: #F7F8F6; --ink: #1C2523; --sub: #5A6763; --accent: #0F6E6B;
+  --accent-soft: #E3EEEC; --hard: #B5472E; --hard-soft: #F6E8E3; --ok: #2E7D4F;
+  --ok-soft: #E4F0E8; --warn: #9A6B12; --warn-soft: #FBF1DC;
+  --line: #D8DEDB; --card: #FFFFFF; --code-bg: #EDF1EF; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink);
+  font-family: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR",
+    "Malgun Gothic", system-ui, sans-serif; line-height: 1.7; font-size: 16px; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 56px 24px 96px; }
+header.doc { border-bottom: 2px solid var(--accent); padding-bottom: 28px; margin-bottom: 40px; }
+.eyebrow { font-family: "JetBrains Mono", monospace; font-size: 12px;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin: 0 0 10px; }
+h1 { font-size: 32px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 12px; text-wrap: balance; }
+.meta { color: var(--sub); font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 20px; }
+.meta b { color: var(--ink); font-weight: 600; }
+p { margin: 10px 0; max-width: 760px; }
+.lead { font-size: 17px; color: var(--sub); max-width: 760px; }
+code { font-family: "JetBrains Mono", monospace; font-size: .86em;
+  background: var(--code-bg); padding: 1px 6px; border-radius: 4px; }
+.callout { background: var(--accent-soft); border-left: 3px solid var(--accent);
+  border-radius: 0 6px 6px 0; padding: 14px 18px; margin: 16px 0; max-width: 740px; }
+.callout.warn { background: var(--warn-soft); border-left-color: var(--warn); }
+.callout p { margin: 4px 0; }
+.step { background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 18px; margin: 10px 0; max-width: 760px; }
+.step .n { display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff;
+  font-size: 12px; font-weight: 800; margin-right: 8px; flex: none; }
+.step-head { display: flex; align-items: center; font-weight: 700; margin-bottom: 4px; }
+footer { margin-top: 68px; padding-top: 20px; border-top: 1px solid var(--line);
+  color: var(--sub); font-size: 13.5px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc">
+  <p class="eyebrow">Quick Start</p>
+  <h1>간호사 근무표 자동생성 — 빠른시작가이드 (v0.4)</h1>
+  <div class="meta">
+    <span>대상 <b>병동 리더</b></span>
+    <span>소요시간 <b>처음이면 5분, 익숙해지면 1분</b></span>
+  </div>
+</header>
+
+<p class="lead">전체 설명은 「사용자매뉴얼」에, 인쇄해서 옆에 두고 보는 요약은 「원페이지」에 있다.
+이 문서는 처음 써보는 리더를 위해 <b>핵심 단계만</b> 압축했다.</p>
+
+<div class="step">
+<div class="step-head"><span class="n">1</span>링크 접속</div>
+<p>받은 링크를 브라우저로 열면 끝 — 설치 없음. 브라우저 전용판은 처음 접속 시 <b>비밀번호</b>를 물어본다
+(배포 담당자에게 받은 접속 비밀번호 입력). 화면엔 이미 <b>샘플 병동 데이터</b>가 채워져 있으니, 처음엔 그대로
+"근무표 생성"을 눌러봐도 되고, 우리 병동 데이터로 바로 바꿔도 된다.</p>
+</div>
+
+<div class="step">
+<div class="step-head"><span class="n">2</span>입력 파일 올리기 (또는 직접 입력)</div>
+<p>화면 상단 <b>입력①(병동인력표)</b>이 핵심이다 — 업로드 버튼 옆 <b>양식</b> 버튼을 누르면 실제 40명 규모
+예시 파일(자세한 설명 포함)을 받을 수 있다. 이걸 다운받아 우리 병동 값으로 고친 뒤 업로드 버튼으로 올리면
+화면 아래 표들이 자동으로 채워진다. 파일 없이 화면에서 표를 직접 채워도 된다. 입력②(전월근무표)·입력③(원티드표)·
+입력④(인원표)는 선택 사항 — 없으면 그냥 비워두고 생성하면 된다.</p>
+</div>
+
+<div class="step">
+<div class="step-head"><span class="n">3</span>최소인력 · 원티드 확인</div>
+<p>근무별(D/E/N/prn) 최소 필요 인원과, 이번 달 직원들이 신청한 휴무·근무 희망을 화면에서 확인·수정한다.</p>
+</div>
+
+<div class="step">
+<div class="step-head"><span class="n">4</span>"근무표 생성" 클릭</div>
+<p>인원이 많은 병동(40명대)은 <b>최대 2분</b> 정도 걸릴 수 있다 — 진행 중 안내 화면이 뜨니 창을 닫지 말고
+기다리면 된다.</p>
+</div>
+
+<div class="step">
+<div class="step-head"><span class="n">5</span>결과 확인</div>
+<p>근무표 그리드와 검증 요약(하드 위반 건수, 신청 반영 현황)이 함께 나온다. 하드 위반이 남아있다면 프로그램
+오류가 아니라 "이 입력으로는 규칙을 100% 못 지켰다"는 정직한 신호다 — 자세한 이유는 「사용자매뉴얼 §10 FAQ」 참고.</p>
+</div>
+
+<div class="step">
+<div class="step-head"><span class="n">6</span>필요하면 직접 수정 → 재생성</div>
+<p>그리드 셀을 직접 클릭해 바꾸면 그 칸은 스테이징(주황 점선)되고, "피드백 확인" → "재생성 적용"을 누르면
+고정한 칸은 그대로 둔 채 나머지만 다시 맞춰준다. 인원이 많으면 재생성도 생성만큼 시간이 걸릴 수 있다.
+"입력으로 돌아가기"를 누르면 수정 내역이 전부 사라지고 처음부터 다시 시작하니 주의.</p>
+</div>
+
+<div class="step">
+<div class="step-head"><span class="n">7</span>"근무표 엑셀" 다운로드 → 부서 배포</div>
+<p>완성본을 엑셀로 받아서 부서원들에게 전달한다. 앱 자체는 리더만 쓰고, 나머지 직원은 이 엑셀 파일만 받아보면 된다.
+"인원표(갱신본)"도 함께 받아 보관해두면, 다음 달 입력④로 다시 올렸을 때 누적 통계가 이어진다.</p>
+</div>
+
+<div class="callout warn">
+<p><b>기억해둘 것</b> — 브라우저 전용판은 데이터가 그 폰·PC 안에만 저장된다. 다른 기기에서 이어서 못 보니,
+확정한 근무표는 꼭 엑셀로 다운로드해서 따로 보관해두자.</p>
+</div>
+
+<footer>간호사 근무표 자동생성 프로그램 · 빠른시작가이드 (v0.4) · 인쇄용 요약은 <a href="one-pager.html">원페이지</a> ·
+<a href="../index.html">앱으로 돌아가기</a></footer>
+</div>
+</body>
+</html>
