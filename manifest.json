@@ -1,7 +1,7 @@
 {
   "name": "SMC Auto Planner",
   "short_name": "SMC Planner",
-  "description": "브라우저에서 바로 실행되는 간호사 근무표 자동생성 편집기 (서버 없음, 로컬저장)",
+  "description": "브라우저에서 바로 실행되는 근무표 자동생성 편집기 (서버 없음, 로컬저장)",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
