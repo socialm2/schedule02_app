@@ -225,14 +225,21 @@ td.disabled { cursor: default; opacity: .55; }
   text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .upload-btn:hover { border-color: var(--accent); color: var(--accent); }
+/* 양식(예시파일 다운로드)은 업로드보다 한 단계 낮은 보조 액션으로 — 점선 테두리로 구분 */
+.upload-btn.format-btn { background: transparent; border-style: dashed; color: var(--sub); font-weight: 500; }
+.upload-btn.format-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--card); }
 #staffTableClearBtn { margin-bottom: 4px; }
+/* 파일로 채우기 박스 안, 업로드 목록 밑에 붙는 생성 버튼 — 점선 구분선으로 살짝 떼어낸다 */
+.upload-section .generate-row-mid {
+  margin: 14px 0 0; padding-top: 16px; border-top: 1px dashed var(--line);
+}
+.upload-section .generate-row-mid button.big { flex: 1; }
 .manual-section {
   background: var(--paper); border: 1px solid var(--line); border-radius: 10px;
   padding: 16px 18px 6px; margin-bottom: 20px;
 }
 .manual-sec-title { font-size: 13.5px; margin: 4px 0 10px; }
 .manual-sec-title .hint { font-weight: 400; margin-left: 4px; }
-.generate-row-mid { margin-top: 0; margin-bottom: 20px; }
 
 details.form-sec {
   border: 1px solid var(--line); border-radius: 9px; margin-bottom: 12px; overflow: hidden;
