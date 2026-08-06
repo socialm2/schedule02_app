@@ -74,7 +74,7 @@ def check_h1_shift_rules(sch: MonthSchedule, days: List[DayInfo],
                     out.append(Violation("H1-2", "hard",
                                          f"{s.id} 8A는 파트장/리더 전용",
                                          staff_id=s.id, day=d))
-            if v is not None and v not in REST_SHIFTS:
+            if v is not None and v not in REST_SHIFTS and v != Shift.EDU:
                 allowed = v in s.allowed_shifts or \
                     (v == Shift.A8 and s.is_leader and leader_8a_as_prn)
                 if not allowed:
