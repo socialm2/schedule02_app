@@ -317,7 +317,7 @@ def export_excel_ocs(sch: MonthSchedule, days: List[DayInfo], path: str):
     wb.save(path)
 
 
-# ---------------------------------------------------------------- 인원표 (다월 자동 연동용)
+# ---------------------------------------------------------------- 연간근무표 (다월 자동 연동용, 구 명칭 "인원표")
 
 STAT_FILL = PatternFill("solid", fgColor="E2EFDA")
 NK_ROW_FILL = PatternFill("solid", fgColor="F2E9F7")
@@ -328,7 +328,7 @@ BOLD = Font(bold=True)
 def export_staff_table_xlsx(staff, stats: dict, annual_dates: list,
                              annual_grid: dict, path: str,
                              last_reflected: str = ""):
-    """'인원표' 내보내기 — 로스터 + 누적통계(형평성 참고용) + 연간 근무 그리드(1/1~, 참고용).
+    """'연간근무표' 내보내기 — 로스터 + 누적통계(형평성 참고용) + 연간 근무 그리드(1/1~, 참고용).
 
     staff: List[Staff] (현재 인원 명단, 이 순서/구성대로 출력)
     stats: {staff_id: {"night","workday","off","weekend_night",
@@ -341,13 +341,13 @@ def export_staff_table_xlsx(staff, stats: dict, annual_dates: list,
 
     wb = Workbook()
     ws = wb.active
-    ws.title = "인원표"
+    ws.title = "연간근무표"
 
     n_static = len(STAFF_TABLE_STATIC_COLS)
     n_stat = len(STAFF_TABLE_STAT_KEYS)
     first_day_col = 1 + n_static + n_stat  # 1-based
 
-    title = "인원표"
+    title = "연간근무표"
     if last_reflected:
         title += f" — {last_reflected}까지 반영"
     ws.cell(1, 1, title).font = Font(bold=True, size=13)

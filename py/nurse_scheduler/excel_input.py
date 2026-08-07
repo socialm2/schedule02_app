@@ -10,7 +10,7 @@
 
 비고 키워드: "야간전담" → night_only, "임부" → pregnant, "야간금지"/"야간 금지" → no_night
 
-  인원표 — 다월 자동 연동용(선택 사용). 순번|이름|직급|숙련도|가능근무|비고 +
+  연간근무표 — 다월 자동 연동용(선택 사용, 구 명칭 "인원표"). 순번|이름|직급|숙련도|가능근무|비고 +
            누적통계(최근야간점수|누적야간|누적오프|누적주말야간|누적2일블록|누적3일블록|반영개월수) +
            연간 근무 그리드(1/1~, 참고용). export_staff_table_xlsx()로 내보내고
            load_staff_table_xlsx()로 다시 읽어 다음 달 생성에 이어붙인다.
@@ -484,10 +484,13 @@ def load_wanted_grid_xlsx(path: str) -> dict:
            "unknown_marks": sorted(unknown)}
 
 
-# ---------------------------------------------------------------- 인원표 읽기 (다월 자동 연동용)
+# ---------------------------------------------------------------- 연간근무표 읽기 (다월 자동 연동용)
 
 def load_staff_table_xlsx(path: str) -> dict:
-    """'인원표' 파일 읽기 — 로스터 + 누적 통계(형평성 참고용) + 연간 근무 그리드(1/1~, 참고용).
+    """'연간근무표' 파일 읽기 — 로스터 + 누적 통계(형평성 참고용) + 연간 근무 그리드(1/1~, 참고용).
+
+    시트명은 "연간근무표"를 우선 찾고, 예전에 내보낸 파일(구 명칭 "인원표")도
+    그대로 읽을 수 있도록 하위호환으로 받아준다.
 
     반환: {
       "staff": [{"id","role","level","allowed_shifts","flags"}, ...],
@@ -500,13 +503,14 @@ def load_staff_table_xlsx(path: str) -> dict:
     from openpyxl import load_workbook
 
     wb = load_workbook(path, data_only=True)
-    if "인원표" not in wb.sheetnames:
-        raise ExcelInputError("필수 시트 누락: 인원표")
+    sheet_name = "연간근무표" if "연간근무표" in wb.sheetnames else "인원표"
+    if sheet_name not in wb.sheetnames:
+        raise ExcelInputError("필수 시트 누락: 연간근무표")
 
-    rows = _sheet_rows(wb["인원표"])
+    rows = _sheet_rows(wb[sheet_name])
     h = _find_header(rows, "순번")
     if h is None:
-        raise ExcelInputError("인원표 시트에 '순번' 헤더가 없습니다")
+        raise ExcelInputError("연간근무표 시트에 '순번' 헤더가 없습니다")
     header_row = rows[h]
     n_static = len(STAFF_TABLE_STATIC_COLS)
     n_stat = len(STAFF_TABLE_STAT_KEYS)
@@ -563,7 +567,7 @@ def load_staff_table_xlsx(path: str) -> dict:
             annual_grid[name] = codes
 
     if not staff:
-        raise ExcelInputError("인원표 시트가 비어 있습니다")
+        raise ExcelInputError("연간근무표 시트가 비어 있습니다")
 
     return {"staff": staff, "stats": stats,
             "annual_dates": annual_dates, "annual_grid": annual_grid}

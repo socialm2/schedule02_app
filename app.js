@@ -647,9 +647,9 @@ async function refreshStaffTableStatus() {
     banner.style.display = "";
     banner.style.color = "var(--warn)";
     banner.style.fontWeight = "700";
-    banner.textContent = `⚠ 인원표 반영 중 — ${s.staff_count}명, ${s.last_date || "?"}까지` +
+    banner.textContent = `⚠ 연간근무표 반영 중 — ${s.staff_count}명, ${s.last_date || "?"}까지` +
       ` (연간 ${s.annual_days}일치). "생성"을 누르면 이 값이 계속 자동으로 쓰입니다.` +
-      ` 최신 인원표를 다시 안 올렸다면 확인하세요.`;
+      ` 최신 연간근무표를 다시 안 올렸다면 확인하세요.`;
     clearBtn.style.display = "";
   } else {
     banner.style.display = "none";
@@ -662,7 +662,7 @@ $("#staffTableClearBtn").onclick = async () => {
     await api("/api/clear_staff_table", { method: "POST" });
     await refreshStaffTableStatus();
     $("#staffTableStatus").textContent = "반영 해제했습니다 — 이번 생성은 처음부터 시작합니다.";
-    showToast("인원표 반영을 해제했습니다");
+    showToast("연간근무표 반영을 해제했습니다");
   } catch (e) {}
 };
 
@@ -680,7 +680,7 @@ $("#staffTableInput").onchange = async () => {
     $("#staffTableStatus").textContent =
       `인원 ${formStaff.length}명, 누적 통계 반영 (연간 근무표 ${data.annual_days}일치 포함)`;
     await refreshStaffTableStatus();
-    showToast("인원표에서 인원 명단과 누적 통계를 불러왔습니다");
+    showToast("연간근무표에서 인원 명단과 누적 통계를 불러왔습니다");
   } catch (e) {} finally { $("#staffTableInput").value = ""; }
 };
 
@@ -891,7 +891,7 @@ function renderSide() {
   html += `<div class="side-sec"><h3>다운로드</h3><div class="download-row">
     <button onclick="downloadXlsx()">근무표 엑셀</button>
     <button onclick="downloadXlsxOcs()">근무표 엑셀(OCS 형식)</button>
-    <button onclick="downloadStaffTable()">인원표(갱신본)</button>
+    <button onclick="downloadStaffTable()">연간근무표(갱신본)</button>
   </div></div>`;
 
   // 입력 요약
