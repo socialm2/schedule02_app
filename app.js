@@ -112,7 +112,6 @@ function seedHolidaysForYear(year) {
 let ST = null;       // 생성 후 서버 상태 캐시
 let picker = null;
 let formStaff = [];      // [{id, role, level, allowed:[...], flags:[...]}]
-let formLeader8aAsPrn = false;  // UI에서 뺐지만(요청) 업로드된 값은 그대로 보존해서 다시 씀
 let formRequests = [];   // [{staff_id, date, type, priority}]
 let formCarryover = [];  // [{staff_id, last_shift_type, consecutive_work_days, night_block_remaining_off, trailing_night_count}]
 let formHolidays = [];      // ["YYYY-MM-DD", ...] 공휴일
@@ -374,7 +373,6 @@ function fillForm(cfg) {
   $("#f_month").value = cfg.month;
   const p = cfg.params || {};
   $("#f_maxnights").value = p.off_max_per_month ?? 6;
-  formLeader8aAsPrn = !!p.leader_8a_as_prn;
   formHolidays = [...(p.holidays || [])];
   formSubHolidays = [...(p.substitute_holidays || [])];
   renderHolidayCalendar();
@@ -568,7 +566,7 @@ function buildCfgFromForm() {
                                  allowed_shifts: s.allowed, flags: s.flags })),
     params: {
       nk_count: nkCount, min_staff: minStaff,
-      leader_8a_as_prn: formLeader8aAsPrn,
+      leader_8a_as_prn: false,  // 웹 UI에 없는 설정이라 항상 기본값
       off_max_per_month: parseInt($("#f_maxnights").value || "6", 10),
       holidays, substitute_holidays: subhol, advanced_track_staff: [],
       team_b_names: teamBNamesFromForm(),

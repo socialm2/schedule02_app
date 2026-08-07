@@ -2,7 +2,7 @@
 """엑셀 입력 형식 (원본 설계서 0-2/0-3 표 양식).
 
 시트 구성:
-  설정     — 항목/값 (연도, 월, 월최대야간, 월신청상한, 리더8A운용, 공휴일, 대체공휴일)
+  설정     — 항목/값 (연도, 월, 월최대야간, 월신청상한, 공휴일, 대체공휴일)
   인원     — 순번 | 이름 | 직급 | 숙련도 | 가능근무 | 비고
   최소인력 — 근무 | 평일 | 토요일 | 일요일공휴일  (D/E/N/prn 행, 8A 행은 무시)
   신청     — 이름 | 날짜 | 근무유형 | 우선순위   (선택, 행 순서 = 선착순)
@@ -69,10 +69,6 @@ def _parse_flags(note: str) -> List[str]:
     if "야간금지" in note and "pregnant" not in flags:
         flags.append("no_night")
     return flags
-
-
-def _parse_bool(v) -> bool:
-    return str(v).strip().upper() in ("Y", "YES", "TRUE", "예", "O", "1")
 
 
 def _split_list(v) -> List[str]:
@@ -203,7 +199,8 @@ def load_input_xlsx(path: str) -> dict:
         "params": {
             "nk_count": int(kv.get("NK인원수", nk_count) or nk_count),
             "min_staff": mins,
-            "leader_8a_as_prn": _parse_bool(kv.get("리더8A운용", "N")),
+            # 리더8A운용은 웹 UI에도 없는 설정이라 엑셀에서도 뺐다 — 항상 기본값(False)만 쓴다.
+            "leader_8a_as_prn": False,
             "off_max_per_month": int(kv.get("월최대야간", 6) or 6),
             "max_requests_per_person": int(kv.get("월신청상한", 6) or 6),
             "holidays": holidays,
@@ -591,7 +588,6 @@ def write_input_xlsx(cfg: dict, path: str):
             ("연도", cfg["year"]), ("월", cfg["month"]),
             ("월최대야간", p.get("off_max_per_month", 6)),
             ("월신청상한", p.get("max_requests_per_person", 6)),
-            ("리더8A운용", "Y" if p.get("leader_8a_as_prn") else "N"),
             ("공휴일", ", ".join(p.get("holidays", []))),
             ("대체공휴일", ", ".join(p.get("substitute_holidays", [])))]
     for r in rows:
