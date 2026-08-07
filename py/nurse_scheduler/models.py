@@ -43,10 +43,15 @@ LEAVE_SHIFTS = {
 }  # OFF를 제외한 각종 휴가/휴직 유형 (표시·통계 구분용)
 
 
+_OFF_ALIASES = {"X", "/"}  # 원티드 오프(X)/일반 오프(/) — 출력 표시용, 내부적으로는 둘 다 OFF
+
+
 def parse_shift(value: str) -> Shift:
     for s in Shift:
         if s.value == value:
             return s
+    if value in _OFF_ALIASES:
+        return Shift.OFF
     raise ValueError(f"알 수 없는 근무유형: {value!r}")
 
 

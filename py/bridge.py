@@ -72,6 +72,8 @@ def _require_generated():
 # ---------------------------------------------------------------- 상태 직렬화
 
 def _display_grid() -> dict:
+    """화면/편집용 값은 "OFF"를 그대로 유지한다(셀 편집·순환·드롭다운이 이 값을 기준으로
+    동작하므로) — "X"/"/" 표시 변환은 export/annual_grid 등 출력 시점에만 적용한다."""
     out = {}
     for s in S.sch.staff:
         row = list(S.sch.grid[s.id])
@@ -80,6 +82,13 @@ def _display_grid() -> dict:
                 row[d] = S.pending_edits[(s.id, d)]
         out[s.id] = [str(v) for v in row]
     return out
+
+
+def _off_display(sid: str, day: int, code: str) -> str:
+    """OFF는 "OFF" 대신 원티드오프="X" / 일반오프="/"로 표시(병원 표준 표기, §excel_export와 동일 규칙)."""
+    if code != "OFF":
+        return code
+    return "X" if (sid, day) in S.sch.wanted else "/"
 
 
 def _staff_meta():
@@ -241,13 +250,16 @@ def _list_history_before(year: int, month: int, limit: int = 2):
     return out
 
 
+_OFF_CODES = ("OFF", "X", "/")  # "OFF"(구버전 파일 호환) / "X"(원티드오프) / "/"(일반오프)
+
+
 def _summary_from_raw_grid(grid: dict, num_days: int):
     out = {}
     for sid, row in grid.items():
         out[sid] = {
-            "off": sum(1 for v in row if v == "OFF"),
+            "off": sum(1 for v in row if v in _OFF_CODES),
             "night": sum(1 for v in row if v in ("N", "NK")),
-            "workday": sum(1 for v in row if v not in ("OFF", "연차")),
+            "workday": sum(1 for v in row if v not in _OFF_CODES and v != "연차"),
         }
     return out
 
@@ -295,7 +307,7 @@ def _count_shift_codes(row: list, days: list) -> tuple:
     d_cnt = sum(1 for v in row if v == "D")
     e_cnt = sum(1 for v in row if v == "E")
     prn_cnt = sum(1 for v in row if v in ("prn", "8A"))
-    wh_off = sum(1 for v, d in zip(row, days) if v == "OFF" and d.get("weekend"))
+    wh_off = sum(1 for v, d in zip(row, days) if v in _OFF_CODES and d.get("weekend"))
     return d_cnt, e_cnt, prn_cnt, wh_off
 
 
@@ -377,7 +389,8 @@ def _build_updated_staff_table():
     for s in S.sch.staff:
         base_codes = (prev_grid.get(s.id, []) if base_dates else [])
         base_codes = (base_codes + [""] * len(base_dates))[:len(base_dates)]
-        annual_grid[s.id] = base_codes + list(grid[s.id])
+        this_month_codes = [_off_display(s.id, d, c) for d, c in enumerate(grid[s.id])]
+        annual_grid[s.id] = base_codes + this_month_codes
 
     return stats, annual_dates, annual_grid
 

@@ -730,7 +730,12 @@ if (generateBtnMid) {
 // ================================================================ 그리드 렌더 (생성 후)
 
 function shiftClass(v) { return SHIFT_CLASS[v] || ""; }
-function shiftText(v) { return SHIFT_TEXT[v] !== undefined ? SHIFT_TEXT[v] : v; }
+// OFF는 "·" 대신 원티드오프="X" / 일반오프="/"로 표시(병원 표준 표기) — 셀의 실제 값(v)은
+// 편집·순환·드롭다운이 기준으로 쓰는 "OFF" 그대로 유지되고, 화면 표시 글자만 바뀐다.
+function shiftText(v, isWanted) {
+  if (v === "OFF") return isWanted ? "X" : "/";
+  return SHIFT_TEXT[v] !== undefined ? SHIFT_TEXT[v] : v;
+}
 
 function render() {
   if (!ST) return;
@@ -756,7 +761,7 @@ function renderGrid() {
   const legendItems = [["D","#BDD7EE"],["E","#F8CBAD"],["N","#1F3864"],["NK","#7030A0"],
                        ["prn","#C6E0B4"],["8A","#D9D9D9"],["연차","#FFE699"]];
   for (const [k, c] of legendItems) html += `<span class="sw"><span class="box" style="background:${c}"></span>${k}</span>`;
-  html += `<span class="sw">· = OFF</span>`;
+  html += `<span class="sw">/ = 오프 · X = 원티드오프</span>`;
   html += `<span class="sw"><span style="outline:2px solid var(--hard);width:13px;height:13px;display:inline-block"></span>확정(고정)</span>`;
   html += `<span class="sw"><span style="outline:2px dashed var(--warn);width:13px;height:13px;display:inline-block"></span>미적용 편집</span>`;
   html += `<span class="sw"><span class="box wanted-swatch"></span>원티드 반영</span>`;
@@ -774,13 +779,14 @@ function renderGrid() {
       const v = row[d];
       const key = `${s.id}:${d}`;
       const cls = ["cell", shiftClass(v)];
+      const isWanted = wantedSet.has(key);
       if (lockedSet.has(key)) cls.push("locked");
       if (pendingSet.has(key)) cls.push("pending");
-      if (wantedSet.has(key)) cls.push("wanted");
+      if (isWanted) cls.push("wanted");
       const disabled = s.is_partjang;
       if (disabled) cls.push("disabled");
       html += `<td class="${cls.join(" ")}" data-sid="${escAttr(s.id)}" data-day="${d}" ${disabled ? "" : `onclick="openPicker(event,'${escAttr(s.id)}',${d})"`}>` +
-              `<span>${esc(shiftText(v))}</span></td>`;
+              `<span>${esc(shiftText(v, isWanted))}</span></td>`;
     }
     html += "</tr>";
   }
@@ -811,7 +817,7 @@ window.openPicker = function (ev, sid, day) {
   for (const sh of ALL_SHIFTS) {
     if (!allowed.has(sh)) continue;
     const b = document.createElement("button");
-    b.textContent = sh;
+    b.textContent = shiftText(sh);
     if (sh === cur) b.classList.add("current");
     b.onclick = (e) => { e.stopPropagation(); stageEdit(sid, day, sh); closePicker(); };
     div.appendChild(b);

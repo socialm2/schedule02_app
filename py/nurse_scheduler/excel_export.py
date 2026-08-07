@@ -43,6 +43,11 @@ def _count_eq(rng: str, code: str) -> str:
     return f'SUMPRODUCT(--(SUBSTITUTE({rng},"*","")="{code}"))'
 
 
+def _count_off(rng: str) -> str:
+    """OFF는 셀에 "OFF"로 안 쓰고 원티드오프는 "X", 일반오프는 "/"로 쓰므로 둘 다 센다."""
+    return f'(SUMPRODUCT(--({rng}="X"))+SUMPRODUCT(--({rng}="/")))'
+
+
 def export_excel(sch: MonthSchedule, days: List[DayInfo], path: str):
     wb = Workbook()
     ws = wb.active
@@ -88,9 +93,13 @@ def export_excel(sch: MonthSchedule, days: List[DayInfo], path: str):
             partjang_rows.append(row)
         for d in range(nd):
             v = sch.grid[s.id][d]
-            text = str(v) if v else ""
-            if v and (s.id, d) in sch.wanted:
-                text += "*"   # 원티드(신청/관리자 지정) 표시
+            if v == Shift.OFF:
+                # 오프는 "OFF" 대신 원티드오프="X" / 일반오프="/"로 표시(병원 표준 표기)
+                text = "X" if (s.id, d) in sch.wanted else "/"
+            else:
+                text = str(v) if v else ""
+                if v and (s.id, d) in sch.wanted:
+                    text += "*"   # 원티드(신청/관리자 지정) 표시
             c = ws.cell(row, first_day_col + d, text)
             c.alignment = CENTER
             c.border = THIN
@@ -101,12 +110,12 @@ def export_excel(sch: MonthSchedule, days: List[DayInfo], path: str):
         a = get_column_letter(first_day_col)
         b = get_column_letter(last_day_col)
         rng = f"{a}{row}:{b}{row}"
-        ws.cell(row, last_day_col + 1, f'={_count_eq(rng, "OFF")}').alignment = CENTER
+        ws.cell(row, last_day_col + 1, f'={_count_off(rng)}').alignment = CENTER
         ws.cell(row, last_day_col + 2, f'={_count_eq(rng, "연차")}').alignment = CENTER
         ws.cell(row, last_day_col + 3,
                 f'={_count_eq(rng, "N")}+{_count_eq(rng, "NK")}').alignment = CENTER
         ws.cell(row, last_day_col + 4,
-                f'={nd}-{_count_eq(rng, "OFF")}-{_count_eq(rng, "연차")}').alignment = CENTER
+                f'={nd}-{_count_off(rng)}-{_count_eq(rng, "연차")}').alignment = CENTER
         row += 1
 
     # 하단 합계행: 파트장 행 제외 범위로 COUNTIF (G10)
