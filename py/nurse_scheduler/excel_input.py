@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
+from .calendar_utils import kr_holidays_for_month
 from .models import Shift, parse_shift
 
 STAFF_TABLE_STATIC_COLS = ["순번", "이름", "직급", "숙련도", "가능근무", "비고"]
@@ -177,6 +178,14 @@ def load_input_xlsx(path: str) -> dict:
                 }
 
     nk_count = sum(1 for s in staff if "night_only" in s["flags"])
+    holidays = _split_list(kv.get("공휴일"))
+    substitute_holidays = _split_list(kv.get("대체공휴일"))
+    if not holidays:
+        # 사용자가 공휴일을 안 채웠으면(엑셀 업로드 경로는 화면의 "한국 달력 기준 자동 반영"
+        # 캘린더 위젯을 안 거치므로) 알려진 한국 공휴일로 자동 채운다 — kr_holidays_for_month().
+        holidays, auto_subs = kr_holidays_for_month(year, month)
+        if not substitute_holidays:
+            substitute_holidays = auto_subs
     return {
         "ward_id": str(kv.get("병동명", "") or ""),
         "year": year, "month": month,
@@ -187,8 +196,8 @@ def load_input_xlsx(path: str) -> dict:
             "leader_8a_as_prn": _parse_bool(kv.get("리더8A운용", "N")),
             "off_max_per_month": int(kv.get("월최대야간", 6) or 6),
             "max_requests_per_person": int(kv.get("월신청상한", 6) or 6),
-            "holidays": _split_list(kv.get("공휴일")),
-            "substitute_holidays": _split_list(kv.get("대체공휴일")),
+            "holidays": holidays,
+            "substitute_holidays": substitute_holidays,
             "advanced_track_staff": _split_list(kv.get("심화과정대상")),
         },
         "prev_month_carryover": carry,
