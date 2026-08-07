@@ -23,6 +23,9 @@ SHIFT_FILLS = {
     Shift.EDU: "B4C7E7",
     Shift.BEREAVE: "808080",
     Shift.CELEBRATE: "F4B6C2",
+    Shift.AL_1H: "FFF2CC",
+    Shift.AL_2H: "FFF2CC",
+    Shift.AL_3H: "FFF2CC",
     Shift.AL_HALF: "FFF2CC",
     Shift.OFFICIAL: "D0CECE",
     Shift.SICK: "F8C9C4",
@@ -177,6 +180,14 @@ def _write_schedule_sheet(ws, sch: MonthSchedule, days: List[DayInfo], hol: int,
         cell = ws.cell(rr, first_day_col + d, val)
         cell.alignment = CENTER
         cell.border = THIN
+
+    # B팀(신입) — 이름만 표시, 나머지 칸은 전부 빈칸(파트장이 직접 배정)
+    if sch.team_b_names:
+        rr += 2
+        ws.cell(rr, 1, "B").font = Font(bold=True, color="808080")
+        for name in sch.team_b_names:
+            rr += 1
+            ws.cell(rr, 1, name)
 
     ws.freeze_panes = ws.cell(4, first_day_col)
     ws.column_dimensions["A"].width = 12

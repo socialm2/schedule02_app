@@ -21,6 +21,9 @@ class Shift(str, Enum):
     EDU = "T"        # 교육 — 근무일수 포함, 최소인력 제외
     BEREAVE = "조"     # 조사(예: 사망) — 관리자 지정, 근무인력 제외
     CELEBRATE = "경"   # 경조사(예: 결혼) — 관리자 지정, 근무인력 제외
+    AL_1H = "연1"      # 연차(시간제, 1시간) — 연4와 같은 계열, 세부 시간 구분 없이 휴가로 집계
+    AL_2H = "연2"      # 연차(시간제, 2시간)
+    AL_3H = "연3"      # 연차(시간제, 3시간)
     AL_HALF = "연4"    # 연차(반차) — 0.5 연차 + 0.5 OFF로 집계
     OFFICIAL = "공"    # 공가 — OFF와 동일 취급, 연차 카운트/잔휴 미반영
     SICK = "병"        # 병가 — 연속근무일수(H3-1 포함) 계산에서 제외
@@ -38,19 +41,22 @@ WORK_SHIFTS = {Shift.A8, Shift.A9, Shift.D, Shift.E, Shift.N, Shift.NK, Shift.PR
                Shift.EDU, Shift.TW}
 NIGHT_SHIFTS = {Shift.N, Shift.NK}
 REST_SHIFTS = {
-    Shift.OFF, Shift.AL, Shift.BEREAVE, Shift.CELEBRATE, Shift.AL_HALF,
+    Shift.OFF, Shift.AL, Shift.BEREAVE, Shift.CELEBRATE,
+    Shift.AL_1H, Shift.AL_2H, Shift.AL_3H, Shift.AL_HALF,
     Shift.OFFICIAL, Shift.SICK, Shift.LEAVE, Shift.PROMO_EDU,
     Shift.SLEEP_OFF, Shift.MIL,
 }
 DAY_WORK_SHIFTS = {Shift.D, Shift.E, Shift.PRN}  # 주간 일반근무
 LEAVE_SHIFTS = {
-    Shift.AL, Shift.BEREAVE, Shift.CELEBRATE, Shift.AL_HALF,
+    Shift.AL, Shift.BEREAVE, Shift.CELEBRATE,
+    Shift.AL_1H, Shift.AL_2H, Shift.AL_3H, Shift.AL_HALF,
     Shift.OFFICIAL, Shift.SICK, Shift.LEAVE, Shift.PROMO_EDU,
     Shift.SLEEP_OFF, Shift.MIL,
 }  # OFF를 제외한 각종 휴가/휴직 유형 (표시·통계 구분용, 잔휴 계산에서 제외)
 
 
 _OFF_ALIASES = {"X", "/"}  # 원티드 오프(X)/일반 오프(/) — 출력 표시용, 내부적으로는 둘 다 OFF
+_AL_ALIASES = {"연"}  # 병원 OCS 원본에서 "연차"를 줄여 "연"으로 표기(§연*=53건 확인)
 
 
 def parse_shift(value: str) -> Shift:
@@ -61,6 +67,8 @@ def parse_shift(value: str) -> Shift:
             return s
     if value in _OFF_ALIASES:
         return Shift.OFF
+    if value in _AL_ALIASES:
+        return Shift.AL
     raise ValueError(f"알 수 없는 근무유형: {value!r}")
 
 
@@ -155,7 +163,7 @@ class MonthSchedule:
     """한 달 근무표. grid[staff_id][day] = Shift 또는 None(미배정)."""
 
     def __init__(self, year: int, month: int, staff: List[Staff],
-                 carryover: Dict[str, Carryover]):
+                 carryover: Dict[str, Carryover], team_b: Optional[List[str]] = None):
         self.year = year
         self.month = month
         self.num_days = _cal.monthrange(year, month)[1]
@@ -164,6 +172,9 @@ class MonthSchedule:
         self.carryover: Dict[str, Carryover] = {
             s.id: carryover.get(s.id, Carryover()) for s in staff
         }
+        # B팀(신입) — 이름만 관리, 스케줄링/최소인력/제약검사 전부 미개입. 파트장이
+        # 근무표(엑셀이든 OCS든)에서 직접 배정한다. 출력 시 이름만 있는 행으로 표시.
+        self.team_b_names: List[str] = list(team_b or [])
         self.grid: Dict[str, List[Optional[Shift]]] = {
             s.id: [None] * self.num_days for s in staff
         }

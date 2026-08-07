@@ -379,6 +379,9 @@ function fillForm(cfg) {
   }));
   renderStaffTable();
 
+  $("#f_team_b").value = (p.team_b_names || []).join("\n");
+  updateTeamBCount();
+
   const ms = p.min_staff || {};
   for (const [key] of MIN_STAFF_ROWS) {
     for (const [col] of MIN_STAFF_COLS) {
@@ -464,6 +467,15 @@ $("#addStaffBtn").onclick = () => {
                    allowed: ["D", "E", "N", "prn"], flags: [] });
   renderStaffTable();
 };
+
+function updateTeamBCount() {
+  const n = teamBNamesFromForm().length;
+  $("#teamBCount").textContent = n ? `${n}명` : "";
+}
+function teamBNamesFromForm() {
+  return $("#f_team_b").value.split("\n").map(s => s.trim()).filter(Boolean);
+}
+$("#f_team_b").oninput = updateTeamBCount;
 
 const REQUEST_TYPES = ["OFF", "연차", "연4", "D", "E", "N", "prn", "8A", "NK", "T",
                        "조", "경", "공", "병", "휴", "승"];
@@ -553,6 +565,7 @@ function buildCfgFromForm() {
       leader_8a_as_prn: formLeader8aAsPrn,
       off_max_per_month: parseInt($("#f_maxnights").value || "6", 10),
       holidays, substitute_holidays: subhol, advanced_track_staff: [],
+      team_b_names: teamBNamesFromForm(),
     },
     prev_month_carryover: carry,
     requests: formRequests.filter(r => r.staff_id && r.date),

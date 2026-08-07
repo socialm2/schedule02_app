@@ -275,6 +275,12 @@ details.form-sec > *:not(summary) { padding: 14px; }
 }
 .form-grid label:has(input[type=checkbox]) { flex-direction: row; align-items: center; font-weight: 600; }
 
+#f_team_b {
+  font-family: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--line);
+  border-radius: 6px; background: var(--paper); color: var(--ink); width: 100%;
+  box-sizing: border-box; resize: vertical;
+}
+
 .ym-picker { display: flex; gap: 6px; }
 .ym-picker select { flex: 1; font-weight: 700; cursor: pointer; }
 

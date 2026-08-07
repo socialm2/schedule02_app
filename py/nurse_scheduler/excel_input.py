@@ -177,6 +177,16 @@ def load_input_xlsx(path: str) -> dict:
                     "trailing_night_count": trailing,
                 }
 
+    # -------- B팀(신입, 선택) — 이름만. 스케줄링에 관여하지 않고 출력 시 이름만 표시.
+    team_b_names = []
+    if "B팀" in wb.sheetnames:
+        rows = _sheet_rows(wb["B팀"])
+        h = _find_header(rows, "이름")
+        if h is not None:
+            for r in rows[h + 1:]:
+                if r and r[0] is not None and str(r[0]).strip():
+                    team_b_names.append(str(r[0]).strip())
+
     nk_count = sum(1 for s in staff if "night_only" in s["flags"])
     holidays = _split_list(kv.get("공휴일"))
     substitute_holidays = _split_list(kv.get("대체공휴일"))
@@ -199,6 +209,7 @@ def load_input_xlsx(path: str) -> dict:
             "holidays": holidays,
             "substitute_holidays": substitute_holidays,
             "advanced_track_staff": _split_list(kv.get("심화과정대상")),
+            "team_b_names": team_b_names,
         },
         "prev_month_carryover": carry,
         "requests": requests,
@@ -241,6 +252,64 @@ def _parse_monthly_grid_shape(ws):
     return year, month, num_days, first_day_col
 
 
+def _try_parse_hospital_ocs_shape(ws):
+    """병원 OCS 시스템이 직접 내보낸 근무표 원본(예: '간호스케줄') 모양 인식 시도.
+
+    확인된 실제 구조: 1행 '간호스케줄', 2행 '조회 : YYYY년MM월', 3행에 일자 헤더
+    ('전월' 라벨 + 1~말일 + D/E/N/®/ⓡ/금월/T연/R연/부서), 4행에 요일(같은 열에
+    '성  명' 라벨), 5행부터 데이터(파트장 특별행 → 'A' 팀 구분 행 → 순번 매긴 일반
+    직원 → 'B' 팀 구분 행 → B팀 직원). 순번은 1열, 성명은 2열.
+
+    우리 자체 포맷(_parse_monthly_grid_shape)과 달리 실패해도 예외를 던지지 않고
+    None을 돌려준다 — 호출 쪽에서 우리 포맷을 먼저 시도하고 실패했을 때만 이
+    함수로 폴백하기 위함(서로 다른 두 실제 파일 모양을 각각 안전하게 인식).
+    반환: {"year","month","num_days","first_day_col","header_row","name_col"} 또는 None.
+    """
+    import re
+    year = month = None
+    for r in range(1, 4):
+        for c in range(1, 7):
+            v = str(ws.cell(r, c).value or "")
+            m = re.search(r"(\d{4})\s*년\s*(\d{1,2})\s*월", v)
+            if m:
+                year, month = int(m.group(1)), int(m.group(2))
+                break
+        if year:
+            break
+    if year is None:
+        return None
+
+    header_row = first_day_col = num_days = None
+    for r in range(1, 7):
+        for c in range(1, 10):
+            if ws.cell(r, c).value == 1:
+                c2, n = c, 1
+                while ws.cell(r, c2 + 1).value == n + 1:
+                    c2 += 1
+                    n += 1
+                if 28 <= n <= 31:
+                    header_row, first_day_col, num_days = r, c, n
+                    break
+        if header_row:
+            break
+    if header_row is None:
+        return None
+
+    # 성명 열: 일자 헤더 다음 행(요일 행)에서 '성명'/'이름' 라벨이 있는 열을 찾는다.
+    name_col = None
+    for c in range(1, first_day_col):
+        label = "".join(str(ws.cell(header_row + 1, c).value or "").split())
+        if "성명" in label or "이름" in label:
+            name_col = c
+            break
+    if name_col is None:
+        return None
+
+    return {"year": year, "month": month, "num_days": num_days,
+            "first_day_col": first_day_col, "header_row": header_row,
+            "name_col": name_col}
+
+
 def _find_grid_sheet(wb):
     """월간근무표 모양의 시트를 찾는다.
 
@@ -259,42 +328,32 @@ def _find_grid_sheet(wb):
     raise last_err or ExcelInputError("월간근무표 모양의 시트를 찾지 못했습니다.")
 
 
-def _is_team_divider_row(ws, row: int, first_day_col: int, num_days: int) -> bool:
-    """'A'/'B' 팀 구분 행(export_excel이 이름 칸에만 'A'를 쓰고 나머지는 비워둠) 판별.
+def _is_team_divider_row(ws, row: int, name_col: int, first_day_col: int, num_days: int) -> bool:
+    """'A'/'B' 팀 구분 행 판별(export_excel도, 병원 OCS 원본도 이름 칸에만 'A'/'B'를
+    쓰고 나머지(일자 칸)는 비워둔다).
 
     이름이 정확히 'A'/'B' 한 글자이면서 일자 칸이 전부 비어 있을 때만 구분 행으로
     본다 — 직원 이름이 우연히 'A'/'B'인 경우를 오인하지 않도록 이중으로 확인."""
-    name = str(ws.cell(row, 1).value or "").strip()
+    name = str(ws.cell(row, name_col).value or "").strip()
     if name not in ("A", "B"):
         return False
     return all(ws.cell(row, first_day_col + d).value in (None, "") for d in range(num_days))
 
 
-# ---------------------------------------------------------------- 지난달 확정 근무표 읽기 (이월/히스토리용)
+def _read_grid_rows(ws, name_col: int, first_day_col: int, num_days: int,
+                    data_start_row: int, has_off_balance: bool):
+    """이름 열/일자 시작 열이 주어졌을 때 공통 행 읽기 루프.
 
-def load_prev_month_schedule_xlsx(path: str) -> dict:
-    """월간근무표(이 앱이 내보낸 근무표 엑셀)를 읽어 그리드로 복원.
-
-    수기로 값만 고친 파일도 읽을 수 있도록, 서식/수식이 아니라 셀 값만 본다.
-    'A'/'B' 팀 구분 행은 건너뛴다. 잔휴 열이 있는 신규 포맷(first_day_col==5)이면
-    '잔휴(이후)' 값도 함께 읽어 다음 달 이월용으로 돌려준다.
-    반환: {"year", "month", "num_days", "grid": {staff_id: [shift_str, ...]},
-           "off_balance": {staff_id: float}}  # 잔휴 열이 없으면 빈 dict
-    """
-    from openpyxl import load_workbook
-
-    wb = load_workbook(path, data_only=True)
-    ws, year, month, num_days, first_day_col = _find_grid_sheet(wb)
-    has_off_balance = first_day_col >= 5
-
+    'A'/'B' 팀 구분 행은 건너뛰고, has_off_balance면 잔휴(이후, 일자 시작 열
+    바로 앞 칸)도 함께 읽는다. 반환: (grid, off_balance)."""
     grid: Dict[str, List[str]] = {}
     off_balance: Dict[str, float] = {}
-    row = 4
+    row = data_start_row
     while True:
-        name = ws.cell(row, 1).value
+        name = ws.cell(row, name_col).value
         if name is None or str(name).strip() == "":
             break
-        if _is_team_divider_row(ws, row, first_day_col, num_days):
+        if _is_team_divider_row(ws, row, name_col, first_day_col, num_days):
             row += 1
             continue
         sid = str(name).strip()
@@ -310,6 +369,48 @@ def load_prev_month_schedule_xlsx(path: str) -> dict:
             except (TypeError, ValueError):
                 pass
         row += 1
+    return grid, off_balance
+
+
+# ---------------------------------------------------------------- 지난달 확정 근무표 읽기 (이월/히스토리용)
+
+def load_prev_month_schedule_xlsx(path: str) -> dict:
+    """월간근무표(이 앱이 내보낸 근무표 엑셀, 또는 병원 OCS가 직접 내보낸 원본)를
+    읽어 그리드로 복원.
+
+    먼저 우리 자체 포맷(제목 'YYYY년 M월'로 시작)으로 시도하고, 어느 시트에서도
+    맞지 않으면 병원 OCS 원본 모양('간호스케줄'/'조회 : ...')으로 재시도한다 —
+    서로 다른 두 실제 파일 모양을 각각 안전하게 인식하고, 어느 쪽에도 맞지
+    않으면(형식이 또 다르면) 조용히 잘못 읽는 대신 에러를 낸다.
+
+    수기로 값만 고친 파일도 읽을 수 있도록, 서식/수식이 아니라 셀 값만 본다.
+    'A'/'B' 팀 구분 행은 건너뛴다. 잔휴 열이 있으면 '잔휴(이후)' 값도 함께 읽어
+    다음 달 이월용으로 돌려준다.
+    반환: {"year", "month", "num_days", "grid": {staff_id: [shift_str, ...]},
+           "off_balance": {staff_id: float}}  # 잔휴 열이 없으면 빈 dict
+    """
+    from openpyxl import load_workbook
+
+    wb = load_workbook(path, data_only=True)
+    try:
+        ws, year, month, num_days, first_day_col = _find_grid_sheet(wb)
+        grid, off_balance = _read_grid_rows(ws, 1, first_day_col, num_days, 4,
+                                            has_off_balance=first_day_col >= 5)
+    except ExcelInputError as our_err:
+        grid = {}
+        year = month = num_days = None
+        for ws in wb.worksheets:
+            shape = _try_parse_hospital_ocs_shape(ws)
+            if shape is None:
+                continue
+            year, month, num_days = shape["year"], shape["month"], shape["num_days"]
+            grid, off_balance = _read_grid_rows(
+                ws, shape["name_col"], shape["first_day_col"], num_days,
+                shape["header_row"] + 2, has_off_balance=True)
+            if grid:
+                break
+        if not grid:
+            raise our_err
 
     if not grid:
         raise ExcelInputError("근무표에서 인원 행을 찾지 못했습니다.")
@@ -354,7 +455,7 @@ def load_wanted_grid_xlsx(path: str) -> dict:
         name = ws.cell(row, 1).value
         if name is None or str(name).strip() == "":
             break
-        if _is_team_divider_row(ws, row, first_day_col, num_days):
+        if _is_team_divider_row(ws, row, 1, first_day_col, num_days):
             row += 1
             continue
         sid = str(name).strip()
@@ -559,5 +660,16 @@ def write_input_xlsx(cfg: dict, path: str):
                        v.get("trailing_night_count", 0)])
         for col in ("A", "B", "C", "D", "E"):
             ws.column_dimensions[col].width = 14
+
+    team_b_names = p.get("team_b_names") or []
+    if team_b_names:
+        ws = wb.create_sheet("B팀")
+        ws.append(["이름"])
+        for c in ws[1]:
+            c.font = head
+            c.fill = fill
+        for name in team_b_names:
+            ws.append([name])
+        ws.column_dimensions["A"].width = 14
 
     wb.save(path)

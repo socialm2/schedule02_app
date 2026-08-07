@@ -32,6 +32,8 @@ class Params:
     advanced_track_staff: List[str] = field(default_factory=list)
     max_requests_per_person: int = 6   # §5
     prn_cap_extra: int = 2             # 확정 #7: 하루 prn 최대 = 최소+2
+    # B팀(신입) 이름만 — 스케줄링에는 전혀 관여하지 않고 출력 시 이름만 표시(§team_b)
+    team_b_names: List[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, d: dict) -> "Params":
@@ -46,6 +48,7 @@ class Params:
             advanced_track_staff=d.get("advanced_track_staff", []),
             max_requests_per_person=int(d.get("max_requests_per_person", 6)),
             prn_cap_extra=int(d.get("prn_cap_extra", 2)),
+            team_b_names=d.get("team_b_names", []),
         )
 
 
@@ -113,7 +116,8 @@ class Generator:
         carry = {sid: Carryover.from_dict(v)
                  for sid, v in (config.get("prev_month_carryover") or {}).items()
                  if sid in {s.id for s in self.staff}}
-        self.sch = MonthSchedule(self.year, self.month, self.staff, carry)
+        self.sch = MonthSchedule(self.year, self.month, self.staff, carry,
+                                 team_b=self.params.team_b_names)
         self.days: List[DayInfo] = build_calendar(
             self.year, self.month, self.params.holidays,
             self.params.substitute_holidays)
