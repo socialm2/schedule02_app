@@ -15,7 +15,7 @@
 // 사용자는 새로 배포해도 계속 옛날 파일을 쓰게 된다(직접 캐시를 지우기 전까지 영구히).
 // 앱 코드(APP_FILES)만 고친 경우는 네트워크 우선이라 안 올려도 된다.
 
-const CACHE_NAME = "ns-sched-v8";
+const CACHE_NAME = "ns-sched-v9";
 
 // py_app.zip은 엔진 코드라 배포마다 바뀌므로 APP_FILES(네트워크 우선)로 둔다 —
 // HEAVY_FILES(캐시 우선)에 있으면, 서비스워커가 갱신되는 그 페이지 로드에서조차
@@ -72,8 +72,11 @@ self.addEventListener("fetch", (event) => {
       }))
     );
   } else {
+    // cache: "reload" — 브라우저의 일반 HTTP 캐시(Cache-Control/max-age)까지 건너뛰고
+    // 항상 서버에서 새로 받는다. 이게 없으면 서비스워커는 "네트워크 우선"을 의도해도
+    // fetch()가 브라우저 HTTP 캐시에 걸려 배포 직후에도 옛 파일이 나올 수 있다.
     event.respondWith(
-      fetch(req).then((res) => {
+      fetch(req, { cache: "reload" }).then((res) => {
         const clone = res.clone();
         caches.open(CACHE_NAME).then((c) => c.put(req, clone));
         return res;
