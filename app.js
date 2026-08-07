@@ -273,8 +273,9 @@ const INFO_HTML = `
 <h3>근무 색상</h3>
 <ul>
 <li><span class="kbd">D</span> 주간 · <span class="kbd">E</span> 저녁 · <span class="kbd">N</span> 야간 ·
-<span class="kbd">NK</span> 야간전담 · <span class="kbd">prn</span> 정규 · <span class="kbd">8A</span> 파트장 상근 ·
-<span class="kbd">연차</span> · <span class="kbd">·(OFF)</span></li>
+<span class="kbd">NK</span> 야간전담 · <span class="kbd">prn</span> 정규 · <span class="kbd">8A</span>/<span class="kbd">9A</span> 파트장·리더 상근 ·
+<span class="kbd">연차</span> · <span class="kbd">S/</span> 수면오프 · <span class="kbd">TW</span> 반근무+반교육 · <span class="kbd">군</span> 군공가 ·
+<span class="kbd">/</span> 일반오프 · <span class="kbd">X</span> 원티드오프</li>
 </ul>
 
 <h3>지켜지는 핵심 규칙 (하드 제약 — 절대 위반 없음)</h3>
