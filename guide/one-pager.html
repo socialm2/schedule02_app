@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SMC Fair Shift — 원페이지 요약 (v0.4)</title>
+<title>SMC Fair Shift — 원페이지 요약 (2026-08-07)</title>
 <style>
 :root {
   --paper: #F7F8F6; --ink: #1C2523; --sub: #5A6763; --accent: #0F6E6B;
@@ -76,7 +76,7 @@ footer { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line);
 
 <header>
   <h1>SMC Fair Shift — 원페이지 요약</h1>
-  <span class="ver">v0.4 · 리더용 1장 요약</span>
+  <span class="ver">2026-08-07 · 리더용 1장 요약</span>
 </header>
 
 <div class="grid">
@@ -93,8 +93,8 @@ footer { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line);
 100% 못 지켰다"는 정직한 표시다(자세한 이유는 아래 <b>빠른시작가이드</b> 참고).</li>
 <li><b>필요하면 칸 클릭해서 수정</b> → <b>피드백 확인</b> → <b>재생성 적용</b>. 고친 칸은 재생성해도 절대
 안 바뀐다.</li>
-<li><b>다운로드</b> — "근무표 엑셀"을 받아 부서에 배포. "인원표(갱신본)"은 보관해뒀다가 다음 달 입력④로
-다시 올리면 누적 통계가 이어진다.</li>
+<li><b>다운로드</b> — "근무표 엑셀"(자체 형식 또는 병원 OCS 형식 중 선택)을 받아 부서에 배포.
+"연간근무표(갱신본)"은 보관해뒀다가 다음 달 입력④로 다시 올리면 누적 통계가 이어진다.</li>
 </ol>
 
 </div>
@@ -105,9 +105,9 @@ footer { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line);
 <table class="filetable">
 <tr><th>파일</th><th>내용</th><th>필수</th></tr>
 <tr><td><b>입력①</b></td><td>설정+인원+최소인력</td><td>필수</td></tr>
-<tr><td><b>입력②</b></td><td>전월 확정 근무표(이월용)</td><td>선택</td></tr>
+<tr><td><b>입력②</b></td><td>전월 확정 근무표(이월용, 병원 OCS 원본도 가능)</td><td>선택</td></tr>
 <tr><td><b>입력③</b></td><td>원티드표(근무/휴무 신청)</td><td>선택</td></tr>
-<tr><td><b>입력④</b></td><td>인원표(다월 자동연동)</td><td>선택</td></tr>
+<tr><td><b>입력④</b></td><td>연간근무표(다월 자동연동)</td><td>선택</td></tr>
 </table>
 </div>
 
@@ -119,10 +119,14 @@ footer { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line);
 <span class="sw" style="background:#1F3864;color:#fff">N</span>
 <span class="sw" style="background:#7030A0;color:#fff">NK</span>
 <span class="sw" style="background:#C6E0B4">prn</span>
-<span class="sw" style="background:#D9D9D9">8A</span>
+<span class="sw" style="background:#D9D9D9">8A/9A</span>
 <span class="sw" style="background:#FFE699">연차</span>
+<span class="sw" style="background:#9DC3E6">S/ 수면오프</span>
+<span class="sw" style="background:#A9D18E">TW</span>
+<span class="sw" style="background:#C9C9C9">군</span>
 </div>
 <ul>
+<li><code>/</code> = 일반오프, <code>X</code> = 원티드(신청·지정) 오프 — 둘 다 "쉬는 날"이고 표기만 다름</li>
 <li><b style="color:#B5472E">빨간 실선</b> = 확정(고정) 칸 — 재생성해도 안 바뀜</li>
 <li><b style="color:#C77C1E">주황 점선</b> = 아직 적용 안 한 편집(스테이징)</li>
 </ul>
@@ -141,7 +145,7 @@ footer { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line);
 </div>
 
 <footer>
-<span>SMC Fair Shift · v0.4 · 처음 써본다면 <a href="quick-start.html">빠른시작가이드</a> 참고 · <a href="../index.html">앱으로 돌아가기</a></span>
+<span>SMC Fair Shift · 2026-08-07 · 처음 써본다면 <a href="quick-start.html">빠른시작가이드</a> 참고 · <a href="../index.html">앱으로 돌아가기</a></span>
 <span>인쇄용 — Ctrl/Cmd+P로 A4 1장에 출력됨</span>
 </footer>
 
