@@ -1556,6 +1556,11 @@ class Generator:
                         remaining_off = 1
             old_score = self.sch.carryover[s.id].recent_night_score
             this_month_nights = self.sch.nights_in_month(s.id)
+            # 잔휴(정상 오프 누적잔액) = 전월 잔휴 + (이번달 휴일수 - 이번달 순수오프일수).
+            # 순수오프는 문자 그대로 OFF(원티드="X"/일반="/")로 찍힌 칸만 세고, 연차/공가/
+            # 조사/S//군 등 다른 휴가유형은 반영하지 않는다(실측 검증된 병원 공식).
+            old_off_balance = self.sch.carryover[s.id].off_balance
+            this_month_offs = self.sch.offs_in_month(s.id)
             out[s.id] = {
                 "last_shift_type": str(last),
                 "consecutive_work_days": run,
@@ -1565,6 +1570,7 @@ class Generator:
                 # 최근 몇 달 야간 누적을 감쇠 이동평균으로 근사(대략 최근 3개월 비중)
                 # — 야간을 적게 받은 사람이 다음 몇 달간 우선권을 갖도록 함(S2 장기화).
                 "recent_night_score": round(old_score * (2 / 3) + this_month_nights, 2),
+                "off_balance": round(old_off_balance + holiday_count(self.days) - this_month_offs, 2),
             }
         return out
 

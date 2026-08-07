@@ -222,7 +222,16 @@ def _parse_monthly_grid_shape(ws):
             "월간근무표와 같은 모양(이름|1일|2일|...)인지 확인하세요."
         )
     year, month = int(m.group(1)), int(m.group(2))
-    first_day_col = 3
+    # 일자 열: 예전 포맷(3열부터 1일)과 잔휴 2열이 추가된 신규 포맷(5열부터 1일) 둘 다
+    # 읽을 수 있도록, 2행에서 "1"이 나오는 열을 찾아 첫 일자 열로 삼는다(고정 열번호
+    # 대신 동적 탐지 — 선두 열이 몇 개든 견고하게 동작).
+    first_day_col = None
+    for col in range(1, 10):
+        if ws.cell(2, col).value == 1:
+            first_day_col = col
+            break
+    if first_day_col is None:
+        raise ExcelInputError("2행에서 1일(숫자 1) 열을 찾지 못했습니다.")
     col = first_day_col
     while isinstance(ws.cell(2, col).value, (int, float)):
         col += 1
@@ -250,49 +259,77 @@ def _find_grid_sheet(wb):
     raise last_err or ExcelInputError("월간근무표 모양의 시트를 찾지 못했습니다.")
 
 
+def _is_team_divider_row(ws, row: int, first_day_col: int, num_days: int) -> bool:
+    """'A'/'B' 팀 구분 행(export_excel이 이름 칸에만 'A'를 쓰고 나머지는 비워둠) 판별.
+
+    이름이 정확히 'A'/'B' 한 글자이면서 일자 칸이 전부 비어 있을 때만 구분 행으로
+    본다 — 직원 이름이 우연히 'A'/'B'인 경우를 오인하지 않도록 이중으로 확인."""
+    name = str(ws.cell(row, 1).value or "").strip()
+    if name not in ("A", "B"):
+        return False
+    return all(ws.cell(row, first_day_col + d).value in (None, "") for d in range(num_days))
+
+
 # ---------------------------------------------------------------- 지난달 확정 근무표 읽기 (이월/히스토리용)
 
 def load_prev_month_schedule_xlsx(path: str) -> dict:
     """월간근무표(이 앱이 내보낸 근무표 엑셀)를 읽어 그리드로 복원.
 
     수기로 값만 고친 파일도 읽을 수 있도록, 서식/수식이 아니라 셀 값만 본다.
-    반환: {"year", "month", "num_days", "grid": {staff_id: [shift_str, ...]}}
+    'A'/'B' 팀 구분 행은 건너뛴다. 잔휴 열이 있는 신규 포맷(first_day_col==5)이면
+    '잔휴(이후)' 값도 함께 읽어 다음 달 이월용으로 돌려준다.
+    반환: {"year", "month", "num_days", "grid": {staff_id: [shift_str, ...]},
+           "off_balance": {staff_id: float}}  # 잔휴 열이 없으면 빈 dict
     """
     from openpyxl import load_workbook
 
     wb = load_workbook(path, data_only=True)
     ws, year, month, num_days, first_day_col = _find_grid_sheet(wb)
+    has_off_balance = first_day_col >= 5
 
     grid: Dict[str, List[str]] = {}
+    off_balance: Dict[str, float] = {}
     row = 4
     while True:
         name = ws.cell(row, 1).value
         if name is None or str(name).strip() == "":
             break
+        if _is_team_divider_row(ws, row, first_day_col, num_days):
+            row += 1
+            continue
         sid = str(name).strip()
         shifts = []
         for d in range(num_days):
             v = ws.cell(row, first_day_col + d).value
             shifts.append(str(v).strip() if v not in (None, "") else "OFF")
         grid[sid] = shifts
+        if has_off_balance:
+            v = ws.cell(row, first_day_col - 1).value
+            try:
+                off_balance[sid] = float(v)
+            except (TypeError, ValueError):
+                pass
         row += 1
 
     if not grid:
         raise ExcelInputError("근무표에서 인원 행을 찾지 못했습니다.")
 
-    return {"year": year, "month": month, "num_days": num_days, "grid": grid}
+    return {"year": year, "month": month, "num_days": num_days, "grid": grid,
+            "off_balance": off_balance}
 
 
 # ---------------------------------------------------------------- 원티드 신청 읽기 (월간근무표 모양 + 신청 표기)
 
-_WANTED_WORK_CODES = {"D": "D", "E": "E", "N": "N", "8A": "8A", "NK": "NK", "T": "T"}
+_WANTED_WORK_CODES = {"D": "D", "E": "E", "N": "N", "8A": "8A", "9A": "9A",
+                      "NK": "NK", "T": "T", "TW": "TW"}
 _WANTED_AL_CODES = {"연": "연차", "연차": "연차", "연4": "연4"}
-# 세부 사유가 명확한 휴가류는 각자의 코드로, 그 외(포상휴가·군휴가·미분류 특수코드)는
+# 세부 사유가 명확한 휴가류는 각자의 코드로, 그 외(포상휴가 등 미분류 특수코드)는
 # 뭉뚱그려 OFF 희망으로 해석한다.
 _WANTED_LEAVE_CODES = {
     "조": "조", "경": "경", "공": "공", "병": "병", "휴": "휴", "승": "승",
+    "군": "군", "S/": "S/",
 }
-_WANTED_OFF_CODES = {"X", "OFF", "포", "군", "S/"}
+_WANTED_OFF_CODES = {"X", "OFF", "포"}
 
 
 def load_wanted_grid_xlsx(path: str) -> dict:
@@ -317,6 +354,9 @@ def load_wanted_grid_xlsx(path: str) -> dict:
         name = ws.cell(row, 1).value
         if name is None or str(name).strip() == "":
             break
+        if _is_team_divider_row(ws, row, first_day_col, num_days):
+            row += 1
+            continue
         sid = str(name).strip()
         for d in range(num_days):
             v = ws.cell(row, first_day_col + d).value

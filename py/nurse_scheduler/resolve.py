@@ -39,19 +39,29 @@ def load_schedule_json(path: str) -> Dict[str, List[str]]:
 
 def load_schedule_xlsx(path: str, staff_ids: List[str],
                        num_days: int) -> Dict[str, List[str]]:
-    """엑셀 근무표 읽기: A열 이름, C열부터 1일. 빈 칸은 OFF로 간주."""
+    """엑셀 근무표 읽기: A열 이름, 일자 열부터 1일. 빈 칸은 OFF로 간주.
+
+    일자 시작 열은 2행에서 값 1이 나오는 열을 찾아 동적으로 정한다 — 예전 포맷
+    (3열부터 1일)과 잔휴 2열이 추가된 신규 포맷(5열부터 1일) 모두 지원."""
     from openpyxl import load_workbook
     wb = load_workbook(path, data_only=True)
     ws = wb.active
+    first_day_col = None
+    for col in range(1, 10):
+        if ws.cell(2, col).value == 1:
+            first_day_col = col
+            break
+    if first_day_col is None:
+        first_day_col = 3  # 못 찾으면 예전 포맷 기본값으로 후퇴
     known = set(staff_ids)
     grid: Dict[str, List[str]] = {}
-    for row in ws.iter_rows(min_col=1, max_col=2 + num_days):
+    for row in ws.iter_rows(min_col=1, max_col=first_day_col - 1 + num_days):
         name = row[0].value
         if not isinstance(name, str) or name.strip() not in known:
             continue
         name = name.strip()
         vals = []
-        for c in row[2:2 + num_days]:
+        for c in row[first_day_col - 1:first_day_col - 1 + num_days]:
             v = c.value
             v = str(v).strip() if v is not None else ""
             vals.append(v if v else "OFF")
@@ -122,7 +132,7 @@ def analyze_edits(cfg: dict, edited_grid: Dict[str, List[Shift]],
         for d in range(sch.num_days):
             v = edited_grid[s.id][d]
             sch.grid[s.id][d] = v
-            if v == Shift.A8 and s.is_leader:
+            if v in (Shift.A8, Shift.A9) and s.is_leader:
                 sch.leader_8a.add((s.id, d))
     hard = all_hard_checks(sch, gen.days, gen.params)
     soft = [v for v in check_soft(sch, gen.days, gen.params)

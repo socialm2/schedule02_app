@@ -306,7 +306,7 @@ def _count_shift_codes(row: list, days: list) -> tuple:
     """행(한 달치 근무 코드)에서 D/E/prn(8A 포함) 개수와 주말·휴일 OFF 개수를 센다."""
     d_cnt = sum(1 for v in row if v == "D")
     e_cnt = sum(1 for v in row if v == "E")
-    prn_cnt = sum(1 for v in row if v in ("prn", "8A"))
+    prn_cnt = sum(1 for v in row if v in ("prn", "8A", "9A"))
     wh_off = sum(1 for v, d in zip(row, days) if v in _OFF_CODES and d.get("weekend"))
     return d_cnt, e_cnt, prn_cnt, wh_off
 
@@ -435,6 +435,9 @@ def api_upload_prev_month(file_bytes) -> str:
         return _err(f"파일을 읽을 수 없습니다: {e}")
 
     carry = carryover_from_grid(data["grid"], data["num_days"])
+    for sid, bal in data.get("off_balance", {}).items():
+        if sid in carry:
+            carry[sid]["off_balance"] = bal
 
     if not _history_exists(data["year"], data["month"]):
         summary = _summary_from_raw_grid(data["grid"], data["num_days"])

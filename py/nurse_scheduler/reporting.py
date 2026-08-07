@@ -52,7 +52,7 @@ def build_report(sch: MonthSchedule, days: List[DayInfo], params,
                 v = sch.grid[s.id][d]
                 if (sh == Shift.N and v in NIGHT_SHIFTS) or \
                    (sh == Shift.PRN and (v == Shift.PRN or (
-                       v == Shift.A8 and (s.id, d) in sch.leader_8a))) or \
+                       v in (Shift.A8, Shift.A9) and (s.id, d) in sch.leader_8a))) or \
                    (sh in (Shift.D, Shift.E) and v == sh):
                     levels.append(s.level)
             lv_avgs[k] = round(sum(levels) / len(levels), 2) if levels else None

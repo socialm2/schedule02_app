@@ -127,8 +127,12 @@ td.sn span { background: #1F3864; color: #fff; }
 td.sk span { background: #7030A0; color: #fff; }
 td.sp span { background: #C6E0B4; color: #1C2523; }
 td.sa span { background: #D9D9D9; color: #1C2523; }
+td.sa9 span { background: #BFBFBF; color: #1C2523; }
 td.sy span { background: #FFE699; color: #1C2523; }
 td.so span { color: var(--sub); }
+td.ssl span { background: #9DC3E6; color: #1C2523; }
+td.stw span { background: #A9D18E; color: #1C2523; }
+td.smi span { background: #C9C9C9; color: #1C2523; }
 
 td.locked { outline: 2.5px solid var(--hard); outline-offset: -2.5px; }
 td.pending { outline: 2px dashed var(--warn); outline-offset: -2px; }
@@ -387,7 +391,8 @@ table.compact-grid td.annual-sum, table.compact-grid th.annual-sum-h {
 }
 
 @media (prefers-color-scheme: dark) {
-  td.sd span, td.se span, td.sp span, td.sa span, td.sy span { color: #1C2523; }
+  td.sd span, td.se span, td.sp span, td.sa span, td.sa9 span, td.sy span,
+  td.ssl span, td.stw span, td.smi span { color: #1C2523; }
 }
 
 /* ---------------------------------------------------------------- 반응형 (좁은 화면 · 폰) */

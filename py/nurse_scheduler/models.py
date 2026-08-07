@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Set, Tuple
 
 class Shift(str, Enum):
     A8 = "8A"
+    A9 = "9A"          # 09:00~ 시작(8A와 동격, 시작시각만 다름) — 병원 표준 코드
     D = "D"
     E = "E"
     N = "N"
@@ -25,28 +26,36 @@ class Shift(str, Enum):
     SICK = "병"        # 병가 — 연속근무일수(H3-1 포함) 계산에서 제외
     LEAVE = "휴"       # 휴직 — 발생일부터 그 달 나머지 기간 전부 제외
     PROMO_EDU = "승"   # 승급교육 — 공가와 동일 취급
+    SLEEP_OFF = "S/"   # 수면오프(야간 근무 뒤 의무 휴식) — 관리자 지정, 잔휴 미반영
+    TW = "TW"          # 반근무+반교육(신입/B팀 대상) — 근무일수 포함, 최소인력 제외
+    MIL = "군"          # 군 관련 공가 — 공가와 동일 취급
 
     def __str__(self) -> str:  # 엑셀/리포트 출력용
         return self.value
 
 
-WORK_SHIFTS = {Shift.A8, Shift.D, Shift.E, Shift.N, Shift.NK, Shift.PRN, Shift.EDU}
+WORK_SHIFTS = {Shift.A8, Shift.A9, Shift.D, Shift.E, Shift.N, Shift.NK, Shift.PRN,
+               Shift.EDU, Shift.TW}
 NIGHT_SHIFTS = {Shift.N, Shift.NK}
 REST_SHIFTS = {
     Shift.OFF, Shift.AL, Shift.BEREAVE, Shift.CELEBRATE, Shift.AL_HALF,
     Shift.OFFICIAL, Shift.SICK, Shift.LEAVE, Shift.PROMO_EDU,
+    Shift.SLEEP_OFF, Shift.MIL,
 }
 DAY_WORK_SHIFTS = {Shift.D, Shift.E, Shift.PRN}  # 주간 일반근무
 LEAVE_SHIFTS = {
     Shift.AL, Shift.BEREAVE, Shift.CELEBRATE, Shift.AL_HALF,
     Shift.OFFICIAL, Shift.SICK, Shift.LEAVE, Shift.PROMO_EDU,
-}  # OFF를 제외한 각종 휴가/휴직 유형 (표시·통계 구분용)
+    Shift.SLEEP_OFF, Shift.MIL,
+}  # OFF를 제외한 각종 휴가/휴직 유형 (표시·통계 구분용, 잔휴 계산에서 제외)
 
 
 _OFF_ALIASES = {"X", "/"}  # 원티드 오프(X)/일반 오프(/) — 출력 표시용, 내부적으로는 둘 다 OFF
 
 
 def parse_shift(value: str) -> Shift:
+    if value.endswith("*") and value != "*":
+        value = value[:-1]  # 원티드(신청/관리자 지정) 표시 접미사 — 값 판별에는 무관
     for s in Shift:
         if s.value == value:
             return s
@@ -80,7 +89,7 @@ class Staff:
         return "pregnant" in self.flags or "no_night" in self.flags
 
     def can(self, shift: Shift) -> bool:
-        if shift in REST_SHIFTS or shift == Shift.EDU:
+        if shift in REST_SHIFTS or shift in (Shift.EDU, Shift.TW):
             return True
         if shift in NIGHT_SHIFTS and self.no_night:
             return False
@@ -96,6 +105,7 @@ class Carryover:
     night_block_in_progress: bool = False
     trailing_night_count: int = 0  # 전월 말에 이어지던 야간블록 길이(0=없음)
     recent_night_score: float = 0.0  # 최근 몇 달간의 야간 누적(감쇠) — 야간 배정 형평성용
+    off_balance: float = 0.0  # 전월말 기준 잔휴(정상 오프 누적잔액) — 병원 표준 '잔휴' 칸
 
     @classmethod
     def from_dict(cls, d: Optional[dict]) -> "Carryover":
@@ -112,6 +122,7 @@ class Carryover:
             night_block_in_progress=in_prog,
             trailing_night_count=trailing,
             recent_night_score=float(d.get("recent_night_score", 0.0)),
+            off_balance=float(d.get("off_balance", 0.0)),
         )
 
 
@@ -285,7 +296,7 @@ class MonthSchedule:
                 if v in NIGHT_SHIFTS:
                     n += 1
             elif shift == Shift.PRN:
-                if v == Shift.PRN or (v == Shift.A8 and (s.id, day) in self.leader_8a):
+                if v == Shift.PRN or (v in (Shift.A8, Shift.A9) and (s.id, day) in self.leader_8a):
                     n += 1
             elif v == shift:
                 n += 1

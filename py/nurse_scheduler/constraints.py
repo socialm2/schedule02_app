@@ -61,22 +61,22 @@ def check_h1_shift_rules(sch: MonthSchedule, days: List[DayInfo],
     for s in sch.staff:
         for d, di in enumerate(days):
             v = sch.grid[s.id][d]
-            if v == Shift.A8:
+            if v in (Shift.A8, Shift.A9):
                 if not di.allows_8a:
                     out.append(Violation("H1-2", "hard",
-                                         f"{s.id} {d+1}일 8A는 평일만 가능",
+                                         f"{s.id} {d+1}일 {v}는 평일만 가능",
                                          staff_id=s.id, day=d))
                 if s.is_leader and not leader_8a_as_prn:
                     out.append(Violation("H1-2", "hard",
-                                         f"{s.id}(리더) 8A 운용 미설정 병동",
+                                         f"{s.id}(리더) {v} 운용 미설정 병동",
                                          staff_id=s.id, day=d))
                 if not (s.is_partjang or s.is_leader):
                     out.append(Violation("H1-2", "hard",
-                                         f"{s.id} 8A는 파트장/리더 전용",
+                                         f"{s.id} {v}는 파트장/리더 전용",
                                          staff_id=s.id, day=d))
-            if v is not None and v not in REST_SHIFTS and v != Shift.EDU:
+            if v is not None and v not in REST_SHIFTS and v != Shift.EDU and v != Shift.TW:
                 allowed = v in s.allowed_shifts or \
-                    (v == Shift.A8 and s.is_leader and leader_8a_as_prn)
+                    (v in (Shift.A8, Shift.A9) and s.is_leader and leader_8a_as_prn)
                 if not allowed:
                     out.append(Violation("H1-3", "hard",
                                          f"{s.id} {d+1}일 {v} 허용범위 밖",
@@ -220,7 +220,7 @@ def check_h2_patterns(sch: MonthSchedule) -> List[Violation]:
     """H2-8 금지패턴: ND/NE/N-8A/N-prn, NOD류, ONO. N=NK 포함."""
     out = []
     nd = sch.num_days
-    day_work = {Shift.D, Shift.E, Shift.A8, Shift.PRN}
+    day_work = {Shift.D, Shift.E, Shift.A8, Shift.A9, Shift.PRN}
     for s in sch.staff:
         for d in range(nd):
             cur = sch.effective(s.id, d)
@@ -418,7 +418,7 @@ def check_soft(sch: MonthSchedule, days: List[DayInfo], params) -> List[Violatio
                 if shift == Shift.N and v in NIGHT_SHIFTS:
                     workers.append(s)
                 elif shift == Shift.PRN and (
-                        v == Shift.PRN or (v == Shift.A8 and (s.id, d) in sch.leader_8a)):
+                        v == Shift.PRN or (v in (Shift.A8, Shift.A9) and (s.id, d) in sch.leader_8a)):
                     workers.append(s)
                 elif shift not in (Shift.N, Shift.PRN) and v == shift:
                     workers.append(s)

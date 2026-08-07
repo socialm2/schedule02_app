@@ -8,11 +8,12 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
-from .calendar_utils import DayInfo, DAY_WEEKDAY, DAY_SATURDAY
+from .calendar_utils import DayInfo, DAY_WEEKDAY, DAY_SATURDAY, holiday_count
 from .models import MonthSchedule, Shift, NIGHT_SHIFTS, WORK_SHIFTS
 
 SHIFT_FILLS = {
     Shift.A8: "D9D9D9",
+    Shift.A9: "BFBFBF",
     Shift.D: "BDD7EE",
     Shift.E: "F8CBAD",
     Shift.N: "1F3864",
@@ -27,6 +28,9 @@ SHIFT_FILLS = {
     Shift.SICK: "F8C9C4",
     Shift.LEAVE: "BFBFBF",
     Shift.PROMO_EDU: "DDEBF7",
+    Shift.SLEEP_OFF: "9DC3E6",
+    Shift.TW: "A9D18E",
+    Shift.MIL: "C9C9C9",
 }
 WHITE_FONT_SHIFTS = {Shift.N, Shift.NK, Shift.BEREAVE}
 WEEKEND_FILL = PatternFill("solid", fgColor="FCE4EC")
@@ -43,23 +47,44 @@ def _count_eq(rng: str, code: str) -> str:
     return f'SUMPRODUCT(--(SUBSTITUTE({rng},"*","")="{code}"))'
 
 
-def _count_off(rng: str) -> str:
-    """OFF는 셀에 "OFF"로 안 쓰고 원티드오프는 "X", 일반오프는 "/"로 쓰므로 둘 다 센다."""
-    return f'(SUMPRODUCT(--({rng}="X"))+SUMPRODUCT(--({rng}="/")))'
-
-
 def export_excel(sch: MonthSchedule, days: List[DayInfo], path: str):
+    """근무표 출력 (병원 표준 양식 호환).
+
+    열 구성: 이름 | Lv | 잔휴(전월) | 잔휴(이번달) | 1일...말일 |
+             D | E | N | ® | ⓡ | 금월 | T연 | R연 | 부서
+    ®/ⓡ/T연/R연/부서는 우리 엔진이 추적하지 않는 병원 HR 항목이라 빈칸으로 둔다
+    (표준 서식과의 열 자리는 맞추되 값은 지어내지 않음). 금월 = holiday_count()
+    (이 달의 휴일수), 잔휴 = 전월 잔휴 + (금월 휴일수 - 이번달 순수오프일수).
+    파트장 행 다음에 'A' 팀 구분 행을 넣어 병원 양식의 팀 구획 표기를 반영한다
+    (Team B는 우리 엔진이 관리하는 개념이 아니라 생략)."""
     wb = Workbook()
     ws = wb.active
     ws.title = f"{sch.year}-{sch.month:02d}"
-    nd = sch.num_days
-    first_day_col = 3  # C열부터 1일
-    last_day_col = first_day_col + nd - 1
+    off_bal_col1, off_bal_col2 = 3, 4  # 잔휴(전월)/잔휴(이번달)
+    first_day_col = 5  # E열부터 1일
+    last_day_col = first_day_col + sch.num_days - 1
+    hol = holiday_count(days)
+    sum_cols = ["D", "E", "N", "®", "ⓡ", "금월", "T연", "R연", "부서"]
+    _write_schedule_sheet(ws, sch, days, hol, first_day_col, last_day_col,
+                          off_bal_col1, off_bal_col2, sum_cols)
+    wb.save(path)
 
-    # 헤더
+
+def _write_schedule_sheet(ws, sch: MonthSchedule, days: List[DayInfo], hol: int,
+                          first_day_col: int, last_day_col: int,
+                          off_bal_col1: int, off_bal_col2: int, sum_cols: List[str]):
+    nd = sch.num_days
     ws.cell(1, 1, f"{sch.year}년 {sch.month}월 근무표").font = Font(bold=True, size=14)
     ws.cell(2, 1, "이름").font = Font(bold=True)
     ws.cell(2, 2, "Lv").font = Font(bold=True)
+    ws.cell(2, off_bal_col1, "잔휴").font = Font(bold=True)
+    ws.cell(3, off_bal_col1, "전월").font = Font(bold=True, size=9)
+    ws.cell(2, off_bal_col2, "잔휴").font = Font(bold=True)
+    ws.cell(3, off_bal_col2, "이후").font = Font(bold=True, size=9)
+    for c in (off_bal_col1, off_bal_col2):
+        ws.cell(2, c).alignment = CENTER
+        ws.cell(3, c).alignment = CENTER
+        ws.column_dimensions[get_column_letter(c)].width = 6
     for d in range(nd):
         c = first_day_col + d
         di = days[d]
@@ -73,33 +98,29 @@ def export_excel(sch: MonthSchedule, days: List[DayInfo], path: str):
             elif di.day_type != DAY_WEEKDAY:
                 x.fill = WEEKEND_FILL
         ws.column_dimensions[get_column_letter(c)].width = 4.5
-
-    # 집계 열 (OFF는 단일 COUNTIF 열만, G11)
-    sum_cols = ["OFF", "연차", "야간", "근무일"]
     for i, name in enumerate(sum_cols):
         c = last_day_col + 1 + i
         ws.cell(2, c, name).font = Font(bold=True)
         ws.cell(2, c).alignment = CENTER
         ws.column_dimensions[get_column_letter(c)].width = 6
 
-    # 직원 행: 파트장 먼저 (하단 COUNTIF 범위에서 제외하기 위해)
     ordered = sorted(sch.staff, key=lambda s: (not s.is_partjang,))
-    row = 4
-    partjang_rows = []
-    for s in ordered:
+    partjang_rows = [s for s in ordered if s.is_partjang]
+    others = [s for s in ordered if not s.is_partjang]
+
+    def write_staff_row(row, s):
         ws.cell(row, 1, s.id)
         ws.cell(row, 2, s.level).alignment = CENTER
-        if s.is_partjang:
-            partjang_rows.append(row)
+        off_before = sch.carryover[s.id].off_balance
+        ws.cell(row, off_bal_col1, round(off_before, 2)).alignment = CENTER
         for d in range(nd):
             v = sch.grid[s.id][d]
             if v == Shift.OFF:
-                # 오프는 "OFF" 대신 원티드오프="X" / 일반오프="/"로 표시(병원 표준 표기)
                 text = "X" if (s.id, d) in sch.wanted else "/"
             else:
                 text = str(v) if v else ""
                 if v and (s.id, d) in sch.wanted:
-                    text += "*"   # 원티드(신청/관리자 지정) 표시
+                    text += "*"
             c = ws.cell(row, first_day_col + d, text)
             c.alignment = CENTER
             c.border = THIN
@@ -110,21 +131,31 @@ def export_excel(sch: MonthSchedule, days: List[DayInfo], path: str):
         a = get_column_letter(first_day_col)
         b = get_column_letter(last_day_col)
         rng = f"{a}{row}:{b}{row}"
-        ws.cell(row, last_day_col + 1, f'={_count_off(rng)}').alignment = CENTER
-        ws.cell(row, last_day_col + 2, f'={_count_eq(rng, "연차")}').alignment = CENTER
+        off_after = round(off_before + hol - sch.offs_in_month(s.id), 2)
+        ws.cell(row, off_bal_col2, off_after).alignment = CENTER
+        ws.cell(row, last_day_col + 1, f'={_count_eq(rng, "D")}').alignment = CENTER
+        ws.cell(row, last_day_col + 2, f'={_count_eq(rng, "E")}').alignment = CENTER
         ws.cell(row, last_day_col + 3,
                 f'={_count_eq(rng, "N")}+{_count_eq(rng, "NK")}').alignment = CENTER
-        ws.cell(row, last_day_col + 4,
-                f'={nd}-{_count_off(rng)}-{_count_eq(rng, "연차")}').alignment = CENTER
-        row += 1
+        ws.cell(row, last_day_col + 6, hol).alignment = CENTER  # 금월
 
-    # 하단 합계행: 파트장 행 제외 범위로 COUNTIF (G10)
-    nurse_top = 4 + len(partjang_rows)
+    row = 4
+    for s in partjang_rows:
+        write_staff_row(row, s)
+        row += 1
+    # 'A' 팀 구분 행 (병원 양식 호환용 — Team B는 우리 엔진이 관리하지 않아 생략)
+    ws.cell(row, 1, "A").font = Font(bold=True, color="808080")
+    row += 1
+    nurse_top = row
+    for s in others:
+        write_staff_row(row, s)
+        row += 1
     nurse_bot = row - 1
+
     labels = [("D", ["D"]),
               ("E", ["E"]),
               ("N", ["N", "NK"]),
-              ("prn", ["prn", "8A"])]
+              ("prn", ["prn", "8A", "9A"])]
     sum_start = row + 1
     for i, (name, codes) in enumerate(labels):
         rr = sum_start + i
@@ -137,7 +168,6 @@ def export_excel(sch: MonthSchedule, days: List[DayInfo], path: str):
             cell.alignment = CENTER
             cell.border = THIN
 
-    # 일별 숙련도 평균 (G12) — 파트장 제외 근무자 평균, 값으로 기록
     rr = sum_start + len(labels)
     ws.cell(rr, 1, "Lv 평균").font = Font(bold=True)
     for d in range(nd):
@@ -148,10 +178,9 @@ def export_excel(sch: MonthSchedule, days: List[DayInfo], path: str):
         cell.alignment = CENTER
         cell.border = THIN
 
-    ws.freeze_panes = ws.cell(4, first_day_col)  # 이름·Lv 고정, 일자 가로 스크롤
+    ws.freeze_panes = ws.cell(4, first_day_col)
     ws.column_dimensions["A"].width = 12
     ws.column_dimensions["B"].width = 4
-    wb.save(path)
 
 
 # ---------------------------------------------------------------- 인원표 (다월 자동 연동용)

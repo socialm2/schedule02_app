@@ -57,10 +57,10 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-const SHIFT_CLASS = {D:"sd", E:"se", N:"sn", NK:"sk", prn:"sp", "8A":"sa", "연차":"sy", OFF:"so"};
+const SHIFT_CLASS = {D:"sd", E:"se", N:"sn", NK:"sk", prn:"sp", "8A":"sa", "9A":"sa9", "연차":"sy", OFF:"so", "S/":"ssl", "TW":"stw", "군":"smi"};
 const SHIFT_TEXT = {OFF:"·", "연차":"연", prn:"p"};
-const ALL_SHIFTS = ["D","E","N","NK","prn","8A","OFF","연차"];
-const ALLOWED_OPTIONS = ["D","E","N","NK","prn","8A"];
+const ALL_SHIFTS = ["D","E","N","NK","prn","8A","9A","TW","OFF","연차","S/","군"];
+const ALLOWED_OPTIONS = ["D","E","N","NK","prn","8A","9A"];
 const FLAG_OPTIONS = [
   ["", "없음"], ["night_only", "야간전담(NK)"], ["pregnant", "임부(야간금지)"], ["no_night", "야간금지"],
 ];
@@ -759,7 +759,8 @@ function renderGrid() {
 
   let html = '<div class="legend">';
   const legendItems = [["D","#BDD7EE"],["E","#F8CBAD"],["N","#1F3864"],["NK","#7030A0"],
-                       ["prn","#C6E0B4"],["8A","#D9D9D9"],["연차","#FFE699"]];
+                       ["prn","#C6E0B4"],["8A","#D9D9D9"],["9A","#BFBFBF"],["연차","#FFE699"],
+                       ["S/","#9DC3E6"],["TW","#A9D18E"],["군","#C9C9C9"]];
   for (const [k, c] of legendItems) html += `<span class="sw"><span class="box" style="background:${c}"></span>${k}</span>`;
   html += `<span class="sw">/ = 오프 · X = 원티드오프</span>`;
   html += `<span class="sw"><span style="outline:2px solid var(--hard);width:13px;height:13px;display:inline-block"></span>확정(고정)</span>`;
@@ -806,7 +807,7 @@ function renderGrid() {
 window.openPicker = function (ev, sid, day) {
   closePicker();
   const staff = ST.staff.find(s => s.id === sid);
-  const allowed = new Set(["OFF", "연차", ...staff.allowed]);
+  const allowed = new Set(["OFF", "연차", "S/", "군", "TW", ...staff.allowed]);
   const cur = ST.grid[sid][day];
   const rect = ev.target.closest("td").getBoundingClientRect();
 
