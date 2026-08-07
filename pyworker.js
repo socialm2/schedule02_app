@@ -63,9 +63,14 @@ function callBridge(path, opts) {
     case "/api/annual": return bridge.api_annual();
     case "/api/_bootstrap_history": return bridge.bootstrap_history(opts.body);
     case "/api/download_filename/xlsx": return bridge.download_filename_schedule();
+    case "/api/download_filename/xlsx_ocs": return bridge.download_filename_schedule_ocs();
     case "/api/download_filename/staff_table": return bridge.download_filename_staff_table();
     case "/api/download/xlsx": {
       const py = bridge.api_download_xlsx();
+      return py ? py.toJs() : null;
+    }
+    case "/api/download/xlsx_ocs": {
+      const py = bridge.api_download_xlsx_ocs();
       return py ? py.toJs() : null;
     }
     case "/api/download/staff_table": {
@@ -76,7 +81,7 @@ function callBridge(path, opts) {
   }
 }
 
-const BINARY_PATHS = new Set(["/api/download/xlsx", "/api/download/staff_table"]);
+const BINARY_PATHS = new Set(["/api/download/xlsx", "/api/download/xlsx_ocs", "/api/download/staff_table"]);
 
 self.onmessage = async (ev) => {
   const { id, path, opts } = ev.data;

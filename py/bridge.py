@@ -24,7 +24,7 @@ import re
 
 from nurse_scheduler.calendar_utils import DAY_WEEKDAY, build_calendar
 from nurse_scheduler.constraints import all_hard_checks, check_soft
-from nurse_scheduler.excel_export import export_excel, export_staff_table_xlsx
+from nurse_scheduler.excel_export import export_excel, export_excel_ocs, export_staff_table_xlsx
 from nurse_scheduler.excel_input import (
     ExcelInputError, load_input_xlsx, load_prev_month_schedule_xlsx,
     load_staff_table_xlsx, load_wanted_grid_xlsx,
@@ -702,6 +702,18 @@ def api_download_xlsx():
         return f.read()
 
 
+def api_download_xlsx_ocs():
+    """병원 OCS 원본과 같은 모양(간호스케줄)으로 내보내기."""
+    try:
+        _require_generated()
+    except ApiError as e:
+        return None
+    path = "/tmp_out_ocs.xlsx"
+    export_excel_ocs(S.sch, S.gen.days, path)
+    with open(path, "rb") as f:
+        return f.read()
+
+
 def api_download_staff_table():
     """'연간근무표' 갱신본 다운로드 — 다음 달엔 이 파일을 그대로 다시 업로드하면 된다."""
     try:
@@ -731,6 +743,13 @@ def download_filename_schedule() -> str:
     if S.gen is None:
         return "월간근무표.xlsx"
     name = _download_filename("월간근무표")
+    return name[:-5] + f"_r{S.round}.xlsx"
+
+
+def download_filename_schedule_ocs() -> str:
+    if S.gen is None:
+        return "월간근무표_OCS형식.xlsx"
+    name = _download_filename("월간근무표_OCS형식")
     return name[:-5] + f"_r{S.round}.xlsx"
 
 

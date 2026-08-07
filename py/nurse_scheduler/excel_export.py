@@ -194,6 +194,129 @@ def _write_schedule_sheet(ws, sch: MonthSchedule, days: List[DayInfo], hol: int,
     ws.column_dimensions["B"].width = 4
 
 
+# ---------------------------------------------------------------- OCS 원본 형식 출력
+
+def _cell_shift_text(sch: MonthSchedule, sid: str, d: int):
+    """OFF는 X(원티드)/－ (일반) 표시로 바꾸고, 그 외는 원티드 접미사(*)를 붙인다.
+    반환: (표시 텍스트, 실제 Shift 값 — 색칠용)."""
+    v = sch.grid[sid][d]
+    if v == Shift.OFF:
+        text = "X" if (sid, d) in sch.wanted else "/"
+    else:
+        text = str(v) if v else ""
+        if v and (sid, d) in sch.wanted:
+            text += "*"
+    return text, v
+
+
+def export_excel_ocs(sch: MonthSchedule, days: List[DayInfo], path: str):
+    """근무표 출력 — 병원 OCS가 실제로 내보내는 원본과 같은 모양(간호스케줄).
+
+    열 구성: 순번 | 성명 | (빈칸, 원본의 익명화 코드는 재현 불가) | 잔휴(전월) |
+             잔휴(이후) | 1일...말일 | D | E | N | ® | ⓡ | 금월 | T연 | R연 | 부서 | Lv
+    T연/R연/부서/®/ⓡ는 우리 엔진이 추적하지 않는 HR 데이터라 빈칸. Lv는 원본에
+    없는 우리 쪽 추가 정보라 맨 뒤에 붙인다. 원본처럼 하단 합계행은 없다(원본
+    파일 자체가 그렇게 끝남) — 요약이 필요하면 기본 export_excel()을 쓴다.
+    load_prev_month_schedule_xlsx()의 병원 OCS 폴백 파서로 그대로 재업로드 가능."""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = f"{sch.year}-{sch.month:02d}"
+    nd = sch.num_days
+    off_bal_col1, off_bal_col2 = 4, 5
+    first_day_col = 6
+    last_day_col = first_day_col + nd - 1
+    lv_col = last_day_col + 10  # D,E,N,®,ⓡ,금월,T연,R연,부서(9) 다음
+    hol = holiday_count(days)
+
+    ws.cell(1, 2, "간호스케줄").font = Font(bold=True, size=14)
+    ws.cell(2, 2, f"조회 : {sch.year}년{sch.month:02d}월").font = Font(bold=True)
+    ws.cell(3, off_bal_col1, "전월").font = Font(bold=True, size=9)
+    ws.cell(4, 2, "성  명").font = Font(bold=True)
+    ws.cell(4, off_bal_col1, "잔휴").font = Font(bold=True, size=9)
+    ws.cell(4, off_bal_col2, "잔휴").font = Font(bold=True, size=9)
+    for c in (off_bal_col1, off_bal_col2):
+        ws.cell(3, c).alignment = CENTER
+        ws.cell(4, c).alignment = CENTER
+        ws.column_dimensions[get_column_letter(c)].width = 6
+    for d in range(nd):
+        c = first_day_col + d
+        di = days[d]
+        cell = ws.cell(3, c, d + 1)
+        dow = ws.cell(4, c, di.dow_name)
+        for x in (cell, dow):
+            x.alignment = CENTER
+            x.font = Font(bold=True)
+            if di.is_substitute:
+                x.fill = SUB_FILL
+            elif di.day_type != DAY_WEEKDAY:
+                x.fill = WEEKEND_FILL
+        ws.column_dimensions[get_column_letter(c)].width = 4.5
+    for i, name in enumerate(["D", "E", "N", "®", "ⓡ", "금월", "T연", "R연", "부서"]):
+        c = last_day_col + 1 + i
+        ws.cell(3, c, name).font = Font(bold=True)
+        ws.cell(3, c).alignment = CENTER
+        ws.column_dimensions[get_column_letter(c)].width = 6
+    ws.cell(3, lv_col, "Lv").font = Font(bold=True)
+    ws.cell(3, lv_col).alignment = CENTER
+    ws.column_dimensions[get_column_letter(lv_col)].width = 5
+
+    def write_row(row, s, seq):
+        if seq is not None:
+            ws.cell(row, 1, seq).alignment = CENTER
+        ws.cell(row, 2, s.id)
+        off_before = sch.carryover[s.id].off_balance
+        ws.cell(row, off_bal_col1, round(off_before, 2)).alignment = CENTER
+        for d in range(nd):
+            text, v = _cell_shift_text(sch, s.id, d)
+            c = ws.cell(row, first_day_col + d, text)
+            c.alignment = CENTER
+            c.border = THIN
+            if v in SHIFT_FILLS:
+                c.fill = PatternFill("solid", fgColor=SHIFT_FILLS[v])
+                if v in WHITE_FONT_SHIFTS:
+                    c.font = Font(color="FFFFFF")
+        a, b = get_column_letter(first_day_col), get_column_letter(last_day_col)
+        rng = f"{a}{row}:{b}{row}"
+        off_after = round(off_before + hol - sch.offs_in_month(s.id), 2)
+        ws.cell(row, off_bal_col2, off_after).alignment = CENTER
+        ws.cell(row, last_day_col + 1, f'={_count_eq(rng, "D")}').alignment = CENTER
+        ws.cell(row, last_day_col + 2, f'={_count_eq(rng, "E")}').alignment = CENTER
+        ws.cell(row, last_day_col + 3,
+                f'={_count_eq(rng, "N")}+{_count_eq(rng, "NK")}').alignment = CENTER
+        ws.cell(row, last_day_col + 6, hol).alignment = CENTER  # 금월
+        ws.cell(row, lv_col, s.level).alignment = CENTER
+
+    ordered = sorted(sch.staff, key=lambda s: (not s.is_partjang,))
+    partjang_rows = [s for s in ordered if s.is_partjang]
+    others = [s for s in ordered if not s.is_partjang]
+
+    row = 5
+    for s in partjang_rows:
+        write_row(row, s, None)  # 파트장은 원본에서도 순번이 없음
+        row += 1
+    ws.cell(row, 2, "A").font = Font(bold=True, color="808080")
+    row += 1
+    seq = 0
+    for s in others:
+        seq += 1
+        write_row(row, s, seq)
+        row += 1
+    if sch.team_b_names:
+        ws.cell(row, 2, "B").font = Font(bold=True, color="808080")
+        row += 1
+        for name in sch.team_b_names:
+            seq += 1
+            ws.cell(row, 1, seq).alignment = CENTER
+            ws.cell(row, 2, name)
+            row += 1
+
+    ws.freeze_panes = ws.cell(5, first_day_col)
+    ws.column_dimensions["A"].width = 6
+    ws.column_dimensions["B"].width = 14
+    ws.column_dimensions["C"].width = 8
+    wb.save(path)
+
+
 # ---------------------------------------------------------------- 인원표 (다월 자동 연동용)
 
 STAT_FILL = PatternFill("solid", fgColor="E2EFDA")

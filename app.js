@@ -234,6 +234,12 @@ window.downloadXlsx = async function () {
   triggerDownload(bytes, filename,
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 };
+window.downloadXlsxOcs = async function () {
+  const { raw: bytes } = await callWorker("/api/download/xlsx_ocs");
+  const { raw: filename } = await callWorker("/api/download_filename/xlsx_ocs");
+  triggerDownload(bytes, filename,
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+};
 window.downloadStaffTable = async function () {
   const { raw: bytes } = await callWorker("/api/download/staff_table");
   const { raw: filename } = await callWorker("/api/download_filename/staff_table");
@@ -886,6 +892,7 @@ function renderSide() {
 
   html += `<div class="side-sec"><h3>다운로드</h3><div class="download-row">
     <button onclick="downloadXlsx()">근무표 엑셀</button>
+    <button onclick="downloadXlsxOcs()">근무표 엑셀(OCS 형식)</button>
     <button onclick="downloadStaffTable()">인원표(갱신본)</button>
   </div></div>`;
 
