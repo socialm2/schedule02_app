@@ -889,10 +889,13 @@ function renderSide() {
 
   html += '<div class="side-sec" id="pendingSec"><h3>편집 중 (미적용)</h3><div id="pendingBody"></div></div>';
 
+  const hasPending = ST.pending.length > 0;
   html += `<div class="side-sec"><h3>다운로드</h3><div class="download-row">
-    <button onclick="downloadXlsxOcs()">확정근무표</button>
-    <button onclick="downloadStaffTable()">연간근무표</button>
-  </div></div>`;
+    <button onclick="downloadXlsxOcs()" ${hasPending ? "disabled" : ""}>확정근무표</button>
+    <button onclick="downloadStaffTable()" ${hasPending ? "disabled" : ""}>연간근무표</button>
+  </div>
+  ${hasPending ? '<p class="hint">적용 안 한 편집이 있습니다 — "재생성 적용"을 눌러야 다운로드할 수 있습니다.</p>' : ""}
+  </div>`;
 
   // 입력 요약
   const ps = ST.params_summary;
