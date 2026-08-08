@@ -787,14 +787,18 @@ function renderGrid() {
   html += `<button id="backToInputBtn" class="small" style="margin-left:auto">← 입력으로 돌아가기(새로 만들기)</button>`;
   html += "</div>";
 
-  // OCS 형식과 같은 계산열(잔휴·D/E/N·금월·Lv) — 알 수 없는 HR 전용 열(®·ⓡ·T연·R연·부서)은
-  // 이 앱이 추적하지 않는 정보라 뺀다. 전부 현재 화면 그리드(미적용 편집 포함)로 매번 다시
-  // 계산하므로, 칸을 수정하면 재생성 없이도 즉시 값이 바뀐다.
+  // OCS 형식과 같은 계산열(잔휴·D/E/N·금월·Lv) — 전부 현재 화면 그리드(미적용 편집 포함)로
+  // 매번 다시 계산하므로, 칸을 수정하면 재생성 없이도 즉시 값이 바뀐다.
+  // ®·ⓡ·T연·R연·부서는 병원 OCS 원본에도 있는 열이라 자리(헤더)는 맞춰서 보여주지만,
+  // 이 앱이 추적하지 않는 병원 HR 전용 데이터라 값은 항상 빈칸이다(다운로드 파일과 동일하게
+  // ®·ⓡ 자리는 표시하고, T연·R연·부서는 어차피 안 쓰는 인사행정 항목이라 생략).
   const holCount = ST.days.filter(d => d.weekend).length;
   html += '<table class="grid"><thead><tr><th class="nm">이름</th>' +
     '<th class="stat-col">잔휴<br>전월</th><th class="stat-col">잔휴<br>이후</th>';
   for (const d of ST.days) html += `<th class="${d.weekend ? "we" : ""}">${d.n}<br>${d.dow}</th>`;
   html += '<th class="stat-col">D</th><th class="stat-col">E</th><th class="stat-col">N</th>' +
+    '<th class="stat-col" title="병원 HR 전용 항목 — 이 앱은 값을 추적하지 않아 항상 빈칸입니다">®</th>' +
+    '<th class="stat-col" title="병원 HR 전용 항목 — 이 앱은 값을 추적하지 않아 항상 빈칸입니다">ⓡ</th>' +
     '<th class="stat-col">금월</th><th class="stat-col">Lv</th>';
   html += "</tr></thead><tbody>";
 
@@ -825,6 +829,7 @@ function renderGrid() {
               `<span>${esc(shiftText(v, isWanted))}</span></td>`;
     }
     html += `<td class="stat-col">${dCnt}</td><td class="stat-col">${eCnt}</td><td class="stat-col">${nCnt}</td>` +
+      `<td class="stat-col">–</td><td class="stat-col">–</td>` +
       `<td class="stat-col">${holCount}</td><td class="stat-col">${s.level}</td>`;
     html += "</tr>";
   }
