@@ -251,25 +251,9 @@ function escAttr(s) { return esc(s).replace(/'/g, "&#39;"); }
 
 // ================================================================ 정보 모달
 
-const INFO_HTML = `
-<h3>이 프로그램은 무엇을 하나요</h3>
-<p>병동의 인원·직급·숙련도·근무 가능 유형과 일별 최소 인력 기준을 입력하면,
-법정·안전 규칙(하드 제약)을 반드시 지키면서 한 달치 근무표를 자동으로 만들어 줍니다.
-야간(N) 연속 근무 제한, 연속근무 5일 제한, 월 최소 휴무일수, 신청(원티드) 반영 등을 알아서 계산합니다.</p>
-
-<h3>사용 순서</h3>
-<ul>
-<li><b>입력</b> — 화면에 샘플 데이터가 기본으로 채워져 있습니다. 그대로 써도 되고,
-엑셀을 업로드해 통째로 바꾸거나, 표를 직접 고쳐도 됩니다.</li>
-<li><b>생성</b> — "근무표 생성" 버튼 한 번으로 자동 배정됩니다.</li>
-<li><b>편집</b> — 생성된 그리드에서 칸을 클릭해 근무를 바꾸면 오른쪽에 스테이징됩니다(주황 점선).
-바꾼 칸과 관련된 규칙 위반이 있으면 바로 알려줍니다.</li>
-<li><b>재생성 적용</b> — 스테이징한 편집을 고정한 채 나머지를 다시 배정합니다.
-고정된 칸은 빨간 실선 테두리로 표시되고, <b>이후 몇 번을 더 수정해도 이전 고정은 계속 유지됩니다.</b></li>
-<li><b>다운로드</b> — 확정근무표(병원 OCS 형식, 다음 달 입력③으로 바로 재사용), 연간근무표(다음 달
-입력④로 바로 재사용)를 받을 수 있습니다.</li>
-</ul>
-
+// 사용법 팝업은 입력 화면/결과 화면에서 각각 그 화면에 맞는 내용을 보여준다
+// (버튼 위치는 헤더에 하나뿐이지만 클릭 시점의 화면 상태를 보고 내용을 갈아끼움).
+const INFO_SHIFT_LEGEND = `
 <h3>근무 색상</h3>
 <ul>
 <li><span class="kbd">D</span> 주간 · <span class="kbd">E</span> 저녁 · <span class="kbd">N</span> 야간 ·
@@ -277,7 +261,9 @@ const INFO_HTML = `
 <span class="kbd">연차</span> · <span class="kbd">S/</span> 수면오프 · <span class="kbd">TW</span> 반근무+반교육 · <span class="kbd">군</span> 군공가 ·
 <span class="kbd">/</span> 일반오프 · <span class="kbd">X</span> 원티드오프</li>
 </ul>
+`;
 
+const INFO_RULES = `
 <h3>지켜지는 핵심 규칙 (하드 제약 — 절대 위반 없음)</h3>
 <ul>
 <li>일별 최소 인력(D/E/N/prn) 충족</li>
@@ -292,11 +278,9 @@ const INFO_HTML = `
 <li>야간 횟수·휴무·근무일수 균등 분배, 주말 휴무 공평 분배</li>
 <li>근무별 숙련도 3레벨 이상 최소 1명, 신청 휴무 전날 야간 배제 등</li>
 </ul>
+`;
 
-<h3>여러 번 수정할 때</h3>
-<p>이전에 CLI(명령줄) 방식에서는 파일을 잘못 지정하면 이전 수정이 사라지는 문제가 있었지만,
-이 화면은 서버가 지금까지 고정한 모든 칸을 계속 기억하므로 몇 번을 다시 만들어도 이전 수정이 사라지지 않습니다.</p>
-
+const INFO_NEXT_MONTH = `
 <h3>다음 달로 넘어갈 때</h3>
 <p><b>입력③ 전월 확정 근무표</b>를 업로드하면 마지막 근무·연속근무일·야간블록 등 이월정보를
 자동으로 읽어 채워줍니다. 근무표를 다 만든 뒤 <b>연간근무표</b>를 다운로드해서 보관해두면,
@@ -304,8 +288,64 @@ const INFO_HTML = `
 그대로 이어집니다.</p>
 `;
 
+const INFO_HTML_INPUT = `
+<h3>이 프로그램은 무엇을 하나요</h3>
+<p>병동의 인원·직급·숙련도·근무 가능 유형과 일별 최소 인력 기준을 입력하면,
+법정·안전 규칙(하드 제약)을 반드시 지키면서 한 달치 근무표를 자동으로 만들어 줍니다.
+야간(N) 연속 근무 제한, 연속근무 5일 제한, 월 최소 휴무일수, 신청(원티드) 반영 등을 알아서 계산합니다.</p>
+
+<h3>사용 순서</h3>
+<ul>
+<li><b>1. 입력</b> — 지금 이 화면입니다. 샘플 데이터가 기본으로 채워져 있습니다. 그대로 써도 되고,
+엑셀을 업로드해 통째로 바꾸거나, 표를 직접 고쳐도 됩니다.</li>
+<li><b>2. 생성</b> — "근무표 생성" 버튼 한 번으로 자동 배정됩니다.</li>
+<li><b>3. 편집 → 재생성 적용 → 다운로드</b> — 근무표가 만들어지면 그 결과 화면으로 넘어갑니다.
+그 화면에서 이 사용법 버튼을 다시 누르면 편집·다운로드 등 다음 단계에 맞는 설명이 나옵니다.</li>
+</ul>
+
+${INFO_RULES}
+${INFO_NEXT_MONTH}
+`;
+
+const INFO_HTML_OUTPUT = `
+<h3>결과 화면 사용법</h3>
+<ul>
+<li><b>편집</b> — 그리드에서 칸을 클릭해 근무를 바꾸면 오른쪽에 스테이징됩니다(주황 점선 테두리).
+바꾼 칸과 관련된 규칙 위반이 있으면 바로 알려줍니다. 파트장 칸은 잠겨 있어 화면에서 직접
+수정할 수 없습니다.</li>
+<li><b>재생성 적용</b> — 스테이징한 편집을 고정한 채 나머지를 다시 배정합니다. 고정된 칸은 빨간
+실선 테두리로 표시되고, <b>이후 몇 번을 더 수정해도 이전 고정은 계속 유지됩니다.</b> 편집을
+스테이징한 상태(재생성 적용 전)에는 아래 두 다운로드 버튼이 잠시 비활성화됩니다 — 재생성
+적용으로 확정한 뒤 다시 눌러야 받을 수 있습니다.</li>
+<li><b>다운로드</b> — <b>확정근무표</b>(병원 OCS 형식, 다음 달 입력③으로 바로 재사용),
+<b>연간근무표</b>(다음 달 입력④로 바로 재사용) 두 파일을 꼭 둘 다 받아 보관하세요.</li>
+</ul>
+
+<h3>근무표 그리드의 계산열</h3>
+<p>날짜 칸 앞뒤로 병원 OCS 파일과 같은 자리에 계산열을 보여줍니다. 칸을 수정하면 재생성 적용을
+누르기 전에도 바로 값이 바뀝니다.</p>
+<ul>
+<li><b>잔휴전월 / 잔휴이후</b> — 이월된 잔여 휴무 기준으로 자동 계산됩니다.</li>
+<li><b>D / E / N</b> — 이번 달 근무유형별 횟수입니다.</li>
+<li><b>® / ⓡ</b> — 병원 HR 전용 항목이라 이 앱은 값을 몰라 항상 빈칸입니다(다운로드 파일과 동일).</li>
+<li><b>금월</b> — 이번 달 휴일수(전 직원 공통) · <b>Lv</b> — 직급입니다.</li>
+</ul>
+
+${INFO_SHIFT_LEGEND}
+
+<h3>"개인별 OFF·야간·근무일" 표의 야간편차</h3>
+<p>일반 간호사 평균(파트장·NK 제외) 야간근무 대비 편차를 보여줍니다. ±2일 이상이면 색으로
+강조되니, 다음 달 야간 배정을 공평하게 나눌 때 참고하세요.</p>
+
+${INFO_RULES}
+${INFO_NEXT_MONTH}
+`;
+
 $("#infoBtn").onclick = () => {
-  $("#infoBody").innerHTML = INFO_HTML;
+  const isOutput = $("#intake").style.display === "none";
+  $("#infoModalTitle").textContent = isOutput
+    ? "프로그램 정보 · 사용법 (결과 화면)" : "프로그램 정보 · 사용법 (입력 화면)";
+  $("#infoBody").innerHTML = isOutput ? INFO_HTML_OUTPUT : INFO_HTML_INPUT;
   $("#infoModalBackdrop").classList.add("show");
 };
 $("#closeInfoBtn").onclick = () => $("#infoModalBackdrop").classList.remove("show");
@@ -792,8 +832,11 @@ function renderGrid() {
   // ®·ⓡ·T연·R연·부서는 병원 OCS 원본에도 있는 열이라 자리(헤더)는 맞춰서 보여주지만,
   // 이 앱이 추적하지 않는 병원 HR 전용 데이터라 값은 항상 빈칸이다(다운로드 파일과 동일하게
   // ®·ⓡ 자리는 표시하고, T연·R연·부서는 어차피 안 쓰는 인사행정 항목이라 생략).
+  // 그리드 자체 스크롤 컨테이너(.grid-scroll)로 감싸지 않으면, 계산열이 늘어 넓어진 표가
+  // 모바일에서 페이지 전체를 옆으로 밀어버려(#gridPane이 모바일 화면에서는 overflow:visible이라
+  // 표 폭이 그대로 새어나감) 사용법 팝업 같은 position:fixed 요소의 위치가 틀어지는 부작용이 있었다.
   const holCount = ST.days.filter(d => d.weekend).length;
-  html += '<table class="grid"><thead><tr><th class="nm">이름</th>' +
+  html += '<div class="grid-scroll"><table class="grid"><thead><tr><th class="nm">이름</th>' +
     '<th class="stat-col">잔휴<br>전월</th><th class="stat-col">잔휴<br>이후</th>';
   for (const d of ST.days) html += `<th class="${d.weekend ? "we" : ""}">${d.n}<br>${d.dow}</th>`;
   html += '<th class="stat-col">D</th><th class="stat-col">E</th><th class="stat-col">N</th>' +
@@ -833,7 +876,7 @@ function renderGrid() {
       `<td class="stat-col">${holCount}</td><td class="stat-col">${s.level}</td>`;
     html += "</tr>";
   }
-  html += "</tbody></table>";
+  html += "</tbody></table></div>";
   gridContent.innerHTML = html;
   $("#backToInputBtn").onclick = () => {
     ST = null;

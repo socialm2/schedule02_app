@@ -21,6 +21,9 @@ html, body {
   font-family: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo",
     "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
   font-size: 14.5px;
+  /* 안전장치: 넓은 표(근무표 그리드 등)가 실수로 페이지 자체를 옆으로 밀면
+     모바일에서 position:fixed 팝업(사용법 모달 등) 위치가 틀어진다 — 항상 막아둔다. */
+  overflow-x: hidden;
 }
 #app { display: flex; flex-direction: column; height: 100vh; }
 
@@ -103,6 +106,7 @@ input[type=file] { font-size: 12.5px; max-width: 220px; }
 }
 .empty-state .big { font-size: 15px; font-weight: 700; color: var(--ink); }
 
+.grid-scroll { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
 table.grid { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
 table.grid th {
   position: sticky; top: 0; background: var(--card); padding: 3px 4px; text-align: center;
