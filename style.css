@@ -120,6 +120,9 @@ table.grid td.nm {
 }
 table.grid td.nm .role { color: var(--sub); font-weight: 400; font-size: 10.5px; margin-left: 4px; }
 table.grid td.cell span { display: block; width: 100%; height: 100%; line-height: 26px; }
+table.grid th.stat-col, table.grid td.stat-col {
+  background: var(--code-bg); color: var(--sub); font-weight: 600; cursor: default; min-width: 34px;
+}
 
 td.sd span { background: #BDD7EE; color: #1C2523; }
 td.se span { background: #F8CBAD; color: #1C2523; }

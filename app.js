@@ -787,13 +787,30 @@ function renderGrid() {
   html += `<button id="backToInputBtn" class="small" style="margin-left:auto">← 입력으로 돌아가기(새로 만들기)</button>`;
   html += "</div>";
 
-  html += '<table class="grid"><thead><tr><th class="nm">이름</th>';
+  // OCS 형식과 같은 계산열(잔휴·D/E/N·금월·Lv) — 알 수 없는 HR 전용 열(®·ⓡ·T연·R연·부서)은
+  // 이 앱이 추적하지 않는 정보라 뺀다. 전부 현재 화면 그리드(미적용 편집 포함)로 매번 다시
+  // 계산하므로, 칸을 수정하면 재생성 없이도 즉시 값이 바뀐다.
+  const holCount = ST.days.filter(d => d.weekend).length;
+  html += '<table class="grid"><thead><tr><th class="nm">이름</th>' +
+    '<th class="stat-col">잔휴<br>전월</th><th class="stat-col">잔휴<br>이후</th>';
   for (const d of ST.days) html += `<th class="${d.weekend ? "we" : ""}">${d.n}<br>${d.dow}</th>`;
+  html += '<th class="stat-col">D</th><th class="stat-col">E</th><th class="stat-col">N</th>' +
+    '<th class="stat-col">금월</th><th class="stat-col">Lv</th>';
   html += "</tr></thead><tbody>";
 
   for (const s of ST.staff) {
-    html += `<tr><td class="nm">${esc(s.id)}<span class="role">${s.role} Lv${s.level}</span></td>`;
     const row = ST.grid[s.id];
+    let dCnt = 0, eCnt = 0, nCnt = 0, offCnt = 0;
+    for (const v of row) {
+      if (v === "D") dCnt++;
+      else if (v === "E") eCnt++;
+      else if (v === "N" || v === "NK") nCnt++;
+      else if (v === "OFF") offCnt++;
+    }
+    const offBefore = s.off_balance || 0;
+    const offAfter = Math.round((offBefore + holCount - offCnt) * 100) / 100;
+    html += `<tr><td class="nm">${esc(s.id)}<span class="role">${s.role} Lv${s.level}</span></td>` +
+      `<td class="stat-col">${offBefore}</td><td class="stat-col">${offAfter}</td>`;
     for (let d = 0; d < ST.num_days; d++) {
       const v = row[d];
       const key = `${s.id}:${d}`;
@@ -807,6 +824,8 @@ function renderGrid() {
       html += `<td class="${cls.join(" ")}" data-sid="${escAttr(s.id)}" data-day="${d}" ${disabled ? "" : `onclick="openPicker(event,'${escAttr(s.id)}',${d})"`}>` +
               `<span>${esc(shiftText(v, isWanted))}</span></td>`;
     }
+    html += `<td class="stat-col">${dCnt}</td><td class="stat-col">${eCnt}</td><td class="stat-col">${nCnt}</td>` +
+      `<td class="stat-col">${holCount}</td><td class="stat-col">${s.level}</td>`;
     html += "</tr>";
   }
   html += "</tbody></table>";
@@ -904,9 +923,33 @@ function renderSide() {
     월최대야간 ${ps.max_nights}일 · NK ${ps.nk_count}명 · 공휴일 ${ps.holidays.length}개</li>
   </ul></div>`;
 
-  // 개인별
-  html += '<div class="side-sec"><h3>개인별 OFF·야간·근무일</h3><div style="overflow-x:auto"><table class="person-table"><tr><th>이름</th><th>OFF</th><th>야간</th><th>근무</th></tr>' +
-    r.per_person.map(p => `<tr class="${p.off_ok ? "" : "warn-row"}"><td>${esc(p.id)}</td><td>${p.off}</td><td>${p.nights}</td><td>${p.workdays}</td></tr>`).join("") +
+  // 개인별 — 공정 배분 참고용으로 "야간편차"(일반 간호사 평균 대비, 파트장·NK 제외)를 같이 보여준다.
+  const staffById = {};
+  for (const s of ST.staff) staffById[s.id] = s;
+  const nightPool = r.per_person.filter(p => {
+    const s = staffById[p.id];
+    return s && !s.is_partjang && !s.is_nk;
+  });
+  const avgNights = nightPool.length
+    ? nightPool.reduce((sum, p) => sum + p.nights, 0) / nightPool.length : 0;
+
+  html += '<div class="side-sec"><h3>개인별 OFF·야간·근무일</h3>' +
+    `<p class="hint">야간편차 = 일반 간호사 평균(${avgNights.toFixed(1)}일, 파트장·NK 제외) 대비 —
+    ±2일 이상이면 다음 달 배정에서 우선 조정 대상으로 참고하면 좋습니다.</p>` +
+    '<div style="overflow-x:auto"><table class="person-table"><tr><th>이름</th><th>OFF</th><th>야간</th><th>야간편차</th><th>근무</th></tr>' +
+    r.per_person.map(p => {
+      const s = staffById[p.id];
+      const inPool = s && !s.is_partjang && !s.is_nk;
+      let devText = "—", devCls = "";
+      if (inPool) {
+        const dev = Math.round((p.nights - avgNights) * 10) / 10;
+        devText = dev > 0 ? `+${dev}` : `${dev}`;
+        if (dev >= 2) devCls = "badge-bad";
+        else if (dev <= -2) devCls = "badge-ok";
+      }
+      return `<tr class="${p.off_ok ? "" : "warn-row"}"><td>${esc(p.id)}</td><td>${p.off}</td>` +
+        `<td>${p.nights}</td><td class="${devCls}">${devText}</td><td>${p.workdays}</td></tr>`;
+    }).join("") +
     "</table></div></div>";
 
   // 일별 최소인력
