@@ -266,7 +266,7 @@ const INFO_HTML = `
 바꾼 칸과 관련된 규칙 위반이 있으면 바로 알려줍니다.</li>
 <li><b>재생성 적용</b> — 스테이징한 편집을 고정한 채 나머지를 다시 배정합니다.
 고정된 칸은 빨간 실선 테두리로 표시되고, <b>이후 몇 번을 더 수정해도 이전 고정은 계속 유지됩니다.</b></li>
-<li><b>다운로드</b> — 근무표 엑셀(자체 형식/OCS 형식 중 선택), 연간근무표(갱신본, 다음 달 입력④로
+<li><b>다운로드</b> — 근무표 엑셀(병원 OCS 형식), 연간근무표(갱신본, 다음 달 입력④로
 바로 재사용)를 받을 수 있습니다.</li>
 </ul>
 
@@ -298,9 +298,10 @@ const INFO_HTML = `
 이 화면은 서버가 지금까지 고정한 모든 칸을 계속 기억하므로 몇 번을 다시 만들어도 이전 수정이 사라지지 않습니다.</p>
 
 <h3>다음 달로 넘어갈 때</h3>
-<p>"전월이월" 표에 <b>지난달 확정 엑셀을 업로드</b>하면 마지막 근무·연속근무일·야간블록 등을
-자동으로 읽어 채워줍니다. 근무표를 다 만든 뒤 "이번 달 확정 저장"을 눌러두면, 다음 달 화면
-아래쪽 <b>연간 근무표</b>에 최근 달들이 계속 쌓여 보이고, 사람별 누적 OFF·야간·근무일도 같이 확인할 수 있습니다.</p>
+<p><b>입력③ 전월 확정 근무표</b>를 업로드하면 마지막 근무·연속근무일·야간블록 등 이월정보를
+자동으로 읽어 채워줍니다. 근무표를 다 만든 뒤 <b>연간근무표(갱신본)</b>를 다운로드해서 보관해두면,
+다음 달엔 그 파일을 <b>입력④</b>로 다시 올리기만 하면 사람별 누적 OFF·야간·근무일 등 형평성 지표가
+그대로 이어집니다.</p>
 `;
 
 $("#infoBtn").onclick = () => {
@@ -760,11 +761,9 @@ function render() {
   if (!ST) return;
   $("#intake").style.display = "none";
   gridContent.style.display = "block";
-  annualPane.style.display = "block";
   sidePane.style.display = "block";
   renderGrid();
   renderSide();
-  renderAnnualPane();
   // 모바일은 화면 전체가 스크롤되는 구조라, 생성 전 스크롤 위치가 그대로
   // 남으면 결과 화면이 맨 아래에서 시작한 것처럼 보인다 — 맨 위(근무표)로 리셋.
   window.scrollTo(0, 0);
@@ -891,7 +890,6 @@ function renderSide() {
   html += '<div class="side-sec" id="pendingSec"><h3>편집 중 (미적용)</h3><div id="pendingBody"></div></div>';
 
   html += `<div class="side-sec"><h3>다운로드</h3><div class="download-row">
-    <button onclick="downloadXlsx()">근무표 엑셀</button>
     <button onclick="downloadXlsxOcs()">근무표 엑셀(OCS 형식)</button>
     <button onclick="downloadStaffTable()">연간근무표(갱신본)</button>
   </div></div>`;
