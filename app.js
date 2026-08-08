@@ -282,7 +282,7 @@ const INFO_RULES = `
 
 const INFO_NEXT_MONTH = `
 <h3>다음 달로 넘어갈 때</h3>
-<p><b>입력③ 전월 확정 근무표</b>를 업로드하면 마지막 근무·연속근무일·야간블록 등 이월정보를
+<p><b>입력③ 월간근무표(전월)</b>를 업로드하면 마지막 근무·연속근무일·야간블록 등 이월정보를
 자동으로 읽어 채워줍니다. 근무표를 다 만든 뒤 <b>연간근무표</b>를 다운로드해서 보관해두면,
 다음 달엔 그 파일을 <b>입력④</b>로 다시 올리기만 하면 사람별 누적 OFF·야간·근무일 등 형평성 지표가
 그대로 이어집니다.</p>
@@ -317,7 +317,7 @@ const INFO_HTML_OUTPUT = `
 실선 테두리로 표시되고, <b>이후 몇 번을 더 수정해도 이전 고정은 계속 유지됩니다.</b> 편집을
 스테이징한 상태(재생성 적용 전)에는 아래 두 다운로드 버튼이 잠시 비활성화됩니다 — 재생성
 적용으로 확정한 뒤 다시 눌러야 받을 수 있습니다.</li>
-<li><b>다운로드</b> — <b>확정근무표</b>(병원 OCS 형식, 다음 달 입력③으로 바로 재사용),
+<li><b>다운로드</b> — <b>월간근무표</b>(병원 OCS 형식, 다음 달 입력③으로 바로 재사용),
 <b>연간근무표</b>(다음 달 입력④로 바로 재사용) 두 파일을 꼭 둘 다 받아 보관하세요.</li>
 </ul>
 
@@ -958,7 +958,7 @@ function renderSide() {
 
   const hasPending = ST.pending.length > 0;
   html += `<div class="side-sec"><h3>다운로드</h3><div class="download-row">
-    <button onclick="downloadXlsxOcs()" ${hasPending ? "disabled" : ""}>확정근무표</button>
+    <button onclick="downloadXlsxOcs()" ${hasPending ? "disabled" : ""}>월간근무표</button>
     <button onclick="downloadStaffTable()" ${hasPending ? "disabled" : ""}>연간근무표</button>
   </div>
   ${hasPending ? '<p class="hint">적용 안 한 편집이 있습니다 — "재생성 적용"을 눌러야 다운로드할 수 있습니다.</p>' : ""}

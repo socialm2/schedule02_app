@@ -81,11 +81,11 @@
             </div>
 
             <div class="upload-item">
-              <div class="upload-item-label">입력③ 전월 확정 근무표 <span class="hint">이월정보 자동계산</span></div>
+              <div class="upload-item-label">입력③ 월간근무표(전월) <span class="hint">이월정보 자동계산</span></div>
               <div class="upload-row">
                 <input type="file" id="prevMonthInput" accept=".xlsx" class="file-input-hidden">
                 <button type="button" class="upload-btn" data-target="prevMonthInput">업로드</button>
-                <a class="upload-btn format-btn" href="templates/template_input3.xlsx" download="양식_입력3_확정근무표.xlsx">양식(다운로드)</a>
+                <a class="upload-btn format-btn" href="templates/template_input3.xlsx" download="양식_입력3_월간근무표(전월).xlsx">양식(다운로드)</a>
               </div>
               <span id="prevMonthStatus" class="hint"></span>
             </div>
@@ -158,7 +158,7 @@
 
           <details class="form-sec">
             <summary>전월이월 <span class="count-badge" id="carryCount"></span> (선택)</summary>
-            <p class="hint">보통은 위 <b>입력③ 전월 확정 근무표</b>를 업로드하면 이 표가 자동으로 채워집니다.
+            <p class="hint">보통은 위 <b>입력③ 월간근무표(전월)</b>를 업로드하면 이 표가 자동으로 채워집니다.
             직접 입력은 지난달 근무표를 하루하루 세어야 해서 번거로우니, 입력③이 없을 때만 예외적으로 쓰세요.</p>
             <div class="tablebox">
               <table class="form-table" id="carryTable">
