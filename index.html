@@ -71,7 +71,7 @@
               <div class="upload-row">
                 <input type="file" id="fileInput" accept=".xlsx" class="file-input-hidden">
                 <button type="button" class="upload-btn" data-target="fileInput">업로드</button>
-                <button type="button" class="upload-btn format-btn" data-href="templates/template_input1.xlsx" data-download="양식_입력1_병동인력표.xlsx">양식(다운로드)</button>
+                <button type="button" class="upload-btn format-btn" data-href="templates/입력1_병동인력표_2026-09.xlsx" data-download="입력1_병동인력표_2026-09.xlsx">양식(다운로드)</button>
               </div>
               <span id="uploadStatus" class="hint"></span>
             </div>
@@ -93,7 +93,7 @@
               <div class="upload-row">
                 <input type="file" id="prevMonthInput" accept=".xlsx" class="file-input-hidden">
                 <button type="button" class="upload-btn" data-target="prevMonthInput">업로드</button>
-                <button type="button" class="upload-btn format-btn" data-href="templates/template_input3.xlsx" data-download="양식_입력3_월간근무표(전월).xlsx">양식(다운로드)</button>
+                <button type="button" class="upload-btn format-btn" data-href="templates/입력3_월간근무표(전월)_2026-08.xlsx" data-download="입력3_월간근무표(전월)_2026-08.xlsx">양식(다운로드)</button>
               </div>
               <span id="prevMonthStatus" class="hint"></span>
             </div>
@@ -104,7 +104,7 @@
               <div class="upload-row">
                 <input type="file" id="staffTableInput" accept=".xlsx" class="file-input-hidden">
                 <button type="button" class="upload-btn" data-target="staffTableInput">업로드</button>
-                <button type="button" class="upload-btn format-btn" data-href="templates/template_input4.xlsx" data-download="양식_입력4_연간근무표.xlsx">양식(다운로드)</button>
+                <button type="button" class="upload-btn format-btn" data-href="templates/입력4_연간근무표_2026-08.xlsx" data-download="입력4_연간근무표_2026-08.xlsx">양식(다운로드)</button>
               </div>
               <button id="staffTableClearBtn" class="small" style="display:none">반영 해제</button>
               <span id="staffTableStatus" class="hint"></span>
@@ -117,8 +117,13 @@
           </div>
 
           <div class="manual-section">
-          <h3 class="manual-sec-title">직접입력 <span class="hint">파일을 올리면 여기도 자동으로 채워집니다.</span></h3>
+          <h3 class="manual-sec-title manual-toggle" id="manualToggle" role="button" tabindex="0"
+              aria-expanded="false" aria-controls="manualFormWrap" onclick="toggleManualForm()">
+            <span class="manual-toggle-arrow">▸</span>직접입력
+            <span class="hint">파일을 올리면 여기도 자동으로 채워집니다. (클릭해서 펼치기)</span>
+          </h3>
 
+          <div id="manualFormWrap" class="manual-form-wrap collapsed">
           <details class="form-sec" open>
             <summary>설정</summary>
             <div class="form-grid">
@@ -195,6 +200,7 @@
             </div>
             <button id="addCarryBtn" class="small">+ 이월 추가</button>
           </details>
+          </div>
 
           <div class="generate-row">
             <button id="generateBtn" class="primary big">근무표 생성</button>

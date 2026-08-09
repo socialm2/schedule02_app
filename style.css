@@ -280,6 +280,14 @@ td.disabled { cursor: default; opacity: .55; }
 }
 .manual-sec-title { font-size: 13.5px; margin: 4px 0 10px; }
 .manual-sec-title .hint { display: block; font-weight: 400; margin: 3px 0 0; }
+.manual-toggle { cursor: pointer; user-select: none; }
+.manual-toggle:hover { color: var(--accent); }
+.manual-toggle-arrow {
+  display: inline-block; margin-right: 5px; font-size: 11px; color: var(--sub);
+  transition: transform .15s;
+}
+.manual-toggle[aria-expanded="true"] .manual-toggle-arrow { transform: rotate(90deg); }
+.manual-form-wrap.collapsed { display: none; }
 
 details.form-sec {
   border: 1px solid var(--line); border-radius: 9px; margin-bottom: 12px; overflow: hidden;

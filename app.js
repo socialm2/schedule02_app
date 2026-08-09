@@ -422,6 +422,14 @@ window.toggleHolidayDate = function (iso) {
   renderHolidayCalendar();
 };
 
+window.toggleManualForm = function () {
+  const toggle = $("#manualToggle");
+  const wrap = $("#manualFormWrap");
+  const expanded = toggle.getAttribute("aria-expanded") === "true";
+  toggle.setAttribute("aria-expanded", expanded ? "false" : "true");
+  wrap.classList.toggle("collapsed", expanded);
+};
+
 function fillForm(cfg) {
   $("#f_ward").value = cfg.ward_id || "";
   $("#f_year").value = cfg.year;
@@ -642,6 +650,13 @@ document.querySelectorAll(".upload-btn[data-target]").forEach(btn => {
 });
 // "양식(다운로드)" — <a download>였던 걸 <button>으로 바꿨으니, 클릭 시 임시 <a>를
 // 만들어 다운로드를 대신 트리거한다(파일명 지정 등 기존 동작은 그대로 유지).
+$("#manualToggle").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    window.toggleManualForm();
+  }
+});
+
 document.querySelectorAll(".upload-btn[data-href]").forEach(btn => {
   btn.onclick = () => {
     const a = document.createElement("a");
