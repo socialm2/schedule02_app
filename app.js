@@ -620,11 +620,11 @@ function buildCfgFromForm() {
 }
 
 // ================================================================ 업로드 / 생성
-// 파일선택 버튼 하나로 통합 — 누르면 파일 대화상자가 뜨고, 파일을 고르는 즉시
-// (별도 "업로드" 클릭 없이) 바로 업로드/반영된다.
-document.querySelectorAll(".upload-btn[data-target]").forEach(btn => {
-  btn.onclick = () => $("#" + btn.dataset.target).click();
-});
+// 파일선택 버튼은 <label for="..."> 네이티브 연결로 처리 — 누르면 파일 대화상자가 뜨고,
+// 파일을 고르는 즉시(별도 "업로드" 클릭 없이) 바로 업로드/반영된다. <button>+JS click()
+// 방식 대신 <label>을 쓰는 이유: 삼성인터넷 등 일부 모바일 브라우저가 "다크 모드 강제 적용" 시
+// <button>(네이티브 폼 컨트롤)만 배경색을 자기 멋대로 덧씌우고 <label>/<a>는 그대로 두는
+// 경우가 있어, 옆의 "양식(다운로드)" <a>와 색이 달라 보이는 문제가 있었다.
 
 $("#fileInput").onchange = async () => {
   const f = $("#fileInput").files[0];

@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- CSS의 color-scheme:light dark 선언과 별개로 여기도 명시 — 일부 모바일 브라우저(크롬의
+     "웹 콘텐츠 다크 모드 강제 적용" 등)는 CSS가 파싱되기 전 초기 페인트 단계에서 이 메타
+     태그를 먼저 확인해 자체 다크모드 색 반전/재배색을 적용할지 판단한다. -->
+<meta name="color-scheme" content="light dark">
 <title>SMC Fair Shift</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F6E6B">
@@ -64,7 +68,7 @@
               <div class="upload-item-label">입력① 병동인력표 <span class="hint">필수정보(설정·인원·최소인력)</span></div>
               <div class="upload-row">
                 <input type="file" id="fileInput" accept=".xlsx" class="file-input-hidden">
-                <button type="button" class="upload-btn" data-target="fileInput">업로드</button>
+                <label for="fileInput" class="upload-btn">업로드</label>
                 <a class="upload-btn format-btn" href="templates/template_input1.xlsx" download="양식_입력1_병동인력표.xlsx">양식(다운로드)</a>
               </div>
               <span id="uploadStatus" class="hint"></span>
@@ -74,7 +78,7 @@
               <div class="upload-item-label">입력② 원티드표 <span class="hint">신청 일괄 반영</span></div>
               <div class="upload-row">
                 <input type="file" id="wantedInput" accept=".xlsx" class="file-input-hidden">
-                <button type="button" class="upload-btn" data-target="wantedInput">업로드</button>
+                <label for="wantedInput" class="upload-btn">업로드</label>
                 <a class="upload-btn format-btn" href="templates/template_input2.xlsx" download="양식_입력2_원티드표.xlsx">양식(다운로드)</a>
               </div>
               <span id="wantedStatus" class="hint"></span>
@@ -84,7 +88,7 @@
               <div class="upload-item-label">입력③ 월간근무표(전월) <span class="hint">이월정보 자동계산</span></div>
               <div class="upload-row">
                 <input type="file" id="prevMonthInput" accept=".xlsx" class="file-input-hidden">
-                <button type="button" class="upload-btn" data-target="prevMonthInput">업로드</button>
+                <label for="prevMonthInput" class="upload-btn">업로드</label>
                 <a class="upload-btn format-btn" href="templates/template_input3.xlsx" download="양식_입력3_월간근무표(전월).xlsx">양식(다운로드)</a>
               </div>
               <span id="prevMonthStatus" class="hint"></span>
@@ -95,7 +99,7 @@
               <p class="hint" id="staffTableActive" style="display:none"></p>
               <div class="upload-row">
                 <input type="file" id="staffTableInput" accept=".xlsx" class="file-input-hidden">
-                <button type="button" class="upload-btn" data-target="staffTableInput">업로드</button>
+                <label for="staffTableInput" class="upload-btn">업로드</label>
                 <a class="upload-btn format-btn" href="templates/template_input4.xlsx" download="양식_입력4_연간근무표.xlsx">양식(다운로드)</a>
               </div>
               <button id="staffTableClearBtn" class="small" style="display:none">반영 해제</button>
