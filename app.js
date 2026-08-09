@@ -830,7 +830,8 @@ function renderGrid() {
   const pendingSet = new Set(ST.pending);
   const wantedSet = new Set(ST.wanted || []);
 
-  let html = '<div class="legend">';
+  let html = '<h2 class="output-title">2. 근무표 출력</h2>';
+  html += '<div class="legend">';
   const legendItems = [["D","#BDD7EE"],["E","#F8CBAD"],["N","#1F3864"],["NK","#7030A0"],
                        ["prn","#C6E0B4"],["8A","#D9D9D9"],["9A","#BFBFBF"],["연차","#FFE699"],
                        ["S/","#9DC3E6"],["TW","#A9D18E"],["군","#C9C9C9"]];
@@ -969,9 +970,11 @@ function renderSide() {
   }
   html += "</div>";
 
-  html += '<div class="side-sec" id="pendingSec"><h3>편집 중 (미적용)</h3><div id="pendingBody"></div></div>';
-
+  // 편집한 게 없는데 "편집 중"이라고 뜨면 혼선을 주므로, 스테이징된 편집이 있을 때만
+  // 그 제목을 쓰고 평소엔 그냥 "편집"이라고만 표시한다.
   const hasPending = ST.pending.length > 0;
+  html += `<div class="side-sec" id="pendingSec"><h3>${hasPending ? "편집 중 (미적용)" : "편집"}</h3><div id="pendingBody"></div></div>`;
+
   html += `<div class="side-sec"><h3>다운로드</h3><div class="download-row">
     <button onclick="downloadXlsxOcs()" ${hasPending ? "disabled" : ""}>월간근무표</button>
     <button onclick="downloadStaffTable()" ${hasPending ? "disabled" : ""}>연간근무표</button>

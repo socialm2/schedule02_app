@@ -225,6 +225,12 @@ td.disabled { cursor: default; opacity: .55; }
 #intake { max-width: 1100px; margin: 0 auto; padding-bottom: 40px; }
 .intake-box { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 26px; }
 .intake-box h2 { font-size: 17px; margin: 0 0 6px; }
+.security-note {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600;
+  color: var(--ok); background: var(--ok-soft); padding: 4px 10px; border-radius: 999px;
+  margin: 0 0 12px;
+}
+.output-title { font-size: 17px; margin: 0 0 12px; }
 .intake-box .hint { color: var(--sub); font-size: 12.5px; margin: 0 0 14px; }
 .upload-row { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
 
