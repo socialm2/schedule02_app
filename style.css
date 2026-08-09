@@ -246,11 +246,6 @@ td.disabled { cursor: default; opacity: .55; }
 .upload-item:last-child { margin-bottom: 0; }
 .upload-item-label { font-weight: 700; font-size: 12.5px; margin-bottom: 6px; }
 .upload-item-label .hint { font-weight: 400; margin-left: 6px; }
-.tpl-ym-picker { display: inline-flex; align-items: center; gap: 4px; }
-.tpl-ym-picker select {
-  font-family: inherit; font-size: 11.5px; padding: 1px 4px; border: 1px solid var(--line);
-  border-radius: 5px; background: var(--card); color: var(--ink); cursor: pointer;
-}
 /* 파일선택 input은 화면에서 숨기고, upload-btn(<button>)이 대신 클릭을 받아 input.click()으로 연다 */
 .file-input-hidden {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
