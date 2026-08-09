@@ -68,8 +68,8 @@
               <div class="upload-item-label">입력① 병동인력표 <span class="hint">필수정보(설정·인원·최소인력)</span></div>
               <div class="upload-row">
                 <input type="file" id="fileInput" accept=".xlsx" class="file-input-hidden">
-                <label for="fileInput" class="upload-btn">업로드</label>
-                <a class="upload-btn format-btn" href="templates/template_input1.xlsx" download="양식_입력1_병동인력표.xlsx">양식(다운로드)</a>
+                <button type="button" class="upload-btn" data-target="fileInput">업로드</button>
+                <button type="button" class="upload-btn format-btn" data-href="templates/template_input1.xlsx" data-download="양식_입력1_병동인력표.xlsx">양식(다운로드)</button>
               </div>
               <span id="uploadStatus" class="hint"></span>
             </div>
@@ -78,8 +78,8 @@
               <div class="upload-item-label">입력② 원티드표 <span class="hint">신청 일괄 반영</span></div>
               <div class="upload-row">
                 <input type="file" id="wantedInput" accept=".xlsx" class="file-input-hidden">
-                <label for="wantedInput" class="upload-btn">업로드</label>
-                <a class="upload-btn format-btn" href="templates/template_input2.xlsx" download="양식_입력2_원티드표.xlsx">양식(다운로드)</a>
+                <button type="button" class="upload-btn" data-target="wantedInput">업로드</button>
+                <button type="button" class="upload-btn format-btn" data-href="templates/template_input2.xlsx" data-download="양식_입력2_원티드표.xlsx">양식(다운로드)</button>
               </div>
               <span id="wantedStatus" class="hint"></span>
             </div>
@@ -88,8 +88,8 @@
               <div class="upload-item-label">입력③ 월간근무표(전월) <span class="hint">이월정보 자동계산</span></div>
               <div class="upload-row">
                 <input type="file" id="prevMonthInput" accept=".xlsx" class="file-input-hidden">
-                <label for="prevMonthInput" class="upload-btn">업로드</label>
-                <a class="upload-btn format-btn" href="templates/template_input3.xlsx" download="양식_입력3_월간근무표(전월).xlsx">양식(다운로드)</a>
+                <button type="button" class="upload-btn" data-target="prevMonthInput">업로드</button>
+                <button type="button" class="upload-btn format-btn" data-href="templates/template_input3.xlsx" data-download="양식_입력3_월간근무표(전월).xlsx">양식(다운로드)</button>
               </div>
               <span id="prevMonthStatus" class="hint"></span>
             </div>
@@ -99,8 +99,8 @@
               <p class="hint" id="staffTableActive" style="display:none"></p>
               <div class="upload-row">
                 <input type="file" id="staffTableInput" accept=".xlsx" class="file-input-hidden">
-                <label for="staffTableInput" class="upload-btn">업로드</label>
-                <a class="upload-btn format-btn" href="templates/template_input4.xlsx" download="양식_입력4_연간근무표.xlsx">양식(다운로드)</a>
+                <button type="button" class="upload-btn" data-target="staffTableInput">업로드</button>
+                <button type="button" class="upload-btn format-btn" data-href="templates/template_input4.xlsx" data-download="양식_입력4_연간근무표.xlsx">양식(다운로드)</button>
               </div>
               <button id="staffTableClearBtn" class="small" style="display:none">반영 해제</button>
               <span id="staffTableStatus" class="hint"></span>

@@ -620,11 +620,26 @@ function buildCfgFromForm() {
 }
 
 // ================================================================ 업로드 / 생성
-// 파일선택 버튼은 <label for="..."> 네이티브 연결로 처리 — 누르면 파일 대화상자가 뜨고,
-// 파일을 고르는 즉시(별도 "업로드" 클릭 없이) 바로 업로드/반영된다. <button>+JS click()
-// 방식 대신 <label>을 쓰는 이유: 삼성인터넷 등 일부 모바일 브라우저가 "다크 모드 강제 적용" 시
-// <button>(네이티브 폼 컨트롤)만 배경색을 자기 멋대로 덧씌우고 <label>/<a>는 그대로 두는
-// 경우가 있어, 옆의 "양식(다운로드)" <a>와 색이 달라 보이는 문제가 있었다.
+// "업로드"·"양식(다운로드)" 둘 다 일부러 진짜 <button>으로 통일했다 — 삼성인터넷
+// 등에서 헤더의 "프로그램 정보·사용법"(진짜 <button>)은 다크모드에서 색이 살아있는데
+// <label>/<a>로 만들었던 이전 버전은 오히려 투명하게 보이는 문제가 있었다. <button>
+// 끼리는 브라우저가 뭘 하든 최소한 서로 똑같이 처리되므로, 둘 다 <button>으로
+// 맞추는 쪽이 "둘이 서로 다르게 보이는" 문제를 가장 확실하게 막는다.
+document.querySelectorAll(".upload-btn[data-target]").forEach(btn => {
+  btn.onclick = () => $("#" + btn.dataset.target).click();
+});
+// "양식(다운로드)" — <a download>였던 걸 <button>으로 바꿨으니, 클릭 시 임시 <a>를
+// 만들어 다운로드를 대신 트리거한다(파일명 지정 등 기존 동작은 그대로 유지).
+document.querySelectorAll(".upload-btn[data-href]").forEach(btn => {
+  btn.onclick = () => {
+    const a = document.createElement("a");
+    a.href = btn.dataset.href;
+    a.download = btn.dataset.download || "";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+});
 
 $("#fileInput").onchange = async () => {
   const f = $("#fileInput").files[0];
