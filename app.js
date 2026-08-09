@@ -110,6 +110,7 @@ function seedHolidaysForYear(year) {
 }
 
 let ST = null;       // 생성 후 서버 상태 캐시
+let lastConfigWarning = null;  // set_config가 돌려준 경고(예: 연간근무표 이월 불일치) — 출력화면에 계속 보여줌
 let picker = null;
 let formStaff = [];      // [{id, role, level, allowed:[...], flags:[...]}]
 let formRequests = [];   // [{staff_id, date, type, priority}]
@@ -758,13 +759,14 @@ async function runGenerate(btn, statusEl) {
   showGenOverlay("근무표를 생성하는 중입니다…");
   try {
     const cfg = buildCfgFromForm();
-    await api("/api/set_config", {
+    const cfgResult = await api("/api/set_config", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(cfg),
     });
+    lastConfigWarning = cfgResult.warning || null;
     ST = await api("/api/generate", { method: "POST" });
     render();
-    showToast("근무표 생성 완료");
+    showToast(lastConfigWarning || "근무표 생성 완료", !!lastConfigWarning);
   } catch (e) {
     if (statusEl) statusEl.textContent = "";
   } finally {
@@ -830,6 +832,11 @@ function renderGrid() {
   const wantedSet = new Set(ST.wanted || []);
 
   let html = '<h2 class="output-title">2. 근무표 출력</h2>';
+  const wardLabel = ST.ward_id ? `${esc(ST.ward_id)} · ` : "";
+  html += `<p class="output-subtitle">${wardLabel}${ST.year}년 ${ST.month}월</p>`;
+  if (lastConfigWarning) {
+    html += `<p class="carry-warning">⚠ ${esc(lastConfigWarning)}</p>`;
+  }
   html += '<div class="legend">';
   const legendItems = [["D","#BDD7EE"],["E","#F8CBAD"],["N","#1F3864"],["NK","#7030A0"],
                        ["prn","#C6E0B4"],["8A","#D9D9D9"],["9A","#BFBFBF"],["연차","#FFE699"],
