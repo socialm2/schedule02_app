@@ -14,6 +14,12 @@
   --btn-fill: #E4E7EA;
 }
 @media (prefers-color-scheme: dark) { :root {
+  /* 라이트/다크 둘 다 지원한다는 뜻의 "light dark"보다, 지금 실제로 다크로 렌더링
+     중이라는 뜻의 "dark" 단독 선언이 크롬 계열의 "웹 콘텐츠 다크 모드 강제 적용"에
+     더 강한 신호를 준다 — 우리 다크 배색을 그대로 신뢰하고 자기 색으로 덧칠하지
+     않도록. (그래도 100% 보장은 아님 — 사용자가 브라우저에서 강제 다크를 켜둔
+     경우는 페이지 쪽에서 막을 수 없는 경우도 있음.) */
+  color-scheme: dark;
   --paper: #141B1A; --ink: #E4E9E6; --sub: #9BA8A4; --accent: #4FB3AE;
   --accent-soft: #1C2E2C; --hard: #E07B5F; --hard-soft: #2E211C;
   --ok: #6FBF8E; --ok-soft: #1D2B22; --warn: #E0B84C; --warn-soft: #332B14;
