@@ -294,10 +294,9 @@ const INFO_RULES = `
 
 const INFO_NEXT_MONTH = `
 <h3>다음 달로 넘어갈 때</h3>
-<p><b>입력③ 월간근무표(전월)</b>를 업로드하면 마지막 근무·연속근무일·야간블록 등 이월정보를
-자동으로 읽어 채워줍니다. 근무표를 다 만든 뒤 <b>연간근무표</b>를 다운로드해서 보관해두면,
-다음 달엔 그 파일을 <b>입력④</b>로 다시 올리기만 하면 사람별 누적 OFF·야간·근무일 등 형평성 지표가
-그대로 이어집니다.</p>
+<p>근무표를 다 만든 뒤 <b>연간근무표</b>를 다운로드해서 보관해두면, 다음 달엔 그 파일 하나를
+<b>입력③</b>으로 다시 올리기만 하면 마지막 근무·연속근무일·야간블록 등 <b>이월정보</b>와, 사람별
+누적 OFF·야간·근무일 등 <b>형평성 지표</b>가 둘 다 자동으로 이어집니다.</p>
 `;
 
 const INFO_HTML_INPUT = `
@@ -329,8 +328,8 @@ const INFO_HTML_OUTPUT = `
 실선 테두리로 표시되고, <b>이후 몇 번을 더 수정해도 이전 고정은 계속 유지됩니다.</b> 편집을
 스테이징한 상태(재생성 적용 전)에는 아래 두 다운로드 버튼이 잠시 비활성화됩니다 — 재생성
 적용으로 확정한 뒤 다시 눌러야 받을 수 있습니다.</li>
-<li><b>다운로드</b> — <b>월간근무표</b>(병원 OCS 형식, 다음 달 입력③으로 바로 재사용),
-<b>연간근무표</b>(다음 달 입력④로 바로 재사용) 두 파일을 꼭 둘 다 받아 보관하세요.</li>
+<li><b>다운로드</b> — <b>월간근무표</b>(병원 OCS 형식, 부서 배포·기록용)와 <b>연간근무표</b>(다음 달
+입력③으로 바로 재사용 — 이월정보·형평성 지표가 여기 하나로 이어짐) 두 파일을 꼭 둘 다 받아 보관하세요.</li>
 </ul>
 
 <h3>근무표 그리드의 계산열</h3>
@@ -680,33 +679,6 @@ $("#fileInput").onchange = async () => {
   } catch (e) {} finally { $("#fileInput").value = ""; }
 };
 
-$("#prevMonthInput").onchange = async () => {
-  const f = $("#prevMonthInput").files[0];
-  if (!f) return;
-  try {
-    const bytes = new Uint8Array(await f.arrayBuffer());
-    const data = await api("/api/upload_prev_month", { _fileBytes: bytes });
-    const staffIds = new Set(formStaff.map(s => s.id));
-    let matched = 0, skipped = 0;
-    formCarryover = [];
-    for (const [sid, v] of Object.entries(data.carryover)) {
-      if (!staffIds.has(sid)) { skipped++; continue; }
-      matched++;
-      formCarryover.push({
-        staff_id: sid, last_shift_type: v.last_shift_type,
-        consecutive_work_days: v.consecutive_work_days,
-        night_block_remaining_off: v.night_block_remaining_off,
-        trailing_night_count: v.trailing_night_count,
-      });
-    }
-    renderCarryTable();
-    $("#prevMonthStatus").textContent =
-      `${data.year}년 ${data.month}월 근무표에서 ${matched}명 반영` +
-      (skipped ? ` (현재 인원명단과 이름이 안 맞는 ${skipped}명 제외)` : "");
-    showToast(data.warning || `${matched}명 이월정보를 자동으로 채웠습니다`, !!data.warning);
-  } catch (e) {} finally { $("#prevMonthInput").value = ""; }
-};
-
 $("#wantedInput").onchange = async () => {
   const f = $("#wantedInput").files[0];
   if (!f) return;
@@ -763,9 +735,9 @@ $("#staffTableInput").onchange = async () => {
     }));
     renderStaffTable();
     $("#staffTableStatus").textContent =
-      `인원 ${formStaff.length}명, 누적 통계 반영 (연간 근무표 ${data.annual_days}일치 포함)`;
+      `인원 ${formStaff.length}명, 누적 통계·이월정보 반영 (연간 근무표 ${data.annual_days}일치 포함)`;
     await refreshStaffTableStatus();
-    showToast("연간근무표에서 인원 명단과 누적 통계를 불러왔습니다");
+    showToast("연간근무표에서 인원 명단·누적 통계·전월 이월정보를 불러왔습니다");
   } catch (e) {} finally { $("#staffTableInput").value = ""; }
 };
 

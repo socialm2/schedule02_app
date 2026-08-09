@@ -15,7 +15,7 @@
 // 사용자는 새로 배포해도 계속 옛날 파일을 쓰게 된다(직접 캐시를 지우기 전까지 영구히).
 // 앱 코드(APP_FILES)만 고친 경우는 네트워크 우선이라 안 올려도 된다.
 
-const CACHE_NAME = "ns-sched-v14";
+const CACHE_NAME = "ns-sched-v15";
 
 // py_app.zip은 엔진 코드라 배포마다 바뀌므로 APP_FILES(네트워크 우선)로 둔다 —
 // HEAVY_FILES(캐시 우선)에 있으면, 서비스워커가 갱신되는 그 페이지 로드에서조차
@@ -27,7 +27,7 @@ const APP_FILES = ["./", "index.html", "app.js", "style.css", "pyworker.js",
 const HEAVY_FILES = [
   "sample_input.xlsx",
   "templates/입력1_병동인력표_2026-09.xlsx",
-  "templates/입력3_월간근무표(전월)_2026-08.xlsx", "templates/입력4_연간근무표_2026-08.xlsx",
+  "templates/입력3_연간근무표_2026-08.xlsx",
   "vendor/pyodide/pyodide.js", "vendor/pyodide/pyodide.mjs",
   "vendor/pyodide/pyodide.asm.js", "vendor/pyodide/pyodide.asm.wasm",
   "vendor/pyodide/python_stdlib.zip", "vendor/pyodide/pyodide-lock.json",

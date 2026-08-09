@@ -89,22 +89,12 @@
             </div>
 
             <div class="upload-item">
-              <div class="upload-item-label">입력③ 월간근무표(전월) <span class="hint">전월근무표를 입력해주세요</span></div>
-              <div class="upload-row">
-                <input type="file" id="prevMonthInput" accept=".xlsx" class="file-input-hidden">
-                <button type="button" class="upload-btn" data-target="prevMonthInput">업로드</button>
-                <button type="button" class="upload-btn format-btn" data-href="templates/입력3_월간근무표(전월)_2026-08.xlsx" data-download="입력3_월간근무표(전월)_2026-08.xlsx">양식(다운로드)</button>
-              </div>
-              <span id="prevMonthStatus" class="hint"></span>
-            </div>
-
-            <div class="upload-item">
-              <div class="upload-item-label">입력④ 연간근무표 <span class="hint">다월 자동연동(누적통계 이어받기)</span></div>
+              <div class="upload-item-label">입력③ 연간근무표 <span class="hint">전월근무표를 입력해주세요 — 이월정보·누적통계 자동연동</span></div>
               <p class="hint" id="staffTableActive" style="display:none"></p>
               <div class="upload-row">
                 <input type="file" id="staffTableInput" accept=".xlsx" class="file-input-hidden">
                 <button type="button" class="upload-btn" data-target="staffTableInput">업로드</button>
-                <button type="button" class="upload-btn format-btn" data-href="templates/입력4_연간근무표_2026-08.xlsx" data-download="입력4_연간근무표_2026-08.xlsx">양식(다운로드)</button>
+                <button type="button" class="upload-btn format-btn" data-href="templates/입력3_연간근무표_2026-08.xlsx" data-download="입력3_연간근무표_2026-08.xlsx">양식(다운로드)</button>
               </div>
               <button id="staffTableClearBtn" class="small" style="display:none">반영 해제</button>
               <span id="staffTableStatus" class="hint"></span>
@@ -190,8 +180,9 @@
 
           <details class="form-sec">
             <summary>전월이월 <span class="count-badge" id="carryCount"></span> (선택)</summary>
-            <p class="hint">보통은 위 <b>입력③ 월간근무표(전월)</b>를 업로드하면 이 표가 자동으로 채워집니다.
-            직접 입력은 지난달 근무표를 하루하루 세어야 해서 번거로우니, 입력③이 없을 때만 예외적으로 쓰세요.</p>
+            <p class="hint">보통은 위 <b>입력③ 연간근무표</b>를 업로드하면 이월정보가 자동으로 계산되어 반영됩니다
+            (이 표에는 따로 표시되지 않지만 생성 시 실제로 적용됩니다). 직접 입력은 지난달 근무표를 하루하루
+            세어야 해서 번거로우니, 입력③이 없을 때만 예외적으로 쓰세요.</p>
             <div class="tablebox">
               <table class="form-table" id="carryTable">
                 <thead><tr><th>이름</th><th>마지막근무</th><th>연속근무일</th><th>이월OFF일</th><th>말일연속야간</th><th></th></tr></thead>
