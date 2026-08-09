@@ -89,6 +89,13 @@ header .version-badge {
 }
 header .ward-info { font-size: 12.5px; color: var(--sub); }
 header .spacer { flex: 1; }
+/* 앱 이름(헤더) 바로 아래, 전체 폭 띠 — 여러 줄로 자연스럽게 줄바꿈되는 일반 문단.
+   (이전엔 inline-flex + 알약 모양이었는데, 여러 줄 문단엔 안 맞아 줄바꿈이 이상하게 깨졌음) */
+.security-note {
+  display: block; font-size: 12px; font-weight: 600; line-height: 1.6;
+  color: var(--ok); background: var(--ok-soft); padding: 8px 18px; margin: 0;
+  border-bottom: 1px solid var(--line);
+}
 
 button {
   appearance: none; -webkit-appearance: none;
@@ -225,11 +232,6 @@ td.disabled { cursor: default; opacity: .55; }
 #intake { max-width: 1100px; margin: 0 auto; padding-bottom: 40px; }
 .intake-box { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 26px; }
 .intake-box h2 { font-size: 17px; margin: 0 0 6px; }
-.security-note {
-  display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600;
-  color: var(--ok); background: var(--ok-soft); padding: 4px 10px; border-radius: 999px;
-  margin: 0 0 12px;
-}
 .output-title { font-size: 17px; margin: 0 0 12px; }
 .intake-box .hint { color: var(--sub); font-size: 12.5px; margin: 0 0 14px; }
 .upload-row { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
@@ -239,11 +241,16 @@ td.disabled { cursor: default; opacity: .55; }
   padding: 16px 18px; margin-bottom: 20px;
 }
 .upload-section h3 { font-size: 13.5px; margin: 0 0 12px; }
-.upload-section h3 .hint { font-weight: 400; margin-left: 4px; }
+.upload-section h3 .hint { display: block; font-weight: 400; margin: 3px 0 0; }
 .upload-item { margin-bottom: 14px; }
 .upload-item:last-child { margin-bottom: 0; }
 .upload-item-label { font-weight: 700; font-size: 12.5px; margin-bottom: 6px; }
 .upload-item-label .hint { font-weight: 400; margin-left: 6px; }
+.tpl-ym-picker { display: inline-flex; align-items: center; gap: 4px; }
+.tpl-ym-picker select {
+  font-family: inherit; font-size: 11.5px; padding: 1px 4px; border: 1px solid var(--line);
+  border-radius: 5px; background: var(--card); color: var(--ink); cursor: pointer;
+}
 /* 파일선택 input은 화면에서 숨기고, upload-btn(<button>)이 대신 클릭을 받아 input.click()으로 연다 */
 .file-input-hidden {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
@@ -277,7 +284,7 @@ td.disabled { cursor: default; opacity: .55; }
   padding: 16px 18px; margin-bottom: 20px;
 }
 .manual-sec-title { font-size: 13.5px; margin: 4px 0 10px; }
-.manual-sec-title .hint { font-weight: 400; margin-left: 4px; }
+.manual-sec-title .hint { display: block; font-weight: 400; margin: 3px 0 0; }
 
 details.form-sec {
   border: 1px solid var(--line); border-radius: 9px; margin-bottom: 12px; overflow: hidden;

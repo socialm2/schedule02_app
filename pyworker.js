@@ -77,11 +77,16 @@ function callBridge(path, opts) {
       const py = bridge.api_download_staff_table();
       return py ? py.toJs() : null;
     }
+    case "/api/download/wanted_template": {
+      const py = bridge.api_download_wanted_template(opts.body);
+      return py ? py.toJs() : null;
+    }
     default: throw new Error("알 수 없는 경로: " + path);
   }
 }
 
-const BINARY_PATHS = new Set(["/api/download/xlsx", "/api/download/xlsx_ocs", "/api/download/staff_table"]);
+const BINARY_PATHS = new Set(["/api/download/xlsx", "/api/download/xlsx_ocs", "/api/download/staff_table",
+  "/api/download/wanted_template"]);
 
 self.onmessage = async (ev) => {
   const { id, path, opts } = ev.data;

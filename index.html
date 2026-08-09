@@ -50,15 +50,15 @@
     <div class="spacer"></div>
     <button id="infoBtn">ℹ️ 프로그램 정보 · 사용법</button>
   </header>
+  <p class="security-note">🔒 이 앱은 <b>내 기기(브라우저)에서만</b> 실행됩니다 — 입력한 병동 정보가
+  서버로 전송되지 않아 보안 이슈가 없습니다.</p>
 
   <div id="main">
     <div id="gridPane">
       <!-- 입력 화면: 업로드 + 직접입력 폼 (샘플 기본값으로 미리 채워짐) -->
       <div id="intake">
         <div class="intake-box">
-          <h2>1. 입력</h2>
-          <p class="security-note">🔒 이 앱은 <b>내 기기(브라우저)에서만</b> 실행됩니다 — 입력한 병동 정보가
-          서버로 전송되지 않아 보안 이슈가 없습니다.</p>
+          <h2>1. 기본 사항 입력</h2>
           <p class="hint">아래 표는 샘플 병동 데이터로 미리 채워져 있습니다.
           그대로 <b>바로 생성</b>을 눌러도 되고, 엑셀을 업로드해 값을 통째로 바꾸거나,
           표를 직접 고쳐서 우리 병동 데이터로 바꿔도 됩니다.</p>
@@ -77,11 +77,16 @@
             </div>
 
             <div class="upload-item">
-              <div class="upload-item-label">입력② 원티드표 <span class="hint">신청 일괄 반영</span></div>
+              <div class="upload-item-label">입력② 원티드표
+                <span class="hint tpl-ym-picker">양식 선택:
+                  <select id="wantedTplYear"></select>년
+                  <select id="wantedTplMonth"></select>월
+                </span>
+              </div>
               <div class="upload-row">
                 <input type="file" id="wantedInput" accept=".xlsx" class="file-input-hidden">
                 <button type="button" class="upload-btn" data-target="wantedInput">업로드</button>
-                <button type="button" class="upload-btn format-btn" data-href="templates/template_input2.xlsx" data-download="양식_입력2_원티드표.xlsx">양식(다운로드)</button>
+                <button type="button" class="upload-btn format-btn" onclick="downloadWantedTemplate()">양식(다운로드)</button>
               </div>
               <span id="wantedStatus" class="hint"></span>
             </div>

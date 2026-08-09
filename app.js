@@ -245,6 +245,18 @@ window.downloadStaffTable = async function () {
   triggerDownload(bytes, filename,
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 };
+// 입력② 원티드표 양식 — "설정"에서 만든 근무표 세션과 무관하게, 화면에서 고른 연/월과
+// 지금 "인원" 표에 있는 명단으로 매번 새로 만든다(달마다 일수가 다르므로 고정 파일로는
+// 못 맞춘다).
+window.downloadWantedTemplate = async function () {
+  const year = parseInt($("#wantedTplYear").value, 10);
+  const month = parseInt($("#wantedTplMonth").value, 10);
+  const staff_ids = formStaff.map(s => s.id);
+  const { raw: bytes } = await callWorker("/api/download/wanted_template",
+    { body: JSON.stringify({ year, month, staff_ids }) });
+  triggerDownload(bytes, `양식_입력2_원티드표_${year}-${String(month).padStart(2, "0")}.xlsx`,
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+};
 
 function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function escAttr(s) { return esc(s).replace(/'/g, "&#39;"); }
@@ -355,10 +367,16 @@ $("#infoModalBackdrop").onclick = (e) => { if (e.target.id === "infoModalBackdro
 
 function populateYearMonthSelects() {
   const curYear = new Date().getFullYear();
-  $("#f_year").innerHTML = Array.from({ length: 7 }, (_, i) => curYear - 1 + i)
+  const yearOptions = Array.from({ length: 7 }, (_, i) => curYear - 1 + i)
     .map(y => `<option value="${y}">${y}년</option>`).join("");
-  $("#f_month").innerHTML = Array.from({ length: 12 }, (_, i) => i + 1)
+  const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1)
     .map(m => `<option value="${m}">${m}월</option>`).join("");
+  $("#f_year").innerHTML = yearOptions;
+  $("#f_month").innerHTML = monthOptions;
+  // 입력② 원티드표 양식의 연/월 선택 — 기본은 위 "설정" 연월과 같게 시작(둘 다
+  // fillForm()에서 매번 같이 갱신됨), 필요하면 따로 바꿔서 다른 달 양식도 받을 수 있다.
+  $("#wantedTplYear").innerHTML = yearOptions;
+  $("#wantedTplMonth").innerHTML = monthOptions;
 }
 populateYearMonthSelects();
 
@@ -414,6 +432,8 @@ function fillForm(cfg) {
   $("#f_ward").value = cfg.ward_id || "";
   $("#f_year").value = cfg.year;
   $("#f_month").value = cfg.month;
+  $("#wantedTplYear").value = cfg.year;
+  $("#wantedTplMonth").value = cfg.month;
   const p = cfg.params || {};
   $("#f_maxnights").value = p.off_max_per_month ?? 6;
   formHolidays = [...(p.holidays || [])];
