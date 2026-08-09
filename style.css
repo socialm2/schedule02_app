@@ -8,12 +8,17 @@
   --accent-soft: #E3EEEC; --hard: #B5472E; --hard-soft: #F6E8E3;
   --ok: #2E7D4F; --ok-soft: #E4F0E8; --warn: #9A6B12; --warn-soft: #FBF1DC;
   --line: #D8DEDB; --card: #FFFFFF; --code-bg: #EDF1EF; --we: #FCE4EC;
+  /* "업로드" 버튼 전용 — 살짝 채도 있는 은은한 채움색(양식 버튼의 무채색 아웃라인과
+     의도적으로 구분). 브라우저별 강제 다크모드가 우연히 만들어내던 회색조 대신,
+     우리가 직접 라이트/다크 모두에서 일관되게 보이도록 지정. */
+  --upload-tint: #E3EEEC;
 }
 @media (prefers-color-scheme: dark) { :root {
   --paper: #141B1A; --ink: #E4E9E6; --sub: #9BA8A4; --accent: #4FB3AE;
   --accent-soft: #1C2E2C; --hard: #E07B5F; --hard-soft: #2E211C;
   --ok: #6FBF8E; --ok-soft: #1D2B22; --warn: #E0B84C; --warn-soft: #332B14;
-  --line: #2C3634; --card: #1B2321; --code-bg: #222C2A; --we: #3A2A30; } }
+  --line: #2C3634; --card: #1B2321; --code-bg: #222C2A; --we: #3A2A30;
+  --upload-tint: #26433E; } }
 
 * { box-sizing: border-box; }
 html, body {
@@ -238,17 +243,21 @@ td.disabled { cursor: default; opacity: .55; }
 /* 업로드 버튼은 <label for>(파일선택), 양식 버튼은 <a>(다운로드 링크) — 둘 다 네이티브
    폼 컨트롤(<button>)이 아니라서, 삼성인터넷 등 일부 모바일 브라우저의 "다크 모드 강제 적용"이
    배경색을 자기 멋대로 덧씌우는 걸 피할 수 있다(실제로 <button>으로 만들었을 때 다크모드에서
-   옆 <a> 버튼과 색이 달라 보이는 문제가 있었음). */
+   옆 <a> 버튼과 색이 달라 보이는 문제가 있었음).
+   기본(.upload-btn)은 "업로드"용 — 은은한 채움색(--upload-tint)으로 주 동작임을 표시.
+   .format-btn(양식 다운로드)은 무채색 아웃라인으로 덜 강조. */
 .upload-btn {
   flex: 1 1 0; min-width: 0; box-sizing: border-box; text-align: center;
-  font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
-  border: 1.5px solid var(--line); background: var(--card); color: var(--ink);
-  border-radius: 7px; padding: 8px 10px; transition: background .1s, border-color .1s;
+  font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  border: 1.5px solid var(--upload-tint); background: var(--upload-tint); color: var(--ink);
+  border-radius: 7px; padding: 8px 10px; transition: filter .1s, background .1s, border-color .1s;
   text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.upload-btn:hover { border-color: var(--accent); color: var(--accent); }
-.upload-btn.format-btn { background: var(--card); color: var(--ink); font-weight: 500; }
-.upload-btn.format-btn:hover { border-color: var(--accent); color: var(--accent); }
+.upload-btn:hover { filter: brightness(.94); }
+.upload-btn.format-btn {
+  background: var(--card); border-color: var(--line); color: var(--ink); font-weight: 500;
+}
+.upload-btn.format-btn:hover { filter: none; border-color: var(--accent); color: var(--accent); }
 #staffTableClearBtn { margin-bottom: 4px; }
 /* 파일로 채우기 박스 안, 업로드 목록 밑에 붙는 생성 버튼 — 점선 구분선으로 살짝 떼어낸다 */
 .upload-section .generate-row-mid {
@@ -282,15 +291,17 @@ details.form-sec > *:not(summary) { padding: 14px; }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px 16px; }
 .form-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--sub); font-weight: 600; }
 .form-grid label.wide { grid-column: 1 / -1; }
+/* 입력칸 배경은 주변 박스(--paper)보다 한 단계 밝은 --card로 — "여기가 입력하는
+   자리다"가 눈에 띄도록 (이전엔 배경색이 같아서 테두리 1px 말고는 구분이 안 됐음) */
 .form-grid input[type=text], .form-grid input[type=number], .form-grid select {
   font-family: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid var(--line);
-  border-radius: 6px; background: var(--paper); color: var(--ink);
+  border-radius: 6px; background: var(--card); color: var(--ink);
 }
 .form-grid label:has(input[type=checkbox]) { flex-direction: row; align-items: center; font-weight: 600; }
 
 #f_team_b {
   font-family: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--line);
-  border-radius: 6px; background: var(--paper); color: var(--ink); width: 100%;
+  border-radius: 6px; background: var(--card); color: var(--ink); width: 100%;
   box-sizing: border-box; resize: vertical;
 }
 
@@ -336,7 +347,7 @@ table.form-table th {
 table.form-table td { padding: 3px 5px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 table.form-table input[type=text], table.form-table input[type=number], table.form-table select {
   font-family: inherit; font-size: 12.5px; padding: 4px 6px; border: 1px solid var(--line);
-  border-radius: 5px; background: var(--paper); color: var(--ink); width: 100%; box-sizing: border-box;
+  border-radius: 5px; background: var(--card); color: var(--ink); width: 100%; box-sizing: border-box;
 }
 table.form-table input[type=number] { width: 56px; }
 .chk-group { display: flex; gap: 6px; flex-wrap: wrap; }
