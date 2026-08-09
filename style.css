@@ -8,12 +8,17 @@
   --accent-soft: #E3EEEC; --hard: #B5472E; --hard-soft: #F6E8E3;
   --ok: #2E7D4F; --ok-soft: #E4F0E8; --warn: #9A6B12; --warn-soft: #FBF1DC;
   --line: #D8DEDB; --card: #FFFFFF; --code-bg: #EDF1EF; --we: #FCE4EC;
+  /* "업로드"·"양식(다운로드)" 버튼 채움색 — 회색빛 슬레이트 톤(중립, 채도 낮음).
+     삼성인터넷이 안 꾸민 <button>에 자기 멋대로 입히던 톤과 비슷한 느낌을
+     우리가 직접 지정해서 라이트/다크/브라우저 상관없이 항상 같게 보이게 함. */
+  --btn-fill: #E4E7EA;
 }
 @media (prefers-color-scheme: dark) { :root {
   --paper: #141B1A; --ink: #E4E9E6; --sub: #9BA8A4; --accent: #4FB3AE;
   --accent-soft: #1C2E2C; --hard: #E07B5F; --hard-soft: #2E211C;
   --ok: #6FBF8E; --ok-soft: #1D2B22; --warn: #E0B84C; --warn-soft: #332B14;
-  --line: #2C3634; --card: #1B2321; --code-bg: #222C2A; --we: #3A2A30; } }
+  --line: #2C3634; --card: #1B2321; --code-bg: #222C2A; --we: #3A2A30;
+  --btn-fill: #3A424B; } }
 
 * { box-sizing: border-box; }
 html, body {
@@ -238,17 +243,18 @@ td.disabled { cursor: default; opacity: .55; }
 /* 업로드 버튼은 <label for>(파일선택), 양식 버튼은 <a>(다운로드 링크) — 둘 다 네이티브
    폼 컨트롤(<button>)이 아니라서, 삼성인터넷 등 일부 모바일 브라우저의 "다크 모드 강제 적용"이
    배경색을 자기 멋대로 덧씌우는 걸 피할 수 있다(실제로 <button>으로 만들었을 때 다크모드에서
-   옆 <a> 버튼과 색이 달라 보이는 문제가 있었음). */
+   옆 <a> 버튼과 색이 달라 보이는 문제가 있었음).
+   업로드·양식 둘 다 같은 회색빛 채움색(--btn-fill)을 써서 통일. */
 .upload-btn {
   flex: 1 1 0; min-width: 0; box-sizing: border-box; text-align: center;
   font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
-  border: 1.5px solid var(--line); background: var(--card); color: var(--ink);
-  border-radius: 7px; padding: 8px 10px; transition: background .1s, border-color .1s;
+  border: 1.5px solid var(--btn-fill); background: var(--btn-fill); color: var(--ink);
+  border-radius: 7px; padding: 8px 10px; transition: filter .1s, background .1s, border-color .1s;
   text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.upload-btn:hover { border-color: var(--accent); color: var(--accent); }
-.upload-btn.format-btn { background: var(--card); color: var(--ink); font-weight: 500; }
-.upload-btn.format-btn:hover { border-color: var(--accent); color: var(--accent); }
+.upload-btn:hover { filter: brightness(.95); }
+.upload-btn.format-btn { font-weight: 500; }
+.upload-btn.format-btn:hover { filter: brightness(.95); }
 #staffTableClearBtn { margin-bottom: 4px; }
 /* 파일로 채우기 박스 안, 업로드 목록 밑에 붙는 생성 버튼 — 점선 구분선으로 살짝 떼어낸다 */
 .upload-section .generate-row-mid {
