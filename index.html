@@ -149,6 +149,25 @@
             </div>
           </details>
 
+          <details class="form-sec" open>
+            <summary>인원 <span class="count-badge" id="staffCount"></span></summary>
+            <div class="tablebox">
+              <table class="form-table" id="staffTable">
+                <thead><tr><th>#</th><th>이름</th><th>직급</th><th>Lv</th>
+                  <th>가능근무</th><th>비고</th><th></th></tr></thead>
+                <tbody id="staffBody"></tbody>
+              </table>
+            </div>
+            <button id="addStaffBtn" class="small">+ 인원 추가</button>
+          </details>
+
+          <details class="form-sec">
+            <summary>B팀(신입) <span class="count-badge" id="teamBCount"></span> (선택)</summary>
+            <p class="hint">근무 배정에는 전혀 관여하지 않고, 이름만 출력 근무표의 'B' 구분란에
+            빈칸으로 표시됩니다 — 파트장이 직접 배정하세요. 한 줄에 한 명씩 입력.</p>
+            <textarea id="f_team_b" rows="3" placeholder="예)&#10;김신입&#10;이신입"></textarea>
+          </details>
+
           <details class="form-sec">
             <summary>원티드 신청 <span class="count-badge" id="reqCount"></span> (선택)</summary>
             <div class="tablebox">
@@ -171,25 +190,6 @@
               </table>
             </div>
             <button id="addCarryBtn" class="small">+ 이월 추가</button>
-          </details>
-
-          <details class="form-sec" open>
-            <summary>인원 <span class="count-badge" id="staffCount"></span></summary>
-            <div class="tablebox">
-              <table class="form-table" id="staffTable">
-                <thead><tr><th>#</th><th>이름</th><th>직급</th><th>Lv</th>
-                  <th>가능근무</th><th>비고</th><th></th></tr></thead>
-                <tbody id="staffBody"></tbody>
-              </table>
-            </div>
-            <button id="addStaffBtn" class="small">+ 인원 추가</button>
-          </details>
-
-          <details class="form-sec">
-            <summary>B팀(신입) <span class="count-badge" id="teamBCount"></span> (선택)</summary>
-            <p class="hint">근무 배정에는 전혀 관여하지 않고, 이름만 출력 근무표의 'B' 구분란에
-            빈칸으로 표시됩니다 — 파트장이 직접 배정하세요. 한 줄에 한 명씩 입력.</p>
-            <textarea id="f_team_b" rows="3" placeholder="예)&#10;김신입&#10;이신입"></textarea>
           </details>
 
           <div class="generate-row">
