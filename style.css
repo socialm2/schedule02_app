@@ -8,10 +8,10 @@
   --accent-soft: #E3EEEC; --hard: #B5472E; --hard-soft: #F6E8E3;
   --ok: #2E7D4F; --ok-soft: #E4F0E8; --warn: #9A6B12; --warn-soft: #FBF1DC;
   --line: #D8DEDB; --card: #FFFFFF; --code-bg: #EDF1EF; --we: #FCE4EC;
-  /* "업로드"·"양식(다운로드)" 버튼 채움색 — 회색빛 슬레이트 톤(중립, 채도 낮음).
-     삼성인터넷이 안 꾸민 <button>에 자기 멋대로 입히던 톤과 비슷한 느낌을
-     우리가 직접 지정해서 라이트/다크/브라우저 상관없이 항상 같게 보이게 함. */
-  --btn-fill: #E4E7EA;
+  /* "업로드"·"양식(다운로드)" 버튼 채움색 — 아주 살짝 파란기 도는 슬레이트 톤
+     (완전 무채색 회색보다 옅게 채도를 넣음 — "꾸미지 않은 기본 회색"처럼 보이지
+     않게 해서, 강제 다크모드 브라우저가 재배색 대상으로 오판할 여지를 줄임). */
+  --btn-fill: #D9E3F0;
 }
 @media (prefers-color-scheme: dark) { :root {
   /* 라이트/다크 둘 다 지원한다는 뜻의 "light dark"보다, 지금 실제로 다크로 렌더링
@@ -24,7 +24,7 @@
   --accent-soft: #1C2E2C; --hard: #E07B5F; --hard-soft: #2E211C;
   --ok: #6FBF8E; --ok-soft: #1D2B22; --warn: #E0B84C; --warn-soft: #332B14;
   --line: #2C3634; --card: #1B2321; --code-bg: #222C2A; --we: #3A2A30;
-  --btn-fill: #3A424B; } }
+  --btn-fill: #33465C; } }
 
 * { box-sizing: border-box; }
 html, body {
