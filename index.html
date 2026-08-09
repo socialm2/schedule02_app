@@ -78,7 +78,7 @@
 
             <div class="upload-item">
               <div class="upload-item-label">입력② 원티드표
-                <span class="hint">양식은 아래 "설정"에 입력된 연/월 기준으로 만들어집니다</span>
+                <span class="hint">OCS형식으로 직접 입력해주세요</span>
               </div>
               <div class="upload-row">
                 <input type="file" id="wantedInput" accept=".xlsx" class="file-input-hidden">
@@ -89,7 +89,7 @@
             </div>
 
             <div class="upload-item">
-              <div class="upload-item-label">입력③ 월간근무표(전월) <span class="hint">이월정보 자동계산</span></div>
+              <div class="upload-item-label">입력③ 월간근무표(전월) <span class="hint">전월근무표를 입력해주세요</span></div>
               <div class="upload-row">
                 <input type="file" id="prevMonthInput" accept=".xlsx" class="file-input-hidden">
                 <button type="button" class="upload-btn" data-target="prevMonthInput">업로드</button>
@@ -200,11 +200,11 @@
             </div>
             <button id="addCarryBtn" class="small">+ 이월 추가</button>
           </details>
-          </div>
 
           <div class="generate-row">
             <button id="generateBtn" class="primary big">근무표 생성</button>
             <span id="genStatus" class="hint"></span>
+          </div>
           </div>
           </div>
         </div>
