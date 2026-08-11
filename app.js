@@ -239,6 +239,18 @@ function showToast(msg, isErr) {
   _toastHideTimer = setTimeout(() => { toast.className = "toast"; }, isErr ? 7000 : 2800);
 }
 
+// 업로드 실패는 토스트(7초, 자동으로 사라짐)만으로는 부족할 수 있다 — 어느 시트/행/
+// 칸이 문제인지 구체적으로 적힌 긴 메시지를 천천히 읽고 파일을 고치는 동안에도
+// 계속 보이도록, 해당 업로드 칸 바로 아래 상태 텍스트에 지속적으로 남겨둔다.
+function showUploadError(statusEl, err) {
+  const msg = (err && err.message) ? err.message : String(err);
+  statusEl.textContent = "⚠ " + msg;
+  statusEl.classList.add("upload-error");
+}
+function clearUploadError(statusEl) {
+  statusEl.classList.remove("upload-error");
+}
+
 // ================================================================ Pyodide 브릿지 (Web Worker)
 // 서버(Flask) 없이 브라우저 안에서 Python(nurse_scheduler 엔진)을 직접 돌리되,
 // 계산 자체는 별도 Worker 스레드(pyworker.js)에서 실행한다. 근무표 생성처럼
@@ -779,29 +791,33 @@ document.querySelectorAll(".upload-btn[data-href]").forEach(btn => {
 $("#fileInput").onchange = async () => {
   const f = $("#fileInput").files[0];
   if (!f) return;
+  const statusEl = $("#uploadStatus");
   try {
     const bytes = new Uint8Array(await f.arrayBuffer());
     const data = await api("/api/upload", { _fileBytes: bytes });
     fillForm(data.cfg);
-    $("#uploadStatus").textContent = `"${f.name}" 값으로 표를 채웠습니다 — 검토 후 생성을 누르세요`;
+    clearUploadError(statusEl);
+    statusEl.textContent = `"${f.name}" 값으로 표를 채웠습니다 — 검토 후 생성을 누르세요`;
     showToast("업로드한 값으로 표를 채웠습니다");
-  } catch (e) {} finally { $("#fileInput").value = ""; }
+  } catch (e) { showUploadError(statusEl, e); } finally { $("#fileInput").value = ""; }
 };
 
 $("#wantedInput").onchange = async () => {
   const f = $("#wantedInput").files[0];
   if (!f) return;
+  const statusEl = $("#wantedStatus");
   try {
     const bytes = new Uint8Array(await f.arrayBuffer());
     const data = await api("/api/upload_wanted", { _fileBytes: bytes });
     formRequests = data.requests.map(r => ({ ...r, priority: 1 }));
     renderReqTable();
     const unk = (data.unknown_marks || []).length;
-    $("#wantedStatus").textContent =
+    clearUploadError(statusEl);
+    statusEl.textContent =
       `${data.year}년 ${data.month}월 표에서 ${formRequests.length}건 인식` +
       (unk ? ` (인식 못 한 표시 ${unk}개: ${data.unknown_marks.join(", ")})` : "");
     showToast(data.warning || `원티드 ${formRequests.length}건을 자동으로 채웠습니다`, !!data.warning);
-  } catch (e) {} finally { $("#wantedInput").value = ""; }
+  } catch (e) { showUploadError(statusEl, e); } finally { $("#wantedInput").value = ""; }
 };
 
 async function refreshStaffTableStatus() {
@@ -835,6 +851,7 @@ $("#staffTableClearBtn").onclick = async () => {
 $("#staffTableInput").onchange = async () => {
   const f = $("#staffTableInput").files[0];
   if (!f) return;
+  const statusEl = $("#staffTableStatus");
   try {
     const bytes = new Uint8Array(await f.arrayBuffer());
     const data = await api("/api/upload_staff_table", { _fileBytes: bytes });
@@ -843,11 +860,12 @@ $("#staffTableInput").onchange = async () => {
       allowed: [...(s.allowed_shifts || [])], flags: [...(s.flags || [])],
     }));
     renderStaffTable();
-    $("#staffTableStatus").textContent =
+    clearUploadError(statusEl);
+    statusEl.textContent =
       `인원 ${formStaff.length}명, 누적 통계·이월정보 반영 (연간 근무표 ${data.annual_days}일치 포함)`;
     await refreshStaffTableStatus();
     showToast("연간근무표에서 인원 명단·누적 통계·전월 이월정보를 불러왔습니다");
-  } catch (e) {} finally { $("#staffTableInput").value = ""; }
+  } catch (e) { showUploadError(statusEl, e); } finally { $("#staffTableInput").value = ""; }
 };
 
 // 생성/재생성은 인원이 많으면 수십 초~1~2분 걸릴 수 있다. Worker 덕분에 화면
