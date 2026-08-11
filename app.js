@@ -229,10 +229,14 @@ const annualPane = $("#annualPane");
 const sidePane = $("#sidePane");
 const toast = $("#toast");
 
+let _toastHideTimer = null;
 function showToast(msg, isErr) {
   toast.textContent = msg;
   toast.className = "toast show" + (isErr ? " err" : "");
-  setTimeout(() => { toast.className = "toast"; }, 2800);
+  clearTimeout(_toastHideTimer);
+  // 오류 메시지는 어느 시트/행/칸이 문제인지까지 구체적으로 적혀 있어 길어질 수
+  // 있어서, 일반 안내(2.8초)보다 오래(7초) 붙잡아둔다.
+  _toastHideTimer = setTimeout(() => { toast.className = "toast"; }, isErr ? 7000 : 2800);
 }
 
 // ================================================================ Pyodide 브릿지 (Web Worker)
@@ -848,12 +852,34 @@ $("#staffTableInput").onchange = async () => {
 
 // 생성/재생성은 인원이 많으면 수십 초~1~2분 걸릴 수 있다. Worker 덕분에 화면
 // 자체는 멈추지 않지만, 진행 상황을 안내하는 오버레이는 그대로 띄워준다.
+//
+// 진행 게이지: 서버가 진행률을 알려주지 않으므로(생성이 끝나야 응답이 옴) 실제
+// 진행률이 아니라 "경과시간 vs time_budget"으로 추정해서 보여준다 — nurse_scheduler
+// /generator.py의 generate_best() 기본 time_budget(15초)과 맞춰뒀다. 대부분의
+// 실사용 규모는 이 안에서 끝나 게이지가 자연스럽게 92%까지 차고, 인원이 많아
+// 시간예산을 넘기는 드문 경우엔 92~98% 사이에서 천천히 계속 채워서 "멈춘 게
+// 아니라 아직 계산 중"임을 보여준다(실제 100%는 응답이 와서 오버레이가 닫힐 때뿐).
+const GEN_TIME_BUDGET_SEC = 15;
+let genProgressTimer = null;
 function showGenOverlay(msg) {
   $("#genOverlayMsg").textContent = msg;
   $("#genOverlay").style.display = "";
+  const fill = $("#genProgressFill");
+  fill.style.width = "0%";
+  const t0 = Date.now();
+  clearInterval(genProgressTimer);
+  genProgressTimer = setInterval(() => {
+    const elapsed = (Date.now() - t0) / 1000;
+    const pct = elapsed <= GEN_TIME_BUDGET_SEC
+      ? (elapsed / GEN_TIME_BUDGET_SEC) * 92
+      : 92 + Math.min(6, (elapsed - GEN_TIME_BUDGET_SEC) * 0.5);
+    fill.style.width = pct.toFixed(1) + "%";
+  }, 200);
 }
 function hideGenOverlay() {
   $("#genOverlay").style.display = "none";
+  clearInterval(genProgressTimer);
+  genProgressTimer = null;
 }
 
 async function runGenerate(btn, statusEl) {
@@ -1064,12 +1090,40 @@ window.undoEdit = undoEdit;
 
 // ================================================================ 사이드 패널 (생성 후 정보)
 
+// 검증 요약 상단에 붙일 상태 배너 — "이게 최선인지 아예 안 되는 건지"를 숫자 대신
+// 말로 바로 알려준다. hard_count(안전·필수 규칙 위반)와 r.hard.length(최선노력
+// 규칙까지 합친 전체 위반) 차이로 셋 중 하나를 가른다:
+//   hard_count > 0            → 안전 규칙조차 못 지킴(불가능에 가까움)
+//   hard_count === 0 && 잔여 > 0 → 안전 규칙은 다 지켰고 패턴 규칙만 일부 남음(최선)
+//   전부 0                     → 완벽 배정
+function feasibilityBanner(r) {
+  const total = r.hard.length;
+  if (r.hard_count > 0) {
+    return `<p class="status-banner bad">⚠ 이 조건(인원수·최소인력 기준)으로는 안전 규칙까지
+      전부 만족하는 배정을 찾지 못했습니다 — 필수 위반 ${r.hard_count}건이 남았습니다.
+      인원을 늘리거나 최소인력 기준을 낮추는 것을 검토해 주세요.</p>`;
+  }
+  if (total > 0) {
+    return `<p class="status-banner warn">이 조건에서 안전 규칙은 모두 지켰습니다. 다만 근무
+      패턴 규칙(연속 근무 블록 길이 등) ${total}건은 완벽히 맞추지 못했습니다 — 지금 이게
+      찾을 수 있는 최선의 배정입니다.</p>`;
+  }
+  return "";
+}
+
 function renderSide() {
   const r = ST.report;
   const hardCls = r.hard_count === 0 ? "ok" : "bad";
 
   let html = "";
-  html += `<div class="side-sec"><h3>검증 요약</h3><div class="kpi-row">
+  html += `<div class="side-sec"><h3>검증 요약</h3>`;
+  if (r.timed_out) {
+    html += `<p class="status-banner warn">⏱ 시간 제한으로 자동 중단되었습니다 — 지금 결과는
+      그 시간 안에서 찾은 최선입니다. 더 나은 결과를 원하면 "근무표 생성"을 다시 눌러보세요
+      (무작위 재시도라 결과가 달라질 수 있습니다).</p>`;
+  }
+  html += feasibilityBanner(r);
+  html += `<div class="kpi-row">
     <div class="kpi"><div class="v ${hardCls}">${r.hard_count}</div><div class="l">하드 위반</div></div>
     <div class="kpi"><div class="v">${r.soft_count}</div><div class="l">소프트</div></div>
     <div class="kpi"><div class="v">${ST.round}</div><div class="l">회차</div></div>
