@@ -795,11 +795,20 @@ $("#fileInput").onchange = async () => {
   try {
     const bytes = new Uint8Array(await f.arrayBuffer());
     const data = await api("/api/upload", { _fileBytes: bytes });
-    fillForm(data.cfg);
+    fillForm(data.cfg);  // 표를 통째로 새 값으로 덮어씀 — 재업로드해도 이전 값이 안 섞인다
     clearUploadError(statusEl);
     statusEl.textContent = `"${f.name}" 값으로 표를 채웠습니다 — 검토 후 생성을 누르세요`;
+    $("#fileClearBtn").style.display = "";
     showToast("업로드한 값으로 표를 채웠습니다");
   } catch (e) { showUploadError(statusEl, e); } finally { $("#fileInput").value = ""; }
+};
+
+$("#fileClearBtn").onclick = () => {
+  formStaff = [];
+  renderStaffTable();
+  $("#uploadStatus").textContent = "반영 해제했습니다 — 인원표를 다시 올리거나 직접입력에서 채우세요.";
+  $("#fileClearBtn").style.display = "none";
+  showToast("입력① 반영을 해제했습니다");
 };
 
 $("#wantedInput").onchange = async () => {
@@ -809,15 +818,24 @@ $("#wantedInput").onchange = async () => {
   try {
     const bytes = new Uint8Array(await f.arrayBuffer());
     const data = await api("/api/upload_wanted", { _fileBytes: bytes });
-    formRequests = data.requests.map(r => ({ ...r, priority: 1 }));
+    formRequests = data.requests.map(r => ({ ...r, priority: 1 }));  // 이전 신청 목록을 통째로 대체
     renderReqTable();
     const unk = (data.unknown_marks || []).length;
     clearUploadError(statusEl);
     statusEl.textContent =
       `${data.year}년 ${data.month}월 표에서 ${formRequests.length}건 인식` +
       (unk ? ` (인식 못 한 표시 ${unk}개: ${data.unknown_marks.join(", ")})` : "");
+    $("#wantedClearBtn").style.display = "";
     showToast(data.warning || `원티드 ${formRequests.length}건을 자동으로 채웠습니다`, !!data.warning);
   } catch (e) { showUploadError(statusEl, e); } finally { $("#wantedInput").value = ""; }
+};
+
+$("#wantedClearBtn").onclick = () => {
+  formRequests = [];
+  renderReqTable();
+  $("#wantedStatus").textContent = "반영 해제했습니다.";
+  $("#wantedClearBtn").style.display = "none";
+  showToast("입력② 반영을 해제했습니다");
 };
 
 async function refreshStaffTableStatus() {

@@ -46,7 +46,7 @@
 </div>
 <div id="app" style="display:none">
   <header>
-    <h1>SMC Fair Shift <span class="version-badge">v0.76</span></h1>
+    <h1>SMC Fair Shift <span class="version-badge">v0.77</span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">ℹ️ 프로그램 정보 · 사용법</button>
@@ -74,6 +74,7 @@
                 <button type="button" class="upload-btn" data-target="fileInput">업로드</button>
                 <button type="button" class="upload-btn format-btn" data-href="templates/입력1_병동인력표_2026-09.xlsx" data-download="입력1_병동인력표_2026-09.xlsx">양식(다운로드)</button>
               </div>
+              <button id="fileClearBtn" class="small" style="display:none">반영 해제</button>
               <span id="uploadStatus" class="hint"></span>
             </div>
 
@@ -86,6 +87,7 @@
                 <button type="button" class="upload-btn" data-target="wantedInput">업로드</button>
                 <button type="button" class="upload-btn format-btn" onclick="downloadWantedTemplate()">양식(다운로드)</button>
               </div>
+              <button id="wantedClearBtn" class="small" style="display:none">반영 해제</button>
               <span id="wantedStatus" class="hint"></span>
             </div>
 
