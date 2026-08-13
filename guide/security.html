@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMC Fair Shift — 보안·개인정보 안내 (v0.8)</title>
+<style>
+:root {
+  --paper: #F7F8F6; --ink: #1C2523; --sub: #5A6763; --accent: #0F6E6B;
+  --accent-soft: #E3EEEC; --hard: #B5472E; --hard-soft: #F6E8E3;
+  --ok: #2E7D4F; --ok-soft: #E4F0E8; --warn: #9A6B12; --warn-soft: #FBF1DC;
+  --line: #D8DEDB; --card: #FFFFFF; --code-bg: #EDF1EF;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --paper: #141B1A; --ink: #E4E9E6; --sub: #9BA8A4; --accent: #4FB3AE;
+    --accent-soft: #1C2E2C; --hard: #E07B5F; --hard-soft: #2E211C; --ok: #6FBF8E;
+    --ok-soft: #1D2B22; --warn: #E0B84C; --warn-soft: #332B14;
+    --line: #2C3634; --card: #1B2321; --code-bg: #222C2A; }
+}
+:root[data-theme="dark"] { --paper: #141B1A; --ink: #E4E9E6; --sub: #9BA8A4; --accent: #4FB3AE;
+  --accent-soft: #1C2E2C; --hard: #E07B5F; --hard-soft: #2E211C; --ok: #6FBF8E;
+  --ok-soft: #1D2B22; --warn: #E0B84C; --warn-soft: #332B14;
+  --line: #2C3634; --card: #1B2321; --code-bg: #222C2A; }
+:root[data-theme="light"] { --paper: #F7F8F6; --ink: #1C2523; --sub: #5A6763; --accent: #0F6E6B;
+  --accent-soft: #E3EEEC; --hard: #B5472E; --hard-soft: #F6E8E3; --ok: #2E7D4F;
+  --ok-soft: #E4F0E8; --warn: #9A6B12; --warn-soft: #FBF1DC;
+  --line: #D8DEDB; --card: #FFFFFF; --code-bg: #EDF1EF; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink);
+  font-family: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR",
+    "Malgun Gothic", system-ui, sans-serif; line-height: 1.7; font-size: 16px; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 56px 24px 96px; }
+header.doc { border-bottom: 2px solid var(--accent); padding-bottom: 28px; margin-bottom: 40px; }
+.eyebrow { font-family: "JetBrains Mono", monospace; font-size: 12px;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin: 0 0 10px; }
+h1 { font-size: 32px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 12px; text-wrap: balance; }
+.meta { color: var(--sub); font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 20px; }
+.meta b { color: var(--ink); font-weight: 600; }
+h2 { font-size: 22px; font-weight: 750; letter-spacing: -.01em; margin: 52px 0 8px; text-wrap: balance; }
+h2 .no { font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--accent);
+  font-weight: 600; display: block; letter-spacing: .1em; margin-bottom: 2px; }
+h3 { font-size: 17px; font-weight: 700; margin: 26px 0 8px; }
+p { margin: 10px 0; max-width: 760px; }
+.lead { font-size: 17px; color: var(--sub); max-width: 760px; }
+ul, ol { margin: 8px 0 14px; padding-left: 22px; max-width: 740px; }
+li { margin: 5px 0; }
+code { font-family: "JetBrains Mono", monospace; font-size: .86em;
+  background: var(--code-bg); padding: 1px 6px; border-radius: 4px; }
+.tablebox { overflow-x: auto; margin: 14px 0 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th { text-align: left; font-size: 12px; letter-spacing: .05em; color: var(--sub); font-weight: 600;
+  text-transform: uppercase; border-bottom: 2px solid var(--line); padding: 7px 10px; }
+td { border-bottom: 1px solid var(--line); padding: 7px 10px; vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+.callout { background: var(--accent-soft); border-left: 3px solid var(--accent);
+  border-radius: 0 6px 6px 0; padding: 14px 18px; margin: 16px 0; max-width: 740px; }
+.callout.warn { background: var(--warn-soft); border-left-color: var(--warn); }
+.callout.hard { background: var(--hard-soft); border-left-color: var(--hard); }
+.callout.ok { background: var(--ok-soft); border-left-color: var(--ok); }
+.callout p { margin: 4px 0; }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px;
+  padding: 2px 10px; border-radius: 999px; font-weight: 700; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+footer { margin-top: 68px; padding-top: 20px; border-top: 1px solid var(--line);
+  color: var(--sub); font-size: 13.5px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc">
+  <p class="eyebrow">Security &amp; Privacy</p>
+  <h1>SMC Fair Shift — 보안·개인정보 안내 (v0.8)</h1>
+  <div class="meta">
+    <span>대상 <b>병동 리더 · 배포 담당자</b></span>
+    <span>범위 <b>브라우저 전용(Pyodide)판 · 로컬 웹앱(Flask)판</b></span>
+  </div>
+</header>
+
+<p class="lead">여러 병동에 이 프로그램을 배포하기 전에, 직원 이름·희망 근무(원티드) 같은 정보가 어디에 저장되고
+어떻게 오가는지를 정리했습니다. 두 배포 형태 모두 결론은 같습니다 — <b>이 데이터는 외부 서버로 나가지 않습니다.</b>
+v0.76~v0.8은 입력 오류 처리·배정 알고리즘 규칙·입력 화면 구성을 다듬은 버전들이라, 데이터 저장·전송 방식 자체는
+바뀐 게 없어 이 문서의 내용은 v0.75 시점과 달라진 게 없습니다.</p>
+
+<h2><span class="no">1</span>가장 중요한 사실 — 서버가 없습니다(브라우저 전용판)</h2>
+<div class="callout">
+<p>브라우저 전용판(Pyodide)은 <b>Python 실행 환경 전체가 사용자의 브라우저 안에서</b> 돌아갑니다. 입력한 병동인력표,
+근무인력 기준, 신청(원티드), 생성된 근무표 — 이 모든 데이터가 <b>그 폰·PC의 브라우저(로컬저장소, localStorage)에만</b>
+남고, 어떤 외부 서버로도 전송되지 않습니다.</p>
+</div>
+<p>여러 병동이 같은 링크로 접속해도 서로의 데이터를 볼 수 없습니다 — 애초에 각자의 브라우저 안에만 데이터가 있기 때문입니다.
+로컬 웹앱(Flask)판은 이와 달리 <b>병동 자체 컴퓨터 1대</b>에서 서버가 돌아가는 구조이며, 데이터는 그 컴퓨터의
+<code>webapp/history/</code> 폴더에 저장됩니다 — 이 역시 인터넷 밖으로 나가지 않고, 그 컴퓨터를 쓰는 사람들끼리만 공유됩니다.</p>
+
+<h2><span class="no">2</span>배포 방식</h2>
+<div class="tablebox"><table>
+<tr><th>대상</th><th>받는 것</th><th>비고</th></tr>
+<tr><td>병동 리더 (편성 담당)</td><td>앱 접속 링크(또는 로컬 실행 방법)</td><td>근무표를 직접 만들고 수정하는 사람만 필요합니다</td></tr>
+<tr><td>부서원 (일반 직원)</td><td>완성된 근무표 엑셀 파일</td><td>앱에 접속할 필요가 없습니다 — 링크를 부서 전체에 공유하지 않는 것을 권장합니다</td></tr>
+</table></div>
+<p>편성 권한이 있는 사람(리더)에게만 링크를 주고, 나머지는 완성 결과물만 받는 구조로 운영하면 개인정보(직원 실명,
+원티드 등)가 노출되는 범위 자체가 최소화됩니다.</p>
+
+<h2><span class="no">3</span>접속 통제 — 현재 상태</h2>
+<div class="callout ok">
+<p><span class="pill ok">적용됨</span> 브라우저 전용판은 <b>첫 접속 시 비밀번호를 입력해야 화면이 보이는 게이트</b>가
+적용되어 있습니다. 링크를 몰라도, 링크를 알아도 비밀번호를 모르면 화면 자체가 열리지 않습니다.</p>
+</div>
+<p>다만 이건 서버 인증이 아니라 <b>브라우저 안에서 해시값을 비교</b>하는 방식이라 — "링크를 아는 사람이 우연히
+또는 무심코 들어오는 것"을 막는 억제 수준입니다. 개발자도구를 다룰 줄 아는 사람이 작정하고 코드를 뜯어보면 우회할
+수 있다는 점은 감안하고 사용하시면 됩니다. 비밀번호를 바꾸려면 <code>pyodide-app/app.js</code> 상단의 해시값을
+교체하면 됩니다(브라우저 콘솔에서 새 비밀번호의 SHA-256 해시를 뽑아 넣는 방식 — 파일 안에 방법이 주석으로 적혀 있습니다).</p>
+<p>로컬 웹앱(Flask)판은 애초에 병동 내부 컴퓨터에서만 접속 가능한 구조이며(그 컴퓨터 자체에 물리적으로 접근해야
+쓸 수 있음) 별도의 비밀번호 게이트는 없습니다 — 컴퓨터 자체의 로그인 잠금이 그 역할을 합니다.</p>
+
+<h2><span class="no">4</span>파일(엑셀) 자체의 보안</h2>
+<p>내려받은 근무표 엑셀 파일에는 별도의 열기 암호를 걸지 않습니다. 대신:</p>
+<ul>
+<li>엑셀 파일을 전달할 때는 부서 공용 게시판보다 <b>리더가 직접, 필요한 사람에게만</b> 전달하는 것을 권장합니다</li>
+<li>파일과 접속 비밀번호는 <b>같은 채널로 함께 보내지 않도록 합니다</b> — 예: 파일은 메일로, 비밀번호는 문자로 나누어 전달</li>
+</ul>
+
+<h2><span class="no">5</span>데이터 삭제·기기 분실 시</h2>
+<div class="tablebox"><table>
+<tr><th>상황</th><th>브라우저 전용판</th><th>로컬 웹앱판</th></tr>
+<tr><td>브라우저 데이터(캐시/사이트 데이터)를 지움</td><td>그 기기의 근무표 이력·인원 정보가 즉시 삭제됩니다</td><td>영향 없습니다(서버 컴퓨터에 저장)</td></tr>
+<tr><td>다른 브라우저·다른 기기에서 접속</td><td>이전 데이터가 보이지 않습니다(기기별 완전 분리)</td><td>같은 서버에 접속하면 동일하게 보입니다</td></tr>
+<tr><td>폰·PC 분실</td><td>기기 자체 잠금이 최종 방어선입니다</td><td>서버 컴퓨터 자체의 잠금·물리적 접근 통제가 최종 방어선입니다</td></tr>
+</table></div>
+<p>이 특성 때문에 매달 최종 확정한 근무표 엑셀은 <b>다운로드해서 별도로 보관</b>해두는 것을 권장합니다 — 브라우저
+전용판은 브라우저 데이터가 지워지면 앱 안의 이력을 복구할 방법이 없습니다.</p>
+
+<h2><span class="no">6</span>요약</h2>
+<div class="callout">
+<p><b>서버 없음(브라우저 전용판) 또는 병동 내부 서버(로컬 웹앱판) → 외부 데이터 유출 경로 자체가 없습니다.</b>
+브라우저 전용판은 접속 비밀번호 게이트까지 적용되어 있습니다. 링크·비밀번호 공유 범위를 리더로 좁히고, 중요한
+결과물(월간근무표·연간근무표)은 별도로 백업해두는 두 가지만 지키면 지금 구조로도 충분히 안전하게 운영할 수 있습니다.</p>
+</div>
+
+<footer>SMC Fair Shift 프로그램 · 보안·개인정보 안내 (v0.8) · <a href="one-pager.html">원페이지</a> ·
+<a href="quick-start.html">빠른시작가이드</a> · <a href="../index.html">앱으로 돌아가기</a></footer>
+</div>
+</body>
+</html>
