@@ -60,10 +60,6 @@ if ("serviceWorker" in navigator) {
 const SHIFT_CLASS = {D:"sd", E:"se", N:"sn", NK:"sk", prn:"sp", "8A":"sa", "9A":"sa9", "연차":"sy", OFF:"so", "S/":"ssl", "TW":"stw", "군":"smi"};
 const SHIFT_TEXT = {OFF:"·", "연차":"연", prn:"p"};
 const ALL_SHIFTS = ["D","E","N","NK","prn","8A","9A","TW","OFF","연차","S/","군"];
-const ALLOWED_OPTIONS = ["D","E","N","NK","prn","8A","9A"];
-const FLAG_OPTIONS = [
-  ["", "없음"], ["night_only", "야간전담(NK)"], ["pregnant", "임부(야간금지)"], ["no_night", "야간금지"],
-];
 const MIN_STAFF_ROWS = [["D","D"],["E","E"],["N","N"],["prn","prn"]];
 const MIN_STAFF_COLS = [["weekday","평일"],["saturday","토요일"],["sunday_holiday","일요일·공휴일"]];
 
@@ -366,15 +362,18 @@ window.downloadStaffTable = async function () {
   triggerDownload(bytes, filename,
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 };
-// 입력② 원티드표 양식 — "설정"의 연/월과 지금 "인원" 표에 있는 명단으로 매번 새로
+// 입력② 원티드표 양식 — "설정"의 연/월과 지금 알고 있는 인원 목록으로 매번 새로
 // 만든다(달마다 일수가 다르므로 고정 파일로는 못 맞춘다). 별도 선택 없이 "설정"
-// 연/월을 그대로 쓴다 — 원티드표는 늘 같은 달 것이라 따로 고를 필요가 없다.
+// 연/월을 그대로 쓴다 — 원티드표는 늘 같은 달 것이라 따로 고를 필요가 없다. 인원의
+// 직급·숙련도·가능근무·비고까지 현재 값으로 미리 채워 내려줘서, 다시 올릴 때 필요한
+// 부분만 고치면 된다.
 window.downloadWantedTemplate = async function () {
   const year = parseInt($("#f_year").value, 10);
   const month = parseInt($("#f_month").value, 10);
-  const staff_ids = formStaff.map(s => s.id);
+  const staff = formStaff.map(s => ({ id: s.id, role: s.role, level: s.level,
+                                      allowed_shifts: s.allowed, flags: s.flags }));
   const { raw: bytes } = await callWorker("/api/download/wanted_template",
-    { body: JSON.stringify({ year, month, staff_ids }) });
+    { body: JSON.stringify({ year, month, staff }) });
   triggerDownload(bytes, `입력2_원티드표_${year}-${String(month).padStart(2, "0")}.xlsx`,
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 };
@@ -429,7 +428,8 @@ const INFO_HTML_INPUT = `
 <h3>사용 순서</h3>
 <ul>
 <li><b>1. 입력</b> — 지금 이 화면입니다. 샘플 데이터가 기본으로 채워져 있습니다. 그대로 써도 되고,
-엑셀을 업로드해 통째로 바꾸거나, 표를 직접 고쳐도 됩니다.</li>
+엑셀을 업로드해 통째로 바꿔도 됩니다. 설정·최소인력은 화면에서 직접 고칠 수도 있습니다.
+인원(직급·숙련도·가능근무)은 입력②에서만 받습니다.</li>
 <li><b>2. 생성</b> — "근무표 생성" 버튼 한 번으로 자동 배정됩니다.</li>
 <li><b>3. 편집 → 재생성 적용 → 다운로드</b> — 근무표가 만들어지면 그 결과 화면으로 넘어갑니다.
 그 화면에서 이 사용법 버튼을 다시 누르면 편집·다운로드 등 다음 단계에 맞는 설명이 나옵니다.</li>
@@ -542,29 +542,28 @@ window.toggleHolidayDate = function (iso) {
   renderHolidayCalendar();
 };
 
-window.toggleManualForm = function () {
-  const toggle = $("#manualToggle");
-  const wrap = $("#manualFormWrap");
-  const expanded = toggle.getAttribute("aria-expanded") === "true";
-  toggle.setAttribute("aria-expanded", expanded ? "false" : "true");
-  wrap.classList.toggle("collapsed", expanded);
-};
-
 function fillForm(cfg) {
   $("#f_ward").value = cfg.ward_id || "";
   $("#f_year").value = cfg.year;
   $("#f_month").value = cfg.month;
   const p = cfg.params || {};
   $("#f_maxnights").value = p.off_max_per_month ?? 6;
+  $("#f_maxconsecutive").value = p.max_consecutive_work ?? 5;
+  $("#f_nightquota_low").value = p.night_quota_low ?? 4;
+  $("#f_nightquota_high").value = p.night_quota_high ?? 6;
+  $("#f_advanced_track").value = (p.advanced_track_staff || []).join("\n");
+  updateAdvancedTrackCount();
   formHolidays = [...(p.holidays || [])];
   formSubHolidays = [...(p.substitute_holidays || [])];
   renderHolidayCalendar();
 
+  // 입력①에도 인원 정보가 있으면 일단 반영한다 — 이후 입력②를 업로드하면 그쪽이
+  // 우선해서 덮어쓴다(입력①의 인원 기능은 과도기 지원용, 입력②가 있으면 항상 이김).
   formStaff = (cfg.staff || []).map(s => ({
     id: s.id, role: s.role, level: s.level,
     allowed: [...(s.allowed_shifts || [])], flags: [...(s.flags || [])],
   }));
-  renderStaffTable();
+  renderStaffSummary();
 
   $("#f_team_b").value = (p.team_b_names || []).join("\n");
   updateTeamBCount();
@@ -578,7 +577,6 @@ function fillForm(cfg) {
   }
 
   formRequests = (cfg.requests || []).map(r => ({ ...r, priority: r.priority ?? 1 }));
-  renderReqTable();
 
   formCarryover = Object.entries(cfg.prev_month_carryover || {}).map(([sid, v]) => ({
     staff_id: sid, last_shift_type: v.last_shift_type || "OFF",
@@ -586,7 +584,6 @@ function fillForm(cfg) {
     night_block_remaining_off: v.night_block_remaining_off || 0,
     trailing_night_count: v.trailing_night_count || 0,
   }));
-  renderCarryTable();
 }
 
 function renderMinStaffTable() {
@@ -599,61 +596,15 @@ function renderMinStaffTable() {
 }
 renderMinStaffTable();
 
-function flagsToTag(flags) {
-  if (flags.includes("night_only")) return "night_only";
-  if (flags.includes("pregnant")) return "pregnant";
-  if (flags.includes("no_night")) return "no_night";
-  return "";
+// 인원(직급/숙련도/가능근무/비고) · 원티드 신청 · 전월이월은 더 이상 화면에서 직접
+// 타이핑하지 않는다 — 인원+원티드는 입력②, 전월이월은 입력③이 전담한다(둘 다 파일
+// 업로드로만 채워짐). formStaff/formRequests/formCarryover는 여전히 그 업로드 결과를
+// 담는 내부 상태로 남아있고, 아래 요약 텍스트로만 화면에 반영 상태를 보여준다.
+function renderStaffSummary() {
+  const el = $("#staffSummary");
+  if (!el) return;
+  el.textContent = formStaff.length ? `현재 인원: ${formStaff.length}명` : "";
 }
-
-function renderStaffTable() {
-  const body = $("#staffBody");
-  body.innerHTML = formStaff.map((s, i) => {
-    const chk = ALLOWED_OPTIONS.map(sh =>
-      `<label><input type="checkbox" data-i="${i}" data-sh="${sh}" class="allowedChk" ${s.allowed.includes(sh) ? "checked" : ""}>${sh}</label>`
-    ).join("");
-    const flagTag = flagsToTag(s.flags);
-    const flagSel = `<select data-i="${i}" class="flagSel">` +
-      FLAG_OPTIONS.map(([v, l]) => `<option value="${v}" ${v === flagTag ? "selected" : ""}>${l}</option>`).join("") +
-      `</select>`;
-    return `<tr>
-      <td data-label="#">${i + 1}</td>
-      <td data-label="이름"><input type="text" data-i="${i}" class="nameInp" value="${escAttr(s.id)}"></td>
-      <td data-label="직급"><select data-i="${i}" class="roleSel">
-            <option ${s.role === "파트장" ? "selected" : ""}>파트장</option>
-            <option ${s.role === "리더" ? "selected" : ""}>리더</option>
-            <option ${s.role === "간호사" ? "selected" : ""}>간호사</option>
-          </select></td>
-      <td data-label="Lv"><input type="number" data-i="${i}" class="levelInp" min="1" max="5" value="${s.level}" style="width:44px"></td>
-      <td data-label="가능근무"><div class="chk-group">${chk}</div></td>
-      <td data-label="비고">${flagSel}</td>
-      <td data-label=""><button class="row-del" data-i="${i}" onclick="delStaff(${i})">삭제</button></td>
-    </tr>`;
-  }).join("");
-  $("#staffCount").textContent = formStaff.length + "명";
-
-  body.querySelectorAll(".nameInp").forEach(el => el.oninput = e => formStaff[+e.target.dataset.i].id = e.target.value);
-  body.querySelectorAll(".roleSel").forEach(el => el.onchange = e => formStaff[+e.target.dataset.i].role = e.target.value);
-  body.querySelectorAll(".levelInp").forEach(el => el.oninput = e => formStaff[+e.target.dataset.i].level = parseInt(e.target.value || "1", 10));
-  body.querySelectorAll(".allowedChk").forEach(el => el.onchange = e => {
-    const i = +e.target.dataset.i, sh = e.target.dataset.sh;
-    const s = formStaff[i];
-    if (e.target.checked) { if (!s.allowed.includes(sh)) s.allowed.push(sh); }
-    else { s.allowed = s.allowed.filter(x => x !== sh); }
-  });
-  body.querySelectorAll(".flagSel").forEach(el => el.onchange = e => {
-    const i = +e.target.dataset.i, v = e.target.value;
-    formStaff[i].flags = v ? [v] : [];
-    if (v === "night_only") formStaff[i].allowed = ["NK"];
-  });
-}
-window.delStaff = (i) => { formStaff.splice(i, 1); renderStaffTable(); };
-
-$("#addStaffBtn").onclick = () => {
-  formStaff.push({ id: `새간호사${formStaff.length + 1}`, role: "간호사", level: 2,
-                   allowed: ["D", "E", "N", "prn"], flags: [] });
-  renderStaffTable();
-};
 
 function updateTeamBCount() {
   const n = teamBNamesFromForm().length;
@@ -664,61 +615,14 @@ function teamBNamesFromForm() {
 }
 $("#f_team_b").oninput = updateTeamBCount;
 
-const REQUEST_TYPES = ["OFF", "연차", "연4", "D", "E", "N", "prn", "8A", "NK", "T",
-                       "조", "경", "공", "병", "휴", "승"];
-
-function renderReqTable() {
-  const body = $("#reqBody");
-  const staffOptions = formStaff.map(s => `<option value="${escAttr(s.id)}">${esc(s.id)}</option>`).join("");
-  body.innerHTML = formRequests.map((r, i) => `<tr>
-    <td data-label="이름"><select data-i="${i}" class="rq_sid">${staffOptions}</select></td>
-    <td data-label="날짜"><input type="date" data-i="${i}" class="rq_date" value="${escAttr(r.date || "")}" style="width:140px"></td>
-    <td data-label="유형"><select data-i="${i}" class="rq_type">
-      ${REQUEST_TYPES.map(t => `<option ${r.type===t?"selected":""}>${t}</option>`).join("")}
-    </select></td>
-    <td data-label="우선순위"><input type="number" data-i="${i}" class="rq_pri" value="${r.priority}" style="width:44px"></td>
-    <td data-label=""><button class="row-del" onclick="delReq(${i})">삭제</button></td>
-  </tr>`).join("");
-  $("#reqCount").textContent = formRequests.length + "건";
-  body.querySelectorAll(".rq_sid").forEach(el => { el.value = formRequests[+el.dataset.i].staff_id; el.onchange = e => formRequests[+e.target.dataset.i].staff_id = e.target.value; });
-  body.querySelectorAll(".rq_date").forEach(el => el.oninput = e => formRequests[+e.target.dataset.i].date = e.target.value);
-  body.querySelectorAll(".rq_type").forEach(el => el.onchange = e => formRequests[+e.target.dataset.i].type = e.target.value);
-  body.querySelectorAll(".rq_pri").forEach(el => el.oninput = e => formRequests[+e.target.dataset.i].priority = parseInt(e.target.value || "1", 10));
+function updateAdvancedTrackCount() {
+  const n = advancedTrackFromForm().length;
+  $("#advancedTrackCount").textContent = n ? `${n}명` : "";
 }
-window.delReq = (i) => { formRequests.splice(i, 1); renderReqTable(); };
-$("#addReqBtn").onclick = () => {
-  const first = formStaff[0]?.id || "";
-  formRequests.push({ staff_id: first, date: "", type: "OFF", priority: 1 });
-  renderReqTable();
-};
-
-function renderCarryTable() {
-  const body = $("#carryBody");
-  const staffOptions = formStaff.map(s => `<option value="${escAttr(s.id)}">${esc(s.id)}</option>`).join("");
-  body.innerHTML = formCarryover.map((c, i) => `<tr>
-    <td data-label="이름"><select data-i="${i}" class="cy_sid">${staffOptions}</select></td>
-    <td data-label="마지막근무"><select data-i="${i}" class="cy_last">
-      ${["OFF","D","E","N","NK","prn","연차"].map(t => `<option ${c.last_shift_type===t?"selected":""}>${t}</option>`).join("")}
-    </select></td>
-    <td data-label="연속근무일"><input type="number" data-i="${i}" class="cy_cons" value="${c.consecutive_work_days}" style="width:50px"></td>
-    <td data-label="이월OFF일"><input type="number" data-i="${i}" class="cy_roff" value="${c.night_block_remaining_off}" style="width:50px"></td>
-    <td data-label="말일연속야간"><input type="number" data-i="${i}" class="cy_trail" value="${c.trailing_night_count}" style="width:50px"></td>
-    <td data-label=""><button class="row-del" onclick="delCarry(${i})">삭제</button></td>
-  </tr>`).join("");
-  $("#carryCount").textContent = formCarryover.length + "건";
-  body.querySelectorAll(".cy_sid").forEach(el => { el.value = formCarryover[+el.dataset.i].staff_id; el.onchange = e => formCarryover[+e.target.dataset.i].staff_id = e.target.value; });
-  body.querySelectorAll(".cy_last").forEach(el => el.onchange = e => formCarryover[+e.target.dataset.i].last_shift_type = e.target.value);
-  body.querySelectorAll(".cy_cons").forEach(el => el.oninput = e => formCarryover[+e.target.dataset.i].consecutive_work_days = parseInt(e.target.value || "0", 10));
-  body.querySelectorAll(".cy_roff").forEach(el => el.oninput = e => formCarryover[+e.target.dataset.i].night_block_remaining_off = parseInt(e.target.value || "0", 10));
-  body.querySelectorAll(".cy_trail").forEach(el => el.oninput = e => formCarryover[+e.target.dataset.i].trailing_night_count = parseInt(e.target.value || "0", 10));
+function advancedTrackFromForm() {
+  return $("#f_advanced_track").value.split("\n").map(s => s.trim()).filter(Boolean);
 }
-window.delCarry = (i) => { formCarryover.splice(i, 1); renderCarryTable(); };
-$("#addCarryBtn").onclick = () => {
-  const first = formStaff[0]?.id || "";
-  formCarryover.push({ staff_id: first, last_shift_type: "OFF", consecutive_work_days: 0,
-                       night_block_remaining_off: 0, trailing_night_count: 0 });
-  renderCarryTable();
-};
+$("#f_advanced_track").oninput = updateAdvancedTrackCount;
 
 function buildCfgFromForm() {
   const holidays = [...formHolidays];
@@ -751,7 +655,11 @@ function buildCfgFromForm() {
       nk_count: nkCount, min_staff: minStaff,
       leader_8a_as_prn: false,  // 웹 UI에 없는 설정이라 항상 기본값
       off_max_per_month: parseInt($("#f_maxnights").value || "6", 10),
-      holidays, substitute_holidays: subhol, advanced_track_staff: [],
+      max_consecutive_work: parseInt($("#f_maxconsecutive").value || "5", 10),
+      night_quota_low: parseInt($("#f_nightquota_low").value || "4", 10),
+      night_quota_high: parseInt($("#f_nightquota_high").value || "6", 10),
+      holidays, substitute_holidays: subhol,
+      advanced_track_staff: advancedTrackFromForm(),
       team_b_names: teamBNamesFromForm(),
     },
     prev_month_carryover: carry,
@@ -770,13 +678,6 @@ document.querySelectorAll(".upload-btn[data-target]").forEach(btn => {
 });
 // "양식(다운로드)" — <a download>였던 걸 <button>으로 바꿨으니, 클릭 시 임시 <a>를
 // 만들어 다운로드를 대신 트리거한다(파일명 지정 등 기존 동작은 그대로 유지).
-$("#manualToggle").addEventListener("keydown", (e) => {
-  if (e.key === "Enter" || e.key === " ") {
-    e.preventDefault();
-    window.toggleManualForm();
-  }
-});
-
 document.querySelectorAll(".upload-btn[data-href]").forEach(btn => {
   btn.onclick = () => {
     const a = document.createElement("a");
@@ -805,8 +706,8 @@ $("#fileInput").onchange = async () => {
 
 $("#fileClearBtn").onclick = () => {
   formStaff = [];
-  renderStaffTable();
-  $("#uploadStatus").textContent = "반영 해제했습니다 — 인원표를 다시 올리거나 직접입력에서 채우세요.";
+  renderStaffSummary();
+  $("#uploadStatus").textContent = "반영 해제했습니다 — 인원표를 다시 올리세요.";
   $("#fileClearBtn").style.display = "none";
   showToast("입력① 반영을 해제했습니다");
 };
@@ -819,20 +720,31 @@ $("#wantedInput").onchange = async () => {
     const bytes = new Uint8Array(await f.arrayBuffer());
     const data = await api("/api/upload_wanted", { _fileBytes: bytes });
     formRequests = data.requests.map(r => ({ ...r, priority: 1 }));  // 이전 신청 목록을 통째로 대체
-    renderReqTable();
+    // 이 파일에 인원 정보(직급·숙련도·가능근무·비고)가 있으면 항상 우선해서 덮어쓴다 —
+    // 입력①에서 온 인원 정보가 있었더라도 입력②가 있으면 입력②가 이긴다.
+    const staffUpdated = (data.staff || []).length > 0;
+    if (staffUpdated) {
+      formStaff = data.staff.map(s => ({
+        id: s.id, role: s.role, level: s.level,
+        allowed: [...(s.allowed_shifts || [])], flags: [...(s.flags || [])],
+      }));
+      renderStaffSummary();
+    }
     const unk = (data.unknown_marks || []).length;
     clearUploadError(statusEl);
     statusEl.textContent =
-      `${data.year}년 ${data.month}월 표에서 ${formRequests.length}건 인식` +
+      `${data.year}년 ${data.month}월 표에서 신청 ${formRequests.length}건` +
+      (staffUpdated ? `, 인원 ${data.staff.length}명 인식` : " 인식") +
       (unk ? ` (인식 못 한 표시 ${unk}개: ${data.unknown_marks.join(", ")})` : "");
     $("#wantedClearBtn").style.display = "";
-    showToast(data.warning || `원티드 ${formRequests.length}건을 자동으로 채웠습니다`, !!data.warning);
+    showToast(data.warning ||
+      `원티드 ${formRequests.length}건${staffUpdated ? `, 인원 ${data.staff.length}명` : ""}을 자동으로 채웠습니다`,
+      !!data.warning);
   } catch (e) { showUploadError(statusEl, e); } finally { $("#wantedInput").value = ""; }
 };
 
 $("#wantedClearBtn").onclick = () => {
   formRequests = [];
-  renderReqTable();
   $("#wantedStatus").textContent = "반영 해제했습니다.";
   $("#wantedClearBtn").style.display = "none";
   showToast("입력② 반영을 해제했습니다");
@@ -877,7 +789,7 @@ $("#staffTableInput").onchange = async () => {
       id: s.id, role: s.role, level: s.level,
       allowed: [...(s.allowed_shifts || [])], flags: [...(s.flags || [])],
     }));
-    renderStaffTable();
+    renderStaffSummary();
     clearUploadError(statusEl);
     statusEl.textContent =
       `인원 ${formStaff.length}명, 누적 통계·이월정보 반영 (연간 근무표 ${data.annual_days}일치 포함)`;

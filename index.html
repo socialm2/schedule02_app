@@ -61,14 +61,15 @@
         <div class="intake-box">
           <h2>1. 기본 사항 입력</h2>
           <p class="hint">아래 표는 샘플 병동 데이터로 미리 채워져 있습니다.
-          그대로 <b>바로 생성</b>을 눌러도 되고, 엑셀을 업로드해 값을 통째로 바꾸거나,
-          표를 직접 고쳐서 우리 병동 데이터로 바꿔도 됩니다.</p>
+          그대로 <b>바로 생성</b>을 눌러도 되고, 엑셀을 업로드해 값을 통째로 바꿔도 됩니다.
+          설정·최소인력 칸은 화면에서 직접 고칠 수도 있습니다. 인원(직급·숙련도·가능근무)은
+          입력②에서만 받습니다.</p>
 
           <div class="upload-section">
-            <h3>파일업로드 <span class="hint">모두 선택사항입니다. 안 올리면 아래 직접입력에서 채우면 됩니다.</span></h3>
+            <h3>파일업로드 <span class="hint">입력①은 설정·최소인력을 담당합니다. 인원 정보는 입력②에서 받습니다.</span></h3>
 
             <div class="upload-item">
-              <div class="upload-item-label">입력① 병동인력표 <span class="hint">필수정보(설정·인원·최소인력)</span></div>
+              <div class="upload-item-label">입력① 병동인력표 <span class="hint">필수정보(설정·최소인력)</span></div>
               <div class="upload-row">
                 <input type="file" id="fileInput" accept=".xlsx" class="file-input-hidden">
                 <button type="button" class="upload-btn" data-target="fileInput">업로드</button>
@@ -77,46 +78,9 @@
               <button id="fileClearBtn" class="small" style="display:none">반영 해제</button>
               <span id="uploadStatus" class="hint"></span>
             </div>
-
-            <div class="upload-item">
-              <div class="upload-item-label">입력② 원티드표
-                <span class="hint">OCS형식으로 직접 입력해주세요</span>
-              </div>
-              <div class="upload-row">
-                <input type="file" id="wantedInput" accept=".xlsx" class="file-input-hidden">
-                <button type="button" class="upload-btn" data-target="wantedInput">업로드</button>
-                <button type="button" class="upload-btn format-btn" onclick="downloadWantedTemplate()">양식(다운로드)</button>
-              </div>
-              <button id="wantedClearBtn" class="small" style="display:none">반영 해제</button>
-              <span id="wantedStatus" class="hint"></span>
-            </div>
-
-            <div class="upload-item">
-              <div class="upload-item-label">입력③ 연간근무표 <span class="hint">전월 연간근무표를 입력해주세요</span></div>
-              <p class="hint" id="staffTableActive" style="display:none"></p>
-              <div class="upload-row">
-                <input type="file" id="staffTableInput" accept=".xlsx" class="file-input-hidden">
-                <button type="button" class="upload-btn" data-target="staffTableInput">업로드</button>
-                <button type="button" class="upload-btn format-btn" data-href="templates/입력3_연간근무표_2026-08.xlsx" data-download="입력3_연간근무표_2026-08.xlsx">양식(다운로드)</button>
-              </div>
-              <button id="staffTableClearBtn" class="small" style="display:none">반영 해제</button>
-              <span id="staffTableStatus" class="hint"></span>
-            </div>
-
-            <div class="generate-row generate-row-mid">
-              <button id="generateBtnMid" class="primary big">근무표 생성</button>
-              <span id="genStatusMid" class="hint"></span>
-            </div>
           </div>
 
-          <div class="manual-section">
-          <h3 class="manual-sec-title manual-toggle" id="manualToggle" role="button" tabindex="0"
-              aria-expanded="false" aria-controls="manualFormWrap" onclick="toggleManualForm()">
-            <span class="manual-toggle-arrow">▸</span>직접입력
-            <span class="hint">파일을 올리면 여기도 자동으로 채워집니다. (클릭해서 펼치기)</span>
-          </h3>
-
-          <div id="manualFormWrap" class="manual-form-wrap collapsed">
+          <div class="info-section">
           <details class="form-sec" open>
             <summary>설정</summary>
             <div class="form-grid">
@@ -128,6 +92,9 @@
                 </span>
               </label>
               <label>월 최대야간 <input type="number" id="f_maxnights" style="width:60px"></label>
+              <label>연속근무제한 <input type="number" id="f_maxconsecutive" min="1" style="width:60px"></label>
+              <label>야간목표하한 <input type="number" id="f_nightquota_low" min="0" style="width:60px"></label>
+              <label>야간목표상한 <input type="number" id="f_nightquota_high" min="0" style="width:60px"></label>
             </div>
             <div class="holiday-cal-wrap">
               <div class="holiday-cal-head">
@@ -151,55 +118,51 @@
             </div>
           </details>
 
-          <details class="form-sec" open>
-            <summary>인원 <span class="count-badge" id="staffCount"></span></summary>
-            <div class="tablebox">
-              <table class="form-table" id="staffTable">
-                <thead><tr><th>#</th><th>이름</th><th>직급</th><th>Lv</th>
-                  <th>가능근무</th><th>비고</th><th></th></tr></thead>
-                <tbody id="staffBody"></tbody>
-              </table>
-            </div>
-            <button id="addStaffBtn" class="small">+ 인원 추가</button>
+          <details class="form-sec">
+            <summary>심화과정대상 <span class="count-badge" id="advancedTrackCount"></span> (선택)</summary>
+            <p class="hint">한 줄에 한 명씩 이름을 입력하세요.</p>
+            <textarea id="f_advanced_track" rows="3" placeholder="예)&#10;1&#10;2"></textarea>
           </details>
 
-          <details class="form-sec">
+          <details class="form-sec" open>
             <summary>B팀(신입) <span class="count-badge" id="teamBCount"></span> (선택)</summary>
             <p class="hint">근무 배정에는 전혀 관여하지 않고, 이름만 출력 근무표의 'B' 구분란에
             빈칸으로 표시됩니다 — 파트장이 직접 배정하세요. 한 줄에 한 명씩 입력.</p>
             <textarea id="f_team_b" rows="3" placeholder="예)&#10;김신입&#10;이신입"></textarea>
           </details>
-
-          <details class="form-sec">
-            <summary>원티드 신청 <span class="count-badge" id="reqCount"></span> (선택)</summary>
-            <div class="tablebox">
-              <table class="form-table" id="reqTable">
-                <thead><tr><th>이름</th><th>날짜</th><th>유형</th><th>우선순위</th><th></th></tr></thead>
-                <tbody id="reqBody"></tbody>
-              </table>
-            </div>
-            <button id="addReqBtn" class="small">+ 신청 추가</button>
-          </details>
-
-          <details class="form-sec">
-            <summary>전월이월 <span class="count-badge" id="carryCount"></span> (선택)</summary>
-            <p class="hint">보통은 위 <b>입력③ 연간근무표</b>를 업로드하면 이월정보가 자동으로 계산되어 반영됩니다
-            (이 표에는 따로 표시되지 않지만 생성 시 실제로 적용됩니다). 직접 입력은 지난달 근무표를 하루하루
-            세어야 해서 번거로우니, 입력③이 없을 때만 예외적으로 쓰세요.</p>
-            <div class="tablebox">
-              <table class="form-table" id="carryTable">
-                <thead><tr><th>이름</th><th>마지막근무</th><th>연속근무일</th><th>이월OFF일</th><th>말일연속야간</th><th></th></tr></thead>
-                <tbody id="carryBody"></tbody>
-              </table>
-            </div>
-            <button id="addCarryBtn" class="small">+ 이월 추가</button>
-          </details>
-
-          <div class="generate-row">
-            <button id="generateBtn" class="primary big">근무표 생성</button>
-            <span id="genStatus" class="hint"></span>
           </div>
-          </div>
+
+          <div class="upload-section">
+            <div class="upload-item">
+              <div class="upload-item-label">입력② 원티드표
+                <span class="hint">인원(직급·숙련도·가능근무·비고)과 원티드 신청을 여기서 받습니다</span>
+              </div>
+              <span id="staffSummary" class="hint"></span>
+              <div class="upload-row">
+                <input type="file" id="wantedInput" accept=".xlsx" class="file-input-hidden">
+                <button type="button" class="upload-btn" data-target="wantedInput">업로드</button>
+                <button type="button" class="upload-btn format-btn" onclick="downloadWantedTemplate()">양식(다운로드)</button>
+              </div>
+              <button id="wantedClearBtn" class="small" style="display:none">반영 해제</button>
+              <span id="wantedStatus" class="hint"></span>
+            </div>
+
+            <div class="upload-item">
+              <div class="upload-item-label">입력③ 연간근무표 <span class="hint">전월 연간근무표를 입력해주세요</span></div>
+              <p class="hint" id="staffTableActive" style="display:none"></p>
+              <div class="upload-row">
+                <input type="file" id="staffTableInput" accept=".xlsx" class="file-input-hidden">
+                <button type="button" class="upload-btn" data-target="staffTableInput">업로드</button>
+                <button type="button" class="upload-btn format-btn" data-href="templates/입력3_연간근무표_2026-08.xlsx" data-download="입력3_연간근무표_2026-08.xlsx">양식(다운로드)</button>
+              </div>
+              <button id="staffTableClearBtn" class="small" style="display:none">반영 해제</button>
+              <span id="staffTableStatus" class="hint"></span>
+            </div>
+
+            <div class="generate-row">
+              <button id="generateBtn" class="primary big">근무표 생성</button>
+              <span id="genStatus" class="hint"></span>
+            </div>
           </div>
         </div>
       </div>

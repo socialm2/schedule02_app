@@ -303,26 +303,11 @@ td.disabled { cursor: default; opacity: .55; }
 .upload-btn.format-btn { font-weight: 500; }
 .upload-btn.format-btn:hover { filter: brightness(.95); }
 #staffTableClearBtn { margin-bottom: 4px; }
-/* 파일로 채우기 박스 안, 업로드 목록 밑에 붙는 생성 버튼 — 점선 구분선으로 살짝 떼어낸다 */
-.upload-section .generate-row-mid {
-  margin: 14px 0 0; padding-top: 16px; border-top: 1px dashed var(--line);
-}
-/* 상단(업로드 후)·하단(직접입력 후) 생성 버튼을 같은 크기(가로로 꽉 채움)로 통일 */
 .generate-row button.big { flex: 1; }
-.manual-section {
+.info-section {
   background: var(--paper); border: 1px solid var(--line); border-radius: 10px;
   padding: 16px 18px; margin-bottom: 20px;
 }
-.manual-sec-title { font-size: 13.5px; margin: 4px 0 10px; }
-.manual-sec-title .hint { display: block; font-weight: 400; margin: 3px 0 0; }
-.manual-toggle { cursor: pointer; user-select: none; }
-.manual-toggle:hover { color: var(--accent); }
-.manual-toggle-arrow {
-  display: inline-block; margin-right: 5px; font-size: 11px; color: var(--sub);
-  transition: transform .15s;
-}
-.manual-toggle[aria-expanded="true"] .manual-toggle-arrow { transform: rotate(90deg); }
-.manual-form-wrap.collapsed { display: none; }
 
 details.form-sec {
   border: 1px solid var(--line); border-radius: 9px; margin-bottom: 12px; overflow: hidden;
@@ -351,7 +336,7 @@ details.form-sec > *:not(summary) { padding: 14px; }
 }
 .form-grid label:has(input[type=checkbox]) { flex-direction: row; align-items: center; font-weight: 600; }
 
-#f_team_b {
+#f_team_b, #f_advanced_track {
   font-family: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--line);
   border-radius: 6px; background: var(--card); color: var(--ink); width: 100%;
   box-sizing: border-box; resize: vertical;
