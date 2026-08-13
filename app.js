@@ -1164,9 +1164,11 @@ function renderSide() {
     <div class="kpi"><div class="v">${r.soft_count}</div><div class="l">소프트</div></div>
     <div class="kpi"><div class="v">${ST.round}</div><div class="l">회차</div></div>
   </div>`;
-  if (r.hard_count > 0) {
+  if (r.hard.length > 0) {
+    // 정말 못 채운 것(빨강)과 최선노력 규칙만 남은 것(노랑)을 구분해서 보여준다 —
+    // 둘 다 같은 class="hard"로만 나가서 구분이 안 되던 것을 고침.
     html += '<ul class="issue-list">' + r.hard.slice(0, 8).map(v =>
-      `<li class="hard"><span class="rule">${esc(v.rule)}</span>${esc(v.message)}</li>`).join("") + "</ul>";
+      `<li class="${v.best_effort ? "soft" : "hard"}"><span class="rule">${esc(v.rule)}</span>${esc(v.message)}</li>`).join("") + "</ul>";
   }
   html += "</div>";
 
