@@ -1065,6 +1065,7 @@ function renderGrid() {
     html += "</tr>";
   }
   html += "</tbody></table></div>";
+  html += renderLevelSummary();
   gridContent.innerHTML = html;
   $("#backToInputBtn").onclick = () => {
     ST = null;
@@ -1075,6 +1076,48 @@ function renderGrid() {
     $("#intake").style.display = "block";
     sidePane.style.display = "none";
   };
+}
+
+// 근무유형별 레벨평균 — generator.py의 _shift_level_target/_record_level_assignment와
+// 같은 기준(파트장 제외 인원의 평균 레벨을 목표로, D/E/N(NK 포함)/prn(8A 포함)별
+// 실제 평균과 비교)으로 화면 그리드(미적용 편집 포함)에서 매번 다시 계산한다 —
+// 잔휴·D/E/N 칸과 같은 패턴으로, 파트장이 칸을 수정하면 재생성 없이 즉시 갱신된다.
+const LEVEL_SHIFT_KEY = { D: "D", E: "E", N: "N", NK: "N", prn: "prn", "8A": "prn" };
+
+function computeLevelAverages() {
+  const generals = ST.staff.filter(s => !s.is_partjang);
+  const target = generals.length
+    ? generals.reduce((sum, s) => sum + s.level, 0) / generals.length
+    : 0;
+  const sums = { D: 0, E: 0, N: 0, prn: 0 };
+  const cnts = { D: 0, E: 0, N: 0, prn: 0 };
+  for (const s of generals) {
+    const row = ST.grid[s.id];
+    for (const v of row) {
+      const key = LEVEL_SHIFT_KEY[v];
+      if (!key) continue;
+      sums[key] += s.level;
+      cnts[key] += 1;
+    }
+  }
+  const avg = key => (cnts[key] > 0 ? sums[key] / cnts[key] : null);
+  return { target, D: avg("D"), E: avg("E"), N: avg("N"), prn: avg("prn") };
+}
+
+function renderLevelSummary() {
+  const a = computeLevelAverages();
+  const fmt = v => (v === null ? "–" : v.toFixed(2));
+  // 목표(병동 평균) 대비 ±0.3 이상 벗어나면 눈에 띄게 표시 — 하드 기준은 아니고
+  // 참고용 소프트 지표라 색만 살짝 다르게 준다(빨강/주황 같은 위반색은 피함).
+  const dev = (v) => v !== null && Math.abs(v - a.target) >= 0.3;
+  const cell = (label, v) =>
+    `<div class="level-summary-item${dev(v) ? " off" : ""}"><span class="lbl">${label}</span><span class="val">${fmt(v)}</span></div>`;
+  return `<div class="level-summary">
+    <span class="level-summary-title">레벨평균 (파트장 제외, 목표 ${a.target.toFixed(2)})</span>
+    <div class="level-summary-row">
+      ${cell("D", a.D)}${cell("E", a.E)}${cell("N", a.N)}${cell("prn/8A", a.prn)}
+    </div>
+  </div>`;
 }
 
 window.openPicker = function (ev, sid, day) {

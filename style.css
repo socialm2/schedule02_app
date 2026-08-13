@@ -256,6 +256,14 @@ td.disabled { cursor: default; opacity: .55; }
 .status-banner.ok { color: var(--ok); background: var(--ok-soft); }
 .status-banner.warn { color: var(--warn); background: var(--warn-soft); }
 .status-banner.bad { color: var(--hard); background: var(--hard-soft); }
+.level-summary { background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 14px; margin: 12px 0 0; }
+.level-summary-title { font-size: 12px; color: var(--sub); font-weight: 600; }
+.level-summary-row { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 6px; }
+.level-summary-item { display: flex; align-items: baseline; gap: 6px; }
+.level-summary-item .lbl { font-size: 12px; color: var(--sub); font-weight: 600; }
+.level-summary-item .val { font-size: 15px; font-weight: 700; }
+.level-summary-item.off .val { color: var(--warn); }
 .intake-box .hint { color: var(--sub); font-size: 12.5px; margin: 0 0 14px; }
 .hint.upload-error {
   color: var(--hard); font-weight: 600; white-space: pre-line; display: block;
