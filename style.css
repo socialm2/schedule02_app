@@ -160,6 +160,10 @@ tr.team-b-divider td {
   background: var(--code-bg); color: var(--sub); font-weight: 700; text-align: left;
   padding: 4px 10px; cursor: default;
 }
+/* 날짜별 레벨 통계(레벨평균·Lv4-5·Lv1-3) — 그리드 맨 아래에 붙는 3개 행, 날짜 열과
+   1:1로 정렬되도록 같은 table 안에 그대로 이어 붙인다(별도 표 아님) */
+tr.level-foot-row td.nm { font-weight: 700; }
+tr.level-foot-row:first-of-type td { border-top: 2px solid var(--accent); }
 
 td.sd span { background: #BDD7EE; color: #1C2523; }
 td.se span { background: #F8CBAD; color: #1C2523; }
@@ -262,15 +266,6 @@ td.disabled { cursor: default; opacity: .55; }
 .status-banner.ok { color: var(--ok); background: var(--ok-soft); }
 .status-banner.warn { color: var(--warn); background: var(--warn-soft); }
 .status-banner.bad { color: var(--hard); background: var(--hard-soft); }
-.level-summary { background: var(--card); border: 1px solid var(--line); border-radius: 10px;
-  padding: 10px 14px; margin: 12px 0 0; }
-.level-summary-title { font-size: 12px; color: var(--sub); font-weight: 600; }
-.level-summary-row { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 6px; }
-.level-summary-item { display: flex; flex-direction: column; gap: 2px; min-width: 92px; }
-.level-summary-item .head { display: flex; align-items: baseline; gap: 6px; }
-.level-summary-item .lbl { font-size: 12px; color: var(--sub); font-weight: 600; }
-.level-summary-item .val { font-size: 15px; font-weight: 700; }
-.level-summary-item .sub { font-size: 11px; color: var(--sub); }
 .intake-box .hint { color: var(--sub); font-size: 12.5px; margin: 0 0 14px; }
 .hint.upload-error {
   color: var(--hard); font-weight: 600; white-space: pre-line; display: block;
@@ -409,7 +404,6 @@ table.form-table input[type=text], table.form-table input[type=number], table.fo
   font-family: inherit; font-size: 12.5px; padding: 4px 6px; border: 1px solid var(--line);
   border-radius: 5px; background: var(--card); color: var(--ink); width: 100%; box-sizing: border-box;
 }
-table.form-table input[type=number] { width: 56px; }
 .chk-group { display: flex; gap: 6px; flex-wrap: wrap; }
 .chk-group label { display: flex; align-items: center; gap: 2px; font-size: 11.5px; font-weight: 600; cursor: pointer; }
 .row-del { color: var(--hard); border-color: var(--hard); padding: 2px 8px; font-size: 11px; }
@@ -504,7 +498,6 @@ table.compact-grid td.annual-sum, table.compact-grid th.annual-sum-h {
      근무(D/E/N/prn)가 세로로, 평일/토요일/일요일·공휴일이 가로 열로 유지 —
      좁으면 .tablebox가 가로 스크롤을 대신 떠맡는다 */
   .tablebox { overflow-x: auto; }
-  table.form-table input[type=number] { width: 44px; }
 
   table.grid { font-size: 10.5px; }
   table.grid td { min-width: 24px; height: 22px; }

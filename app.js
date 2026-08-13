@@ -373,7 +373,7 @@ window.downloadWantedTemplate = async function () {
   const staff = formStaff.map(s => ({ id: s.id, role: s.role, level: s.level,
                                       allowed_shifts: s.allowed, flags: s.flags }));
   const { raw: bytes } = await callWorker("/api/download/wanted_template",
-    { body: JSON.stringify({ year, month, staff }) });
+    { body: JSON.stringify({ year, month, staff, team_b_names: teamBNamesFromForm() }) });
   triggerDownload(bytes, `입력2_원티드표_${year}-${String(month).padStart(2, "0")}.xlsx`,
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 };
@@ -742,15 +742,22 @@ $("#wantedInput").onchange = async () => {
       }));
       renderStaffSummary();
     }
+    const teamB = data.team_b_names || [];
+    if (teamB.length) {
+      $("#f_team_b").value = teamB.join("\n");
+      updateTeamBCount();
+    }
     const unk = (data.unknown_marks || []).length;
     clearUploadError(statusEl);
     statusEl.textContent =
       `${data.year}년 ${data.month}월 표에서 신청 ${formRequests.length}건` +
       (staffUpdated ? `, 인원 ${data.staff.length}명 인식` : " 인식") +
+      (teamB.length ? `, B팀 ${teamB.length}명 인식` : "") +
       (unk ? ` (인식 못 한 표시 ${unk}개: ${data.unknown_marks.join(", ")})` : "");
     $("#wantedClearBtn").style.display = "";
     showToast(data.warning ||
-      `원티드 ${formRequests.length}건${staffUpdated ? `, 인원 ${data.staff.length}명` : ""}을 자동으로 채웠습니다`,
+      `원티드 ${formRequests.length}건${staffUpdated ? `, 인원 ${data.staff.length}명` : ""}` +
+      `${teamB.length ? `, B팀 ${teamB.length}명` : ""}을 자동으로 채웠습니다`,
       !!data.warning);
   } catch (e) {
     // 업로드가 반려돼도(값은 그대로) 화면엔 오류 문구가 계속 남으므로, 지울 방법이
@@ -1047,8 +1054,8 @@ function renderGrid() {
       html += "</tr>";
     }
   }
+  html += renderDailyLevelFootRows();
   html += "</tbody></table></div>";
-  html += renderLevelSummary();
   gridContent.innerHTML = html;
   $("#backToInputBtn").onclick = () => {
     ST = null;
@@ -1061,45 +1068,41 @@ function renderGrid() {
   };
 }
 
-// 근무유형별 레벨 통계 — D/E/N(NK 포함)/prn(8A 포함)별로 그 근무에 배정된 사람들의
+// 날짜별 레벨 통계 — 그 날 실제로 근무(D/E/N(NK 포함)/prn(8A 포함))에 배정된 사람들의
 // 평균 레벨과, 고랩(Lv4-5)·저랩(Lv1-3) 인원수를 화면 그리드(미적용 편집 포함)에서
-// 매번 다시 계산한다 — 잔휴·D/E/N 칸과 같은 패턴으로, 파트장이 칸을 수정하면
-// 재생성 없이 즉시 갱신된다. 엑셀 출력(excel_export.py export_excel_ocs)의
-// 하단 통계행도 같은 기준(파트장 제외, Lv4 이상/Lv3 이하 경계)으로 맞춰뒀다.
+// 매번 다시 계산해 그리드 맨 아래 행으로 붙인다 — 잔휴·D/E/N 칸과 같은 패턴으로,
+// 파트장이 칸을 수정하면 재생성 없이 즉시 갱신된다.
 const LEVEL_SHIFT_KEY = { D: "D", E: "E", N: "N", NK: "N", prn: "prn", "8A": "prn" };
 
-function computeLevelStats() {
+function computeDailyLevelStats() {
   const generals = ST.staff.filter(s => !s.is_partjang);
-  const levelsByKey = { D: [], E: [], N: [], prn: [] };
-  for (const s of generals) {
-    const row = ST.grid[s.id];
-    for (const v of row) {
-      const key = LEVEL_SHIFT_KEY[v];
-      if (key) levelsByKey[key].push(s.level);
+  const days = [];
+  for (let d = 0; d < ST.num_days; d++) {
+    const levels = [];
+    for (const s of generals) {
+      const v = ST.grid[s.id][d];
+      if (LEVEL_SHIFT_KEY[v]) levels.push(s.level);
     }
+    days.push({
+      avg: levels.length ? levels.reduce((a, b) => a + b, 0) / levels.length : null,
+      hi: levels.filter(l => l >= 4).length,
+      lo: levels.filter(l => l <= 3).length,
+    });
   }
-  const stat = (levels) => ({
-    avg: levels.length ? levels.reduce((a, b) => a + b, 0) / levels.length : null,
-    hi: levels.filter(l => l >= 4).length,
-    lo: levels.filter(l => l <= 3).length,
-  });
-  return { D: stat(levelsByKey.D), E: stat(levelsByKey.E), N: stat(levelsByKey.N), prn: stat(levelsByKey.prn) };
+  return days;
 }
 
-function renderLevelSummary() {
-  const st = computeLevelStats();
-  const fmt = v => (v.avg === null ? "–" : v.avg.toFixed(2));
-  const cell = (label, v) =>
-    `<div class="level-summary-item">
-      <div class="head"><span class="lbl">${label}</span><span class="val">${fmt(v)}</span></div>
-      <span class="sub">Lv4-5 ${v.hi}명 · Lv1-3 ${v.lo}명</span>
-    </div>`;
-  return `<div class="level-summary">
-    <span class="level-summary-title">근무별 레벨 통계 (파트장 제외)</span>
-    <div class="level-summary-row">
-      ${cell("D", st.D)}${cell("E", st.E)}${cell("N", st.N)}${cell("prn/8A", st.prn)}
-    </div>
-  </div>`;
+function renderDailyLevelFootRows() {
+  const days = computeDailyLevelStats();
+  const blankTail = '<td class="stat-col">–</td>'.repeat(7);
+  const blankHead = '<td class="stat-col">–</td><td class="stat-col">–</td>';
+  const rowHtml = (label, fmt) =>
+    `<tr class="level-foot-row"><td class="nm">${label}</td>${blankHead}` +
+    days.map(d => `<td class="stat-col">${fmt(d)}</td>`).join("") +
+    `${blankTail}</tr>`;
+  return rowHtml("레벨평균", d => (d.avg === null ? "–" : d.avg.toFixed(1))) +
+    rowHtml("Lv4-5", d => d.hi) +
+    rowHtml("Lv1-3", d => d.lo);
 }
 
 window.openPicker = function (ev, sid, day) {
