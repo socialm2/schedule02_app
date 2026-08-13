@@ -428,7 +428,7 @@ const INFO_HTML_INPUT = `
 <h3>사용 순서</h3>
 <ul>
 <li><b>1. 입력</b> — 지금 이 화면입니다. 샘플 데이터가 기본으로 채워져 있습니다. 그대로 써도 되고,
-엑셀을 업로드해 통째로 바꿔도 됩니다. 설정·최소인력은 화면에서 직접 고칠 수도 있습니다.
+엑셀을 업로드해 통째로 바꿔도 됩니다. 설정·근무인력은 화면에서 직접 고칠 수도 있습니다.
 인원(직급·숙련도·가능근무)은 입력②에서만 받습니다.</li>
 <li><b>2. 생성</b> — "근무표 생성" 버튼 한 번으로 자동 배정됩니다.</li>
 <li><b>3. 편집 → 재생성 적용 → 다운로드</b> — 근무표가 만들어지면 그 결과 화면으로 넘어갑니다.
@@ -1090,9 +1090,9 @@ window.undoEdit = undoEdit;
 function feasibilityBanner(r) {
   const total = r.hard.length;
   if (r.hard_count > 0) {
-    return `<p class="status-banner bad">⚠ 이 조건(인원수·최소인력 기준)으로는 안전 규칙까지
+    return `<p class="status-banner bad">⚠ 이 조건(인원수·근무인력 기준)으로는 안전 규칙까지
       전부 만족하는 배정을 찾지 못했습니다 — 필수 위반 ${r.hard_count}건이 남았습니다.
-      인원을 늘리거나 최소인력 기준을 낮추는 것을 검토해 주세요.</p>`;
+      인원을 늘리거나 근무인력 기준을 낮추는 것을 검토해 주세요.</p>`;
   }
   if (total > 0) {
     return `<p class="status-banner warn">이 조건에서 안전 규칙은 모두 지켰습니다. 다만 근무
@@ -1175,8 +1175,8 @@ function renderSide() {
     }).join("") +
     "</table></div></div>";
 
-  // 일별 최소인력
-  html += `<div class="side-sec"><h3>일별 최소인력 <span class="count-badge">${r.bad_days_count === 0 ? "전일 충족" : r.bad_days_count + "일 미달"}</span></h3>`;
+  // 일별 근무인력
+  html += `<div class="side-sec"><h3>일별 근무인력 <span class="count-badge">${r.bad_days_count === 0 ? "전일 충족" : r.bad_days_count + "일 미달"}</span></h3>`;
   if (r.bad_days_count > 0) {
     html += '<table class="mini-table"><tr><th>일</th><th>D</th><th>E</th><th>N</th><th>prn</th></tr>' +
       r.daily.filter(d => !d.ok).map(d =>
