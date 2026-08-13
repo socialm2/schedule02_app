@@ -701,13 +701,25 @@ $("#fileInput").onchange = async () => {
     statusEl.textContent = `"${f.name}" 값으로 표를 채웠습니다 — 검토 후 생성을 누르세요`;
     $("#fileClearBtn").style.display = "";
     showToast("업로드한 값으로 표를 채웠습니다");
-  } catch (e) { showUploadError(statusEl, e); } finally { $("#fileInput").value = ""; }
+  } catch (e) {
+    // 업로드가 반려돼도(값은 그대로) 화면엔 오류 문구가 계속 남으므로, 지울 방법이
+    // 있어야 한다 — 반영 해제 버튼을 오류 지우기 용도로 그대로 재사용한다.
+    showUploadError(statusEl, e);
+    $("#fileClearBtn").style.display = "";
+  } finally { $("#fileInput").value = ""; }
 };
 
 $("#fileClearBtn").onclick = () => {
+  const statusEl = $("#uploadStatus");
+  if (statusEl.classList.contains("upload-error")) {
+    clearUploadError(statusEl);
+    statusEl.textContent = "";
+    $("#fileClearBtn").style.display = "none";
+    return;
+  }
   formStaff = [];
   renderStaffSummary();
-  $("#uploadStatus").textContent = "반영 해제했습니다 — 인원표를 다시 올리세요.";
+  statusEl.textContent = "반영 해제했습니다 — 인원표를 다시 올리세요.";
   $("#fileClearBtn").style.display = "none";
   showToast("입력① 반영을 해제했습니다");
 };
@@ -740,12 +752,24 @@ $("#wantedInput").onchange = async () => {
     showToast(data.warning ||
       `원티드 ${formRequests.length}건${staffUpdated ? `, 인원 ${data.staff.length}명` : ""}을 자동으로 채웠습니다`,
       !!data.warning);
-  } catch (e) { showUploadError(statusEl, e); } finally { $("#wantedInput").value = ""; }
+  } catch (e) {
+    // 업로드가 반려돼도(값은 그대로) 화면엔 오류 문구가 계속 남으므로, 지울 방법이
+    // 있어야 한다 — 반영 해제 버튼을 오류 지우기 용도로 그대로 재사용한다.
+    showUploadError(statusEl, e);
+    $("#wantedClearBtn").style.display = "";
+  } finally { $("#wantedInput").value = ""; }
 };
 
 $("#wantedClearBtn").onclick = () => {
+  const statusEl = $("#wantedStatus");
+  if (statusEl.classList.contains("upload-error")) {
+    clearUploadError(statusEl);
+    statusEl.textContent = "";
+    $("#wantedClearBtn").style.display = "none";
+    return;
+  }
   formRequests = [];
-  $("#wantedStatus").textContent = "반영 해제했습니다.";
+  statusEl.textContent = "반영 해제했습니다.";
   $("#wantedClearBtn").style.display = "none";
   showToast("입력② 반영을 해제했습니다");
 };
@@ -770,10 +794,19 @@ async function refreshStaffTableStatus() {
 }
 
 $("#staffTableClearBtn").onclick = async () => {
+  const statusEl = $("#staffTableStatus");
+  if (statusEl.classList.contains("upload-error")) {
+    clearUploadError(statusEl);
+    statusEl.textContent = "";
+    // 서버 쪽에 실제로 반영된 값이 없을 수도 있으니(업로드가 반려됐던 경우),
+    // 진짜 상태를 다시 물어봐서 버튼을 그 상태에 맞게 되돌린다.
+    await refreshStaffTableStatus();
+    return;
+  }
   try {
     await api("/api/clear_staff_table", { method: "POST" });
     await refreshStaffTableStatus();
-    $("#staffTableStatus").textContent = "반영 해제했습니다 — 이번 생성은 처음부터 시작합니다.";
+    statusEl.textContent = "반영 해제했습니다 — 이번 생성은 처음부터 시작합니다.";
     showToast("연간근무표 반영을 해제했습니다");
   } catch (e) {}
 };
@@ -795,7 +828,12 @@ $("#staffTableInput").onchange = async () => {
       `인원 ${formStaff.length}명, 누적 통계·이월정보 반영 (연간 근무표 ${data.annual_days}일치 포함)`;
     await refreshStaffTableStatus();
     showToast("연간근무표에서 인원 명단·누적 통계·전월 이월정보를 불러왔습니다");
-  } catch (e) { showUploadError(statusEl, e); } finally { $("#staffTableInput").value = ""; }
+  } catch (e) {
+    // 업로드가 반려돼도(값은 그대로) 화면엔 오류 문구가 계속 남으므로, 지울 방법이
+    // 있어야 한다 — 반영 해제 버튼을 오류 지우기 용도로 그대로 재사용한다.
+    showUploadError(statusEl, e);
+    $("#staffTableClearBtn").style.display = "";
+  } finally { $("#staffTableInput").value = ""; }
 };
 
 // 생성/재생성은 인원이 많으면 수십 초~1~2분 걸릴 수 있다. Worker 덕분에 화면
