@@ -65,6 +65,7 @@
           설정·최소인력 칸은 화면에서 직접 고칠 수도 있습니다. 인원(직급·숙련도·가능근무)은
           입력②에서만 받습니다.</p>
 
+          <div class="input1-group">
           <div class="upload-section">
             <h3>파일업로드 <span class="hint">입력①은 설정·최소인력을 담당합니다. 인원 정보는 입력②에서 받습니다.</span></h3>
 
@@ -84,8 +85,8 @@
           <details class="form-sec" open>
             <summary>설정</summary>
             <div class="form-grid">
-              <label>병동명 <input type="text" id="f_ward"></label>
-              <label>연월
+              <label class="wide">병동명 <input type="text" id="f_ward"></label>
+              <label class="wide">연월
                 <span class="ym-picker">
                   <select id="f_year"></select>
                   <select id="f_month"></select>
@@ -96,16 +97,19 @@
               <label>야간목표하한 <input type="number" id="f_nightquota_low" min="0" style="width:60px"></label>
               <label>야간목표상한 <input type="number" id="f_nightquota_high" min="0" style="width:60px"></label>
             </div>
-            <div class="holiday-cal-wrap">
-              <div class="holiday-cal-head">
-                <span class="hint">공휴일 / 대체공휴일 지정 — 날짜를 클릭하면 <b>없음 → 공휴일 → 대체공휴일 → 없음</b> 순으로 바뀝니다 (한국 달력 기준 자동 반영, 필요시 직접 수정 가능)</span>
-                <span class="cal-legend">
-                  <span class="cal-sw"><span class="box hol"></span>공휴일</span>
-                  <span class="cal-sw"><span class="box sub"></span>대체공휴일</span>
-                </span>
+            <details class="form-sec sub-sec">
+              <summary>공휴일 / 대체공휴일 지정</summary>
+              <p class="hint">날짜를 클릭하면 <b>없음 → 공휴일 → 대체공휴일 → 없음</b> 순으로 바뀝니다 (한국 달력 기준 자동 반영, 필요시 직접 수정 가능)</p>
+              <div class="holiday-cal-wrap">
+                <div class="holiday-cal-head">
+                  <span class="cal-legend">
+                    <span class="cal-sw"><span class="box hol"></span>공휴일</span>
+                    <span class="cal-sw"><span class="box sub"></span>대체공휴일</span>
+                  </span>
+                </div>
+                <div id="holidayCalendar"></div>
               </div>
-              <div id="holidayCalendar"></div>
-            </div>
+            </details>
           </details>
 
           <details class="form-sec" open>
@@ -124,12 +128,13 @@
             <textarea id="f_advanced_track" rows="3" placeholder="예)&#10;1&#10;2"></textarea>
           </details>
 
-          <details class="form-sec" open>
+          <details class="form-sec">
             <summary>B팀(신입) <span class="count-badge" id="teamBCount"></span> (선택)</summary>
             <p class="hint">근무 배정에는 전혀 관여하지 않고, 이름만 출력 근무표의 'B' 구분란에
             빈칸으로 표시됩니다 — 파트장이 직접 배정하세요. 한 줄에 한 명씩 입력.</p>
             <textarea id="f_team_b" rows="3" placeholder="예)&#10;김신입&#10;이신입"></textarea>
           </details>
+          </div>
           </div>
 
           <div class="upload-section">

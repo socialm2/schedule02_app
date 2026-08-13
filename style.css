@@ -308,10 +308,26 @@ td.disabled { cursor: default; opacity: .55; }
   background: var(--paper); border: 1px solid var(--line); border-radius: 10px;
   padding: 16px 18px; margin-bottom: 20px;
 }
+/* 입력① 파일업로드와 그 아래 설정/최소인력 표시칸을 한 박스로 감쌈 —
+   안쪽의 upload-section·info-section은 자체 배경/테두리를 지우고 구분선만 둔다 */
+.input1-group {
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; margin-bottom: 20px;
+}
+.input1-group .upload-section, .input1-group .info-section {
+  background: transparent; border: none; border-radius: 0; padding: 0; margin-bottom: 0;
+}
+.input1-group .info-section {
+  margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--line);
+}
 
 details.form-sec {
   border: 1px solid var(--line); border-radius: 9px; margin-bottom: 12px; overflow: hidden;
 }
+/* 설정 안의 공휴일 캘린더처럼 details 안에 중첩된 details — 바깥보다 한 단계
+   옅게, 마진 없이 */
+details.form-sec .sub-sec { margin-bottom: 0; background: var(--paper); }
+details.form-sec .sub-sec summary { background: var(--paper); font-size: 12.5px; }
 details.form-sec summary {
   cursor: pointer; padding: 10px 14px; font-weight: 700; font-size: 13.5px;
   background: var(--code-bg); list-style: none; display: flex; align-items: center; gap: 8px;
@@ -473,26 +489,29 @@ table.compact-grid td.annual-sum, table.compact-grid th.annual-sum-h {
   header { padding: 8px 12px; }
   header h1 { font-size: 14px; }
   .intake-box { padding: 14px 16px; }
-  .form-grid { grid-template-columns: 1fr; }
+  /* 세로로 하나씩 쌓는 대신 2칸씩 가로로 붙여 공간 절약 — 병동명·연월처럼 폭이
+     필요한 칸만 .wide로 한 줄 전체를 차지 */
+  .form-grid { grid-template-columns: repeat(2, 1fr); }
 
-  table.form-table, table.form-table thead, table.form-table tbody,
-  table.form-table tr, table.form-table td {
+  /* 입력 표(최소인력): 사람/행 하나당 카드 하나로 쌓되, 칸(평일·토요일·일요일 등)은
+     세로로 늘어놓지 않고 한 줄에 가로로 붙여 공간을 절약한다 */
+  table.form-table, table.form-table thead, table.form-table tbody {
     display: block; width: 100%;
   }
   table.form-table thead { display: none; }
   table.form-table tr {
+    display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px 10px;
     border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px;
   }
   table.form-table td {
-    display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line);
-    padding: 6px 0;
+    display: flex; flex-direction: column; gap: 2px; flex: 1 1 0; min-width: 0; padding: 0;
   }
-  table.form-table td:last-child { border-bottom: none; }
+  table.form-table td:first-child { flex: 0 0 100%; }
   table.form-table td[data-label]:not([data-label=""])::before {
-    content: attr(data-label); flex: 0 0 30%; font-size: 11px; font-weight: 700; color: var(--sub);
+    content: attr(data-label); font-size: 10px; font-weight: 700; color: var(--sub);
   }
   table.form-table td input, table.form-table td select {
-    flex: 1; width: auto !important; min-width: 0;
+    width: 100% !important; min-width: 0;
   }
   table.form-table .chk-group { flex: 1; }
 
