@@ -841,11 +841,11 @@ $("#staffTableInput").onchange = async () => {
 //
 // 진행 게이지: 서버가 진행률을 알려주지 않으므로(생성이 끝나야 응답이 옴) 실제
 // 진행률이 아니라 "경과시간 vs time_budget"으로 추정해서 보여준다 — nurse_scheduler
-// /generator.py의 generate_best() 기본 time_budget(15초)과 맞춰뒀다. 대부분의
+// /generator.py의 generate_best() 기본 time_budget(10초)과 맞춰뒀다. 대부분의
 // 실사용 규모는 이 안에서 끝나 게이지가 자연스럽게 92%까지 차고, 인원이 많아
 // 시간예산을 넘기는 드문 경우엔 92~98% 사이에서 천천히 계속 채워서 "멈춘 게
 // 아니라 아직 계산 중"임을 보여준다(실제 100%는 응답이 와서 오버레이가 닫힐 때뿐).
-const GEN_TIME_BUDGET_SEC = 15;
+const GEN_TIME_BUDGET_SEC = 10;
 let genProgressTimer = null;
 function showGenOverlay(msg) {
   $("#genOverlayMsg").textContent = msg;
@@ -868,7 +868,23 @@ function hideGenOverlay() {
   genProgressTimer = null;
 }
 
+// 입력①②③ 중 하나라도 업로드가 반려된 채(빨간 오류 문구가 아직 안 지워진 채)
+// 남아있으면, 그 파일은 반영되지 않았다는 뜻이다 — 이 상태에서 그냥 생성하면
+// 사용자가 방금 올린 값이 반영됐다고 착각한 채 옛 값으로 근무표가 만들어질 수
+// 있으므로, 생성 자체를 막고 어느 입력에 문제가 남아있는지 알려준다.
+function unresolvedUploadErrors() {
+  return [["#uploadStatus", "입력①"], ["#wantedStatus", "입력②"], ["#staffTableStatus", "입력③"]]
+    .filter(([sel]) => $(sel)?.classList.contains("upload-error"))
+    .map(([, label]) => label);
+}
+
 async function runGenerate(btn, statusEl) {
+  const unresolved = unresolvedUploadErrors();
+  if (unresolved.length) {
+    showToast(`${unresolved.join(", ")}에 아직 해결되지 않은 업로드 오류가 있습니다 — 오류 문구를 ` +
+      `지우거나(반영 해제) 파일을 고쳐 다시 올린 뒤 생성하세요`, true);
+    return;
+  }
   const btns = [$("#generateBtn"), $("#generateBtnMid")].filter(Boolean);
   btns.forEach(b => b.disabled = true);
   if (statusEl) statusEl.textContent = "생성 중...";
@@ -1014,6 +1030,23 @@ function renderGrid() {
       `<td class="stat-col">${holCount}</td><td class="stat-col">${s.level}</td>`;
     html += "</tr>";
   }
+  // B팀(신입) — 스케줄링에는 전혀 관여하지 않는 이름뿐인 목록이라 서버 grid에 없다.
+  // 화면에는 구분행 + 빈칸 행으로만 보여준다(파트장이 엑셀에서 직접 배정하는 용도라
+  // 여기서는 편집 대상이 아니다 — 파트장 행과 같은 disabled 처리).
+  if (ST.team_b && ST.team_b.length) {
+    const totalCols = 3 + ST.num_days + 7;  // 이름 + 잔휴2 + 날짜 + 계산열7
+    html += `<tr class="team-b-divider"><td colspan="${totalCols}">B팀(신입)</td></tr>`;
+    for (const name of ST.team_b) {
+      html += `<tr><td class="nm">${esc(name)}<span class="role">B팀</span></td>` +
+        `<td class="stat-col">–</td><td class="stat-col">–</td>`;
+      for (let d = 0; d < ST.num_days; d++) {
+        html += `<td class="cell disabled"><span></span></td>`;
+      }
+      html += `<td class="stat-col">–</td><td class="stat-col">–</td><td class="stat-col">–</td>` +
+        `<td class="stat-col">–</td><td class="stat-col">–</td><td class="stat-col">–</td><td class="stat-col">–</td>`;
+      html += "</tr>";
+    }
+  }
   html += "</tbody></table></div>";
   html += renderLevelSummary();
   gridContent.innerHTML = html;
@@ -1028,44 +1061,43 @@ function renderGrid() {
   };
 }
 
-// 근무유형별 레벨평균 — generator.py의 _shift_level_target/_record_level_assignment와
-// 같은 기준(파트장 제외 인원의 평균 레벨을 목표로, D/E/N(NK 포함)/prn(8A 포함)별
-// 실제 평균과 비교)으로 화면 그리드(미적용 편집 포함)에서 매번 다시 계산한다 —
-// 잔휴·D/E/N 칸과 같은 패턴으로, 파트장이 칸을 수정하면 재생성 없이 즉시 갱신된다.
+// 근무유형별 레벨 통계 — D/E/N(NK 포함)/prn(8A 포함)별로 그 근무에 배정된 사람들의
+// 평균 레벨과, 고랩(Lv4-5)·저랩(Lv1-3) 인원수를 화면 그리드(미적용 편집 포함)에서
+// 매번 다시 계산한다 — 잔휴·D/E/N 칸과 같은 패턴으로, 파트장이 칸을 수정하면
+// 재생성 없이 즉시 갱신된다. 엑셀 출력(excel_export.py export_excel_ocs)의
+// 하단 통계행도 같은 기준(파트장 제외, Lv4 이상/Lv3 이하 경계)으로 맞춰뒀다.
 const LEVEL_SHIFT_KEY = { D: "D", E: "E", N: "N", NK: "N", prn: "prn", "8A": "prn" };
 
-function computeLevelAverages() {
+function computeLevelStats() {
   const generals = ST.staff.filter(s => !s.is_partjang);
-  const target = generals.length
-    ? generals.reduce((sum, s) => sum + s.level, 0) / generals.length
-    : 0;
-  const sums = { D: 0, E: 0, N: 0, prn: 0 };
-  const cnts = { D: 0, E: 0, N: 0, prn: 0 };
+  const levelsByKey = { D: [], E: [], N: [], prn: [] };
   for (const s of generals) {
     const row = ST.grid[s.id];
     for (const v of row) {
       const key = LEVEL_SHIFT_KEY[v];
-      if (!key) continue;
-      sums[key] += s.level;
-      cnts[key] += 1;
+      if (key) levelsByKey[key].push(s.level);
     }
   }
-  const avg = key => (cnts[key] > 0 ? sums[key] / cnts[key] : null);
-  return { target, D: avg("D"), E: avg("E"), N: avg("N"), prn: avg("prn") };
+  const stat = (levels) => ({
+    avg: levels.length ? levels.reduce((a, b) => a + b, 0) / levels.length : null,
+    hi: levels.filter(l => l >= 4).length,
+    lo: levels.filter(l => l <= 3).length,
+  });
+  return { D: stat(levelsByKey.D), E: stat(levelsByKey.E), N: stat(levelsByKey.N), prn: stat(levelsByKey.prn) };
 }
 
 function renderLevelSummary() {
-  const a = computeLevelAverages();
-  const fmt = v => (v === null ? "–" : v.toFixed(2));
-  // 목표(병동 평균) 대비 ±0.3 이상 벗어나면 눈에 띄게 표시 — 하드 기준은 아니고
-  // 참고용 소프트 지표라 색만 살짝 다르게 준다(빨강/주황 같은 위반색은 피함).
-  const dev = (v) => v !== null && Math.abs(v - a.target) >= 0.3;
+  const st = computeLevelStats();
+  const fmt = v => (v.avg === null ? "–" : v.avg.toFixed(2));
   const cell = (label, v) =>
-    `<div class="level-summary-item${dev(v) ? " off" : ""}"><span class="lbl">${label}</span><span class="val">${fmt(v)}</span></div>`;
+    `<div class="level-summary-item">
+      <div class="head"><span class="lbl">${label}</span><span class="val">${fmt(v)}</span></div>
+      <span class="sub">Lv4-5 ${v.hi}명 · Lv1-3 ${v.lo}명</span>
+    </div>`;
   return `<div class="level-summary">
-    <span class="level-summary-title">레벨평균 (파트장 제외, 목표 ${a.target.toFixed(2)})</span>
+    <span class="level-summary-title">근무별 레벨 통계 (파트장 제외)</span>
     <div class="level-summary-row">
-      ${cell("D", a.D)}${cell("E", a.E)}${cell("N", a.N)}${cell("prn/8A", a.prn)}
+      ${cell("D", st.D)}${cell("E", st.E)}${cell("N", st.N)}${cell("prn/8A", st.prn)}
     </div>
   </div>`;
 }

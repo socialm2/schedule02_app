@@ -154,6 +154,12 @@ table.grid td.cell span { display: block; width: 100%; height: 100%; line-height
 table.grid th.stat-col, table.grid td.stat-col {
   background: var(--code-bg); color: var(--sub); font-weight: 600; cursor: default; min-width: 34px;
 }
+/* B팀(신입) 구분행 — 다운로드 엑셀의 회색 "B" 구분행과 같은 취지, 이름만 있고
+   스케줄링에는 관여하지 않는다는 걸 시각적으로 표시 */
+tr.team-b-divider td {
+  background: var(--code-bg); color: var(--sub); font-weight: 700; text-align: left;
+  padding: 4px 10px; cursor: default;
+}
 
 td.sd span { background: #BDD7EE; color: #1C2523; }
 td.se span { background: #F8CBAD; color: #1C2523; }
@@ -260,10 +266,11 @@ td.disabled { cursor: default; opacity: .55; }
   padding: 10px 14px; margin: 12px 0 0; }
 .level-summary-title { font-size: 12px; color: var(--sub); font-weight: 600; }
 .level-summary-row { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 6px; }
-.level-summary-item { display: flex; align-items: baseline; gap: 6px; }
+.level-summary-item { display: flex; flex-direction: column; gap: 2px; min-width: 92px; }
+.level-summary-item .head { display: flex; align-items: baseline; gap: 6px; }
 .level-summary-item .lbl { font-size: 12px; color: var(--sub); font-weight: 600; }
 .level-summary-item .val { font-size: 15px; font-weight: 700; }
-.level-summary-item.off .val { color: var(--warn); }
+.level-summary-item .sub { font-size: 11px; color: var(--sub); }
 .intake-box .hint { color: var(--sub); font-size: 12.5px; margin: 0 0 14px; }
 .hint.upload-error {
   color: var(--hard); font-weight: 600; white-space: pre-line; display: block;
