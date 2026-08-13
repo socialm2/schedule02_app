@@ -13,10 +13,10 @@ GitHub Pages(또는 아무 정적 웹서버)로 열기만 하면 PC든 안드로
 
 - **exe(PyInstaller)로는 안드로이드에서 못 돌린다** — exe는 윈도우 전용 형식이라 폰/태블릿에서
   실행이 안 된다. 반면 이 방식은 브라우저만 있으면 OS를 가리지 않는다.
-- **엔진 코드는 한 글자도 안 고쳤다** — `py/nurse_scheduler/`는 원본 저장소의 `nurse_scheduler/`
-  (70개 테스트로 검증된 엔진)를 그대로 복사한 것이다. `bridge.py`만 새로 짰는데, 이건
-  원본의 `webapp/app.py`(Flask) 라우트 로직을 그대로 옮기되 HTTP 대신 JS에서 직접 부르는
-  평범한 함수로 노출한 것뿐이다.
+- **엔진 코드는 한 글자도 안 고쳤다** — `py_app.zip` 안의 `nurse_scheduler/`는 원본 저장소의
+  `nurse_scheduler/`(150여 개 테스트로 검증된 엔진)를 그대로 복사한 것이다. `bridge.py`만
+  새로 짰는데, 이건 원본의 `webapp/app.py`(Flask) 라우트 로직을 그대로 옮기되 HTTP 대신
+  JS에서 직접 부르는 평범한 함수로 노출한 것뿐이다.
 
 ## 구조
 
@@ -25,9 +25,10 @@ GitHub Pages(또는 아무 정적 웹서버)로 열기만 하면 PC든 안드로
 ├── index.html / app.js / style.css   — 화면
 ├── vendor/pyodide/                   — Pyodide 코어 런타임(자체 호스팅, ~14MB, CDN 의존 없음)
 ├── vendor/wheels/                    — openpyxl·et_xmlfile 휠 (자체 호스팅, PyPI 의존 없음)
-├── py/nurse_scheduler/                — 원본 엔진 그대로 복사
-├── py/bridge.py                      — Flask 라우트 → 직접 호출 함수로 변환한 "백엔드"
-├── py_app.zip                        — py/ 전체를 압축한 것(브라우저가 이걸 받아서 그 자리에서 압축 해제)
+├── py_app.zip                        — nurse_scheduler/ + bridge.py를 압축한 것(브라우저가
+│                                        이걸 받아서 그 자리에서 압축 해제) — 이 저장소에는
+│                                        압축 푼 py/ 소스 사본을 따로 안 둔다(브라우저가
+│                                        실제로 읽는 건 이 zip 하나뿐이라 중복 사본이 무의미)
 └── sample_input.xlsx                 — 샘플 병동 데이터
 ```
 
@@ -50,13 +51,18 @@ python3 -m http.server 8000
 
 ## 엔진 코드를 고친 뒤 반영하는 방법 (py_app.zip 재생성)
 
-원본 저장소(`nurse_scheduler/`)나 `py/bridge.py`를 고쳤으면, 브라우저가 실제로 읽는 건
-`py_app.zip`이므로 다시 압축해야 반영된다:
+이 저장소는 호스팅 전용이라 엔진 소스를 직접 고치지 않는다 — 원본 저장소(비공개,
+`schedule02`)의 `pyodide-app/py/` 안에서 `nurse_scheduler/`나 `bridge.py`를 고친 뒤, 거기서
+`py_app.zip`을 다시 만들어 이 저장소로 복사해오는 순서다:
 
 ```bash
-cp -r /path/to/schedule02/nurse_scheduler py/    # 원본 엔진 최신화
-cd py
-zip -r ../py_app.zip nurse_scheduler bridge.py -x "*.pyc"
+# 원본 저장소(schedule02)에서
+cd pyodide-app/py
+rm -f ../py_app.zip
+zip -rq ../py_app.zip nurse_scheduler bridge.py -x "*.pyc" -x "*/__pycache__/*"
+
+# 이 저장소(schedule02_app)로 복사
+cp /path/to/schedule02/pyodide-app/py_app.zip ./py_app.zip
 ```
 
 ## 로컬 스토리지 사용
