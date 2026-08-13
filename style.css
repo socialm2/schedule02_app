@@ -493,27 +493,11 @@ table.compact-grid td.annual-sum, table.compact-grid th.annual-sum-h {
      필요한 칸만 .wide로 한 줄 전체를 차지 */
   .form-grid { grid-template-columns: repeat(2, 1fr); }
 
-  /* 입력 표(최소인력): 사람/행 하나당 카드 하나로 쌓되, 칸(평일·토요일·일요일 등)은
-     세로로 늘어놓지 않고 한 줄에 가로로 붙여 공간을 절약한다 */
-  table.form-table, table.form-table thead, table.form-table tbody {
-    display: block; width: 100%;
-  }
-  table.form-table thead { display: none; }
-  table.form-table tr {
-    display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px 10px;
-    border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px;
-  }
-  table.form-table td {
-    display: flex; flex-direction: column; gap: 2px; flex: 1 1 0; min-width: 0; padding: 0;
-  }
-  table.form-table td:first-child { flex: 0 0 100%; }
-  table.form-table td[data-label]:not([data-label=""])::before {
-    content: attr(data-label); font-size: 10px; font-weight: 700; color: var(--sub);
-  }
-  table.form-table td input, table.form-table td select {
-    width: 100% !important; min-width: 0;
-  }
-  table.form-table .chk-group { flex: 1; }
+  /* 최소인력 표는 폰에서도 카드로 쌓지 않고 엑셀과 같은 가로세로 그대로 —
+     근무(D/E/N/prn)가 세로로, 평일/토요일/일요일·공휴일이 가로 열로 유지 —
+     좁으면 .tablebox가 가로 스크롤을 대신 떠맡는다 */
+  .tablebox { overflow-x: auto; }
+  table.form-table input[type=number] { width: 44px; }
 
   table.grid { font-size: 10.5px; }
   table.grid td { min-width: 24px; height: 22px; }
