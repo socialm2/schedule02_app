@@ -97,7 +97,9 @@ header .version-badge {
   vertical-align: middle; margin-left: 4px;
 }
 /* 최근 수정 일시 — 눈에 띄지 않게 옅게, 배포 확인용(캐시가 최신인지 등)으로
-   신경 쓰면 보이는 정도로만. 수정할 때마다 index.html의 값을 갱신한다. */
+   신경 쓰면 보이는 정도로만. 수정할 때마다 index.html의 값을 KST(한국시간, UTC+9)
+   기준으로 갱신한다 — 이 저장소 작업 환경은 UTC라 `TZ='Asia/Seoul' date '+%Y-%m-%d %H:%M:%S'`
+   로 뽑아써야 한다(그냥 date는 UTC가 나와 9시간 어긋난다). */
 header .build-time {
   font-family: "JetBrains Mono", monospace; font-size: 9.5px; font-weight: 500;
   color: var(--sub); opacity: .5; vertical-align: middle; margin-left: 6px;
