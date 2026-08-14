@@ -830,9 +830,15 @@ $("#staffTableInput").onchange = async () => {
       allowed: [...(s.allowed_shifts || [])], flags: [...(s.flags || [])],
     }));
     renderStaffSummary();
+    const teamB = data.team_b_names || [];
+    if (teamB.length) {
+      $("#f_team_b").value = teamB.join("\n");
+      updateTeamBCount();
+    }
     clearUploadError(statusEl);
     statusEl.textContent =
-      `인원 ${formStaff.length}명, 누적 통계·이월정보 반영 (연간 근무표 ${data.annual_days}일치 포함)`;
+      `인원 ${formStaff.length}명, 누적 통계·이월정보 반영 (연간 근무표 ${data.annual_days}일치 포함)` +
+      (teamB.length ? `, B팀 ${teamB.length}명 인식` : "");
     await refreshStaffTableStatus();
     showToast("연간근무표에서 인원 명단·누적 통계·전월 이월정보를 불러왔습니다");
   } catch (e) {
@@ -1100,7 +1106,11 @@ function renderDailyLevelFootRows() {
     `<tr class="level-foot-row"><td class="nm">${label}</td>${blankHead}` +
     days.map(d => `<td class="stat-col">${fmt(d)}</td>`).join("") +
     `${blankTail}</tr>`;
-  return rowHtml("레벨평균", d => (d.avg === null ? "–" : d.avg.toFixed(1))) +
+  // B팀 구분행과 같은 스타일로, 통계 3행 위에도 제목 행을 붙인다.
+  const totalCols = 3 + ST.num_days + 7;  // 이름 + 잔휴2 + 날짜 + 계산열7
+  const divider = `<tr class="team-b-divider"><td colspan="${totalCols}">통계</td></tr>`;
+  return divider +
+    rowHtml("레벨평균", d => (d.avg === null ? "–" : d.avg.toFixed(1))) +
     rowHtml("Lv4-5", d => d.hi) +
     rowHtml("Lv1-3", d => d.lo);
 }
