@@ -963,6 +963,9 @@ function render() {
   $("#intake").style.display = "none";
   gridContent.style.display = "block";
   sidePane.style.display = "block";
+  // 사용법 버튼은 입력화면의 간단사용법·상세가이드 링크와 겹치므로 입력화면에서는
+  // 숨기고, 그 두 링크가 다루지 않는 결과화면(편집·재생성·다운로드) 설명을 위해서만 노출한다.
+  $("#infoBtn").style.display = "";
   renderGrid();
   renderSide();
   // 모바일은 화면 전체가 스크롤되는 구조라, 생성 전 스크롤 위치가 그대로
@@ -1071,6 +1074,7 @@ function renderGrid() {
     annualPane.innerHTML = "";
     $("#intake").style.display = "block";
     sidePane.style.display = "none";
+    $("#infoBtn").style.display = "none";
   };
 }
 
