@@ -218,6 +218,9 @@ let formStaff = [];      // [{id, role, level, allowed:[...], flags:[...]}]
 // 명단을 덮어쓰면 안 되고(전입자가 조용히 사라진다), 둘의 차이로 전입·전출을 판정한다.
 let staffFromWanted = false;   // 입력②가 명단을 채웠는가
 let prevRosterNames = [];      // 입력③(지난달)의 인원 이름들 — 대조용
+// 입력③ 비고에 '전입'이라 적혀 전 병동 근무기록을 가져온 사람들 — 이 사람들은 입력③에
+// 행이 있으므로 명단 차집합으로는 안 잡힌다(대조 화면에서 따로 구분해 보여줘야 함).
+let transferredInNames = [];
 let formRequests = [];   // [{staff_id, date, type, priority}]
 let formCarryover = [];  // [{staff_id, last_shift_type, consecutive_work_days, night_block_remaining_off, trailing_night_count}]
 let formHolidays = [];      // ["YYYY-MM-DD", ...] 공휴일
@@ -464,6 +467,22 @@ const INFO_HTML_INPUT = `
 <li>⚠ <b>이름이 한 글자라도 다르면 다른 사람으로 봅니다</b>(공백·오타 포함). 계속 근무 중인데 전입으로
 잡혔다면 입력②·③의 이름을 같게 맞춰 다시 올리세요.</li>
 </ul>
+
+<h3>전입자가 전 병동 근무기록을 가져온 경우</h3>
+<p>이력을 붙여넣으면 전입자도 계속 근무해온 사람과 똑같이 이어집니다. <b>안전 문제라 권장합니다</b> —
+전 병동에서 야간을 서고 온 사람에게 1일부터 근무를 넣으면 야간 후 휴식 규칙이 깨지는데, 이력이
+있으면 자동으로 막힙니다.</p>
+<ol>
+<li>출력②(연간근무표)를 받아 엽니다.</li>
+<li><b>기존 인원 목록 바로 아래</b>(맨 아래 '레벨평균' 통계 줄보다 위)에 행을 추가합니다 —
+통계 줄 뒤에 넣으면 읽히지 않습니다(넣으면 경고로 알려드립니다).</li>
+<li><b>비고 칸에 '전입'</b>이라고 적습니다.</li>
+<li>날짜 칸에 전 병동 근무기록을 날짜 맞춰 붙여넣습니다(<b>최소 1개월, 3개월 권장</b>).</li>
+<li><b>잔휴 칸에 전 병동에서 받은 숫자</b>를 적습니다 — 잔휴만은 근무표로 계산할 수 없어 사람이
+넣어야 합니다(비우면 0으로 진행하고 경고).</li>
+</ol>
+<p>누적통계 칸은 비워둬도 됩니다 — 부서 누적 실적은 우리 병동 입사 시점부터 0에서 시작합니다.
+모르는 근무표기가 있으면 그 칸만 빈칸 처리하고 목록으로 알려드립니다.</p>
 
 <h3>생성 이후</h3>
 <p>"근무표 생성" 버튼을 누르면 자동 배정된 결과 화면으로 넘어갑니다. 그 화면에서는 같은 자리에
@@ -777,7 +796,9 @@ function renderRosterDiff() {
   const cur = new Set(formStaff.map(s => s.id));
   const incoming = formStaff.map(s => s.id).filter(n => !prev.has(n));
   const outgoing = prevRosterNames.filter(n => !cur.has(n));
-  if (!incoming.length && !outgoing.length) {
+  // 전 병동 기록을 가져온 전입자는 입력③에도 행이 있어 차집합에 안 잡힌다 — 따로 센다.
+  const withHistory = transferredInNames.filter(n => cur.has(n));
+  if (!incoming.length && !outgoing.length && !withHistory.length) {
     box.style.display = "";
     box.className = "roster-diff same";
     box.innerHTML = `✓ 인원 변동 없음 — 입력②·③ 명단 ${cur.size}명이 모두 일치합니다.`;
@@ -786,7 +807,11 @@ function renderRosterDiff() {
   let html = "";
   if (incoming.length) {
     html += `<div><b>전입 ${incoming.length}명</b> (입력②에만 있음): ${incoming.map(esc).join(", ")}`
-         +  `<span class="hint"> — 이월정보(잔휴·연속근무)가 없습니다. 이름 오타라면 입력②·③을 같게 맞춰주세요.</span></div>`;
+         +  `<span class="hint"> — 이월정보(잔휴·연속근무)가 없습니다. 전 병동 근무기록이 있으면 입력③에 행을 추가하고 비고에 '전입'이라 적어 붙여넣으세요. 이름 오타라면 입력②·③을 같게 맞춰주세요.</span></div>`;
+  }
+  if (withHistory.length) {
+    html += `<div><b>전입(이력 반영) ${withHistory.length}명</b>: ${withHistory.map(esc).join(", ")}`
+         +  `<span class="hint"> — 붙여넣은 전 병동 기록으로 이월정보·야간 형평성을 계산합니다. 부서 누적 실적은 이번 달부터 0에서 시작합니다.</span></div>`;
   }
   if (outgoing.length) {
     html += `<div><b>전출 ${outgoing.length}명</b> (입력③에만 있음): ${outgoing.map(esc).join(", ")}`
@@ -889,6 +914,7 @@ $("#staffTableClearBtn").onclick = async () => {
     await api("/api/clear_staff_table", { method: "POST" });
     await refreshStaffTableStatus();
     prevRosterNames = [];
+    transferredInNames = [];
     renderRosterDiff();
     statusEl.textContent = "반영 해제했습니다 — 이번 생성은 처음부터 시작합니다.";
     showToast("연간근무표 반영을 해제했습니다");
@@ -906,6 +932,7 @@ $("#staffTableInput").onchange = async () => {
     // 절대 덮어쓰지 않는다 — 덮어쓰면 이번 달 전입자가 조용히 사라진다. 이 경우 여기서
     // 읽은 명단은 전입·전출 대조용으로만 쓴다. 입력②가 아직 없을 때만 출발점으로 채운다.
     prevRosterNames = (data.staff || []).map(s => s.id);
+    transferredInNames = data.transferred_in || [];
     if (!staffFromWanted) {
       formStaff = (data.staff || []).map(s => ({
         id: s.id, role: s.role, level: s.level,
@@ -924,10 +951,15 @@ $("#staffTableInput").onchange = async () => {
       ? `명단은 입력②(${formStaff.length}명) 기준 유지, 누적 통계·이월정보만 반영`
       : `인원 ${formStaff.length}명, 누적 통계·이월정보 반영`;
     const dep = (data.departed_names || []).length;
+    const stranded = (data.rows_after_summary || []);
     statusEl.textContent =
       `${kept} (연간 근무표 ${data.annual_days}일치 포함)` +
       (teamB.length ? `, B팀 ${teamB.length}명 인식` : "") +
-      (dep ? `, 기존 전출자 ${dep}명 이력 보존` : "");
+      (transferredInNames.length ? `, 전입(이력) ${transferredInNames.length}명 인식` : "") +
+      (dep ? `, 기존 전출자 ${dep}명 이력 보존` : "") +
+      (stranded.length
+        ? ` — ⚠ 맨 아래 통계 줄 뒤의 행 ${stranded.length}건(${stranded.join(", ")})은 읽지 못했습니다. 사람 행은 통계 줄 위에 넣어주세요.`
+        : "");
     await refreshStaffTableStatus();
     showToast(staffFromWanted
       ? "연간근무표에서 누적 통계·전월 이월정보를 불러왔습니다 (명단은 입력② 기준 유지)"
