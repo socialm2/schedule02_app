@@ -216,7 +216,15 @@ let formStaff = [];      // [{id, role, level, allowed:[...], flags:[...]}]
 // 인원 명단을 어디서 받았는지 — 입력②(원티드표)는 '이번 달 명단(미래)', 입력③(연간근무표)은
 // '지난달 실적(과거)'이라 성격이 다르다. 입력②가 이미 명단을 준 뒤에 입력③을 올려도
 // 명단을 덮어쓰면 안 되고(전입자가 조용히 사라진다), 둘의 차이로 전입·전출을 판정한다.
-let staffFromWanted = false;   // 입력②가 명단을 채웠는가
+// 파일마다 읽은 명단을 따로 보관하고, 실제로 쓸 명단은 항상 recomputeStaff() 한 곳에서
+// 정한다. 예전에는 파일마다 formStaff를 직접 덮어써서, 업로드·재업로드·반영 해제 순서에
+// 따라 "화면 설명과 실제 명단이 다른" 상태가 생겼다 — 예를 들어 입력② 반영을 해제해도
+// 명단은 그대로 남거나, 입력② 뒤에 입력①을 다시 올리면 명단은 입력①인데 프로그램은
+// 입력②가 준 것으로 알고 전입·전출을 잘못 판정했다.
+let staffOfInput1 = [];  // 입력① 병동인력표에서 읽은 명단(과도기 지원용)
+let staffOfWanted = [];  // 입력② 원티드표에서 읽은 명단 — 이번 달 명단의 최종 기준
+let staffOfAnnual = [];  // 입력③ 연간근무표에서 읽은 명단(지난달 실적)
+let staffFromWanted = false;   // 입력②가 명단을 채웠는가 (recomputeStaff가 갱신하는 파생값)
 let prevRosterNames = [];      // 입력③(지난달)의 인원 이름들 — 대조용
 // 입력③ 비고에 '전입'이라 적혀 전 병동 근무기록을 가져온 사람들 — 이 사람들은 입력③에
 // 행이 있으므로 명단 차집합으로는 안 잡힌다(대조 화면에서 따로 구분해 보여줘야 함).
@@ -632,13 +640,15 @@ function fillForm(cfg) {
   formSubHolidays = [...(p.substitute_holidays || [])];
   renderHolidayCalendar();
 
-  // 입력①에도 인원 정보가 있으면 일단 반영한다 — 이후 입력②를 업로드하면 그쪽이
-  // 우선해서 덮어쓴다(입력①의 인원 기능은 과도기 지원용, 입력②가 있으면 항상 이김).
-  formStaff = (cfg.staff || []).map(s => ({
+  // 입력①에도 인원 정보가 있으면 일단 반영한다 — 다만 입력②가 이미 명단을 줬다면
+  // 그쪽이 이긴다(입력①의 인원 기능은 과도기 지원용). 우선순위 판단은 recomputeStaff()가
+  // 한다 — 여기서 formStaff를 직접 덮어쓰면 입력② 다음에 입력①을 올렸을 때 명단 출처가
+  // 어긋난다.
+  staffOfInput1 = (cfg.staff || []).map(s => ({
     id: s.id, role: s.role, level: s.level,
     allowed: [...(s.allowed_shifts || [])], flags: [...(s.flags || [])],
   }));
-  renderStaffSummary();
+  recomputeStaff();
 
   $("#f_team_b").value = (p.team_b_names || []).join("\n");
   updateTeamBCount();
@@ -792,14 +802,24 @@ $("#fileClearBtn").onclick = () => {
     $("#fileClearBtn").style.display = "none";
     return;
   }
-  formStaff = [];
-  staffFromWanted = false;   // 명단이 비었으니 '입력②가 명단을 줬다'는 표시도 함께 해제
-  renderStaffSummary();
-  renderRosterDiff();
+  // 입력①이 준 명단만 걷어낸다 — 입력②·③이 준 명단까지 같이 지우면 안 된다.
+  staffOfInput1 = [];
+  recomputeStaff();
   statusEl.textContent = "반영 해제했습니다 — 인원표를 다시 올리세요.";
   $("#fileClearBtn").style.display = "none";
   showToast("입력① 반영을 해제했습니다");
 };
+
+// 실제로 쓸 인원 명단을 한 곳에서 정한다 — 입력②(이번 달 명단) > 입력③(지난달 명단)
+// > 입력①(과도기) 순. 파일을 올리거나 반영을 해제할 때마다 이 함수만 부르면 되고,
+// 그래서 업로드 순서에 따라 상태가 꼬이지 않는다.
+function recomputeStaff() {
+  staffFromWanted = staffOfWanted.length > 0;
+  formStaff = staffFromWanted ? staffOfWanted
+            : (staffOfAnnual.length ? staffOfAnnual : staffOfInput1);
+  renderStaffSummary();
+  renderRosterDiff();
+}
 
 // 입력②(이번 달 명단)와 입력③(지난달 명단)을 대조해 전입·전출을 화면에 명시한다.
 // 둘 다 올라와 있을 때만 의미가 있다(한쪽만 있으면 비교 대상이 없음).
@@ -848,18 +868,27 @@ $("#wantedInput").onchange = async () => {
   try {
     const bytes = new Uint8Array(await f.arrayBuffer());
     const data = await api("/api/upload_wanted", { _fileBytes: bytes });
+    // 화면에 설정된 연/월과 파일의 연/월이 다르면 받지 않는다. 신청 날짜는 엔진이
+    // 어차피 반려하지만 '인원 명단'은 조용히 반영돼, 지난달 명단으로 이번 달 근무표가
+    // 만들어질 수 있다(이번 달 전입자가 통째로 빠진다).
+    const selY = parseInt($("#f_year").value, 10);
+    const selM = parseInt($("#f_month").value, 10);
+    if (data.year !== selY || data.month !== selM) {
+      throw new Error(
+        `이 파일은 ${data.year}년 ${data.month}월 표인데 지금 설정은 ${selY}년 ${selM}월입니다 — ` +
+        `설정의 연·월을 파일에 맞추시거나, "양식(다운로드)"로 ${selY}년 ${selM}월 양식을 ` +
+        `새로 받아 채워 올려주세요.`);
+    }
     formRequests = data.requests.map(r => ({ ...r, priority: 1 }));  // 이전 신청 목록을 통째로 대체
     // 이 파일에 인원 정보(직급·숙련도·가능근무·비고)가 있으면 항상 우선해서 덮어쓴다 —
     // 입력②는 '이번 달 명단(미래)'이라 명단의 최종 기준이다(입력①·③보다 항상 우선).
     const staffUpdated = (data.staff || []).length > 0;
     if (staffUpdated) {
-      formStaff = data.staff.map(s => ({
+      staffOfWanted = data.staff.map(s => ({
         id: s.id, role: s.role, level: s.level,
         allowed: [...(s.allowed_shifts || [])], flags: [...(s.flags || [])],
       }));
-      staffFromWanted = true;
-      renderStaffSummary();
-      renderRosterDiff();
+      recomputeStaff();
     }
     const teamB = data.team_b_names || [];
     if (teamB.length) {
@@ -894,8 +923,17 @@ $("#wantedClearBtn").onclick = () => {
     $("#wantedClearBtn").style.display = "none";
     return;
   }
+  // 신청만 지우고 끝내면, 입력②가 채운 '명단'은 그대로 남아 해제했다고 생각한 명단으로
+  // 계속 근무표가 만들어진다 — 신청·명단·B팀을 함께 되돌리고, 입력③(없으면 입력①)이
+  // 준 명단으로 복원한다.
   formRequests = [];
-  statusEl.textContent = "반영 해제했습니다.";
+  staffOfWanted = [];
+  recomputeStaff();
+  $("#f_team_b").value = "";
+  updateTeamBCount();
+  statusEl.textContent = formStaff.length
+    ? `반영 해제했습니다 — 명단은 ${staffOfAnnual.length ? "입력③" : "입력①"}(${formStaff.length}명) 기준으로 돌아갔습니다.`
+    : "반영 해제했습니다 — 현재 인원 명단이 없습니다.";
   $("#wantedClearBtn").style.display = "none";
   showToast("입력② 반영을 해제했습니다");
 };
@@ -934,7 +972,10 @@ $("#staffTableClearBtn").onclick = async () => {
     await refreshStaffTableStatus();
     prevRosterNames = [];
     transferredInNames = [];
-    renderRosterDiff();
+    // 입력③이 준 명단도 같이 걷어낸다 — 안 그러면 해제한 파일의 명단이 그대로 남아
+    // 입력①까지 해제해도 인원이 사라지지 않는다.
+    staffOfAnnual = [];
+    recomputeStaff();
     statusEl.textContent = "반영 해제했습니다 — 이번 생성은 처음부터 시작합니다.";
     showToast("연간근무표 반영을 해제했습니다");
   } catch (e) {}
@@ -952,14 +993,11 @@ $("#staffTableInput").onchange = async () => {
     // 읽은 명단은 전입·전출 대조용으로만 쓴다. 입력②가 아직 없을 때만 출발점으로 채운다.
     prevRosterNames = (data.staff || []).map(s => s.id);
     transferredInNames = data.transferred_in || [];
-    if (!staffFromWanted) {
-      formStaff = (data.staff || []).map(s => ({
-        id: s.id, role: s.role, level: s.level,
-        allowed: [...(s.allowed_shifts || [])], flags: [...(s.flags || [])],
-      }));
-      renderStaffSummary();
-    }
-    renderRosterDiff();
+    staffOfAnnual = (data.staff || []).map(s => ({
+      id: s.id, role: s.role, level: s.level,
+      allowed: [...(s.allowed_shifts || [])], flags: [...(s.flags || [])],
+    }));
+    recomputeStaff();
     const teamB = data.team_b_names || [];
     if (teamB.length) {
       $("#f_team_b").value = teamB.join("\n");
