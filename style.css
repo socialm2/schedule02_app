@@ -106,6 +106,13 @@ header .build-time {
 }
 header .ward-info { font-size: 12.5px; color: var(--sub); }
 header .spacer { flex: 1; }
+/* 앱 이름(제목)보다 절대 커 보이면 안 됨 — 제목은 16px/굵게인데 기본 button 스타일(13px)도
+   패딩·테두리가 있는 알약 모양이라 한 줄 전체를 차지하면 오히려 더 커 보였다. 글자 크기와
+   패딩을 줄이고 테두리 없는 옅은 톤으로 낮춰서 제목보다 확실히 작고 보조적으로 보이게 함. */
+header #infoBtn {
+  font-size: 11.5px; font-weight: 700; padding: 3px 10px;
+  border-color: transparent; background: var(--accent-soft); color: var(--accent);
+}
 /* 앱 이름(헤더) 바로 아래, 전체 폭 띠 — 여러 줄로 자연스럽게 줄바꿈되는 일반 문단.
    (이전엔 inline-flex + 알약 모양이었는데, 여러 줄 문단엔 안 맞아 줄바꿈이 이상하게 깨졌음) */
 .security-note {
