@@ -90,7 +90,7 @@ header {
   display: flex; align-items: center; gap: 14px; padding: 10px 18px;
   border-bottom: 2px solid var(--accent); background: var(--card); flex-wrap: wrap;
 }
-header h1 { font-size: 16px; margin: 0; font-weight: 800; letter-spacing: -.01em; }
+header h1 { font-size: 18px; margin: 0; font-weight: 800; letter-spacing: -.01em; }
 header .version-badge {
   font-family: "JetBrains Mono", monospace; font-size: 10.5px; font-weight: 700;
   color: var(--sub); background: var(--code-bg); padding: 1px 7px; border-radius: 999px;
@@ -505,7 +505,7 @@ table.compact-grid td.annual-sum, table.compact-grid th.annual-sum-h {
   #sidePane { width: auto; border-left: none; border-top: 2px solid var(--accent); }
 
   header { padding: 8px 12px; }
-  header h1 { font-size: 14px; }
+  header h1 { font-size: 16px; }
   .intake-box { padding: 14px 16px; }
   /* 세로로 하나씩 쌓는 대신 2칸씩 가로로 붙여 공간 절약 — 병동명·연월처럼 폭이
      필요한 칸만 .wide로 한 줄 전체를 차지 */
