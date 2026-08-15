@@ -1055,7 +1055,10 @@ async function runGenerate(btn, statusEl) {
     if (statusEl) statusEl.textContent = "";
   } finally {
     btns.forEach(b => b.disabled = false);
-    if (!ST && statusEl) statusEl.textContent = "";
+    // "생성 중..."은 진행 표시일 뿐이라 성공/실패와 무관하게 항상 지운다.
+    // (예전엔 성공 시 남겨뒀는데, 결과 화면에서 "입력으로 돌아가기"를 누르면
+    //  그 문구가 그대로 남아 있어 다시 생성 중인 것처럼 보였다.)
+    if (statusEl) statusEl.textContent = "";
     hideGenOverlay();
   }
 }
