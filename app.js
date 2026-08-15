@@ -213,6 +213,11 @@ let ST = null;       // 생성 후 서버 상태 캐시
 let lastConfigWarning = null;  // set_config가 돌려준 경고(예: 연간근무표 이월 불일치) — 출력화면에 계속 보여줌
 let picker = null;
 let formStaff = [];      // [{id, role, level, allowed:[...], flags:[...]}]
+// 인원 명단을 어디서 받았는지 — 입력②(원티드표)는 '이번 달 명단(미래)', 입력③(연간근무표)은
+// '지난달 실적(과거)'이라 성격이 다르다. 입력②가 이미 명단을 준 뒤에 입력③을 올려도
+// 명단을 덮어쓰면 안 되고(전입자가 조용히 사라진다), 둘의 차이로 전입·전출을 판정한다.
+let staffFromWanted = false;   // 입력②가 명단을 채웠는가
+let prevRosterNames = [];      // 입력③(지난달)의 인원 이름들 — 대조용
 let formRequests = [];   // [{staff_id, date, type, priority}]
 let formCarryover = [];  // [{staff_id, last_shift_type, consecutive_work_days, night_block_remaining_off, trailing_night_count}]
 let formHolidays = [];      // ["YYYY-MM-DD", ...] 공휴일
@@ -446,6 +451,19 @@ const INFO_HTML_INPUT = `
 <p>지난달 만든 근무표(연간근무표 다운로드 파일)를 그대로 올리면, 마지막 근무·연속근무일·야간블록
 등 이월정보와 사람별 누적 지표가 자동으로 이어집니다. 첫 달이거나 이월할 게 없으면 생략해도
 됩니다.</p>
+
+<h3>전입·전출 (인사이동)</h3>
+<p><b>입력②는 이번 달 명단(앞으로), 입력③은 지난달 실적(지나간 것)</b>입니다. 그래서 입력③을 나중에
+올려도 명단을 덮어쓰지 않고, 두 파일의 <b>차이</b>로 인사이동을 판정합니다 — 입력②에만 있으면
+<b>전입</b>, 입력③에만 있으면 <b>전출</b>. 둘 다 올리면 입력③ 아래에 대조 결과가 바로 표시되니
+생성 전에 확인하세요.</p>
+<ul>
+<li><b>전입자</b> — 지난달 기록이 없어 잔휴·연속근무 이월정보가 없습니다(0에서 시작). 야간 형평성만은
+0으로 두면 첫 달부터 야간을 몰아 받게 되므로 재직자 중앙값에서 출발합니다.</li>
+<li><b>전출자</b> — 이번 달 배정에서 빠지고, 누적 이력은 출력②(연간근무표)의 '전출' 칸에 보존됩니다.</li>
+<li>⚠ <b>이름이 한 글자라도 다르면 다른 사람으로 봅니다</b>(공백·오타 포함). 계속 근무 중인데 전입으로
+잡혔다면 입력②·③의 이름을 같게 맞춰 다시 올리세요.</li>
+</ul>
 
 <h3>생성 이후</h3>
 <p>"근무표 생성" 버튼을 누르면 자동 배정된 결과 화면으로 넘어갑니다. 그 화면에서는 같은 자리에
@@ -737,11 +755,47 @@ $("#fileClearBtn").onclick = () => {
     return;
   }
   formStaff = [];
+  staffFromWanted = false;   // 명단이 비었으니 '입력②가 명단을 줬다'는 표시도 함께 해제
   renderStaffSummary();
+  renderRosterDiff();
   statusEl.textContent = "반영 해제했습니다 — 인원표를 다시 올리세요.";
   $("#fileClearBtn").style.display = "none";
   showToast("입력① 반영을 해제했습니다");
 };
+
+// 입력②(이번 달 명단)와 입력③(지난달 명단)을 대조해 전입·전출을 화면에 명시한다.
+// 둘 다 올라와 있을 때만 의미가 있다(한쪽만 있으면 비교 대상이 없음).
+function renderRosterDiff() {
+  const box = $("#rosterDiff");
+  if (!box) return;
+  if (!staffFromWanted || !prevRosterNames.length) {
+    box.style.display = "none";
+    box.innerHTML = "";
+    return;
+  }
+  const prev = new Set(prevRosterNames);
+  const cur = new Set(formStaff.map(s => s.id));
+  const incoming = formStaff.map(s => s.id).filter(n => !prev.has(n));
+  const outgoing = prevRosterNames.filter(n => !cur.has(n));
+  if (!incoming.length && !outgoing.length) {
+    box.style.display = "";
+    box.className = "roster-diff same";
+    box.innerHTML = `✓ 인원 변동 없음 — 입력②·③ 명단 ${cur.size}명이 모두 일치합니다.`;
+    return;
+  }
+  let html = "";
+  if (incoming.length) {
+    html += `<div><b>전입 ${incoming.length}명</b> (입력②에만 있음): ${incoming.map(esc).join(", ")}`
+         +  `<span class="hint"> — 이월정보(잔휴·연속근무)가 없습니다. 이름 오타라면 입력②·③을 같게 맞춰주세요.</span></div>`;
+  }
+  if (outgoing.length) {
+    html += `<div><b>전출 ${outgoing.length}명</b> (입력③에만 있음): ${outgoing.map(esc).join(", ")}`
+         +  `<span class="hint"> — 이번 달 배정에서 빠지고, 누적 이력은 연간근무표에 보존됩니다.</span></div>`;
+  }
+  box.style.display = "";
+  box.className = "roster-diff";
+  box.innerHTML = html;
+}
 
 $("#wantedInput").onchange = async () => {
   const f = $("#wantedInput").files[0];
@@ -752,14 +806,16 @@ $("#wantedInput").onchange = async () => {
     const data = await api("/api/upload_wanted", { _fileBytes: bytes });
     formRequests = data.requests.map(r => ({ ...r, priority: 1 }));  // 이전 신청 목록을 통째로 대체
     // 이 파일에 인원 정보(직급·숙련도·가능근무·비고)가 있으면 항상 우선해서 덮어쓴다 —
-    // 입력①에서 온 인원 정보가 있었더라도 입력②가 있으면 입력②가 이긴다.
+    // 입력②는 '이번 달 명단(미래)'이라 명단의 최종 기준이다(입력①·③보다 항상 우선).
     const staffUpdated = (data.staff || []).length > 0;
     if (staffUpdated) {
       formStaff = data.staff.map(s => ({
         id: s.id, role: s.role, level: s.level,
         allowed: [...(s.allowed_shifts || [])], flags: [...(s.flags || [])],
       }));
+      staffFromWanted = true;
       renderStaffSummary();
+      renderRosterDiff();
     }
     const teamB = data.team_b_names || [];
     if (teamB.length) {
@@ -832,6 +888,8 @@ $("#staffTableClearBtn").onclick = async () => {
   try {
     await api("/api/clear_staff_table", { method: "POST" });
     await refreshStaffTableStatus();
+    prevRosterNames = [];
+    renderRosterDiff();
     statusEl.textContent = "반영 해제했습니다 — 이번 생성은 처음부터 시작합니다.";
     showToast("연간근무표 반영을 해제했습니다");
   } catch (e) {}
@@ -844,22 +902,36 @@ $("#staffTableInput").onchange = async () => {
   try {
     const bytes = new Uint8Array(await f.arrayBuffer());
     const data = await api("/api/upload_staff_table", { _fileBytes: bytes });
-    formStaff = (data.staff || []).map(s => ({
-      id: s.id, role: s.role, level: s.level,
-      allowed: [...(s.allowed_shifts || [])], flags: [...(s.flags || [])],
-    }));
-    renderStaffSummary();
+    // 입력③은 '지난달 실적(과거)'이다. 입력②(이번 달 명단, 미래)가 이미 명단을 채웠다면
+    // 절대 덮어쓰지 않는다 — 덮어쓰면 이번 달 전입자가 조용히 사라진다. 이 경우 여기서
+    // 읽은 명단은 전입·전출 대조용으로만 쓴다. 입력②가 아직 없을 때만 출발점으로 채운다.
+    prevRosterNames = (data.staff || []).map(s => s.id);
+    if (!staffFromWanted) {
+      formStaff = (data.staff || []).map(s => ({
+        id: s.id, role: s.role, level: s.level,
+        allowed: [...(s.allowed_shifts || [])], flags: [...(s.flags || [])],
+      }));
+      renderStaffSummary();
+    }
+    renderRosterDiff();
     const teamB = data.team_b_names || [];
     if (teamB.length) {
       $("#f_team_b").value = teamB.join("\n");
       updateTeamBCount();
     }
     clearUploadError(statusEl);
+    const kept = staffFromWanted
+      ? `명단은 입력②(${formStaff.length}명) 기준 유지, 누적 통계·이월정보만 반영`
+      : `인원 ${formStaff.length}명, 누적 통계·이월정보 반영`;
+    const dep = (data.departed_names || []).length;
     statusEl.textContent =
-      `인원 ${formStaff.length}명, 누적 통계·이월정보 반영 (연간 근무표 ${data.annual_days}일치 포함)` +
-      (teamB.length ? `, B팀 ${teamB.length}명 인식` : "");
+      `${kept} (연간 근무표 ${data.annual_days}일치 포함)` +
+      (teamB.length ? `, B팀 ${teamB.length}명 인식` : "") +
+      (dep ? `, 기존 전출자 ${dep}명 이력 보존` : "");
     await refreshStaffTableStatus();
-    showToast("연간근무표에서 인원 명단·누적 통계·전월 이월정보를 불러왔습니다");
+    showToast(staffFromWanted
+      ? "연간근무표에서 누적 통계·전월 이월정보를 불러왔습니다 (명단은 입력② 기준 유지)"
+      : "연간근무표에서 인원 명단·누적 통계·전월 이월정보를 불러왔습니다");
   } catch (e) {
     // 업로드가 반려돼도(값은 그대로) 화면엔 오류 문구가 계속 남으므로, 지울 방법이
     // 있어야 한다 — 반영 해제 버튼을 오류 지우기 용도로 그대로 재사용한다.
