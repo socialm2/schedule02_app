@@ -427,6 +427,17 @@ const INFO_NEXT_MONTH = `
 누적 OFF·야간·근무일 등 <b>형평성 지표</b>가 둘 다 자동으로 이어집니다.</p>
 `;
 
+// 더 긴 설명이 필요할 때 볼 문서들(별도 창). 서비스워커가 한 번 연 뒤엔 캐시해두므로
+// 오프라인에서도 다시 열린다.
+const INFO_MORE = `
+<h3>더 자세한 문서</h3>
+<ul>
+<li><a href="guide/quick-start.html" target="_blank" rel="noopener">상세 사용법</a> — 화면 순서대로 따라 하는 안내(전입자 근무기록 붙여넣기 포함)</li>
+<li><a href="guide/one-pager.html" target="_blank" rel="noopener">한 장 요약</a> — 인쇄해서 옆에 두고 보는 요약본</li>
+<li><a href="guide/security.html" target="_blank" rel="noopener">보안 · 개인정보</a> — 업로드한 파일이 어디까지 가는지</li>
+</ul>
+`;
+
 const INFO_HTML_INPUT = `
 <h3>이 프로그램은 무엇을 하나요</h3>
 <p>병동의 인원·직급·숙련도·근무 가능 유형과 일별 최소 인력 기준을 입력하면,
@@ -493,6 +504,7 @@ const INFO_HTML_INPUT = `
 
 ${INFO_RULES}
 ${INFO_NEXT_MONTH}
+${INFO_MORE}
 `;
 
 const INFO_HTML_OUTPUT = `
@@ -527,6 +539,7 @@ ${INFO_SHIFT_LEGEND}
 
 ${INFO_RULES}
 ${INFO_NEXT_MONTH}
+${INFO_MORE}
 `;
 
 // 입력화면·결과화면에서 버튼 라벨과 모달 내용이 함께 바뀐다(같은 자리, 화면에 맞는 설명서).
