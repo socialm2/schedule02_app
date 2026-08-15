@@ -434,6 +434,9 @@ table.form-table input[type=text], table.form-table input[type=number], table.fo
 .row-del { color: var(--hard); border-color: var(--hard); padding: 2px 8px; font-size: 11px; }
 button.small { font-size: 12px; padding: 5px 11px; margin-top: 6px; }
 .generate-row { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+/* 생성 상태 문구가 비어 있을 때는 flex 아이템에서 아예 빼서, 버튼이 카드 오른쪽
+   끝까지 꽉 차게 한다(비어 있어도 gap 12px이 남아 오른쪽이 비어 보였다). */
+.generate-row > .hint:empty { display: none; }
 button.big { font-size: 15px; padding: 11px 26px; }
 
 /* ---------------------------------------------------------------- 정보 모달 */
