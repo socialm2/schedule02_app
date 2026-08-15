@@ -15,19 +15,23 @@
 // 사용자는 새로 배포해도 계속 옛날 파일을 쓰게 된다(직접 캐시를 지우기 전까지 영구히).
 // 앱 코드(APP_FILES)만 고친 경우는 네트워크 우선이라 안 올려도 된다.
 
-const CACHE_NAME = "ns-sched-v14";
+const CACHE_NAME = "ns-sched-v15";
 
 // py_app.zip은 엔진 코드라 배포마다 바뀌므로 APP_FILES(네트워크 우선)로 둔다 —
 // HEAVY_FILES(캐시 우선)에 있으면, 서비스워커가 갱신되는 그 페이지 로드에서조차
 // 옛 zip을 계속 쓰게 되어(다음 로드에야 새 SW가 넘겨받음) 배포 후 한 번 더
 // 새로고침해야 반영되는 혼란이 생긴다.
+//
+// 양식(templates/)도 APP_FILES에 둔다 — 몇십 KB밖에 안 되는데 열이 늘거나 안내가 바뀌면
+// 화면 설명과 어긋나면 안 되는 파일이라, 온라인이면 항상 최신을 받게 하는 편이 안전하다.
+// (여기 있어도 설치 때 미리 받아두므로 오프라인에서도 그대로 열린다)
 const APP_FILES = ["./", "index.html", "app.js", "style.css", "pyworker.js",
-                   "manifest.json", "py_app.zip"];
+                   "manifest.json", "py_app.zip",
+                   "templates/입력1_병동인력표_2026-09.xlsx",
+                   "templates/입력3_연간근무표_2026-08.xlsx"];
 
 const HEAVY_FILES = [
   "sample_input.xlsx",
-  "templates/입력1_병동인력표_2026-09.xlsx",
-  "templates/입력3_연간근무표_2026-08.xlsx",
   "vendor/pyodide/pyodide.js", "vendor/pyodide/pyodide.mjs",
   "vendor/pyodide/pyodide.asm.js", "vendor/pyodide/pyodide.asm.wasm",
   "vendor/pyodide/python_stdlib.zip", "vendor/pyodide/pyodide-lock.json",
@@ -62,7 +66,11 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // 외부 요청은 그대로 통과
 
-  const isHeavy = HEAVY_FILES.some((f) => url.pathname.endsWith(f));
+  // pathname은 한글 파일명을 퍼센트 인코딩해서 돌려주므로(%EC%9E%85...) 먼저 되돌려
+  // 비교한다 — 안 그러면 한글 이름 파일은 목록에 넣어도 캐시 우선이 걸리지 않는다.
+  let path = url.pathname;
+  try { path = decodeURIComponent(path); } catch (e) { /* 잘못된 인코딩이면 원본으로 비교 */ }
+  const isHeavy = HEAVY_FILES.some((f) => path.endsWith(f));
 
   if (isHeavy) {
     event.respondWith(
