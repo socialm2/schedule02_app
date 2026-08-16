@@ -120,6 +120,10 @@ header #infoBtn {
   color: var(--ok); background: var(--ok-soft); padding: 8px 18px; margin: 0;
   border-bottom: 1px solid var(--line);
 }
+/* 화면 맨 아래 마무리 안내 — 맨 위 보안 안내와 같은 모양으로 위아래 균형을 맞춘다.
+   #app이 세로 flex(#main이 flex:1)라 이 줄은 항상 화면 맨 아래에 붙는다.
+   구분선만 위쪽으로 뒤집는다. */
+.security-note.footer-note { border-bottom: none; border-top: 1px solid var(--line); }
 
 button {
   appearance: none; -webkit-appearance: none;
@@ -298,7 +302,10 @@ td.disabled { cursor: default; opacity: .55; }
 .toast.err { background: var(--hard); }
 
 /* ---------------------------------------------------------------- 입력 화면 */
-#intake { max-width: 1100px; margin: 0 auto; padding-bottom: 40px; }
+#intake { max-width: 1100px; margin: 0 auto; padding-bottom: 12px; }
+/* 카드 안 마지막 묶음의 아래 여백은 카드 자체 padding과 겹쳐 두 배로 보인다 —
+   '근무표 생성' 버튼 밑이 허전하게 넓어 보이던 원인이라 마지막 것만 지운다. */
+.intake-box > *:last-child { margin-bottom: 0; }
 .intake-box { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 26px; }
 .intake-box h2 { font-size: 17px; margin: 0 0 6px; }
 .output-title { font-size: 17px; margin: 0 0 2px; }
