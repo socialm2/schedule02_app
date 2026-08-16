@@ -120,10 +120,17 @@ header #infoBtn {
   color: var(--ok); background: var(--ok-soft); padding: 8px 18px; margin: 0;
   border-bottom: 1px solid var(--line);
 }
-/* 화면 맨 아래 마무리 안내 — 맨 위 보안 안내와 같은 모양으로 위아래 균형을 맞춘다.
-   #app이 세로 flex(#main이 flex:1)라 이 줄은 항상 화면 맨 아래에 붙는다.
-   구분선만 위쪽으로 뒤집는다. */
-.security-note.footer-note { border-bottom: none; border-top: 1px solid var(--line); }
+/* 화면 맨 아래 마무리 줄 — 맨 위 보안 안내와 같은 자리·같은 두께의 띠지만,
+   내용을 읽히려는 게 아니라 "여기가 끝"이라는 신호가 목적이라 무채색으로 죽인다
+   (초록은 위쪽 보안 안내에만 쓴다 — 색이 두 군데면 어느 쪽도 눈에 안 띈다).
+   #app이 세로 flex(#main이 flex:1)라 데스크톱에서는 화면 맨 아래에 붙고,
+   폰(≤680px, #app height:auto)에서는 문서 맨 끝에 온다. */
+.footer-note {
+  display: block; text-align: center; margin: 0;
+  font-size: 11px; font-weight: 500; letter-spacing: .02em; line-height: 1.6;
+  color: var(--sub); opacity: .75; background: var(--card);
+  padding: 9px 18px; border-top: 1px solid var(--line);
+}
 
 button {
   appearance: none; -webkit-appearance: none;
