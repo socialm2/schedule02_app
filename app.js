@@ -1189,6 +1189,20 @@ function renderGrid() {
   const lockedSet = new Set(ST.locked);
   const pendingSet = new Set(ST.pending);
   const wantedSet = new Set(ST.wanted || []);
+  // 위반 목록(사이드바)엔 있는데 그리드 어디인지 셀 하나하나 세어봐야 했던 문제 —
+  // staff_id+day가 둘 다 있는 위반(H1-1/H1-4/H1-5처럼 특정 칸이 아니라 "그날 전체"를
+  // 가리키는 항목은 staff_id가 없어 자연히 빠짐)만 해당 칸에 표시로 옮겨 붙인다.
+  // H6-1처럼 "블록" 단위 규칙은 위반 데이터에 블록 시작일만 기록돼 있어, 지금은
+  // 그 시작일 칸에만 표시된다(블록 전체가 아님 — 추후 필요하면 개선).
+  const violMap = new Map();
+  for (const v of (ST.report && ST.report.hard) || []) {
+    if (!v.staff_id || !v.day) continue;
+    const key = `${v.staff_id}:${v.day - 1}`;
+    let ent = violMap.get(key);
+    if (!ent) { ent = { strict: false, msgs: [] }; violMap.set(key, ent); }
+    if (!v.best_effort) ent.strict = true;
+    ent.msgs.push(`${v.rule} ${v.message}`);
+  }
 
   let html = '<h2 class="output-title">2. 근무표 출력</h2>';
   const wardLabel = ST.ward_id ? `${esc(ST.ward_id)} · ` : "";
@@ -1208,6 +1222,8 @@ function renderGrid() {
   html += `<span class="sw"><span style="outline:2px solid var(--hard);width:13px;height:13px;display:inline-block"></span>확정(고정)</span>`;
   html += `<span class="sw"><span style="outline:2px dashed var(--warn);width:13px;height:13px;display:inline-block"></span>미적용 편집</span>`;
   html += `<span class="sw"><span class="box wanted-swatch"></span>원티드 반영</span>`;
+  html += `<span class="sw"><span class="viol-swatch viol-hard-swatch"></span>필수위반</span>`;
+  html += `<span class="sw"><span class="viol-swatch viol-soft-swatch"></span>최선노력위반</span>`;
   html += `<button id="backToInputBtn" class="small" style="margin-left:auto">← 입력으로 돌아가기(새로 만들기)</button>`;
   html += "</div>";
 
@@ -1250,9 +1266,15 @@ function renderGrid() {
       if (lockedSet.has(key)) cls.push("locked");
       if (pendingSet.has(key)) cls.push("pending");
       if (isWanted) cls.push("wanted");
+      const viol = violMap.get(key);
+      let title = "";
+      if (viol) {
+        cls.push(viol.strict ? "viol-hard" : "viol-soft");
+        title = ` title="${escAttr(viol.msgs.join("\n"))}"`;
+      }
       const disabled = s.is_partjang;
       if (disabled) cls.push("disabled");
-      html += `<td class="${cls.join(" ")}" data-sid="${escAttr(s.id)}" data-day="${d}" ${disabled ? "" : `onclick="openPicker(event,'${escAttr(s.id)}',${d})"`}>` +
+      html += `<td class="${cls.join(" ")}" data-sid="${escAttr(s.id)}" data-day="${d}"${title} ${disabled ? "" : `onclick="openPicker(event,'${escAttr(s.id)}',${d})"`}>` +
               `<span>${esc(shiftText(v, isWanted))}</span></td>`;
     }
     html += `<td class="stat-col">${dCnt}</td><td class="stat-col">${eCnt}</td><td class="stat-col">${nCnt}</td>` +

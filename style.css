@@ -212,6 +212,25 @@ td.wanted span {
               inset 0 0 0 2px rgba(153, 105, 0, .95);
 }
 .wanted-swatch { background: rgba(255, 214, 0, .55); border: 1px solid rgba(154, 107, 18, .5); }
+/* 위반 목록에만 있고 그리드엔 아무 표시가 없어 칸을 일일이 세어 찾아야 했던 문제 —
+   locked(테두리)·wanted(전체 틴트)와 안 겹치게 모서리 삼각형 배지로 표시한다.
+   필수위반(빨강)과 최선노력위반(주황)을 구분한다. 툴팁(title)에 규칙·메시지가 뜬다. */
+td.viol-hard, td.viol-soft { position: relative; }
+td.viol-hard::after, td.viol-soft::after {
+  content: ""; position: absolute; top: 0; right: 0;
+  border-style: solid; border-width: 0 9px 9px 0;
+  border-color: transparent currentColor transparent transparent;
+}
+td.viol-hard::after { color: var(--hard); }
+td.viol-soft::after { color: var(--warn); }
+.viol-swatch { width: 13px; height: 13px; display: inline-block; position: relative; }
+.viol-swatch::after {
+  content: ""; position: absolute; top: 0; right: 0;
+  border-style: solid; border-width: 0 9px 9px 0;
+  border-color: transparent currentColor transparent transparent;
+}
+.viol-hard-swatch { color: var(--hard); }
+.viol-soft-swatch { color: var(--warn); }
 td.cell:hover:not(.disabled) { filter: brightness(.94); }
 td.disabled { cursor: default; opacity: .55; }
 
