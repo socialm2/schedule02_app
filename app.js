@@ -61,9 +61,13 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-const SHIFT_CLASS = {D:"sd", E:"se", N:"sn", NK:"sk", prn:"sp", "8A":"sa", "9A":"sa9", "연차":"sy", OFF:"so", "S/":"ssl", "TW":"stw", "군":"smi"};
+const SHIFT_CLASS = {D:"sd", E:"se", N:"sn", NK:"sk", prn:"sp", "8A":"sa", "9A":"sa9", "10A":"sa10",
+                     "연차":"sy", OFF:"so", "S/":"ssl", "TW":"stw", "군":"smi", "T":"st",
+                     "조":"sjo", "경":"sgyeong", "공":"sgong", "병":"sbyeong", "휴":"shyu", "승":"sseung",
+                     "연1":"sy1", "연2":"sy2", "연3":"sy3", "연4":"sy4"};
 const SHIFT_TEXT = {OFF:"·", "연차":"연", prn:"p"};
-const ALL_SHIFTS = ["D","E","N","NK","prn","8A","9A","TW","OFF","연차","S/","군"];
+const ALL_SHIFTS = ["D","E","N","NK","prn","8A","9A","10A","T","TW","OFF","연차","연1","연2","연3","연4",
+                    "S/","조","경","공","병","휴","승","군"];
 const MIN_STAFF_ROWS = [["D","D"],["E","E"],["N","N"],["prn","prn"]];
 const MIN_STAFF_COLS = [["weekday","평일"],["saturday","토요일"],["sunday_holiday","일요일·공휴일"]];
 
@@ -1194,8 +1198,11 @@ function renderGrid() {
   }
   html += '<div class="legend">';
   const legendItems = [["D","#BDD7EE"],["E","#F8CBAD"],["N","#1F3864"],["NK","#7030A0"],
-                       ["prn","#C6E0B4"],["8A","#D9D9D9"],["9A","#BFBFBF"],["연차","#FFE699"],
-                       ["S/","#9DC3E6"],["TW","#A9D18E"],["군","#C9C9C9"]];
+                       ["prn","#C6E0B4"],["8A","#D9D9D9"],["9A","#BFBFBF"],["10A","#A6A6A6"],
+                       ["T","#B4C7E7"],["연차","#FFE699"],["연1~4","#FFF2CC"],
+                       ["S/","#9DC3E6"],["TW","#A9D18E"],["군","#C9C9C9"],
+                       ["조","#808080"],["경","#F4B6C2"],["공","#D0CECE"],["병","#F8C9C4"],
+                       ["휴","#BFBFBF"],["승","#DDEBF7"]];
   for (const [k, c] of legendItems) html += `<span class="sw"><span class="box" style="background:${c}"></span>${k}</span>`;
   html += `<span class="sw">/ = 오프 · X = 원티드오프</span>`;
   html += `<span class="sw"><span style="outline:2px solid var(--hard);width:13px;height:13px;display:inline-block"></span>확정(고정)</span>`;
@@ -1329,7 +1336,8 @@ function renderDailyLevelFootRows() {
 window.openPicker = function (ev, sid, day) {
   closePicker();
   const staff = ST.staff.find(s => s.id === sid);
-  const allowed = new Set(["OFF", "연차", "S/", "군", "TW", ...staff.allowed]);
+  const allowed = new Set(["OFF", "연차", "연1", "연2", "연3", "연4", "S/", "군", "TW", "T",
+                           "조", "경", "공", "병", "휴", "승", ...staff.allowed]);
   const cur = ST.grid[sid][day];
   const rect = ev.target.closest("td").getBoundingClientRect();
 
