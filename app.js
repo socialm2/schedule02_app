@@ -1424,7 +1424,10 @@ function renderSide() {
   if (r.hard.length > 0) {
     // 정말 못 채운 것(빨강)과 최선노력 규칙만 남은 것(노랑)을 구분해서 보여준다 —
     // 둘 다 같은 class="hard"로만 나가서 구분이 안 되던 것을 고침.
-    html += '<ul class="issue-list">' + r.hard.slice(0, 8).map(v =>
+    // 예전엔 slice(0,8)로 앞 8건만 보여줘서, 위반이 많은 달엔 뒤쪽(특히 날짜순 정렬상
+    // 뒤로 밀리는 H6-1 등)이 아무 표시 없이 통째로 안 보였다 — 파트장이 "이건 위반이
+    // 아닌가 보다"로 오해할 수 있어, 전부 보여주되 스크롤로 감당한다.
+    html += '<ul class="issue-list issue-list-scroll">' + r.hard.map(v =>
       `<li class="${v.best_effort ? "soft" : "hard"}"><span class="rule">${esc(v.rule)}</span>${esc(v.message)}</li>`).join("") + "</ul>";
   }
   html += "</div>";
