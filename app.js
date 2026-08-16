@@ -17,7 +17,11 @@ async function sha256Hex(text) {
 
 (function initAuthGate() {
   const gate = document.getElementById("authGate");
-  if (localStorage.getItem(AUTH_KEY) === "1") {
+  // 저장소 접근이 막힌 환경에서도 문(gate) 자체는 떠야 한다 — 예전엔 여기서 던진
+  // SecurityError가 초기화 전체를 멈춰 화면이 빈 채로 남았다.
+  let alreadyIn = false;
+  try { alreadyIn = localStorage.getItem(AUTH_KEY) === "1"; } catch (e) { alreadyIn = false; }
+  if (alreadyIn) {
     gate.style.display = "none";
     return;
   }
@@ -41,7 +45,7 @@ async function sha256Hex(text) {
       return;
     }
     if (hash === AUTH_HASH) {
-      localStorage.setItem(AUTH_KEY, "1");
+      try { localStorage.setItem(AUTH_KEY, "1"); } catch (err) { /* 다음에 또 물어볼 뿐 */ }
       gate.style.display = "none";
     } else {
       document.getElementById("authError").style.display = "";
@@ -276,18 +280,38 @@ const _pending = new Map();
 
 const HISTORY_PREFIX = "ns_history_";
 
+// 브라우저 저장소는 항상 쓸 수 있는 게 아니다 — 사내 정책이나 브라우저 설정으로 접근
+// 자체가 막히면(SecurityError) 예전엔 앱 초기화가 통째로 멈췄고, 용량이 꽉 차면
+// (QuotaExceededError) 확정 저장이 조용히 실패했다. 저장이 안 되는 것보다 나쁜 건
+// "왜 안 되는지 모르는 것"이라, 실패해도 앱은 계속 돌리되 이유를 알려준다.
+let storageWarned = false;
+function _storageFailed(e, what) {
+  console.warn("localStorage", what, e);
+  if (storageWarned) return;
+  storageWarned = true;
+  const quota = e && (e.name === "QuotaExceededError" || e.code === 22);
+  showToast(quota
+    ? "브라우저 저장공간이 가득 차 지난달 기록을 저장하지 못했습니다 — 오래된 기록을 지우거나 다른 브라우저를 쓰세요. 근무표 생성·다운로드는 그대로 됩니다."
+    : "이 브라우저에서는 저장소를 쓸 수 없어 지난달 기록이 남지 않습니다(사내 정책·시크릿 모드 등) — 근무표 생성·다운로드는 그대로 됩니다.",
+    true);
+}
+
 function _readHistorySnapshot() {
   const out = {};
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k.startsWith(HISTORY_PREFIX)) out[k] = localStorage.getItem(k);
-  }
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(HISTORY_PREFIX)) out[k] = localStorage.getItem(k);
+    }
+  } catch (e) { _storageFailed(e, "read"); }
   return out;
 }
 
 function _applyHistoryPatch(patch) {
   if (!patch) return;
-  for (const [k, v] of Object.entries(patch)) localStorage.setItem(k, v);
+  try {
+    for (const [k, v] of Object.entries(patch)) localStorage.setItem(k, v);
+  } catch (e) { _storageFailed(e, "write"); }
 }
 
 async function bootPyodide() {
@@ -395,7 +419,9 @@ window.downloadWantedTemplate = async function () {
 };
 
 function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
-function escAttr(s) { return esc(s).replace(/'/g, "&#39;"); }
+// 속성값 안에 들어가므로 따옴표를 반드시 둘 다 막는다 — 큰따옴표를 빼먹으면
+// 이름에 `홍길동" onclick="...` 같은 걸 넣었을 때 없던 속성이 만들어진다.
+function escAttr(s) { return esc(s).replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
 
 // ================================================================ 정보 모달
 
