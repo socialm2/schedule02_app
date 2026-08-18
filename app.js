@@ -70,6 +70,7 @@ const ALL_SHIFTS = ["D","E","N","NK","prn","8A","9A","10A","T","TW","OFF","연�
                     "S/","조","경","공","병","휴","승","군"];
 const MIN_STAFF_ROWS = [["D","D"],["E","E"],["N","N"],["prn","prn"]];
 const MIN_STAFF_COLS = [["weekday","평일"],["saturday","토요일"],["sunday_holiday","일요일·공휴일"]];
+const MIN_STAFF_DOWS = [["0","월"],["1","화"],["2","수"],["3","목"],["4","금"]];
 
 // 한국 공휴일(관공서의 공휴일에 관한 규정 기준) — 확인된 연도만 정확한 음력 명절 포함,
 // 그 외 연도는 고정일 공휴일만 기본 반영하고 나머지는 캘린더에서 직접 클릭해 조정.
@@ -241,6 +242,11 @@ let formRequests = [];   // [{staff_id, date, type, priority}]
 let formCarryover = [];  // [{staff_id, last_shift_type, consecutive_work_days, night_block_remaining_off, trailing_night_count}]
 let formHolidays = [];      // ["YYYY-MM-DD", ...] 공휴일
 let formSubHolidays = [];   // ["YYYY-MM-DD", ...] 대체공휴일
+// 근무인력 "평일"을 요일별(월~금)로 따로 지정하는 중인지 — 병동 사정상 특정 요일만
+// 근무인력이 다른 경우를 위한 선택 기능. 펼치면 5칸 각각 입력, 접으면 다시 공통값
+// 하나로 돌아간다(그 시점의 월요일 값을 대표값으로 남김 — 접은 뒤엔 요일별 차이는
+// 사라지는 게 자연스러운 동작이라 별도로 살려두지 않는다).
+let minStaffWeekdayExpanded = false;
 
 const $ = (sel) => document.querySelector(sel);
 const gridPane = $("#gridPane");
@@ -690,10 +696,21 @@ function fillForm(cfg) {
   updateTeamBCount();
 
   const ms = p.min_staff || {};
+  const byDow = ms.weekday_by_dow || {};
+  minStaffWeekdayExpanded = Object.keys(byDow).length > 0;
+  renderMinStaffTable();
   for (const [key] of MIN_STAFF_ROWS) {
     for (const [col] of MIN_STAFF_COLS) {
+      if (col === "weekday" && minStaffWeekdayExpanded) continue;
       const el = document.getElementById(`ms_${key}_${col}`);
       if (el) el.value = (ms[col] && ms[col][key] !== undefined) ? ms[col][key] : 0;
+    }
+    if (minStaffWeekdayExpanded) {
+      for (const [dow] of MIN_STAFF_DOWS) {
+        const day = byDow[dow] || ms.weekday || {};
+        const el = document.getElementById(`ms_${key}_weekday_${dow}`);
+        if (el) el.value = day[key] !== undefined ? day[key] : 0;
+      }
     }
   }
 
@@ -708,12 +725,63 @@ function fillForm(cfg) {
 }
 
 function renderMinStaffTable() {
+  const thead = $("#minStaffTable thead");
   const tbody = $("#minStaffTable tbody");
+  let headHtml = "<tr><th>근무</th>";
+  if (minStaffWeekdayExpanded) {
+    headHtml += MIN_STAFF_DOWS.map(([, dowLabel]) => `<th>${dowLabel}</th>`).join("");
+    headHtml += `<th><a href="#" id="msWeekdayToggle" class="ms-toggle">평일 접기 ▲</a></th>`;
+  } else {
+    headHtml += `<th><a href="#" id="msWeekdayToggle" class="ms-toggle">평일 ▾</a></th>`;
+  }
+  headHtml += `<th>토요일</th><th>일요일·공휴일</th></tr>`;
+  thead.innerHTML = headHtml;
+
   tbody.innerHTML = MIN_STAFF_ROWS.map(([key, label]) => {
-    const cells = MIN_STAFF_COLS.map(([col, colLabel]) =>
-      `<td data-label="${colLabel}"><input type="number" min="0" id="ms_${key}_${col}" value="0"></td>`).join("");
+    let cells = "";
+    if (minStaffWeekdayExpanded) {
+      cells += MIN_STAFF_DOWS.map(([dow, dowLabel]) =>
+        `<td data-label="${dowLabel}"><input type="number" min="0" id="ms_${key}_weekday_${dow}" value="0"></td>`).join("");
+    } else {
+      cells += `<td data-label="평일"><input type="number" min="0" id="ms_${key}_weekday" value="0"></td>`;
+    }
+    cells += `<td data-label="토요일"><input type="number" min="0" id="ms_${key}_saturday" value="0"></td>`;
+    cells += `<td data-label="일요일·공휴일"><input type="number" min="0" id="ms_${key}_sunday_holiday" value="0"></td>`;
     return `<tr><td data-label="근무"><b>${label}</b></td>${cells}</tr>`;
   }).join("");
+
+  $("#msWeekdayToggle").onclick = (e) => {
+    e.preventDefault();
+    toggleMinStaffWeekdayExpand(!minStaffWeekdayExpanded);
+  };
+}
+
+// 펼치기: 지금 "평일" 공통값을 5칸에 그대로 채워 넣어(값이 갑자기 0으로 안 보이게)
+// 시작한다. 접기: 월요일 칸 값을 대표값으로 남긴다(요일별 차이는 접으면 사라짐 —
+// "다시 공통값 하나로 돌아간다"는 의도된 동작이라 별도 로직으로 살리지 않는다).
+function toggleMinStaffWeekdayExpand(expand) {
+  if (expand === minStaffWeekdayExpanded) return;
+  const captured = {};
+  for (const [key] of MIN_STAFF_ROWS) {
+    if (expand) {
+      const v = document.getElementById(`ms_${key}_weekday`)?.value || "0";
+      captured[key] = v;
+    } else {
+      const v = document.getElementById(`ms_${key}_weekday_0`)?.value || "0";
+      captured[key] = v;
+    }
+  }
+  minStaffWeekdayExpanded = expand;
+  renderMinStaffTable();
+  for (const [key] of MIN_STAFF_ROWS) {
+    if (expand) {
+      for (const [dow] of MIN_STAFF_DOWS) {
+        document.getElementById(`ms_${key}_weekday_${dow}`).value = captured[key];
+      }
+    } else {
+      document.getElementById(`ms_${key}_weekday`).value = captured[key];
+    }
+  }
 }
 renderMinStaffTable();
 
@@ -750,9 +818,30 @@ function buildCfgFromForm() {
   const subhol = [...formSubHolidays];
   const minStaff = {};
   for (const [col] of MIN_STAFF_COLS) {
+    if (col === "weekday" && minStaffWeekdayExpanded) continue;
     minStaff[col] = {};
     for (const [key] of MIN_STAFF_ROWS) {
       minStaff[col][key] = parseInt(document.getElementById(`ms_${key}_${col}`).value || "0", 10);
+    }
+  }
+  if (minStaffWeekdayExpanded) {
+    // "weekday"는 하위호환 기본값으로 월요일 값을 채워 넣는다(백엔드가 이 키를
+    // 항상 요구하고, weekday_by_dow를 모르는 옛 코드도 이 값으로 동작할 수 있게).
+    minStaff.weekday = {};
+    minStaff.weekday_by_dow = {};
+    for (const [key] of MIN_STAFF_ROWS) {
+      const dayVals = {};
+      for (const [dow] of MIN_STAFF_DOWS) {
+        dayVals[dow] = parseInt(document.getElementById(`ms_${key}_weekday_${dow}`).value || "0", 10);
+      }
+      minStaff.weekday[key] = dayVals["0"];
+    }
+    for (const [dow] of MIN_STAFF_DOWS) {
+      minStaff.weekday_by_dow[dow] = {};
+      for (const [key] of MIN_STAFF_ROWS) {
+        minStaff.weekday_by_dow[dow][key] =
+          parseInt(document.getElementById(`ms_${key}_weekday_${dow}`).value || "0", 10);
+      }
     }
   }
   const nkCount = formStaff.filter(s => s.flags.includes("night_only")).length;
