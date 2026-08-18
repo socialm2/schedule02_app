@@ -121,6 +121,12 @@
                 <tbody></tbody>
               </table>
             </div>
+            <!-- 요일별 나누기는 표 헤더를 눌러 펼치는 숨은 토글이었는데, 처음 쓰는
+                 사람은 그게 눌린다는 걸 알 방법이 없었다 — 버튼과 설명을 밖으로 꺼냈다. -->
+            <div class="ms-dow-row">
+              <button type="button" id="msWeekdayToggle" class="small"></button>
+              <span class="hint" id="msWeekdayHint"></span>
+            </div>
           </details>
 
           <!-- 당분간 화면에서 뺌(값·로직은 유지 — 필요시 style 제거로 복원) -->

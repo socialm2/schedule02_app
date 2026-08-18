@@ -730,9 +730,8 @@ function renderMinStaffTable() {
   let headHtml = "<tr><th>근무</th>";
   if (minStaffWeekdayExpanded) {
     headHtml += MIN_STAFF_DOWS.map(([, dowLabel]) => `<th>${dowLabel}</th>`).join("");
-    headHtml += `<th><a href="#" id="msWeekdayToggle" class="ms-toggle">평일 접기 ▲</a></th>`;
   } else {
-    headHtml += `<th><a href="#" id="msWeekdayToggle" class="ms-toggle">평일 ▾</a></th>`;
+    headHtml += "<th>평일</th>";
   }
   headHtml += `<th>토요일</th><th>일요일·공휴일</th></tr>`;
   thead.innerHTML = headHtml;
@@ -750,10 +749,23 @@ function renderMinStaffTable() {
     return `<tr><td data-label="근무"><b>${label}</b></td>${cells}</tr>`;
   }).join("");
 
-  $("#msWeekdayToggle").onclick = (e) => {
-    e.preventDefault();
-    toggleMinStaffWeekdayExpand(!minStaffWeekdayExpanded);
-  };
+  updateMinStaffDowToggle();
+}
+
+// 표 밖의 버튼·설명 문구 — 무엇을 하는 기능인지, 지금 어떤 상태인지 글로 알려준다
+// (예전엔 "평일 ▾" 헤더를 눌러야 펼쳐지는 숨은 토글이라 처음 쓰는 사람은 알 수 없었다).
+function updateMinStaffDowToggle() {
+  const btn = $("#msWeekdayToggle");
+  const hint = $("#msWeekdayHint");
+  if (!btn) return;
+  if (minStaffWeekdayExpanded) {
+    btn.textContent = "↩ 평일 하나로 합치기";
+    if (hint) hint.textContent = "월~금을 따로 지정하는 중입니다. 합치면 월요일 값으로 통일됩니다.";
+  } else {
+    btn.textContent = "＋ 평일을 요일별로 나누기";
+    if (hint) hint.textContent = "평일 근무인력이 요일마다 다르면 눌러서 월~금을 각각 입력할 수 있습니다.";
+  }
+  btn.onclick = () => toggleMinStaffWeekdayExpand(!minStaffWeekdayExpanded);
 }
 
 // 펼치기: 지금 "평일" 공통값을 5칸에 그대로 채워 넣어(값이 갑자기 0으로 안 보이게)
@@ -761,14 +773,17 @@ function renderMinStaffTable() {
 // "다시 공통값 하나로 돌아간다"는 의도된 동작이라 별도 로직으로 살리지 않는다).
 function toggleMinStaffWeekdayExpand(expand) {
   if (expand === minStaffWeekdayExpanded) return;
-  const captured = {};
+  // 표를 통째로 다시 그리므로 모든 칸이 value="0"으로 새로 만들어진다 — 평일뿐
+  // 아니라 토요일·일요일 칸도 반드시 같이 담아뒀다 되돌려놔야 한다(예전엔 평일만
+  // 복원해서, 펼치기만 눌러도 토/일 인력이 조용히 0으로 리셋됐다).
+  const weekday = {};
+  const rest = {};
   for (const [key] of MIN_STAFF_ROWS) {
-    if (expand) {
-      const v = document.getElementById(`ms_${key}_weekday`)?.value || "0";
-      captured[key] = v;
-    } else {
-      const v = document.getElementById(`ms_${key}_weekday_0`)?.value || "0";
-      captured[key] = v;
+    weekday[key] = expand
+      ? (document.getElementById(`ms_${key}_weekday`)?.value || "0")
+      : (document.getElementById(`ms_${key}_weekday_0`)?.value || "0");
+    for (const col of ["saturday", "sunday_holiday"]) {
+      rest[`${key}_${col}`] = document.getElementById(`ms_${key}_${col}`)?.value || "0";
     }
   }
   minStaffWeekdayExpanded = expand;
@@ -776,10 +791,13 @@ function toggleMinStaffWeekdayExpand(expand) {
   for (const [key] of MIN_STAFF_ROWS) {
     if (expand) {
       for (const [dow] of MIN_STAFF_DOWS) {
-        document.getElementById(`ms_${key}_weekday_${dow}`).value = captured[key];
+        document.getElementById(`ms_${key}_weekday_${dow}`).value = weekday[key];
       }
     } else {
-      document.getElementById(`ms_${key}_weekday`).value = captured[key];
+      document.getElementById(`ms_${key}_weekday`).value = weekday[key];
+    }
+    for (const col of ["saturday", "sunday_holiday"]) {
+      document.getElementById(`ms_${key}_${col}`).value = rest[`${key}_${col}`];
     }
   }
 }
