@@ -48,7 +48,7 @@
   <!-- .build-time 값은 배포할 때 GitHub Actions가 실제 배포 시각(KST)으로
        바꿔 넣는다(.github/workflows/deploy.yml). 손으로 고칠 필요 없다. -->
   <header>
-    <h1>SMC Fair Shift <span class="version-badge">v0.8</span><span class="build-time">2026-08-19 00:49:44 KST</span></h1>
+    <h1>SMC Fair Shift <span class="version-badge">v0.8</span><span class="build-time">2026-08-19 08:43:54 KST</span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
@@ -139,6 +139,18 @@
           </div>
 
           <div class="upload-section">
+            <!-- 저장은 기본으로 켜두되, 켜고 끄는 스위치를 눈에 보이게 둔다. 자동으로
+                 저장되는데 끌 수도 없으면 공용 PC에 값이 남는 것을 막을 방법이 없다.
+                 되돌리는 '저장된 설정 지우기'는 저장되는 값(근무정보) 옆에 있다. -->
+            <div class="save-row">
+              <label class="save-toggle">
+                <input type="checkbox" id="saveSettingsChk" checked>
+                <b>마지막값 저장</b>
+              </label>
+              <span class="hint">이 기기·브라우저에 근무정보와 근무인력을 기억해 다음에 열 때 그대로 채웁니다.
+              인원 명단·원티드 신청은 저장하지 않습니다(지난달 것이 남으면 틀린 근무표가 나옵니다).</span>
+            </div>
+
             <div class="upload-item">
               <div class="upload-item-label">입력① 원티드표
                 <span class="hint">인원(직급·숙련도·가능근무·비고·전입)과 원티드 신청을 여기서 받습니다 — 날짜 칸은 OCS에서 그대로 붙여넣어도 됩니다</span>

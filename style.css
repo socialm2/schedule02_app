@@ -408,6 +408,20 @@ details.form-sec[open] summary::before { content: "▾"; }
 details.form-sec > *:not(summary) { padding: 14px; }
 /* summary 줄 오른쪽 끝에 붙는 보조 버튼(예: '저장된 설정 지우기') — 제목보다 작고
    조용하게. summary가 flex라 margin-left:auto로 오른쪽 끝에 민다. */
+/* 마지막값 저장 스위치 — 업로드 칸들 위에 한 줄로 둔다(저장이 켜져 있다는 사실이
+   파일을 올리기 전에 눈에 들어와야 한다). */
+.save-row {
+  display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap;
+  padding: 8px 10px; margin-bottom: 12px;
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+}
+.save-toggle {
+  display: flex; align-items: center; gap: 6px; cursor: pointer;
+  font-size: 13px; white-space: nowrap; padding-top: 1px;
+}
+.save-toggle input { cursor: pointer; }
+.save-row .hint { flex: 1 1 260px; }
+
 .summary-btn {
   margin-left: auto; font-size: 11px; font-weight: 600; padding: 3px 9px;
   border-color: transparent; background: var(--card); color: var(--sub);

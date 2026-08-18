@@ -436,6 +436,18 @@ function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").re
 // 이름에 `홍길동" onclick="...` 같은 걸 넣었을 때 없던 속성이 만들어진다.
 function escAttr(s) { return esc(s).replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
 
+// 이름·날짜를 onclick="..." 안의 JavaScript 문자열로 조립하지 않는다. HTML 이스케이프는
+// JavaScript 문맥을 지켜주지 못한다 — 브라우저가 &#39;를 다시 '로 되돌린 뒤에야 JavaScript
+// 파서가 보기 때문에, 이름에 작은따옴표가 있으면 거기서 문자열이 끝나고 그 뒤가 코드가 된다
+// (실제로 "간호사');...//" 같은 이름으로 재현했다). 값은 data-*에만 담고, 클릭은 위임으로 받는다.
+function delegateClick(root, selector, handler) {
+  if (!root) return;
+  root.addEventListener("click", (ev) => {
+    const el = ev.target.closest(selector);
+    if (el && root.contains(el)) handler(el, ev);
+  });
+}
+
 // ================================================================ 정보 모달
 
 // 사용법 팝업은 입력 화면/결과 화면에서 각각 그 화면에 맞는 내용을 보여준다
@@ -494,7 +506,11 @@ const INFO_HTML_INPUT = `
 <h3>기본 사항 — 설정 · 근무인력</h3>
 <p>화면에서 직접 입력합니다. 한 번 고쳐두면 <b>이 브라우저에 저장</b>돼 다음에 열 때 그대로
 뜹니다(처음에는 샘플 병동 값이 채워져 있어 그대로 <b>바로 생성</b>을 눌러볼 수도 있습니다).
-잘못 저장했으면 근무인력 표 아래 <b>저장된 설정 지우기</b>로 되돌립니다.</p>
+업로드 칸들 위의 <b>마지막값 저장</b>이 켜져 있어야 기억합니다 — 공용 PC처럼 남기면 안 되는
+자리에서는 체크를 끄면 되고, 끄는 순간 이미 저장돼 있던 값도 함께 지웁니다. 값만 처음으로
+되돌리려면 <b>근무정보</b> 제목 오른쪽의 <b>저장된 설정 지우기</b>를 누릅니다.</p>
+<p>저장하는 것은 <b>근무정보와 근무인력</b>뿐입니다 — 인원 명단·원티드 신청·전입은 저장하지
+않습니다. 지난달 것이 남아 있으면 오류 하나 없이 틀린 근무표가 나오기 때문입니다.</p>
 <ul>
 <li><b>병동명 / 연월</b> — 이번에 만들 근무표의 병동과 연·월입니다.</li>
 <li><b>월 최대야간</b> — 한 사람이 한 달에 설 수 있는 야간(N) 최대 횟수입니다.</li>
@@ -681,7 +697,7 @@ function renderHolidayCalendar() {
     if (holSet.has(iso)) cls += " cal-hol";
     else if (subSet.has(iso)) cls += " cal-sub";
     if (iso === todayIso) cls += " cal-today";
-    html += `<td class="${cls}" onclick="toggleHolidayDate('${iso}')">${day}</td>`;
+    html += `<td class="${cls}" data-iso="${iso}">${day}</td>`;
     col++;
     if (col % 7 === 0 && day !== numDays) html += "</tr><tr>";
   }
@@ -1164,6 +1180,16 @@ $("#staffTableInput").onchange = async () => {
     // 반드시 눈에 띄게 알려준다 — 조용히 0이 되면 그 사람만 오프가 밀리는데
     // 근무표만 봐서는 원인을 찾을 수 없다. 막지는 않는다(파트장 판단에 맡김).
     const noBal = (data.off_balance_blank || []);
+    // '잔휴'(엔진이 실제로 쓰는 값)와 '전월잔휴'(파트장이 OCS에서 옮겨 적는 칸)는
+    // 다른 칸이라 따로 알려야 어느 칸을 채워야 할지 알 수 있다. 그리고 정상일 때도
+    // 몇 명분을 읽었는지 한 줄 보여준다 — 아무 말이 없으면 확인이 된 건지 알 수 없다.
+    const noPrev = fromPrevMonth ? [] : (data.prev_off_balance_missing || []);
+    const prevColMissing = !fromPrevMonth && data.has_prev_off_balance_col === false;
+    const prevBalOk = !fromPrevMonth && !prevColMissing && noPrev.length === 0
+      ? `전월잔휴 ${(data.staff || []).length}명분 확인` : "";
+    // 모르는 근무표기는 빈칸(=OFF)으로 읽힌다 — 조용히 넘어가면 그 사람의 연속근무일수·
+    // 야간블록 이월이 틀어진 채로 다음 달이 만들어진다.
+    const unknownCodes = data.unknown_grid_marks || [];
     statusEl.textContent =
       `${kept} (연간 근무표 ${data.annual_days}일치 포함)` +
       (teamB.length ? `, B팀 ${teamB.length}명 인식` : "") +
@@ -1171,6 +1197,15 @@ $("#staffTableInput").onchange = async () => {
       (dep ? `, 기존 전출자 ${dep}명 이력 보존` : "") +
       (noBal.length
         ? ` — ⚠ 전월잔휴가 비어 있어 0으로 보고 진행합니다: ${noBal.length}명(${noBal.join(", ")}). 실제 잔휴가 있으면 파일의 '잔휴' 칸을 채워 다시 올려주세요.`
+        : "") +
+      (prevBalOk ? `, ${prevBalOk}` : "") +
+      (prevColMissing
+        ? " — ⚠ 이 연간근무표에는 '전월잔휴' 열이 없습니다. 전원 0으로 보고 진행하니, 이번 달 출력②를 받아 그 칸을 채워 쓰시면 다음 달부터 이어집니다."
+        : (noPrev.length
+            ? ` — ⚠ '전월잔휴'가 비어 있는 ${noPrev.length}명(${noPrev.slice(0, 5).join(", ")}${noPrev.length > 5 ? " 외 " + (noPrev.length - 5) + "명" : ""})은 0으로 보고 진행합니다. 실제 값이 있으면 '전월잔휴' 칸에 적어 다시 올려주세요.`
+            : "")) +
+      (unknownCodes.length
+        ? ` — ⚠ 인식 못 한 근무표기 ${unknownCodes.length}건(${unknownCodes.slice(0, 5).join(", ")}${unknownCodes.length > 5 ? " 외 " + (unknownCodes.length - 5) + "건" : ""})은 빈칸으로 읽었습니다. 이월정보(연속근무·야간블록)가 그만큼 달라질 수 있으니 표기를 확인해주세요.`
         : "") +
       (stranded.length
         ? ` — ⚠ 맨 아래 통계 줄 뒤의 행 ${stranded.length}건(${stranded.join(", ")})은 읽지 못했습니다. 사람 행은 통계 줄 위에 넣어주세요.`
@@ -1289,7 +1324,9 @@ if (generateBtnMid) {
     const cfg = await api("/api/sample");
     // 샘플 기본값 위에 이 브라우저에 저장해둔 설정을 덮어쓴다 — 병동인력표 파일(옛 입력①)이 없어진
     // 뒤로는 이게 "지난번에 맞춰둔 값"을 되찾는 유일한 길이다.
-    fillForm(withSavedSettings(cfg));
+    // 저장을 꺼둔 상태면 남아 있는 값이 있어도 쓰지 않는다(끈 사람에게 옛 값이
+    // 되살아나면 안 된다).
+    fillForm(restoreSaveToggle() ? withSavedSettings(cfg) : cfg);
   } catch (e) {
     showToast("샘플 로드 실패 — 직접 입력해주세요", true);
   }
@@ -1303,7 +1340,11 @@ if (generateBtnMid) {
 // 없도록 이 브라우저에 저장한다. 저장하는 것은 '달이 바뀌어도 그대로인 것'뿐이다 —
 // 병동명·연월·상한값·근무인력 표. 사람 명단·원티드 신청·전입 같은 '그 달의 내용'은
 // 절대 저장하지 않는다. 지난달 것이 남아 있으면 오류 하나 없이 틀린 근무표가 나온다.
+// 저장을 켤지 끌지는 '마지막값 저장' 체크박스가 정한다. 기본은 켜짐이지만, 공용 PC처럼
+// 남기면 안 되는 자리도 있어서 끌 수 있어야 한다. 스위치 상태 자체도 같이 기억한다 —
+// 껐는데 다음에 열면 다시 켜져 있으면 끈 의미가 없다.
 const SETTINGS_KEY = "ns_settings_v1";
+const SETTINGS_ON_KEY = "ns_settings_on";
 
 // 브라우저 저장소는 사내 정책·시크릿 모드에서 아예 막힐 수 있다(SecurityError). 저장이
 // 안 되는 것보다 나쁜 건 "왜 안 되는지 모르는 것"이라, 실패해도 앱은 계속 돌리되 한
@@ -1318,8 +1359,14 @@ function settingsStorageFailed(e, what) {
     + "(사내 정책·시크릿 모드 등) — 근무표 생성·다운로드는 그대로 됩니다.", true);
 }
 
+function settingsSaveEnabled() {
+  const chk = $("#saveSettingsChk");
+  return chk ? chk.checked : true;
+}
+
 function saveSettings() {
   if (!settingsReady) return;   // 화면을 채우는 중에 반쪽짜리 값이 저장되는 것을 막는다
+  if (!settingsSaveEnabled()) return;
   try {
     const cfg = buildCfgFromForm();
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({
@@ -1363,6 +1410,33 @@ let settingsReady = false;
 // 대신 감싸는 영역 하나에서 이벤트를 받는다(표를 다시 그려도 계속 동작).
 document.querySelector(".info-section")?.addEventListener("input", saveSettings);
 document.querySelector(".info-section")?.addEventListener("change", saveSettings);
+
+// 스위치를 켜면 지금 화면 값을 바로 한 번 저장한다 — 켠 뒤에 아무 칸도 안 건드리면
+// 저장이 안 된 채로 "켜져 있는데 왜 기억을 못 하지"가 되기 때문. 끄면 이미 저장된
+// 값까지 지운다(끄는 사람은 '남기지 마라'는 뜻이지 '이제부터만'이 아니다).
+$("#saveSettingsChk").onchange = () => {
+  const on = settingsSaveEnabled();
+  try { localStorage.setItem(SETTINGS_ON_KEY, on ? "1" : "0"); }
+  catch (e) { settingsStorageFailed(e, "toggle"); }
+  if (on) {
+    saveSettings();
+    showToast("마지막값 저장을 켰습니다 — 다음에 열면 지금 값이 그대로 채워집니다");
+  } else {
+    try { localStorage.removeItem(SETTINGS_KEY); }
+    catch (e) { settingsStorageFailed(e, "clear"); }
+    showToast("마지막값 저장을 껐습니다 — 저장돼 있던 값도 지웠습니다");
+  }
+};
+
+// 저장해둔 스위치 상태를 화면에 되살린다(폼을 채우기 전에 불러야 저장 여부가 정해진다).
+function restoreSaveToggle() {
+  let on = true;
+  try { on = localStorage.getItem(SETTINGS_ON_KEY) !== "0"; }
+  catch (e) { settingsStorageFailed(e, "read"); }
+  const chk = $("#saveSettingsChk");
+  if (chk) chk.checked = on;
+  return on;
+}
 
 $("#resetSettingsBtn").onclick = async (ev) => {
   // 이 버튼은 <summary> 안에 있다 — 막지 않으면 클릭이 섹션 접기/펴기까지 같이 일으킨다.
@@ -1495,7 +1569,7 @@ function renderGrid() {
       }
       const disabled = s.is_partjang;
       if (disabled) cls.push("disabled");
-      html += `<td class="${cls.join(" ")}" data-sid="${escAttr(s.id)}" data-day="${d}"${title} ${disabled ? "" : `onclick="openPicker(event,'${escAttr(s.id)}',${d})"`}>` +
+      html += `<td class="${cls.join(" ")}" data-sid="${escAttr(s.id)}" data-day="${d}"${title}${disabled ? "" : ' data-pick="1"'}>` +
               `<span>${esc(shiftText(v, isWanted))}</span></td>`;
     }
     html += `<td class="stat-col">${dCnt}</td><td class="stat-col">${eCnt}</td><td class="stat-col">${nCnt}</td>` +
@@ -1575,6 +1649,15 @@ function renderDailyLevelFootRows() {
     rowHtml("Lv4-5", d => d.hi) +
     rowHtml("Lv1-3", d => d.lo);
 }
+
+// 그리드·사이드 패널·공휴일 달력은 통째로 다시 그려지므로, 개별 요소가 아니라 바뀌지 않는
+// 상위 컨테이너에 한 번만 리스너를 건다(다시 그려도 계속 동작한다).
+delegateClick(document.getElementById("gridContent"), 'td[data-pick="1"]',
+  (td, ev) => openPicker(ev, td.dataset.sid, Number(td.dataset.day)));
+delegateClick(document.getElementById("sidePane"), "button.undo-edit",
+  (b) => undoEdit(b.dataset.sid, Number(b.dataset.day)));
+delegateClick(document.getElementById("holidayCalendar"), "td[data-iso]",
+  (td) => toggleHolidayDate(td.dataset.iso));
 
 window.openPicker = function (ev, sid, day) {
   closePicker();
@@ -1869,7 +1952,7 @@ function renderPending() {
     const sid = key.slice(0, i), day = parseInt(key.slice(i + 1), 10);
     const cur = ST.grid[sid][day];
     html += `<li><span>${esc(sid)} ${day + 1}일 → <b>${esc(cur)}</b></span>` +
-            `<button onclick="undoEdit('${escAttr(sid)}',${day})">취소</button></li>`;
+            `<button class="undo-edit" data-sid="${escAttr(sid)}" data-day="${day}">취소</button></li>`;
   }
   html += "</ul>";
   html += '<div id="feedbackBox"><p style="color:var(--sub);font-size:12px">피드백 확인 중...</p></div>';
