@@ -228,9 +228,8 @@ let formStaff = [];      // [{id, role, level, allowed:[...], flags:[...]}]
 // 파일마다 읽은 명단을 따로 보관하고, 실제로 쓸 명단은 항상 recomputeStaff() 한 곳에서
 // 정한다. 예전에는 파일마다 formStaff를 직접 덮어써서, 업로드·재업로드·반영 해제 순서에
 // 따라 "화면 설명과 실제 명단이 다른" 상태가 생겼다 — 예를 들어 입력② 반영을 해제해도
-// 명단은 그대로 남거나, 입력② 뒤에 입력①을 다시 올리면 명단은 입력①인데 프로그램은
-// 입력②가 준 것으로 알고 전입·전출을 잘못 판정했다.
-let staffOfInput1 = [];  // 입력① 병동인력표에서 읽은 명단(과도기 지원용)
+// 명단은 그대로 남는 식이었다.
+let staffOfSample = [];  // 처음 열었을 때의 샘플 병동 명단(아무 파일도 없을 때만 쓰임)
 let staffOfWanted = [];  // 입력② 원티드표에서 읽은 명단 — 이번 달 명단의 최종 기준
 let staffOfAnnual = [];  // 입력③ 연간근무표에서 읽은 명단(지난달 실적)
 let staffFromWanted = false;   // 입력②가 명단을 채웠는가 (recomputeStaff가 갱신하는 파생값)
@@ -238,6 +237,10 @@ let prevRosterNames = [];      // 입력③(지난달)의 인원 이름들 — �
 // 입력③ 비고에 '전입'이라 적혀 전 병동 근무기록을 가져온 사람들 — 이 사람들은 입력③에
 // 행이 있으므로 명단 차집합으로는 안 잡힌다(대조 화면에서 따로 구분해 보여줘야 함).
 let transferredInNames = [];
+// 입력②(원티드표)의 '전입'·'전입일' 칸 — 입력③이 OCS 지난달 근무표로 들어오면 그
+// 파일에는 전입 칸이 없어서, 여기가 전입 정보의 유일한 출처가 된다.
+let wantedTransferredIn = [];
+let wantedTransferInDates = {};
 let formRequests = [];   // [{staff_id, date, type, priority}]
 let formCarryover = [];  // [{staff_id, last_shift_type, consecutive_work_days, night_block_remaining_off, trailing_night_count}]
 let formHolidays = [];      // ["YYYY-MM-DD", ...] 공휴일
@@ -488,9 +491,10 @@ const INFO_HTML_INPUT = `
 법정·안전 규칙(하드 제약)을 반드시 지키면서 한 달치 근무표를 자동으로 만들어 줍니다.
 야간(N) 연속 근무 제한, 연속근무 5일 제한, 월 최소 휴무일수, 신청(원티드) 반영 등을 알아서 계산합니다.</p>
 
-<h3>입력① 병동인력표 — 설정 · 근무인력</h3>
-<p>샘플 데이터가 기본으로 채워져 있어 그대로 <b>바로 생성</b>을 눌러도 되고, 엑셀을 업로드해
-통째로 바꿔도 됩니다. 화면에서 직접 고칠 수도 있습니다.</p>
+<h3>기본 사항 — 설정 · 근무인력</h3>
+<p>화면에서 직접 입력합니다. 한 번 고쳐두면 <b>이 브라우저에 저장</b>돼 다음에 열 때 그대로
+뜹니다(처음에는 샘플 병동 값이 채워져 있어 그대로 <b>바로 생성</b>을 눌러볼 수도 있습니다).
+잘못 저장했으면 근무인력 표 아래 <b>저장된 설정 지우기</b>로 되돌립니다.</p>
 <ul>
 <li><b>병동명 / 연월</b> — 이번에 만들 근무표의 병동과 연·월입니다.</li>
 <li><b>월 최대야간</b> — 한 사람이 한 달에 설 수 있는 야간(N) 최대 횟수입니다.</li>
@@ -502,13 +506,25 @@ const INFO_HTML_INPUT = `
 </ul>
 
 <h3>입력② 원티드표 — 인원 정보 · 신청</h3>
-<p>직급·숙련도·가능근무·비고 등 <b>사람 정보는 여기서만</b> 받습니다. "양식(다운로드)"으로 현재
-인원 기준 빈 양식을 내려받아, 이번 달 휴무·근무 신청(원티드)을 채워 다시 올리세요.</p>
+<p>직급·숙련도·가능근무·비고·<b>전입·전입일</b> 등 <b>사람 정보는 여기서만</b> 받습니다.
+"양식(다운로드)"으로 현재 인원 기준 빈 양식을 내려받아, 이번 달 휴무·근무 신청(원티드)을
+채워 다시 올리세요.</p>
+<p>날짜 칸은 <b>OCS 화면에서 그대로 복사해 붙여넣어도 됩니다</b> — 말일 칸 오른쪽에 딸려온
+D/E/N·®·ⓡ·금월·T연·R연·부서 칸은 읽지 않습니다. 표기는 <b>X = 원티드 오프</b>,
+<b>근무코드 뒤의 * = 원티드 근무</b>(예: D*, E*, 연*)이고, 반영된 칸은 화면과 다운로드
+파일에서 <b>노란색</b>으로 표시됩니다.</p>
+<p>이 파일의 <b>연·월이 곧 만들 달</b>입니다 — 올리면 화면의 연월이 파일에 맞춰집니다.
+(일수가 다른 달이면 신청 날짜가 어긋나므로 반려합니다.)</p>
 
 <h3>입력③ 연간근무표 — 전월 이월정보</h3>
 <p>지난달 만든 근무표(연간근무표 다운로드 파일)를 그대로 올리면, 마지막 근무·연속근무일·야간블록
 등 이월정보와 사람별 누적 지표가 자동으로 이어집니다. 첫 달이거나 이월할 게 없으면 생략해도
 됩니다.</p>
+<p><b>이 프로그램을 처음 쓰는 달</b>이라 연간근무표가 아직 없으면, <b>OCS의 지난달 근무표</b>를
+그대로 올려도 됩니다 — 두 형태는 자동으로 구분합니다. 다만 그 파일에는 부서 누적 실적이
+없으므로 <b>누적 통계는 이번 달부터 0에서 시작</b>하고, 지난달 근무표에서 실제로 계산할 수
+있는 것(연속근무일·야간블록·이월OFF·잔휴)만 이어받습니다. 다음 달부터는 출력②(연간근무표)를
+올리면 그대로 쌓입니다.</p>
 <p>⚠ <b>'전입'·'전입일' 열이 없는 예전 양식은 받지 않습니다.</b> 그 파일로는 전입자를 표시할
 방법이 없어 전입자가 조용히 누락되기 때문입니다. 반려되면 <b>양식(다운로드)</b>로 새 양식을
 받으시거나, 이번 달 근무표를 만든 뒤 받은 <b>출력②(연간근무표)</b>를 올려주세요.</p>
@@ -622,6 +638,25 @@ populateYearMonthSelects();
 $("#f_year").onchange = () => { seedHolidaysForYear(parseInt($("#f_year").value, 10)); renderHolidayCalendar(); };
 $("#f_month").onchange = () => renderHolidayCalendar();
 
+// 연/월을 코드에서 바꿀 때 쓴다. 연도 목록은 올해 기준 7년치뿐이라, 그 밖의 해를
+// 그냥 대입하면 select가 조용히 안 바뀐다 — 없으면 항목을 만들어 넣는다.
+function setFormYearMonth(year, month) {
+  const ySel = $("#f_year");
+  if (!Array.from(ySel.options).some(o => Number(o.value) === year)) {
+    const opt = document.createElement("option");
+    opt.value = String(year);
+    opt.textContent = `${year}년`;
+    ySel.appendChild(opt);
+    Array.from(ySel.options).sort((a, b) => Number(a.value) - Number(b.value))
+      .forEach(o => ySel.appendChild(o));
+  }
+  ySel.value = String(year);
+  $("#f_month").value = String(month);
+  seedHolidaysForYear(year);
+  renderHolidayCalendar();
+  saveSettings();
+}
+
 function renderHolidayCalendar() {
   const y = parseInt($("#f_year").value, 10);
   const m = parseInt($("#f_month").value, 10);
@@ -682,11 +717,9 @@ function fillForm(cfg) {
   formSubHolidays = [...(p.substitute_holidays || [])];
   renderHolidayCalendar();
 
-  // 입력①에도 인원 정보가 있으면 일단 반영한다 — 다만 입력②가 이미 명단을 줬다면
-  // 그쪽이 이긴다(입력①의 인원 기능은 과도기 지원용). 우선순위 판단은 recomputeStaff()가
-  // 한다 — 여기서 formStaff를 직접 덮어쓰면 입력② 다음에 입력①을 올렸을 때 명단 출처가
-  // 어긋난다.
-  staffOfInput1 = (cfg.staff || []).map(s => ({
+  // 샘플 명단은 아무것도 안 올린 상태에서 '바로 생성'이 되게 하는 용도다. 입력②가
+  // 명단을 주면 그쪽이 항상 이긴다 — 판단은 recomputeStaff() 한 곳에서만 한다.
+  staffOfSample = (cfg.staff || []).map(s => ({
     id: s.id, role: s.role, level: s.level,
     allowed: [...(s.allowed_shifts || [])], flags: [...(s.flags || [])],
   }));
@@ -892,6 +925,8 @@ function buildCfgFromForm() {
     },
     prev_month_carryover: carry,
     requests: formRequests.filter(r => r.staff_id && r.date),
+    wanted_transferred_in: wantedTransferredIn,
+    wanted_transfer_in_dates: wantedTransferInDates,
   };
 }
 
@@ -917,49 +952,13 @@ document.querySelectorAll(".upload-btn[data-href]").forEach(btn => {
   };
 });
 
-$("#fileInput").onchange = async () => {
-  const f = $("#fileInput").files[0];
-  if (!f) return;
-  const statusEl = $("#uploadStatus");
-  try {
-    const bytes = new Uint8Array(await f.arrayBuffer());
-    const data = await api("/api/upload", { _fileBytes: bytes });
-    fillForm(data.cfg);  // 표를 통째로 새 값으로 덮어씀 — 재업로드해도 이전 값이 안 섞인다
-    clearUploadError(statusEl);
-    statusEl.textContent = `"${f.name}" 값으로 표를 채웠습니다 — 검토 후 생성을 누르세요`;
-    $("#fileClearBtn").style.display = "";
-    showToast("업로드한 값으로 표를 채웠습니다");
-  } catch (e) {
-    // 업로드가 반려돼도(값은 그대로) 화면엔 오류 문구가 계속 남으므로, 지울 방법이
-    // 있어야 한다 — 반영 해제 버튼을 오류 지우기 용도로 그대로 재사용한다.
-    showUploadError(statusEl, e);
-    $("#fileClearBtn").style.display = "";
-  } finally { $("#fileInput").value = ""; }
-};
-
-$("#fileClearBtn").onclick = () => {
-  const statusEl = $("#uploadStatus");
-  if (statusEl.classList.contains("upload-error")) {
-    clearUploadError(statusEl);
-    statusEl.textContent = "";
-    $("#fileClearBtn").style.display = "none";
-    return;
-  }
-  // 입력①이 준 명단만 걷어낸다 — 입력②·③이 준 명단까지 같이 지우면 안 된다.
-  staffOfInput1 = [];
-  recomputeStaff();
-  statusEl.textContent = "반영 해제했습니다 — 인원표를 다시 올리세요.";
-  $("#fileClearBtn").style.display = "none";
-  showToast("입력① 반영을 해제했습니다");
-};
-
 // 실제로 쓸 인원 명단을 한 곳에서 정한다 — 입력②(이번 달 명단) > 입력③(지난달 명단)
-// > 입력①(과도기) 순. 파일을 올리거나 반영을 해제할 때마다 이 함수만 부르면 되고,
+// > 샘플 순. 파일을 올리거나 반영을 해제할 때마다 이 함수만 부르면 되고,
 // 그래서 업로드 순서에 따라 상태가 꼬이지 않는다.
 function recomputeStaff() {
   staffFromWanted = staffOfWanted.length > 0;
   formStaff = staffFromWanted ? staffOfWanted
-            : (staffOfAnnual.length ? staffOfAnnual : staffOfInput1);
+            : (staffOfAnnual.length ? staffOfAnnual : staffOfSample);
   renderStaffSummary();
   renderRosterDiff();
 }
@@ -1011,20 +1010,21 @@ $("#wantedInput").onchange = async () => {
   try {
     const bytes = new Uint8Array(await f.arrayBuffer());
     const data = await api("/api/upload_wanted", { _fileBytes: bytes });
-    // 화면에 설정된 연/월과 파일의 연/월이 다르면 받지 않는다. 신청 날짜는 엔진이
-    // 어차피 반려하지만 '인원 명단'은 조용히 반영돼, 지난달 명단으로 이번 달 근무표가
-    // 만들어질 수 있다(이번 달 전입자가 통째로 빠진다).
+    // 이 파일의 연월이 곧 '생성할 달'이다 — 파트장이 OCS에서 그 달 날짜를 복붙해
+    // 만들기 때문. 예전엔 화면 설정과 다르면 반려했는데, 그러면 파일을 올리기 전에
+    // 화면 연월부터 맞춰야 해서 순서를 틀리기 쉬웠다. 이제 화면을 파일에 맞춘다.
+    // (일수가 다른 달이면 서버가 먼저 반려한다 — 신청 날짜가 어긋나기 때문.)
     const selY = parseInt($("#f_year").value, 10);
     const selM = parseInt($("#f_month").value, 10);
-    if (data.year !== selY || data.month !== selM) {
-      throw new Error(
-        `이 파일은 ${data.year}년 ${data.month}월 표인데 지금 설정은 ${selY}년 ${selM}월입니다 — ` +
-        `설정의 연·월을 파일에 맞추시거나, "양식(다운로드)"로 ${selY}년 ${selM}월 양식을 ` +
-        `새로 받아 채워 올려주세요.`);
-    }
+    const monthChanged = (data.year !== selY || data.month !== selM);
+    if (monthChanged) setFormYearMonth(data.year, data.month);
     formRequests = data.requests.map(r => ({ ...r, priority: 1 }));  // 이전 신청 목록을 통째로 대체
     // 이 파일에 인원 정보(직급·숙련도·가능근무·비고)가 있으면 항상 우선해서 덮어쓴다 —
     // 입력②는 '이번 달 명단(미래)'이라 명단의 최종 기준이다(입력①·③보다 항상 우선).
+    // 전입·전입일은 입력②에서만 받을 수도 있다(입력③이 OCS 지난달 근무표면 그 파일에
+    // 전입 칸이 아예 없다). 생성할 때 서버로 같이 넘긴다.
+    wantedTransferredIn = data.transferred_in || [];
+    wantedTransferInDates = data.transfer_in_dates || {};
     const staffUpdated = (data.staff || []).length > 0;
     if (staffUpdated) {
       staffOfWanted = data.staff.map(s => ({
@@ -1044,7 +1044,8 @@ $("#wantedInput").onchange = async () => {
       `${data.year}년 ${data.month}월 표에서 신청 ${formRequests.length}건` +
       (staffUpdated ? `, 인원 ${data.staff.length}명 인식` : " 인식") +
       (teamB.length ? `, B팀 ${teamB.length}명 인식` : "") +
-      (unk ? ` (인식 못 한 표시 ${unk}개: ${data.unknown_marks.join(", ")})` : "");
+      (unk ? ` (인식 못 한 표시 ${unk}개: ${data.unknown_marks.join(", ")})` : "") +
+      (monthChanged ? ` — 화면의 연월을 ${data.year}년 ${data.month}월로 맞췄습니다.` : "");
     $("#wantedClearBtn").style.display = "";
     showToast(data.warning ||
       `원티드 ${formRequests.length}건${staffUpdated ? `, 인원 ${data.staff.length}명` : ""}` +
@@ -1071,11 +1072,13 @@ $("#wantedClearBtn").onclick = () => {
   // 준 명단으로 복원한다.
   formRequests = [];
   staffOfWanted = [];
+  wantedTransferredIn = [];
+  wantedTransferInDates = {};
   recomputeStaff();
   $("#f_team_b").value = "";
   updateTeamBCount();
   statusEl.textContent = formStaff.length
-    ? `반영 해제했습니다 — 명단은 ${staffOfAnnual.length ? "입력③" : "입력①"}(${formStaff.length}명) 기준으로 돌아갔습니다.`
+    ? `반영 해제했습니다 — 명단은 ${staffOfAnnual.length ? "입력③" : "샘플"}(${formStaff.length}명) 기준으로 돌아갔습니다.`
     : "반영 해제했습니다 — 현재 인원 명단이 없습니다.";
   $("#wantedClearBtn").style.display = "none";
   showToast("입력② 반영을 해제했습니다");
@@ -1134,7 +1137,10 @@ $("#staffTableInput").onchange = async () => {
     // 입력③은 '지난달 실적(과거)'이다. 입력②(이번 달 명단, 미래)가 이미 명단을 채웠다면
     // 절대 덮어쓰지 않는다 — 덮어쓰면 이번 달 전입자가 조용히 사라진다. 이 경우 여기서
     // 읽은 명단은 전입·전출 대조용으로만 쓴다. 입력②가 아직 없을 때만 출발점으로 채운다.
-    prevRosterNames = (data.staff || []).map(s => s.id);
+    // 연간근무표가 아니라 OCS 지난달 근무표로 들어오면 직급·숙련도가 없어 명단으로는
+    // 쓸 수 없다(반쪽짜리 명단이 화면을 덮으면 안 된다). 이름만 전출 대조에 쓴다.
+    const fromPrevMonth = data.source === "prev_month";
+    prevRosterNames = data.roster_names || (data.staff || []).map(s => s.id);
     transferredInNames = data.transferred_in || [];
     staffOfAnnual = (data.staff || []).map(s => ({
       id: s.id, role: s.role, level: s.level,
@@ -1147,9 +1153,11 @@ $("#staffTableInput").onchange = async () => {
       updateTeamBCount();
     }
     clearUploadError(statusEl);
-    const kept = staffFromWanted
-      ? `명단은 입력②(${formStaff.length}명) 기준 유지, 누적 통계·이월정보만 반영`
-      : `인원 ${formStaff.length}명, 누적 통계·이월정보 반영`;
+    const kept = fromPrevMonth
+      ? `지난달 근무표(${prevRosterNames.length}명)로 이월정보만 반영 — 누적 통계는 이번 달부터 0에서 시작합니다`
+      : (staffFromWanted
+          ? `명단은 입력②(${formStaff.length}명) 기준 유지, 누적 통계·이월정보만 반영`
+          : `인원 ${formStaff.length}명, 누적 통계·이월정보 반영`);
     const dep = (data.departed_names || []).length;
     const stranded = (data.rows_after_summary || []);
     statusEl.textContent =
@@ -1161,9 +1169,11 @@ $("#staffTableInput").onchange = async () => {
         ? ` — ⚠ 맨 아래 통계 줄 뒤의 행 ${stranded.length}건(${stranded.join(", ")})은 읽지 못했습니다. 사람 행은 통계 줄 위에 넣어주세요.`
         : "");
     await refreshStaffTableStatus();
-    showToast(staffFromWanted
-      ? "연간근무표에서 누적 통계·전월 이월정보를 불러왔습니다 (명단은 입력② 기준 유지)"
-      : "연간근무표에서 인원 명단·누적 통계·전월 이월정보를 불러왔습니다");
+    showToast(fromPrevMonth
+      ? "지난달 근무표에서 전월 이월정보를 불러왔습니다 (누적 통계는 이번 달부터 쌓입니다)"
+      : (staffFromWanted
+          ? "연간근무표에서 누적 통계·전월 이월정보를 불러왔습니다 (명단은 입력② 기준 유지)"
+          : "연간근무표에서 인원 명단·누적 통계·전월 이월정보를 불러왔습니다"));
   } catch (e) {
     // 업로드가 반려돼도(값은 그대로) 화면엔 오류 문구가 계속 남으므로, 지울 방법이
     // 있어야 한다 — 반영 해제 버튼을 오류 지우기 용도로 그대로 재사용한다.
@@ -1209,7 +1219,7 @@ function hideGenOverlay() {
 // 사용자가 방금 올린 값이 반영됐다고 착각한 채 옛 값으로 근무표가 만들어질 수
 // 있으므로, 생성 자체를 막고 어느 입력에 문제가 남아있는지 알려준다.
 function unresolvedUploadErrors() {
-  return [["#uploadStatus", "입력①"], ["#wantedStatus", "입력②"], ["#staffTableStatus", "입력③"]]
+  return [["#wantedStatus", "입력②"], ["#staffTableStatus", "입력③"]]
     .filter(([sel]) => $(sel)?.classList.contains("upload-error"))
     .map(([, label]) => label);
 }
@@ -1267,12 +1277,95 @@ if (generateBtnMid) {
   document.getElementById("app").style.display = "";
   try {
     const cfg = await api("/api/sample");
-    fillForm(cfg);
+    // 샘플 기본값 위에 이 브라우저에 저장해둔 설정을 덮어쓴다 — 입력① 파일이 없어진
+    // 뒤로는 이게 "지난번에 맞춰둔 값"을 되찾는 유일한 길이다.
+    fillForm(withSavedSettings(cfg));
   } catch (e) {
     showToast("샘플 로드 실패 — 직접 입력해주세요", true);
   }
+  settingsReady = true;
   refreshStaffTableStatus();
 })();
+
+
+// ================================================================ 설정 브라우저 저장
+// 입력①(병동인력표 엑셀)을 없애면서, 설정·근무인력을 매달 손으로 다시 채우는 일이
+// 없도록 이 브라우저에 저장한다. 저장하는 것은 '달이 바뀌어도 그대로인 것'뿐이다 —
+// 병동명·연월·상한값·근무인력 표. 사람 명단·원티드 신청·전입 같은 '그 달의 내용'은
+// 절대 저장하지 않는다. 지난달 것이 남아 있으면 오류 하나 없이 틀린 근무표가 나온다.
+const SETTINGS_KEY = "ns_settings_v1";
+
+// 브라우저 저장소는 사내 정책·시크릿 모드에서 아예 막힐 수 있다(SecurityError). 저장이
+// 안 되는 것보다 나쁜 건 "왜 안 되는지 모르는 것"이라, 실패해도 앱은 계속 돌리되 한
+// 번은 알려준다. (예전엔 여기서 pyodide 판에만 있는 함수를 불러서, 저장소가 막힌 바로
+// 그 순간에 Flask 판이 ReferenceError로 넘어졌다 — 하필 알려야 할 때 말이 없었다.)
+let settingsStorageWarned = false;
+function settingsStorageFailed(e, what) {
+  console.warn("localStorage", what, e);
+  if (settingsStorageWarned) return;
+  settingsStorageWarned = true;
+  showToast("이 브라우저에서는 저장소를 쓸 수 없어 설정이 저장되지 않습니다"
+    + "(사내 정책·시크릿 모드 등) — 근무표 생성·다운로드는 그대로 됩니다.", true);
+}
+
+function saveSettings() {
+  if (!settingsReady) return;   // 화면을 채우는 중에 반쪽짜리 값이 저장되는 것을 막는다
+  try {
+    const cfg = buildCfgFromForm();
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+      ward_id: cfg.ward_id, year: cfg.year, month: cfg.month,
+      params: {
+        min_staff: cfg.params.min_staff,
+        off_max_per_month: cfg.params.off_max_per_month,
+        max_consecutive_work: cfg.params.max_consecutive_work,
+        night_quota_low: cfg.params.night_quota_low,
+        night_quota_high: cfg.params.night_quota_high,
+      },
+    }));
+  } catch (e) { settingsStorageFailed(e, "write"); }
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { settingsStorageFailed(e, "read"); return null; }
+}
+
+// 저장된 설정을 샘플 cfg 위에 덮어쓴다 — 저장된 적 없는 항목(인원 명단 등)은 샘플
+// 값이 그대로 남는다. 저장본이 깨졌거나 없으면 샘플만 쓰고 조용히 넘어간다.
+function withSavedSettings(cfg) {
+  const saved = loadSettings();
+  if (!saved) return cfg;
+  const out = { ...cfg, params: { ...(cfg.params || {}) } };
+  if (saved.ward_id !== undefined) out.ward_id = saved.ward_id;
+  if (saved.year) out.year = saved.year;
+  if (saved.month) out.month = saved.month;
+  for (const k of ["min_staff", "off_max_per_month", "max_consecutive_work",
+                   "night_quota_low", "night_quota_high"]) {
+    if (saved.params && saved.params[k] !== undefined) out.params[k] = saved.params[k];
+  }
+  return out;
+}
+
+let settingsReady = false;
+// 설정·근무인력 칸은 개수가 많고 표는 다시 그려지기까지 한다 — 칸마다 핸들러를 다는
+// 대신 감싸는 영역 하나에서 이벤트를 받는다(표를 다시 그려도 계속 동작).
+document.querySelector(".info-section")?.addEventListener("input", saveSettings);
+document.querySelector(".info-section")?.addEventListener("change", saveSettings);
+
+$("#resetSettingsBtn").onclick = async () => {
+  try { localStorage.removeItem(SETTINGS_KEY); } catch (e) { settingsStorageFailed(e, "clear"); }
+  try {
+    settingsReady = false;
+    fillForm(await api("/api/sample"));
+    settingsReady = true;
+    showToast("저장된 설정을 지우고 샘플 기본값으로 되돌렸습니다");
+  } catch (e) {
+    settingsReady = true;
+    showToast("샘플을 다시 불러오지 못했습니다 — 화면을 새로고침해주세요", true);
+  }
+};
 
 // ================================================================ 그리드 렌더 (생성 후)
 

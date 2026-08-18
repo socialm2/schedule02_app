@@ -385,7 +385,9 @@ td.disabled { cursor: default; opacity: .55; }
 .input1-group .upload-section, .input1-group .info-section {
   background: transparent; border: none; border-radius: 0; padding: 0; margin-bottom: 0;
 }
-.input1-group .info-section {
+/* 입력① 업로드 칸이 없어져 info-section이 이 상자의 첫 요소가 됐다 — 위에 아무것도
+   없는데 구분선만 남으면 빈 칸이 있는 것처럼 보인다. 위에 무언가 올 때만 긋는다. */
+.input1-group .info-section:not(:first-child) {
   margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--line);
 }
 

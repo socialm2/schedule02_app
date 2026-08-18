@@ -48,7 +48,7 @@
   <!-- .build-time 값은 배포할 때 GitHub Actions가 실제 배포 시각(KST)으로
        바꿔 넣는다(.github/workflows/deploy.yml). 손으로 고칠 필요 없다. -->
   <header>
-    <h1>SMC Fair Shift <span class="version-badge">v0.8</span><span class="build-time">2026-08-18 18:55:21 KST</span></h1>
+    <h1>SMC Fair Shift <span class="version-badge">v0.8</span><span class="build-time">2026-08-18 21:02:15 KST</span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
@@ -62,27 +62,12 @@
       <div id="intake">
         <div class="intake-box">
           <h2>1. 기본 사항 입력</h2>
-          <p class="hint">아래 표는 샘플 병동 데이터로 미리 채워져 있습니다.
-          그대로 <b>바로 생성</b>을 눌러도 되고, 엑셀을 업로드해 값을 통째로 바꿔도 됩니다.
-          설정·근무인력 칸은 화면에서 직접 고칠 수도 있습니다. 인원(직급·숙련도·가능근무)은
-          입력②에서만 받습니다.</p>
+          <p class="hint">설정·근무인력은 화면에서 직접 입력합니다 — 한 번 고쳐두면
+          <b>이 브라우저에 저장</b>돼 다음에 열 때 그대로 뜹니다(처음에는 샘플 병동
+          값으로 채워져 있습니다). 인원(직급·숙련도·가능근무·비고·전입)과 원티드 신청은
+          입력②에서 받습니다.</p>
 
           <div class="input1-group">
-          <div class="upload-section">
-            <h3>파일업로드 <span class="hint">입력①은 설정·근무인력을 담당합니다. 인원 정보는 입력②에서 받습니다.</span></h3>
-
-            <div class="upload-item">
-              <div class="upload-item-label">입력① 병동인력표 <span class="hint">필수정보(설정·근무인력)</span></div>
-              <div class="upload-row">
-                <input type="file" id="fileInput" accept=".xlsx" class="file-input-hidden">
-                <button type="button" class="upload-btn" data-target="fileInput">업로드</button>
-                <button type="button" class="upload-btn format-btn" data-href="templates/입력1_병동인력표_2026-09.xlsx" data-download="입력1_병동인력표_2026-09.xlsx">양식(다운로드)</button>
-              </div>
-              <button id="fileClearBtn" class="small" style="display:none">반영 해제</button>
-              <span id="uploadStatus" class="hint"></span>
-            </div>
-          </div>
-
           <div class="info-section">
           <details class="form-sec" open>
             <summary>설정</summary>
@@ -129,6 +114,11 @@
               <button type="button" id="msWeekdayToggle" class="small"></button>
               <span class="hint" id="msWeekdayHint"></span>
             </div>
+            <!-- 화면 입력값이 브라우저에 저장되므로, 잘못 저장된 값을 되돌릴 길이 필요하다 -->
+            <div class="ms-dow-row">
+              <button type="button" id="resetSettingsBtn" class="small">저장된 설정 지우기</button>
+              <span class="hint">설정·근무인력을 샘플 기본값으로 되돌립니다.</span>
+            </div>
           </details>
 
           <!-- 당분간 화면에서 뺌(값·로직은 유지 — 필요시 style 제거로 복원) -->
@@ -151,7 +141,7 @@
           <div class="upload-section">
             <div class="upload-item">
               <div class="upload-item-label">입력② 원티드표
-                <span class="hint">인원(직급·숙련도·가능근무·비고)과 원티드 신청을 여기서 받습니다</span>
+                <span class="hint">인원(직급·숙련도·가능근무·비고·전입)과 원티드 신청을 여기서 받습니다 — 날짜 칸은 OCS에서 그대로 붙여넣어도 됩니다</span>
               </div>
               <span id="staffSummary" class="hint"></span>
               <div class="upload-row">
@@ -164,7 +154,7 @@
             </div>
 
             <div class="upload-item">
-              <div class="upload-item-label">입력③ 연간근무표 <span class="hint">전월 연간근무표를 입력해주세요</span></div>
+              <div class="upload-item-label">입력③ 연간근무표 <span class="hint">전월 연간근무표(출력②)를 올리세요 — 처음 쓰는 달이면 OCS 지난달 근무표도 됩니다</span></div>
               <p class="hint" id="staffTableActive" style="display:none"></p>
               <div class="upload-row">
                 <input type="file" id="staffTableInput" accept=".xlsx" class="file-input-hidden">
