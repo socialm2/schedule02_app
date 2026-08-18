@@ -27,7 +27,7 @@ const CACHE_NAME = "ns-sched-v19";
 // (여기 있어도 설치 때 미리 받아두므로 오프라인에서도 그대로 열린다)
 const APP_FILES = ["./", "index.html", "app.js", "style.css", "pyworker.js",
                    "manifest.json", "py_app.zip",
-                   "templates/입력3_연간근무표_2026-08.xlsx"];
+                   "templates/입력2_연간근무표_2026-08.xlsx"];
 
 const HEAVY_FILES = [
   "sample_input.xlsx",

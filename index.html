@@ -48,7 +48,7 @@
   <!-- .build-time 값은 배포할 때 GitHub Actions가 실제 배포 시각(KST)으로
        바꿔 넣는다(.github/workflows/deploy.yml). 손으로 고칠 필요 없다. -->
   <header>
-    <h1>SMC Fair Shift <span class="version-badge">v0.8</span><span class="build-time">2026-08-18 21:02:15 KST</span></h1>
+    <h1>SMC Fair Shift <span class="version-badge">v0.8</span><span class="build-time">2026-08-18 22:01:48 KST</span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
@@ -62,15 +62,20 @@
       <div id="intake">
         <div class="intake-box">
           <h2>1. 기본 사항 입력</h2>
-          <p class="hint">설정·근무인력은 화면에서 직접 입력합니다 — 한 번 고쳐두면
+          <p class="hint">근무정보(설정·근무인력)는 화면에서 직접 입력합니다 — 한 번 고쳐두면
           <b>이 브라우저에 저장</b>돼 다음에 열 때 그대로 뜹니다(처음에는 샘플 병동
           값으로 채워져 있습니다). 인원(직급·숙련도·가능근무·비고·전입)과 원티드 신청은
-          입력②에서 받습니다.</p>
+          입력①에서 받습니다.</p>
 
           <div class="input1-group">
           <div class="info-section">
           <details class="form-sec" open>
-            <summary>설정</summary>
+            <!-- '저장된 설정 지우기'는 이 화면 입력값이 브라우저에 저장되기 때문에 필요한
+                 되돌리기 장치다 — 되돌릴 대상(근무정보) 바로 옆에 둔다. summary 안의
+                 버튼은 클릭이 details 토글로 새어나가지 않게 app.js에서 막는다. -->
+            <summary>근무정보
+              <button type="button" id="resetSettingsBtn" class="summary-btn">저장된 설정 지우기</button>
+            </summary>
             <div class="form-grid">
               <label class="wide">병동명 <input type="text" id="f_ward"></label>
               <label class="wide">연월
@@ -114,11 +119,6 @@
               <button type="button" id="msWeekdayToggle" class="small"></button>
               <span class="hint" id="msWeekdayHint"></span>
             </div>
-            <!-- 화면 입력값이 브라우저에 저장되므로, 잘못 저장된 값을 되돌릴 길이 필요하다 -->
-            <div class="ms-dow-row">
-              <button type="button" id="resetSettingsBtn" class="small">저장된 설정 지우기</button>
-              <span class="hint">설정·근무인력을 샘플 기본값으로 되돌립니다.</span>
-            </div>
           </details>
 
           <!-- 당분간 화면에서 뺌(값·로직은 유지 — 필요시 style 제거로 복원) -->
@@ -140,7 +140,7 @@
 
           <div class="upload-section">
             <div class="upload-item">
-              <div class="upload-item-label">입력② 원티드표
+              <div class="upload-item-label">입력① 원티드표
                 <span class="hint">인원(직급·숙련도·가능근무·비고·전입)과 원티드 신청을 여기서 받습니다 — 날짜 칸은 OCS에서 그대로 붙여넣어도 됩니다</span>
               </div>
               <span id="staffSummary" class="hint"></span>
@@ -154,18 +154,18 @@
             </div>
 
             <div class="upload-item">
-              <div class="upload-item-label">입력③ 연간근무표 <span class="hint">전월 연간근무표(출력②)를 올리세요 — 처음 쓰는 달이면 OCS 지난달 근무표도 됩니다</span></div>
+              <div class="upload-item-label">입력② 연간근무표 <span class="hint">전월 연간근무표(출력②)를 올리세요 — 처음 쓰는 달이면 OCS 지난달 근무표도 됩니다</span></div>
               <p class="hint" id="staffTableActive" style="display:none"></p>
               <div class="upload-row">
                 <input type="file" id="staffTableInput" accept=".xlsx" class="file-input-hidden">
                 <button type="button" class="upload-btn" data-target="staffTableInput">업로드</button>
-                <button type="button" class="upload-btn format-btn" data-href="templates/입력3_연간근무표_2026-08.xlsx" data-download="입력3_연간근무표_2026-08.xlsx">양식(다운로드)</button>
+                <button type="button" class="upload-btn format-btn" data-href="templates/입력2_연간근무표_2026-08.xlsx" data-download="입력2_연간근무표_2026-08.xlsx">양식(다운로드)</button>
               </div>
               <button id="staffTableClearBtn" class="small" style="display:none">반영 해제</button>
               <span id="staffTableStatus" class="hint"></span>
             </div>
 
-            <!-- 입력②(이번 달 명단)와 입력③(지난달 명단)의 차이 = 전입·전출. 둘 다 올라와야 표시됨 -->
+            <!-- 입력①(이번 달 명단)와 입력②(지난달 명단)의 차이 = 전입·전출. 둘 다 올라와야 표시됨 -->
             <div id="rosterDiff" class="roster-diff" style="display:none"></div>
 
             <div class="generate-row">
