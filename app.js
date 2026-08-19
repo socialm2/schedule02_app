@@ -543,9 +543,9 @@ const INFO_HTML_INPUT = `
 <h3>기본 사항 — 설정 · 근무인력</h3>
 <p>화면에서 직접 입력합니다. 한 번 고쳐두면 <b>이 브라우저에 저장</b>돼 다음에 열 때 그대로
 뜹니다(처음에는 샘플 병동 값이 채워져 있어 그대로 <b>바로 생성</b>을 눌러볼 수도 있습니다).
-업로드 칸들 위의 <b>마지막값 저장</b>이 켜져 있어야 기억합니다 — 공용 PC처럼 남기면 안 되는
+<b>근무정보</b> 제목 줄의 <b>마지막 설정값 저장</b>이 켜져 있어야 기억합니다 — 공용 PC처럼 남기면 안 되는
 자리에서는 체크를 끄면 되고, 끄는 순간 이미 저장돼 있던 값도 함께 지웁니다. 값만 처음으로
-되돌리려면 <b>근무정보</b> 제목 오른쪽의 <b>저장된 설정 지우기</b>를 누릅니다.</p>
+되돌리려면 그 옆의 <b>저장한 설정 지우기</b>를 누릅니다.</p>
 <p>저장하는 것은 <b>근무정보와 근무인력</b>뿐입니다 — 인원 명단·원티드 신청·전입은 저장하지
 않습니다. 지난달 것이 남아 있으면 오류 하나 없이 틀린 근무표가 나오기 때문입니다.</p>
 <ul>
@@ -1429,7 +1429,7 @@ if (generateBtnMid) {
 // 없도록 이 브라우저에 저장한다. 저장하는 것은 '달이 바뀌어도 그대로인 것'뿐이다 —
 // 병동명·연월·상한값·근무인력 표. 사람 명단·원티드 신청·전입 같은 '그 달의 내용'은
 // 절대 저장하지 않는다. 지난달 것이 남아 있으면 오류 하나 없이 틀린 근무표가 나온다.
-// 저장을 켤지 끌지는 '마지막값 저장' 체크박스가 정한다. 기본은 켜짐이지만, 공용 PC처럼
+// 저장을 켤지 끌지는 '마지막 설정값 저장' 체크박스가 정한다. 기본은 켜짐이지만, 공용 PC처럼
 // 남기면 안 되는 자리도 있어서 끌 수 있어야 한다. 스위치 상태 자체도 같이 기억한다 —
 // 껐는데 다음에 열면 다시 켜져 있으면 끈 의미가 없다.
 const SETTINGS_KEY = "ns_settings_v1";
@@ -1505,17 +1505,20 @@ document.querySelector(".info-section")?.addEventListener("change", saveSettings
 // 스위치를 켜면 지금 화면 값을 바로 한 번 저장한다 — 켠 뒤에 아무 칸도 안 건드리면
 // 저장이 안 된 채로 "켜져 있는데 왜 기억을 못 하지"가 되기 때문. 끄면 이미 저장된
 // 값까지 지운다(끄는 사람은 '남기지 마라'는 뜻이지 '이제부터만'이 아니다).
+// 스위치가 <summary> 안에 있다 — 막지 않으면 체크할 때 섹션이 같이 접힌다.
+$("#saveSettingsChk").onclick = (ev) => ev.stopPropagation();
+
 $("#saveSettingsChk").onchange = () => {
   const on = settingsSaveEnabled();
   try { localStorage.setItem(SETTINGS_ON_KEY, on ? "1" : "0"); }
   catch (e) { settingsStorageFailed(e, "toggle"); }
   if (on) {
     saveSettings();
-    showToast("마지막값 저장을 켰습니다 — 다음에 열면 지금 값이 그대로 채워집니다");
+    showToast("마지막 설정값 저장을 켰습니다 — 다음에 열면 지금 값이 그대로 채워집니다");
   } else {
     try { localStorage.removeItem(SETTINGS_KEY); }
     catch (e) { settingsStorageFailed(e, "clear"); }
-    showToast("마지막값 저장을 껐습니다 — 저장돼 있던 값도 지웠습니다");
+    showToast("마지막 설정값 저장을 껐습니다 — 저장돼 있던 값도 지웠습니다");
   }
 };
 
@@ -1540,7 +1543,7 @@ $("#resetSettingsBtn").onclick = async (ev) => {
     settingsReady = false;
     fillForm(await api("/api/sample"));
     settingsReady = true;
-    showToast("저장된 설정을 지우고 샘플 기본값으로 되돌렸습니다");
+    showToast("저장한 설정을 지우고 샘플 기본값으로 되돌렸습니다");
   } catch (e) {
     settingsReady = true;
     showToast("샘플을 다시 불러오지 못했습니다 — 화면을 새로고침해주세요", true);

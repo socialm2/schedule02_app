@@ -406,24 +406,25 @@ details.form-sec summary::-webkit-details-marker { display: none; }
 details.form-sec summary::before { content: "▸"; color: var(--accent); font-size: 11px; }
 details.form-sec[open] summary::before { content: "▾"; }
 details.form-sec > *:not(summary) { padding: 14px; }
-/* summary 줄 오른쪽 끝에 붙는 보조 버튼(예: '저장된 설정 지우기') — 제목보다 작고
-   조용하게. summary가 flex라 margin-left:auto로 오른쪽 끝에 민다. */
-/* 마지막값 저장 스위치 — 업로드 칸들 위에 한 줄로 둔다(저장이 켜져 있다는 사실이
-   파일을 올리기 전에 눈에 들어와야 한다). */
-.save-row {
-  display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap;
-  padding: 8px 10px; margin-bottom: 12px;
-  background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
-}
+/* '마지막 설정값 저장' 스위치와 '저장한 설정 지우기' 버튼 — 둘 다 근무정보 제목 줄
+   오른쪽 끝에 붙는다. 저장되는 값 바로 옆에 있어야 저장이 켜져 있다는 사실이 값을
+   고치기 전에 눈에 들어온다. 오른쪽으로 미는 auto 마진은 앞쪽 하나(스위치)에만 준다 —
+   둘 다 주면 남는 공간을 나눠 가져 둘 사이가 벌어진다. */
 .save-toggle {
   display: flex; align-items: center; gap: 6px; cursor: pointer;
   font-size: 13px; white-space: nowrap; padding-top: 1px;
 }
 .save-toggle input { cursor: pointer; }
-.save-row .hint { flex: 1 1 260px; }
+.summary-toggle { margin-left: auto; font-weight: 600; }
+/* 좁은 화면에서는 제목 줄이 접히므로 auto 마진을 걷어 왼쪽부터 채운다 */
+@media (max-width: 560px) {
+  details.form-sec summary { flex-wrap: wrap; }
+  .summary-toggle { margin-left: 0; }
+}
+.save-hint { margin: 0 0 4px; }
 
 .summary-btn {
-  margin-left: auto; font-size: 11px; font-weight: 600; padding: 3px 9px;
+  font-size: 11px; font-weight: 600; padding: 3px 9px;
   border-color: transparent; background: var(--card); color: var(--sub);
 }
 .summary-btn:hover:not(:disabled) { border-color: var(--hard); color: var(--hard); }

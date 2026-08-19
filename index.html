@@ -48,7 +48,7 @@
   <!-- .build-time 값은 배포할 때 GitHub Actions가 실제 배포 시각(KST)으로
        바꿔 넣는다(.github/workflows/deploy.yml). 손으로 고칠 필요 없다. -->
   <header>
-    <h1>SMC Fair Shift <span class="version-badge">v0.81</span><span class="build-time">2026-08-19 13:22:54 KST</span></h1>
+    <h1>SMC Fair Shift <span class="version-badge">v0.81</span><span class="build-time">2026-08-19 14:26:59 KST</span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
@@ -70,12 +70,20 @@
           <div class="input1-group">
           <div class="info-section">
           <details class="form-sec" open>
-            <!-- '저장된 설정 지우기'는 이 화면 입력값이 브라우저에 저장되기 때문에 필요한
-                 되돌리기 장치다 — 되돌릴 대상(근무정보) 바로 옆에 둔다. summary 안의
-                 버튼은 클릭이 details 토글로 새어나가지 않게 app.js에서 막는다. -->
+            <!-- 저장 스위치와 '저장한 설정 지우기'는 둘 다 이 화면 입력값이 브라우저에
+                 저장되기 때문에 필요한 장치다 — 저장되는 대상(근무정보) 바로 옆에 붙여
+                 [근무정보] [마지막 설정값 저장] [저장한 설정 지우기] 순으로 둔다. 저장이
+                 켜져 있다는 사실이 값을 고치기 전에 눈에 들어와야 한다. summary 안의
+                 클릭은 details 토글로 새어나가지 않게 app.js에서 막는다. -->
             <summary>근무정보
-              <button type="button" id="resetSettingsBtn" class="summary-btn">저장된 설정 지우기</button>
+              <label class="save-toggle summary-toggle">
+                <input type="checkbox" id="saveSettingsChk" checked>
+                <b>마지막 설정값 저장</b>
+              </label>
+              <button type="button" id="resetSettingsBtn" class="summary-btn">저장한 설정 지우기</button>
             </summary>
+            <p class="hint save-hint">이 기기·브라우저에 근무정보와 근무인력을 기억해 다음에 열 때 그대로 채웁니다.
+            인원 명단·원티드 신청은 저장하지 않습니다(지난달 것이 남으면 틀린 근무표가 나옵니다).</p>
             <div class="form-grid">
               <label class="wide">병동명 <input type="text" id="f_ward"></label>
               <label class="wide">연월
@@ -139,18 +147,6 @@
           </div>
 
           <div class="upload-section">
-            <!-- 저장은 기본으로 켜두되, 켜고 끄는 스위치를 눈에 보이게 둔다. 자동으로
-                 저장되는데 끌 수도 없으면 공용 PC에 값이 남는 것을 막을 방법이 없다.
-                 되돌리는 '저장된 설정 지우기'는 저장되는 값(근무정보) 옆에 있다. -->
-            <div class="save-row">
-              <label class="save-toggle">
-                <input type="checkbox" id="saveSettingsChk" checked>
-                <b>마지막값 저장</b>
-              </label>
-              <span class="hint">이 기기·브라우저에 근무정보와 근무인력을 기억해 다음에 열 때 그대로 채웁니다.
-              인원 명단·원티드 신청은 저장하지 않습니다(지난달 것이 남으면 틀린 근무표가 나옵니다).</span>
-            </div>
-
             <div class="upload-item">
               <div class="upload-item-label">입력① 원티드표
                 <span class="hint">인원(직급·숙련도·가능근무·비고·전입)과 원티드 신청을 여기서 받습니다 — 날짜 칸은 OCS에서 그대로 붙여넣어도 됩니다</span>
