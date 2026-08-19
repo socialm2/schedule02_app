@@ -48,7 +48,7 @@
   <!-- .build-time 값은 배포할 때 GitHub Actions가 실제 배포 시각(KST)으로
        바꿔 넣는다(.github/workflows/deploy.yml). 손으로 고칠 필요 없다. -->
   <header>
-    <h1>SMC Fair Shift <span class="version-badge">v0.81</span><span class="build-time">2026-08-19 14:26:59 KST</span></h1>
+    <h1>SMC Fair Shift <span class="version-badge">v0.81</span><span class="build-time">2026-08-19 14:32:44 KST</span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
@@ -70,20 +70,23 @@
           <div class="input1-group">
           <div class="info-section">
           <details class="form-sec" open>
-            <!-- 저장 스위치와 '저장한 설정 지우기'는 둘 다 이 화면 입력값이 브라우저에
-                 저장되기 때문에 필요한 장치다 — 저장되는 대상(근무정보) 바로 옆에 붙여
-                 [근무정보] [마지막 설정값 저장] [저장한 설정 지우기] 순으로 둔다. 저장이
-                 켜져 있다는 사실이 값을 고치기 전에 눈에 들어와야 한다. summary 안의
-                 클릭은 details 토글로 새어나가지 않게 app.js에서 막는다. -->
-            <summary>근무정보
-              <label class="save-toggle summary-toggle">
-                <input type="checkbox" id="saveSettingsChk" checked>
-                <b>마지막 설정값 저장</b>
-              </label>
-              <button type="button" id="resetSettingsBtn" class="summary-btn">저장한 설정 지우기</button>
-            </summary>
-            <p class="hint save-hint">이 기기·브라우저에 근무정보와 근무인력을 기억해 다음에 열 때 그대로 채웁니다.
-            인원 명단·원티드 신청은 저장하지 않습니다(지난달 것이 남으면 틀린 근무표가 나옵니다).</p>
+            <summary>근무정보</summary>
+            <!-- 이 두 버튼은 둘 다 '이 화면 입력값이 브라우저에 저장된다'는 한 가지 사실을
+                 다루는 장치라, 저장되는 대상(근무정보) 맨 위에 같은 모양·같은 크기로 세로로
+                 붙인다. 하나는 켜고 끄는 버튼(눌린 상태가 곧 켜짐), 하나는 누르면 끝나는
+                 버튼이라 성격이 다르므로 눌린 상태를 aria-pressed로 구분한다. -->
+            <div class="setting-actions">
+              <div class="setting-row">
+                <button type="button" id="saveSettingsBtn" class="pushbtn" aria-pressed="true">마지막 설정값 저장</button>
+                <span class="hint">켜두면 근무정보·근무인력을 이 기기·브라우저에 기억해 다음에 열 때 그대로 채웁니다.
+                인원 명단·원티드 신청은 저장하지 않습니다. 공용 PC라면 꺼두세요.</span>
+              </div>
+              <div class="setting-row">
+                <button type="button" id="resetSettingsBtn" class="pushbtn">저장한 설정 지우기</button>
+                <span class="hint">기억해둔 값을 지우고 샘플 병동 기본값으로 되돌립니다.
+                되돌린 뒤에는 이 화면에서 다시 채워 넣으시면 됩니다.</span>
+              </div>
+            </div>
             <div class="form-grid">
               <label class="wide">병동명 <input type="text" id="f_ward"></label>
               <label class="wide">연월
