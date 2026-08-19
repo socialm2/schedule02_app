@@ -48,7 +48,7 @@
   <!-- .build-time 값은 배포할 때 GitHub Actions가 실제 배포 시각(KST)으로
        바꿔 넣는다(.github/workflows/deploy.yml). 손으로 고칠 필요 없다. -->
   <header>
-    <h1>SMC Fair Shift <span class="version-badge">v0.81</span><span class="build-time">2026-08-19 14:32:44 KST</span></h1>
+    <h1>SMC Fair Shift <span class="version-badge">v0.81</span><span class="build-time">2026-08-19 17:41:43 KST</span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
@@ -88,7 +88,8 @@
               </div>
             </div>
             <div class="form-grid">
-              <label class="wide">병동명 <input type="text" id="f_ward"></label>
+              <label class="wide">병동명 <input type="text" id="f_ward"
+                placeholder="예) 9A 병동 — 비워두셔도 근무표는 만들어집니다"></label>
               <label class="wide">연월
                 <span class="ym-picker">
                   <select id="f_year"></select>
