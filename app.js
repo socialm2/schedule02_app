@@ -78,134 +78,165 @@ const KR_HOLIDAYS = {
   2025: {
     holidays: [
       "2025-01-01", "2025-01-27", "2025-01-28", "2025-01-29", "2025-01-30",
-      "2025-03-01", "2025-05-05", "2025-06-06", "2025-08-15",
-      "2025-10-03", "2025-10-05", "2025-10-06", "2025-10-07", "2025-10-09", "2025-12-25",
+      "2025-03-01", "2025-05-05", "2025-06-06", "2025-08-15", "2025-10-03",
+      "2025-10-05", "2025-10-06", "2025-10-07", "2025-10-09", "2025-12-25",
     ],
     substitutes: ["2025-03-03", "2025-05-06", "2025-10-08"],
   },
   2026: {
     holidays: [
-      "2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18",
-      "2026-03-01", "2026-05-05", "2026-05-24", "2026-06-06", "2026-08-15",
-      "2026-09-24", "2026-09-25", "2026-09-26", "2026-10-03", "2026-10-09", "2026-12-25",
+      "2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-01",
+      "2026-05-01", "2026-05-05", "2026-05-24", "2026-06-06", "2026-07-17",
+      "2026-08-15", "2026-09-24", "2026-09-25", "2026-09-26", "2026-10-03",
+      "2026-10-09", "2026-12-25",
     ],
     substitutes: ["2026-03-02", "2026-05-25", "2026-08-17", "2026-10-05"],
   },
   2027: {
     holidays: [
-      "2027-01-01", "2027-02-06", "2027-02-07", "2027-02-08",
-      "2027-03-01", "2027-05-05", "2027-05-13", "2027-06-06", "2027-08-15",
-      "2027-09-14", "2027-09-15", "2027-09-16", "2027-10-03", "2027-10-09", "2027-12-25",
+      "2027-01-01", "2027-02-06", "2027-02-07", "2027-02-08", "2027-03-01",
+      "2027-05-01", "2027-05-05", "2027-05-13", "2027-06-06", "2027-07-17",
+      "2027-08-15", "2027-09-14", "2027-09-15", "2027-09-16", "2027-10-03",
+      "2027-10-09", "2027-12-25",
     ],
-    substitutes: ["2027-02-09", "2027-08-16", "2027-10-04", "2027-10-11", "2027-12-27"],
+    substitutes: [
+      "2027-02-09", "2027-05-03", "2027-07-19", "2027-08-16",
+      "2027-10-04", "2027-10-11", "2027-12-27",
+    ],
   },
   2028: {
     holidays: [
       "2028-01-01", "2028-01-26", "2028-01-27", "2028-01-28", "2028-03-01",
-      "2028-05-02", "2028-05-05", "2028-06-06", "2028-08-15", "2028-10-02",
-      "2028-10-03", "2028-10-04", "2028-10-09", "2028-12-25",
+      "2028-05-01", "2028-05-02", "2028-05-05", "2028-06-06", "2028-07-17",
+      "2028-08-15", "2028-10-02", "2028-10-03", "2028-10-04", "2028-10-09",
+      "2028-12-25",
     ],
     substitutes: ["2028-10-05"],
   },
   2029: {
     holidays: [
       "2029-01-01", "2029-02-12", "2029-02-13", "2029-02-14", "2029-03-01",
-      "2029-05-05", "2029-05-20", "2029-06-06", "2029-08-15", "2029-09-21",
-      "2029-09-22", "2029-09-23", "2029-10-03", "2029-10-09", "2029-12-25",
+      "2029-05-01", "2029-05-05", "2029-05-20", "2029-06-06", "2029-07-17",
+      "2029-08-15", "2029-09-21", "2029-09-22", "2029-09-23", "2029-10-03",
+      "2029-10-09", "2029-12-25",
     ],
     substitutes: ["2029-05-07", "2029-05-21", "2029-09-24"],
   },
   2030: {
     holidays: [
       "2030-01-01", "2030-02-02", "2030-02-03", "2030-02-04", "2030-03-01",
-      "2030-05-05", "2030-05-09", "2030-06-06", "2030-08-15", "2030-09-11",
-      "2030-09-12", "2030-09-13", "2030-10-03", "2030-10-09", "2030-12-25",
+      "2030-05-01", "2030-05-05", "2030-05-09", "2030-06-06", "2030-07-17",
+      "2030-08-15", "2030-09-11", "2030-09-12", "2030-09-13", "2030-10-03",
+      "2030-10-09", "2030-12-25",
     ],
     substitutes: ["2030-02-05", "2030-05-06"],
   },
   2031: {
     holidays: [
       "2031-01-01", "2031-01-22", "2031-01-23", "2031-01-24", "2031-03-01",
-      "2031-05-05", "2031-05-28", "2031-06-06", "2031-08-15", "2031-09-30",
-      "2031-10-01", "2031-10-02", "2031-10-03", "2031-10-09", "2031-12-25",
+      "2031-05-01", "2031-05-05", "2031-05-28", "2031-06-06", "2031-07-17",
+      "2031-08-15", "2031-09-30", "2031-10-01", "2031-10-02", "2031-10-03",
+      "2031-10-09", "2031-12-25",
     ],
     substitutes: ["2031-03-03"],
   },
   2032: {
     holidays: [
       "2032-01-01", "2032-02-10", "2032-02-11", "2032-02-12", "2032-03-01",
-      "2032-05-05", "2032-05-16", "2032-06-06", "2032-08-15", "2032-09-18",
-      "2032-09-19", "2032-09-20", "2032-10-03", "2032-10-09", "2032-12-25",
+      "2032-05-01", "2032-05-05", "2032-05-16", "2032-06-06", "2032-07-17",
+      "2032-08-15", "2032-09-18", "2032-09-19", "2032-09-20", "2032-10-03",
+      "2032-10-09", "2032-12-25",
     ],
-    substitutes: ["2032-05-17", "2032-08-16", "2032-09-21", "2032-10-04", "2032-10-11", "2032-12-27"],
+    substitutes: [
+      "2032-05-03", "2032-05-17", "2032-07-19", "2032-08-16",
+      "2032-09-21", "2032-10-04", "2032-10-11", "2032-12-27",
+    ],
   },
   2033: {
     holidays: [
       "2033-01-01", "2033-01-30", "2033-01-31", "2033-02-01", "2033-03-01",
-      "2033-05-05", "2033-05-06", "2033-06-06", "2033-08-15", "2033-09-07",
-      "2033-09-08", "2033-09-09", "2033-10-03", "2033-10-09", "2033-12-25",
+      "2033-05-01", "2033-05-05", "2033-05-06", "2033-06-06", "2033-07-17",
+      "2033-08-15", "2033-09-07", "2033-09-08", "2033-09-09", "2033-10-03",
+      "2033-10-09", "2033-12-25",
     ],
-    substitutes: ["2033-02-02", "2033-10-10", "2033-12-26"],
+    substitutes: ["2033-02-02", "2033-05-02", "2033-07-18", "2033-10-10", "2033-12-26"],
   },
   2034: {
     holidays: [
       "2034-01-01", "2034-02-18", "2034-02-19", "2034-02-20", "2034-03-01",
-      "2034-05-05", "2034-05-25", "2034-06-06", "2034-08-15", "2034-09-26",
-      "2034-09-27", "2034-09-28", "2034-10-03", "2034-10-09", "2034-12-25",
+      "2034-05-01", "2034-05-05", "2034-05-25", "2034-06-06", "2034-07-17",
+      "2034-08-15", "2034-09-26", "2034-09-27", "2034-09-28", "2034-10-03",
+      "2034-10-09", "2034-12-25",
     ],
     substitutes: ["2034-02-21"],
   },
   2035: {
     holidays: [
       "2035-01-01", "2035-02-07", "2035-02-08", "2035-02-09", "2035-03-01",
-      "2035-05-05", "2035-05-15", "2035-06-06", "2035-08-15", "2035-09-15",
-      "2035-09-16", "2035-09-17", "2035-10-03", "2035-10-09", "2035-12-25",
+      "2035-05-01", "2035-05-05", "2035-05-15", "2035-06-06", "2035-07-17",
+      "2035-08-15", "2035-09-15", "2035-09-16", "2035-09-17", "2035-10-03",
+      "2035-10-09", "2035-12-25",
     ],
     substitutes: ["2035-05-07", "2035-09-18"],
   },
   2036: {
     holidays: [
       "2036-01-01", "2036-01-27", "2036-01-28", "2036-01-29", "2036-03-01",
-      "2036-05-03", "2036-05-05", "2036-06-06", "2036-08-15", "2036-10-03",
-      "2036-10-04", "2036-10-05", "2036-10-09", "2036-12-25",
+      "2036-05-01", "2036-05-03", "2036-05-05", "2036-06-06", "2036-07-17",
+      "2036-08-15", "2036-10-03", "2036-10-04", "2036-10-05", "2036-10-09",
+      "2036-12-25",
     ],
     substitutes: ["2036-01-30", "2036-03-03", "2036-05-06", "2036-10-06", "2036-10-07"],
   },
   2037: {
     holidays: [
       "2037-01-01", "2037-02-14", "2037-02-15", "2037-02-16", "2037-03-01",
-      "2037-05-05", "2037-05-22", "2037-06-06", "2037-08-15", "2037-09-23",
-      "2037-09-24", "2037-09-25", "2037-10-03", "2037-10-09", "2037-12-25",
+      "2037-05-01", "2037-05-05", "2037-05-22", "2037-06-06", "2037-07-17",
+      "2037-08-15", "2037-09-23", "2037-09-24", "2037-09-25", "2037-10-03",
+      "2037-10-09", "2037-12-25",
     ],
     substitutes: ["2037-02-17", "2037-03-02", "2037-08-17", "2037-10-05"],
   },
   2038: {
     holidays: [
       "2038-01-01", "2038-02-03", "2038-02-04", "2038-02-05", "2038-03-01",
-      "2038-05-05", "2038-05-11", "2038-06-06", "2038-08-15", "2038-09-12",
-      "2038-09-13", "2038-09-14", "2038-10-03", "2038-10-09", "2038-12-25",
+      "2038-05-01", "2038-05-05", "2038-05-11", "2038-06-06", "2038-07-17",
+      "2038-08-15", "2038-09-12", "2038-09-13", "2038-09-14", "2038-10-03",
+      "2038-10-09", "2038-12-25",
     ],
-    substitutes: ["2038-08-16", "2038-09-15", "2038-10-04", "2038-10-11", "2038-12-27"],
+    substitutes: [
+      "2038-05-03", "2038-07-19", "2038-08-16", "2038-09-15",
+      "2038-10-04", "2038-10-11", "2038-12-27",
+    ],
   },
   2039: {
     holidays: [
       "2039-01-01", "2039-01-23", "2039-01-24", "2039-01-25", "2039-03-01",
-      "2039-04-30", "2039-05-05", "2039-06-06", "2039-08-15", "2039-10-01",
-      "2039-10-02", "2039-10-03", "2039-10-09", "2039-12-25",
+      "2039-04-30", "2039-05-01", "2039-05-05", "2039-06-06", "2039-07-17",
+      "2039-08-15", "2039-10-01", "2039-10-02", "2039-10-03", "2039-10-09",
+      "2039-12-25",
     ],
-    substitutes: ["2039-01-26", "2039-05-02", "2039-10-04", "2039-10-05", "2039-10-10", "2039-12-26"],
+    substitutes: [
+      "2039-01-26", "2039-05-02", "2039-05-03", "2039-07-18",
+      "2039-10-04", "2039-10-05", "2039-10-10", "2039-12-26",
+    ],
   },
   2040: {
     holidays: [
       "2040-01-01", "2040-02-11", "2040-02-12", "2040-02-13", "2040-03-01",
-      "2040-05-05", "2040-05-18", "2040-06-06", "2040-08-15", "2040-09-20",
-      "2040-09-21", "2040-09-22", "2040-10-03", "2040-10-09", "2040-12-25",
+      "2040-05-01", "2040-05-05", "2040-05-18", "2040-06-06", "2040-07-17",
+      "2040-08-15", "2040-09-20", "2040-09-21", "2040-09-22", "2040-10-03",
+      "2040-10-09", "2040-12-25",
     ],
     substitutes: ["2040-02-14", "2040-05-07"],
   },
 };
-// 신정·삼일절·어린이날·현충일·광복절·개천절·한글날·성탄절 (음력 명절·부처님오신날 제외 고정일)
+// 신정·삼일절·노동절·어린이날·현충일·제헌절·광복절·개천절·한글날·성탄절
+// (음력 명절·부처님오신날 제외 고정일)
 const FIXED_HOLIDAYS_MMDD = ["01-01", "03-01", "05-05", "06-06", "08-15", "10-03", "10-09", "12-25"];
+// 노동절(5/1)·제헌절(7/17)은 2026년 개정으로 관공서 공휴일이 됐다. 시행 전 연도에 소급하면
+// 지난달 근무표의 휴일수가 실제와 달라지므로 시행연도 이후에만 붙인다.
+const NEW_2026_HOLIDAYS_MMDD = ["05-01", "07-17"];
 
 function seedHolidaysForYear(year) {
   const data = KR_HOLIDAYS[year];
@@ -213,7 +244,10 @@ function seedHolidaysForYear(year) {
     formHolidays = [...data.holidays];
     formSubHolidays = [...data.substitutes];
   } else {
-    formHolidays = FIXED_HOLIDAYS_MMDD.map(mmdd => `${year}-${mmdd}`);
+    const mmdds = year >= 2026
+      ? FIXED_HOLIDAYS_MMDD.concat(NEW_2026_HOLIDAYS_MMDD)
+      : FIXED_HOLIDAYS_MMDD;
+    formHolidays = mmdds.map(mmdd => `${year}-${mmdd}`).sort();
     formSubHolidays = [];
   }
 }
@@ -241,6 +275,9 @@ let transferredInNames = [];
 // 파일에는 전입 칸이 없어서, 여기가 전입 정보의 유일한 출처가 된다.
 let wantedTransferredIn = [];
 let wantedTransferInDates = {};
+// 마지막으로 성공한 입력① 업로드가 어느 달 파일이었는지 — 새 파일이 반려됐을 때
+// "그래서 지금 무엇이 쓰이고 있는가"를 화면에 그대로 적어주기 위한 꼬리표.
+let wantedActiveTag = "";
 let formRequests = [];   // [{staff_id, date, type, priority}]
 let formCarryover = [];  // [{staff_id, last_shift_type, consecutive_work_days, night_block_remaining_off, trailing_night_count}]
 let formHolidays = [];      // ["YYYY-MM-DD", ...] 공휴일
@@ -789,12 +826,12 @@ function renderMinStaffTable() {
     let cells = "";
     if (minStaffWeekdayExpanded) {
       cells += MIN_STAFF_DOWS.map(([dow, dowLabel]) =>
-        `<td data-label="${dowLabel}"><input type="number" min="0" id="ms_${key}_weekday_${dow}" value="0"></td>`).join("");
+        `<td data-label="${dowLabel}"><input type="number" min="0" step="1" required id="ms_${key}_weekday_${dow}" value="0"></td>`).join("");
     } else {
-      cells += `<td data-label="평일"><input type="number" min="0" id="ms_${key}_weekday" value="0"></td>`;
+      cells += `<td data-label="평일"><input type="number" min="0" step="1" required id="ms_${key}_weekday" value="0"></td>`;
     }
-    cells += `<td data-label="토요일"><input type="number" min="0" id="ms_${key}_saturday" value="0"></td>`;
-    cells += `<td data-label="일요일·공휴일"><input type="number" min="0" id="ms_${key}_sunday_holiday" value="0"></td>`;
+    cells += `<td data-label="토요일"><input type="number" min="0" step="1" required id="ms_${key}_saturday" value="0"></td>`;
+    cells += `<td data-label="일요일·공휴일"><input type="number" min="0" step="1" required id="ms_${key}_sunday_holiday" value="0"></td>`;
     return `<tr><td data-label="근무"><b>${label}</b></td>${cells}</tr>`;
   }).join("");
 
@@ -880,15 +917,44 @@ function advancedTrackFromForm() {
 }
 $("#f_advanced_track").oninput = updateAdvancedTrackCount;
 
+// 최소인력 칸을 '있는 그대로' 읽는다 — 빈칸이나 소수를 다른 정수로 바꾸지 않는다.
+// 예전엔 parseInt(값 || "0")이라 D를 지우면 0명, E에 1.9를 적으면 1명이 됐다. 인원 기준을
+// 낮춰놓고도 "입력 기준을 모두 지켰습니다"라는 결과가 나오는 게 이 앱에서 제일 나쁜 종류의
+// 실패다. 못 읽는 값은 고쳐 읽지 말고 어느 칸이 왜 문제인지 말하고 멈춘다.
+let minStaffErrors = [];
+function readMinStaffCell(id, label) {
+  const el = document.getElementById(id);
+  const raw = (el ? el.value : "").trim();
+  if (raw === "") {
+    minStaffErrors.push(`${label} 칸이 비어 있습니다`);
+    return 0;
+  }
+  const n = Number(raw);
+  if (!Number.isFinite(n)) {
+    minStaffErrors.push(`${label} 칸의 "${raw}"을(를) 숫자로 읽을 수 없습니다`);
+    return 0;
+  }
+  if (!Number.isInteger(n)) {
+    minStaffErrors.push(`${label} 칸의 ${raw}은(는) 정수가 아닙니다 — 사람 수는 소수일 수 없습니다`);
+    return 0;
+  }
+  if (n < 0) {
+    minStaffErrors.push(`${label} 칸의 ${raw}은(는) 0보다 작습니다`);
+    return 0;
+  }
+  return n;
+}
+
 function buildCfgFromForm() {
   const holidays = [...formHolidays];
   const subhol = [...formSubHolidays];
   const minStaff = {};
-  for (const [col] of MIN_STAFF_COLS) {
+  minStaffErrors = [];
+  for (const [col, colLabel] of MIN_STAFF_COLS) {
     if (col === "weekday" && minStaffWeekdayExpanded) continue;
     minStaff[col] = {};
     for (const [key] of MIN_STAFF_ROWS) {
-      minStaff[col][key] = parseInt(document.getElementById(`ms_${key}_${col}`).value || "0", 10);
+      minStaff[col][key] = readMinStaffCell(`ms_${key}_${col}`, `근무인력 ${colLabel} ${key}`);
     }
   }
   if (minStaffWeekdayExpanded) {
@@ -897,17 +963,13 @@ function buildCfgFromForm() {
     minStaff.weekday = {};
     minStaff.weekday_by_dow = {};
     for (const [key] of MIN_STAFF_ROWS) {
-      const dayVals = {};
-      for (const [dow] of MIN_STAFF_DOWS) {
-        dayVals[dow] = parseInt(document.getElementById(`ms_${key}_weekday_${dow}`).value || "0", 10);
-      }
-      minStaff.weekday[key] = dayVals["0"];
+      minStaff.weekday[key] = readMinStaffCell(`ms_${key}_weekday_0`, `근무인력 월요일 ${key}`);
     }
-    for (const [dow] of MIN_STAFF_DOWS) {
+    for (const [dow, dowLabel] of MIN_STAFF_DOWS) {
       minStaff.weekday_by_dow[dow] = {};
       for (const [key] of MIN_STAFF_ROWS) {
         minStaff.weekday_by_dow[dow][key] =
-          parseInt(document.getElementById(`ms_${key}_weekday_${dow}`).value || "0", 10);
+          readMinStaffCell(`ms_${key}_weekday_${dow}`, `근무인력 ${dowLabel} ${key}`);
       }
     }
   }
@@ -1062,6 +1124,7 @@ $("#wantedInput").onchange = async () => {
       (teamB.length ? `, B팀 ${teamB.length}명 인식` : "") +
       (unk ? ` (인식 못 한 표시 ${unk}개: ${data.unknown_marks.join(", ")})` : "") +
       (monthChanged ? ` — 화면의 연월을 ${data.year}년 ${data.month}월로 맞췄습니다.` : "");
+    wantedActiveTag = `${data.year}년 ${data.month}월`;
     $("#wantedClearBtn").style.display = "";
     showToast(data.warning ||
       `원티드 ${formRequests.length}건${staffUpdated ? `, 인원 ${data.staff.length}명` : ""}` +
@@ -1070,17 +1133,35 @@ $("#wantedInput").onchange = async () => {
   } catch (e) {
     // 업로드가 반려돼도(값은 그대로) 화면엔 오류 문구가 계속 남으므로, 지울 방법이
     // 있어야 한다 — 반영 해제 버튼을 오류 지우기 용도로 그대로 재사용한다.
+    // 반려됐다는 사실만 알려주면 "그럼 지금 뭐가 쓰이지?"에 답이 없다. 직전에 성공한
+    // 입력①이 살아 있으면 그걸 함께 적어준다.
     showUploadError(statusEl, e);
+    const active = wantedActiveSummary();
+    if (active) statusEl.textContent += "\n" + active;
     $("#wantedClearBtn").style.display = "";
   } finally { $("#wantedInput").value = ""; }
 };
 
+// 지금 실제로 쓰이고 있는 입력① 값을 한 줄로. 빈 문자열이면 활성 입력이 없다는 뜻.
+function wantedActiveSummary() {
+  const parts = [];
+  if (staffOfWanted.length) parts.push(`인원 ${staffOfWanted.length}명`);
+  if (formRequests.length) parts.push(`신청 ${formRequests.length}건`);
+  if (!parts.length) return "";
+  return `이전에 올린 입력①${wantedActiveTag ? ` (${wantedActiveTag})` : ""}을 계속 쓰는 중 — ` +
+         `${parts.join(", ")}. 이 값으로 근무표가 만들어집니다.`;
+}
+
 $("#wantedClearBtn").onclick = () => {
   const statusEl = $("#wantedStatus");
   if (statusEl.classList.contains("upload-error")) {
+    // 오류 문구만 지운다. 여기서 화면을 텅 비우면 "새 파일도 실패했고 반영도 해제했다"고
+    // 읽히는데 실제로는 직전에 성공한 파일이 그대로 살아 있다 — 사용자가 지웠다고 믿는
+    // 명단·신청으로 근무표가 만들어진다. 그래서 남아 있는 값을 반드시 적어 보여준다.
     clearUploadError(statusEl);
-    statusEl.textContent = "";
-    $("#wantedClearBtn").style.display = "none";
+    const active = wantedActiveSummary();
+    statusEl.textContent = active;
+    $("#wantedClearBtn").style.display = active ? "" : "none";
     return;
   }
   // 신청만 지우고 끝내면, 입력①이 채운 '명단'은 그대로 남아 해제했다고 생각한 명단으로
@@ -1088,6 +1169,7 @@ $("#wantedClearBtn").onclick = () => {
   // 준 명단으로 복원한다.
   formRequests = [];
   staffOfWanted = [];
+  wantedActiveTag = "";
   wantedTransferredIn = [];
   wantedTransferInDates = {};
   recomputeStaff();
@@ -1276,12 +1358,19 @@ async function runGenerate(btn, statusEl) {
       `지우거나(반영 해제) 파일을 고쳐 다시 올린 뒤 생성하세요`, true);
     return;
   }
+  // 최소인력 칸을 먼저 읽어본다 — 못 읽는 칸이 있으면 생성하지 않는다. 대충 0으로 채워
+  // 만들면 "그 근무가 아무도 없어도 되는 달"이 조용히 만들어진다.
+  const preCfg = buildCfgFromForm();
+  if (minStaffErrors.length) {
+    showToast(`근무인력 칸을 확인해주세요 — ${minStaffErrors.join(" / ")}`, true);
+    return;
+  }
   const btns = [$("#generateBtn"), $("#generateBtnMid")].filter(Boolean);
   btns.forEach(b => b.disabled = true);
   if (statusEl) statusEl.textContent = "생성 중...";
   showGenOverlay("근무표를 생성하는 중입니다…");
   try {
-    const cfg = buildCfgFromForm();
+    const cfg = preCfg;
     const cfgResult = await api("/api/set_config", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(cfg),
@@ -1369,6 +1458,8 @@ function saveSettings() {
   if (!settingsSaveEnabled()) return;
   try {
     const cfg = buildCfgFromForm();
+    // 못 읽는 칸이 있는 상태를 저장하면, 다음에 앱을 열었을 때 그 잘못된 값이 되살아난다.
+    if (minStaffErrors.length) return;
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({
       ward_id: cfg.ward_id, year: cfg.year, month: cfg.month,
       params: {
@@ -1710,22 +1801,44 @@ window.undoEdit = undoEdit;
 // ================================================================ 사이드 패널 (생성 후 정보)
 
 // 검증 요약 상단에 붙일 상태 배너 — "이게 최선인지 아예 안 되는 건지"를 숫자 대신
-// 말로 바로 알려준다. hard_count(안전·필수 규칙 위반)와 r.hard.length(최선노력
-// 규칙까지 합친 전체 위반) 차이로 셋 중 하나를 가른다:
-//   hard_count > 0            → 안전 규칙조차 못 지킴(불가능에 가까움)
-//   hard_count === 0 && 잔여 > 0 → 안전 규칙은 다 지켰고 패턴 규칙만 일부 남음(최선)
+// 말로 바로 알려준다. hard_count(필수 위반)와 r.hard.length(추가 검토 항목까지 합친
+// 전체) 차이로 셋 중 하나를 가른다:
+//   hard_count > 0            → 필수 위반이 남음(그대로 확정하면 안 됨)
+//   hard_count === 0 && 잔여 > 0 → 필수는 다 지켰고 추가 검토 항목만 남음
 //   전부 0                     → 완벽 배정
+//
+// "안전 규칙은 모두 지켰습니다"라고 쓰지 않는다. 노란색으로 남는 항목에는 레벨4+ 배치
+// (H1-5), 월 OFF 하한(H4-1), 야간 6회 이상일 때의 수면오프(H7-1)처럼 사람의 안전과
+// 직결되는 것들이 섞여 있다. '안전'이라고 뭉뚱그리면 상세 규칙을 모르는 사람이 노란
+// 목록을 안 읽고 승인한다 — 사실만 적는다: 무엇이 몇 건 남았는지.
+// 필수 위반이 남은 근무표를 그대로 내려받아 확정하는 것을 막는다. 빨간 경고가 화면에
+// 떠 있어도 다운로드 버튼은 그대로 눌렸고, 파일로 나가는 순간 그 근무표가 확정본이 된다.
+// 무엇이 몇 건 남았는지 다시 한 번 보여주고 사람이 명시적으로 승인하게 한다.
+function confirmDownloadWithViolations() {
+  const r = ST && ST.report;
+  if (!r || !r.hard_count) return true;
+  const lines = r.hard.filter(v => !v.best_effort).slice(0, 5)
+    .map(v => `  · ${v.rule} ${v.message}`).join("\n");
+  const more = r.hard_count > 5 ? `\n  … 외 ${r.hard_count - 5}건` : "";
+  return confirm(
+    `필수 위반 ${r.hard_count}건이 남아 있는 근무표입니다.\n\n${lines}${more}\n\n` +
+    `이 파일을 그대로 확정하면 위 칸은 사람이 직접 채워야 합니다.\n` +
+    `그래도 내려받으시겠습니까?`);
+}
+
 function feasibilityBanner(r) {
   const total = r.hard.length;
   if (r.hard_count > 0) {
-    return `<p class="status-banner bad">⚠ 이 조건(인원수·근무인력 기준)으로는 안전 규칙까지
-      전부 만족하는 배정을 찾지 못했습니다 — 필수 위반 ${r.hard_count}건이 남았습니다.
-      인원을 늘리거나 근무인력 기준을 낮추는 것을 검토해 주세요.</p>`;
+    return `<p class="status-banner bad">⚠ 필수 위반 ${r.hard_count}건이 남았습니다 — 이 조건
+      (인원수·근무인력 기준)으로는 전부 만족하는 배정을 찾지 못했습니다. <b>이대로 확정하면
+      안 됩니다.</b> 아래 빨간 목록을 확인해 해당 칸을 직접 고치거나, 인원을 늘리거나 근무인력
+      기준을 낮춘 뒤 다시 생성해 주세요.</p>`;
   }
   if (total > 0) {
-    return `<p class="status-banner warn">이 조건에서 안전 규칙은 모두 지켰습니다. 다만 근무
-      패턴 규칙(연속 근무 블록 길이 등) ${total}건은 완벽히 맞추지 못했습니다 — 지금 이게
-      찾을 수 있는 최선의 배정입니다.</p>`;
+    return `<p class="status-banner warn">필수 규칙(최소인력·야간 블록·연속근무 등)은 모두
+      지켰습니다. 다만 <b>추가 검토 ${total}건</b>이 남았습니다 — 레벨4+ 배치, 월 OFF 하한,
+      수면오프처럼 지키는 게 원칙이지만 인원 사정상 못 맞출 수 있는 항목입니다. 아래 노란
+      목록을 확인한 뒤 확정해 주세요.</p>`;
   }
   return "";
 }
@@ -1743,8 +1856,8 @@ function renderSide() {
   }
   html += feasibilityBanner(r);
   html += `<div class="kpi-row">
-    <div class="kpi"><div class="v ${hardCls}">${r.hard_count}</div><div class="l">하드 위반</div></div>
-    <div class="kpi"><div class="v">${r.soft_count}</div><div class="l">소프트</div></div>
+    <div class="kpi"><div class="v ${hardCls}">${r.hard_count}</div><div class="l">필수 위반</div></div>
+    <div class="kpi"><div class="v">${r.hard.length - r.hard_count}</div><div class="l">추가 검토</div></div>
     <div class="kpi"><div class="v">${ST.round}</div><div class="l">회차</div></div>
   </div>`;
   if (r.hard.length > 0) {
@@ -1764,8 +1877,8 @@ function renderSide() {
   html += `<div class="side-sec" id="pendingSec"><h3>${hasPending ? "편집 중 (미적용)" : "편집"}</h3><div id="pendingBody"></div></div>`;
 
   html += `<div class="side-sec"><h3>다운로드</h3><div class="download-row">
-    <button onclick="downloadXlsxOcs()" ${hasPending ? "disabled" : ""}>월간근무표</button>
-    <button onclick="downloadStaffTable()" ${hasPending ? "disabled" : ""}>연간근무표</button>
+    <button onclick="if (confirmDownloadWithViolations()) downloadXlsxOcs()" ${hasPending ? "disabled" : ""}>월간근무표</button>
+    <button onclick="if (confirmDownloadWithViolations()) downloadStaffTable()" ${hasPending ? "disabled" : ""}>연간근무표</button>
   </div>
   ${hasPending ? '<p class="hint">적용 안 한 편집이 있습니다 — "재생성 적용"을 눌러야 다운로드할 수 있습니다.</p>' : ""}
   </div>`;
