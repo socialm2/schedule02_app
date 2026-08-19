@@ -1547,9 +1547,9 @@ function restoreSaveToggle() {
 // 지우기는 '샘플 값으로 되돌리기'가 아니라 말 그대로 '비우기'다. 샘플 숫자를 다시
 // 채워 넣으면 그게 우리 병동 값인 줄 알고 그대로 만들 수 있다 — 지운 뒤에는 빈 칸이
 // 보여야 무엇을 채워야 하는지 알 수 있다. 병동명처럼 회색 자리표시(0)만 남긴다.
+// 묻지 않고 바로 지운다 — 되돌릴 대상이 '내가 방금 적은 값'뿐이고, 다시 채우는 데
+// 몇 초면 되는 화면이라 확인창이 매번 걸리는 쪽이 더 성가시다.
 $("#resetSettingsBtn").onclick = () => {
-  if (!confirm("저장한 근무정보(설정·근무인력)를 지우고 모든 칸을 비웁니다.\n"
-               + "우리 병동 기준으로 다시 채워 넣으셔야 합니다. 계속할까요?")) return;
   try { localStorage.removeItem(SETTINGS_KEY); } catch (e) { settingsStorageFailed(e, "clear"); }
   settingsReady = false;
   $("#f_ward").value = "";
