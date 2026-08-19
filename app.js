@@ -755,10 +755,19 @@ window.toggleHolidayDate = function (iso) {
   renderHolidayCalendar();
 };
 
+// 이 앱으로 만드는 것은 늘 '다음 달' 근무표다 — 열 때마다 그 달로 맞춰준다.
+function nextMonth() {
+  const d = new Date();
+  d.setDate(1);                 // 31일에 열면 달이 두 칸 건너뛰는 것을 막는다
+  d.setMonth(d.getMonth() + 1);
+  return { year: d.getFullYear(), month: d.getMonth() + 1 };
+}
+
 function fillForm(cfg) {
   $("#f_ward").value = cfg.ward_id || "";
-  $("#f_year").value = cfg.year;
-  $("#f_month").value = cfg.month;
+  const nm = nextMonth();
+  $("#f_year").value = nm.year;
+  $("#f_month").value = nm.month;
   const p = cfg.params || {};
   $("#f_maxnights").value = p.off_max_per_month ?? 6;
   $("#f_maxconsecutive").value = p.max_consecutive_work ?? 5;
@@ -826,12 +835,12 @@ function renderMinStaffTable() {
     let cells = "";
     if (minStaffWeekdayExpanded) {
       cells += MIN_STAFF_DOWS.map(([dow, dowLabel]) =>
-        `<td data-label="${dowLabel}"><input type="number" min="0" step="1" required id="ms_${key}_weekday_${dow}" value="0"></td>`).join("");
+        `<td data-label="${dowLabel}"><input type="number" min="0" step="1" required placeholder="0" id="ms_${key}_weekday_${dow}" value="0"></td>`).join("");
     } else {
-      cells += `<td data-label="평일"><input type="number" min="0" step="1" required id="ms_${key}_weekday" value="0"></td>`;
+      cells += `<td data-label="평일"><input type="number" min="0" step="1" required placeholder="0" id="ms_${key}_weekday" value="0"></td>`;
     }
-    cells += `<td data-label="토요일"><input type="number" min="0" step="1" required id="ms_${key}_saturday" value="0"></td>`;
-    cells += `<td data-label="일요일·공휴일"><input type="number" min="0" step="1" required id="ms_${key}_sunday_holiday" value="0"></td>`;
+    cells += `<td data-label="토요일"><input type="number" min="0" step="1" required placeholder="0" id="ms_${key}_saturday" value="0"></td>`;
+    cells += `<td data-label="일요일·공휴일"><input type="number" min="0" step="1" required placeholder="0" id="ms_${key}_sunday_holiday" value="0"></td>`;
     return `<tr><td data-label="근무"><b>${label}</b></td>${cells}</tr>`;
   }).join("");
 
@@ -993,10 +1002,12 @@ function buildCfgFromForm() {
     params: {
       nk_count: nkCount, min_staff: minStaff,
       leader_8a_as_prn: false,  // 웹 UI에 없는 설정이라 항상 기본값
-      off_max_per_month: parseInt($("#f_maxnights").value || "6", 10),
-      max_consecutive_work: parseInt($("#f_maxconsecutive").value || "5", 10),
-      night_quota_low: parseInt($("#f_nightquota_low").value || "4", 10),
-      night_quota_high: parseInt($("#f_nightquota_high").value || "6", 10),
+      // 비었을 때 조용히 기본값을 쓰지 않는다 — '저장한 설정 지우기'로 비운 뒤
+      // 그대로 생성하면, 우리 병동과 상관없는 숫자로 만든 근무표가 나온다.
+      off_max_per_month: readMinStaffCell("f_maxnights", "월 최대야간"),
+      max_consecutive_work: readMinStaffCell("f_maxconsecutive", "연속근무제한"),
+      night_quota_low: readMinStaffCell("f_nightquota_low", "야간목표하한"),
+      night_quota_high: readMinStaffCell("f_nightquota_high", "야간목표상한"),
       holidays, substitute_holidays: subhol,
       advanced_track_staff: advancedTrackFromForm(),
       team_b_names: teamBNamesFromForm(),
@@ -1489,8 +1500,9 @@ function withSavedSettings(cfg) {
   if (!saved) return cfg;
   const out = { ...cfg, params: { ...(cfg.params || {}) } };
   if (saved.ward_id !== undefined) out.ward_id = saved.ward_id;
-  if (saved.year) out.year = saved.year;
-  if (saved.month) out.month = saved.month;
+  // 연월은 일부러 되살리지 않는다 — 아래 nextMonth()가 항상 다음 달로 잡는다.
+  // 만드는 것은 늘 다음 달 근무표인데 지난달 값이 되살아나면, 화면 연월을 안 보고
+  // 그대로 만들었다가 한 달 어긋난 근무표가 나온다.
   for (const k of ["min_staff", "off_max_per_month", "max_consecutive_work",
                    "night_quota_low", "night_quota_high"]) {
     if (saved.params && saved.params[k] !== undefined) out.params[k] = saved.params[k];
@@ -1532,19 +1544,23 @@ function restoreSaveToggle() {
   return on;
 }
 
-$("#resetSettingsBtn").onclick = async () => {
-  // 되돌릴 수 없는 동작이라 한 번 묻는다.
-  if (!confirm("저장된 근무정보(설정·근무인력)를 지우고 샘플 기본값으로 되돌립니다.\n계속할까요?")) return;
+// 지우기는 '샘플 값으로 되돌리기'가 아니라 말 그대로 '비우기'다. 샘플 숫자를 다시
+// 채워 넣으면 그게 우리 병동 값인 줄 알고 그대로 만들 수 있다 — 지운 뒤에는 빈 칸이
+// 보여야 무엇을 채워야 하는지 알 수 있다. 병동명처럼 회색 자리표시(0)만 남긴다.
+$("#resetSettingsBtn").onclick = () => {
+  if (!confirm("저장한 근무정보(설정·근무인력)를 지우고 모든 칸을 비웁니다.\n"
+               + "우리 병동 기준으로 다시 채워 넣으셔야 합니다. 계속할까요?")) return;
   try { localStorage.removeItem(SETTINGS_KEY); } catch (e) { settingsStorageFailed(e, "clear"); }
-  try {
-    settingsReady = false;
-    fillForm(await api("/api/sample"));
-    settingsReady = true;
-    showToast("저장한 설정을 지우고 샘플 기본값으로 되돌렸습니다");
-  } catch (e) {
-    settingsReady = true;
-    showToast("샘플을 다시 불러오지 못했습니다 — 화면을 새로고침해주세요", true);
-  }
+  settingsReady = false;
+  $("#f_ward").value = "";
+  for (const el of document.querySelectorAll('.info-section input[type="number"]')) el.value = "";
+  const nm = nextMonth();
+  $("#f_year").value = nm.year;
+  $("#f_month").value = nm.month;
+  seedHolidaysForYear(nm.year);
+  renderHolidayCalendar();
+  settingsReady = true;
+  showToast("저장한 설정을 지웠습니다 — 우리 병동 값으로 채워 넣어주세요");
 };
 
 // ================================================================ 그리드 렌더 (생성 후)

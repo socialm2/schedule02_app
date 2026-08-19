@@ -48,7 +48,7 @@
   <!-- .build-time 값은 배포할 때 GitHub Actions가 실제 배포 시각(KST)으로
        바꿔 넣는다(.github/workflows/deploy.yml). 손으로 고칠 필요 없다. -->
   <header>
-    <h1>SMC Fair Shift <span class="version-badge">v0.81</span><span class="build-time">2026-08-19 20:25:50 KST</span></h1>
+    <h1>SMC Fair Shift <span class="version-badge">v0.81</span><span class="build-time">2026-08-19 21:35:45 KST</span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
@@ -83,8 +83,8 @@
               </div>
               <div class="setting-row">
                 <button type="button" id="resetSettingsBtn" class="pushbtn">저장한 설정 지우기</button>
-                <span class="hint">기억해둔 값을 지우고 샘플 병동 기본값으로 되돌립니다.
-                되돌린 뒤에는 이 화면에서 다시 채워 넣으시면 됩니다.</span>
+                <span class="hint">기억해둔 값을 지우고 모든 칸을 비웁니다.
+                우리 병동 기준으로 다시 채워 넣으시면 됩니다.</span>
               </div>
             </div>
             <div class="form-grid">
@@ -96,10 +96,10 @@
                   <select id="f_month"></select>
                 </span>
               </label>
-              <label>월 최대야간 <input type="number" id="f_maxnights" style="width:60px"></label>
-              <label>연속근무제한 <input type="number" id="f_maxconsecutive" min="1" style="width:60px"></label>
-              <label>야간목표하한 <input type="number" id="f_nightquota_low" min="0" style="width:60px"></label>
-              <label>야간목표상한 <input type="number" id="f_nightquota_high" min="0" style="width:60px"></label>
+              <label>월 최대야간 <input type="number" id="f_maxnights" placeholder="0" style="width:60px"></label>
+              <label>연속근무제한 <input type="number" id="f_maxconsecutive" min="1" placeholder="0" style="width:60px"></label>
+              <label>야간목표하한 <input type="number" id="f_nightquota_low" min="0" placeholder="0" style="width:60px"></label>
+              <label>야간목표상한 <input type="number" id="f_nightquota_high" min="0" placeholder="0" style="width:60px"></label>
             </div>
             <!-- 당분간 화면에서 뺌(값·로직은 유지 — 필요시 style 제거로 복원) -->
             <details class="form-sec sub-sec" style="display:none">
@@ -127,8 +127,8 @@
             </div>
             <!-- 요일별 나누기는 표 헤더를 눌러 펼치는 숨은 토글이었는데, 처음 쓰는
                  사람은 그게 눌린다는 걸 알 방법이 없었다 — 버튼과 설명을 밖으로 꺼냈다. -->
-            <div class="ms-dow-row">
-              <button type="button" id="msWeekdayToggle" class="small"></button>
+            <div class="setting-row">
+              <button type="button" id="msWeekdayToggle" class="pushbtn"></button>
               <span class="hint" id="msWeekdayHint"></span>
             </div>
           </details>
@@ -151,7 +151,11 @@
           </div>
 
           <div class="upload-section">
-            <div class="upload-item">
+            <!-- 근무정보·근무인력과 같은 제목을 달아준다 — 이 구역만 제목이 없어서
+                 위 두 칸과 다른 종류의 화면처럼 보였다. -->
+            <details class="form-sec" open>
+              <summary>파일입력</summary>
+              <div class="upload-item">
               <div class="upload-item-label">입력① 원티드표
                 <span class="hint">인원(직급·숙련도·가능근무·비고·전입)과 원티드 신청을 여기서 받습니다 — 날짜 칸은 OCS에서 그대로 붙여넣어도 됩니다</span>
               </div>
@@ -179,6 +183,7 @@
 
             <!-- 입력①(이번 달 명단)와 입력②(지난달 명단)의 차이 = 전입·전출. 둘 다 올라와야 표시됨 -->
             <div id="rosterDiff" class="roster-diff" style="display:none"></div>
+            </details>
 
             <div class="generate-row">
               <button id="generateBtn" class="primary big">근무표 생성</button>
