@@ -36,7 +36,12 @@ html, body {
      모바일에서 position:fixed 팝업(사용법 모달 등) 위치가 틀어진다 — 항상 막아둔다. */
   overflow-x: hidden;
 }
-#app { display: flex; flex-direction: column; height: 100vh; }
+/* 높이는 dvh(실제로 보이는 화면 높이)를 쓰고 vh는 옛 브라우저용 대비책으로 남긴다.
+   vh는 '주소창이 숨겨졌을 때의 큰 화면'을 기준으로 삼아서, 주소창이 아예 없는
+   홈 화면 설치 앱(standalone)에서는 실제 창보다 큰 값이 된다 — 그만큼 아래에 빈
+   공간이 생겨 내용이 끝난 뒤로도 스크롤이 더 내려갔다. 브라우저에서는 내용이 이미
+   그보다 길어서 티가 안 나고, 설치한 앱에서만 보이던 이유가 이것이다. */
+#app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 
 /* ---------------------------------------------------------------- 접속 비밀번호 게이트 */
 #authGate {
@@ -147,7 +152,11 @@ button.danger:hover:not(:disabled) { background: var(--hard-soft); }
 input[type=file] { font-size: 12.5px; max-width: 220px; }
 
 #main { display: flex; flex: 1; min-height: 0; }
-#gridPane { flex: 1; overflow: auto; padding: 14px; }
+/* contain: paint — 이 칸 밖으로 넘치는 내용이 '페이지 전체의 스크롤 범위'에까지
+   더해지지 않게 한다. overflow:auto로 안에서 스크롤은 되지만, 그것만으로는 넘친 만큼이
+   문서 높이에 계속 반영돼 노트북에서 푸터를 지나 150px쯤 빈 회색 공간까지 더 내려갔다
+   (폰에서는 페이지가 원래 내용만큼 길어 티가 안 났고, 그래서 노트북에서만 보였다). */
+#gridPane { flex: 1; overflow: auto; padding: 14px; contain: paint; }
 #sidePane {
   width: 340px; flex: none; border-left: 1px solid var(--line); background: var(--card);
   overflow-y: auto; padding: 14px 16px;
@@ -522,7 +531,8 @@ button.big { font-size: 15px; padding: 11px 26px; }
 .modal-backdrop.show { display: flex; }
 .modal {
   background: var(--card); border-radius: 12px; max-width: 640px; width: 100%;
-  max-height: 84vh; display: flex; flex-direction: column; box-shadow: 0 12px 40px rgba(0,0,0,.25);
+  max-height: 84vh; max-height: 84dvh;
+  display: flex; flex-direction: column; box-shadow: 0 12px 40px rgba(0,0,0,.25);
 }
 .modal-head {
   display: flex; justify-content: space-between; align-items: center; padding: 16px 20px;
@@ -587,9 +597,10 @@ table.compact-grid td.annual-sum, table.compact-grid th.annual-sum-h {
 /* ---------------------------------------------------------------- 반응형 (좁은 화면 · 폰) */
 @media (max-width: 680px) {
   html, body { height: auto; }
-  #app { height: auto; min-height: 100vh; }
+  #app { height: auto; min-height: 100vh; min-height: 100dvh; }
   #main { flex-direction: column; }
-  #gridPane { overflow: visible; padding: 10px; }
+  /* 폰에서는 이 칸이 스크롤하지 않고 페이지째 늘어난다 — 가두면 내용이 잘린다 */
+  #gridPane { overflow: visible; padding: 10px; contain: none; }
   #sidePane { width: auto; border-left: none; border-top: 2px solid var(--accent); }
 
   header { padding: 8px 12px; }
