@@ -25,9 +25,14 @@ const CACHE_NAME = "ns-sched-v20";
 // 양식(templates/)도 APP_FILES에 둔다 — 몇십 KB밖에 안 되는데 열이 늘거나 안내가 바뀌면
 // 화면 설명과 어긋나면 안 되는 파일이라, 온라인이면 항상 최신을 받게 하는 편이 안전하다.
 // (여기 있어도 설치 때 미리 받아두므로 오프라인에서도 그대로 열린다)
+//
+// 도움말 3종도 여기에 있어야 한다. 앱 안 '설명서'에서 링크로 여는 페이지인데, 목록에
+// 없으면 한 번도 열어본 적 없는 기기에서는 오프라인일 때 그냥 안 열린다 — 정작 도움말이
+// 가장 필요한 순간(비행기모드·병원 지하·데이터 없음)에 없는 셈이다. 합쳐 60KB 남짓이다.
 const APP_FILES = ["./", "index.html", "app.js", "style.css", "pyworker.js",
                    "manifest.json", "py_app.zip",
-                   "templates/입력2_연간근무표_2026-08.xlsx"];
+                   "templates/입력2_연간근무표_2026-08.xlsx",
+                   "guide/quick-start.html", "guide/one-pager.html", "guide/security.html"];
 
 const HEAVY_FILES = [
   "sample_input.xlsx",
@@ -45,7 +50,17 @@ const HEAVY_FILES = [
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll([...APP_FILES, ...HEAVY_FILES]))
+      .then(async (cache) => {
+        await cache.addAll(APP_FILES);
+        // 무거운 파일(Pyodide 런타임 등 14MB)은 이미 캐시에 있으면 다시 받지 않는다.
+        // addAll은 있든 없든 전부 새로 받아오기 때문에, 이 파일들이 하나도 안 바뀐
+        // 배포에서도 서비스워커만 고치면 14MB를 다시 내려받게 된다 — 폰 데이터로 쓰는
+        // 사람에게는 그냥 손해다. 내용이 바뀌는 배포에서는 CACHE_NAME을 올리므로
+        // 캐시가 통째로 새로 만들어져 어차피 다시 받는다.
+        await Promise.all(HEAVY_FILES.map(async (f) => {
+          if (!(await cache.match(f))) await cache.add(f);
+        }));
+      })
       .then(() => self.skipWaiting())
       .catch(() => {}) // 캐싱 실패해도 앱 자체는 계속 동작해야 하므로 조용히 무시
   );
