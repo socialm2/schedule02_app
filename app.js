@@ -1128,7 +1128,7 @@ function renderUploadMessages(statusEl, data) {
     after.insertAdjacentElement("afterend", p);
     after = p;
   };
-  if (data.unclear) add("upload-unclear", "?", data.unclear);
+  if (data.unclear) add("upload-unclear", "\u26A0", data.unclear);
   if (data.notice) add("upload-notice", "\u2714", data.notice);
 }
 
