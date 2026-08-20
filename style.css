@@ -198,6 +198,11 @@ tr.team-b-divider td {
 /* 날짜별 레벨 통계(레벨평균·Lv4-5·Lv1-3) — 그리드 맨 아래에 붙는 3개 행, 날짜 열과
    1:1로 정렬되도록 같은 table 안에 그대로 이어 붙인다(별도 표 아님) */
 tr.level-foot-row td.nm { font-weight: 700; }
+/* 최소인력 미달 칸 — 출력① 엑셀·별첨과 같은 빨강. 채워진 날은 칠하지 않는다:
+   전부 칠하면 눈이 색을 무시하게 되고, 정작 못 채운 날이 묻힌다. */
+.level-foot-row .stat-col.stat-short { background: #ffc7ce; color: #8a2020;
+  font-weight: 700; }
+
 tr.level-foot-row:first-of-type td { border-top: 2px solid var(--accent); }
 
 td.sd span { background: #BDD7EE; color: #1C2523; }

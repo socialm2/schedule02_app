@@ -1740,6 +1740,42 @@ function computeDailyLevelStats() {
   return days;
 }
 
+// 날짜별 D·E·N·prn 인원 — 레벨 통계와 같은 방식으로 화면 그리드에서 매번 다시 센다.
+// 파트장은 뺀다: 최소인력이 파트장을 빼고 잡는 값이라(H1-1도 그렇게 본다) 같이 세면
+// 파트장의 8A가 prn으로 잡혀 못 채운 날이 채운 것처럼 보인다.
+const COUNT_KEY = { D: "D", E: "E", N: "N", NK: "N", prn: "prn", "8A": "prn",
+                    "9A": "prn", "10A": "prn" };
+const COUNT_ROWS = ["D", "E", "N", "prn"];
+
+function computeDailyStaffCounts() {
+  const generals = ST.staff.filter(s => !s.is_partjang);
+  const days = [];
+  for (let d = 0; d < ST.num_days; d++) {
+    const c = { D: 0, E: 0, N: 0, prn: 0 };
+    for (const s of generals) {
+      const k = COUNT_KEY[ST.grid[s.id][d]];
+      if (k) c[k] += 1;
+    }
+    days.push(c);
+  }
+  return days;
+}
+
+function renderDailyStaffCountRows() {
+  const counts = computeDailyStaffCounts();
+  const blankTail = '<td class="stat-col">–</td>'.repeat(7);
+  const blankHead = '<td class="stat-col">–</td><td class="stat-col">–</td>';
+  return COUNT_ROWS.map(k =>
+    `<tr class="level-foot-row"><td class="nm">${k} 인원</td>${blankHead}` +
+    counts.map((c, d) => {
+      // days[d].min이 없는 옛 응답(캐시된 예전 화면 등)에서는 색만 빠지고 숫자는 나온다.
+      const need = (ST.days[d] && ST.days[d].min) ? (ST.days[d].min[k] || 0) : null;
+      const short = need !== null && c[k] < need;
+      const title = need === null ? "" : ` title="${d + 1}일 ${k} ${c[k]}명 (기준 ${need}명)"`;
+      return `<td class="stat-col${short ? " stat-short" : ""}"${title}>${c[k]}</td>`;
+    }).join("") + `${blankTail}</tr>`).join("");
+}
+
 function renderDailyLevelFootRows() {
   const days = computeDailyLevelStats();
   const blankTail = '<td class="stat-col">–</td>'.repeat(7);
@@ -1752,6 +1788,7 @@ function renderDailyLevelFootRows() {
   const totalCols = 3 + ST.num_days + 7;  // 이름 + 잔휴2 + 날짜 + 계산열7
   const divider = `<tr class="team-b-divider"><td colspan="${totalCols}">통계</td></tr>`;
   return divider +
+    renderDailyStaffCountRows() +
     rowHtml("레벨평균", d => (d.avg === null ? "–" : d.avg.toFixed(1))) +
     rowHtml("Lv4-5", d => d.hi) +
     rowHtml("Lv1-3", d => d.lo);
