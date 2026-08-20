@@ -1155,6 +1155,16 @@ $("#wantedInput").onchange = async () => {
       (monthChanged ? ` — 화면의 연월을 ${data.year}년 ${data.month}월로 맞췄습니다.` : "");
     wantedActiveTag = `${data.year}년 ${data.month}월`;
     $("#wantedClearBtn").style.display = "";
+    // 관대하게 읽어준 값이 있으면 무엇을 무엇으로 읽었는지 칸 아래에 남긴다. 토스트는
+    // 몇 초 뒤 사라져서, 표준 표기를 확인하려고 다시 볼 수가 없다.
+    // 다시 올리면 지난번 안내가 남아 쌓인다 — 먼저 지운다.
+    statusEl.parentElement.querySelectorAll(".upload-notice").forEach(n => n.remove());
+    if (data.notice) {
+      const p = document.createElement("p");
+      p.className = "hint upload-notice";
+      p.textContent = "✔ " + data.notice;
+      statusEl.insertAdjacentElement("afterend", p);
+    }
     showToast(data.warning ||
       `원티드 ${formRequests.length}건${staffUpdated ? `, 인원 ${data.staff.length}명` : ""}` +
       `${teamB.length ? `, B팀 ${teamB.length}명` : ""}을 자동으로 채웠습니다`,

@@ -632,3 +632,15 @@ table.compact-grid td.annual-sum, table.compact-grid th.annual-sum-h {
 
   table.compact-grid td.nm, table.compact-grid th.nm { min-width: 40px; }
 }
+
+/* 관대하게 읽어준 값 안내 — 오류(빨강)도 경고(주황)도 아닌 '이렇게 읽었다'는 알림이라
+   눈에는 띄되 문제처럼 보이지 않아야 한다. */
+.upload-notice {
+  margin: 6px 0 0;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: rgba(43, 122, 82, 0.10);
+  border-left: 3px solid #2b7a52;
+  line-height: 1.55;
+  word-break: keep-all;
+}

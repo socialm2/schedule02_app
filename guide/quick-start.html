@@ -116,6 +116,21 @@ footer { margin-top: 68px; padding-top: 20px; border-top: 1px solid var(--line);
 <p class="tip"><b>다만 두 가지로 읽히는 값은 일부러 반려한다.</b> 예를 들어 <code>휴가</code>는 연차인지
 휴(휴가코드)인지 갈려서 받지 않는다 — 짐작해서 넣으면 그 사람 휴가 종류가 조용히 바뀐다.
 못 읽은 값은 업로드 직후 <b>"인식 못 한 표시"</b>로 그 값을 그대로 보여주니, 그 칸만 고쳐 다시 올리면 된다.</p>
+<p class="tip"><b>다르게 적어도 읽어주지만, 무엇을 무엇으로 읽었는지 알려준다.</b>
+표준 표기가 아닌 값을 쓰면 업로드 직후 칸 아래에 초록색으로
+<i>"이렇게 읽었습니다 — 원티드 신청 'd'→'D'(2칸), 비고 '임신'→'임부' …"</i>처럼 뜬다.
+오류가 아니라 안내라서 생성은 그대로 되고, 표준 표기만 쓴 파일에서는 아예 뜨지 않는다.
+<b>다음 달에는 화살표 오른쪽 표기로 적는 편이 안전하다</b> — 관대함이 닿지 않는 값을 만나면
+그때는 반려되는데, 지난달엔 되던 것이 왜 안 되는지 알기 어렵기 때문이다.</p>
+<p class="tip"><b>표준 표기</b> — 근무: <code>D</code> <code>E</code> <code>N</code>
+<code>NK</code> <code>8A</code> <code>9A</code> <code>10A</code> <code>prn</code>
+<code>T</code> <code>TW</code>(원티드 근무는 뒤에 <code>*</code>) · 오프: <code>X</code> ·
+휴가: <code>연</code> <code>연1~4</code> <code>조</code> <code>경</code> <code>공</code>
+<code>병</code> <code>휴</code> <code>승</code> <code>군</code> <code>S/</code> ·
+직급: <code>파트장</code> <code>리더</code> <code>간호사</code> ·
+숙련도: <code>Lv1</code>~<code>Lv5</code> ·
+비고: <code>야간전담</code> <code>임부</code> <code>야간금지</code> ·
+전입: <code>전입</code> + 전입일.</p>
 
 <p>⚠ 입력②는 <b>'전입'·'전입일' 열이 있는 현재 양식만 받는다.</b> 그 열이 없는 예전 양식은 전입자를 표시할
 방법이 아예 없어, 전입자를 넣었다고 생각해도 조용히 누락된 채 근무표가 나온다(야간 형평성·이월정보가 틀어진다).
