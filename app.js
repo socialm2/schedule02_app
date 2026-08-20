@@ -1110,6 +1110,28 @@ function renderRosterDiff() {
   box.innerHTML = html;
 }
 
+// 업로드 결과 메시지는 세 단계다 — 섞어 보여주면 파트장은 "지금 뭘 해야 하지"에 답을
+// 얻지 못한다. 고쳐야 하는지, 봐두기만 하면 되는지가 안 보이기 때문이다.
+//   ✔ 안내(초록) "이해했고, 다음엔 이렇게 써주세요"  → 뜻대로 반영됨. 할 일 없음.
+//   ? 확인(노랑) "이건 무슨 의미인가요"             → 못 읽어 그 칸만 빠짐. 고치면 반영.
+//   ✕ 오류(빨강) "이게 틀렸어요"                   → 파일을 못 씀(기존 오류 경로).
+// 토스트가 아니라 칸 아래에 남긴다 — 토스트는 사라져서 표준 표기를 다시 볼 수 없다.
+function renderUploadMessages(statusEl, data) {
+  const host = statusEl.parentElement;
+  // 다시 올리면 지난번 것이 남아 쌓인다 — 먼저 지운다.
+  host.querySelectorAll(".upload-notice, .upload-unclear").forEach(n => n.remove());
+  let after = statusEl;
+  const add = (cls, mark, text) => {
+    const p = document.createElement("p");
+    p.className = "hint " + cls;
+    p.textContent = mark + " " + text;
+    after.insertAdjacentElement("afterend", p);
+    after = p;
+  };
+  if (data.unclear) add("upload-unclear", "?", data.unclear);
+  if (data.notice) add("upload-notice", "\u2714", data.notice);
+}
+
 $("#wantedInput").onchange = async () => {
   const f = $("#wantedInput").files[0];
   if (!f) return;
@@ -1157,14 +1179,7 @@ $("#wantedInput").onchange = async () => {
     $("#wantedClearBtn").style.display = "";
     // 관대하게 읽어준 값이 있으면 무엇을 무엇으로 읽었는지 칸 아래에 남긴다. 토스트는
     // 몇 초 뒤 사라져서, 표준 표기를 확인하려고 다시 볼 수가 없다.
-    // 다시 올리면 지난번 안내가 남아 쌓인다 — 먼저 지운다.
-    statusEl.parentElement.querySelectorAll(".upload-notice").forEach(n => n.remove());
-    if (data.notice) {
-      const p = document.createElement("p");
-      p.className = "hint upload-notice";
-      p.textContent = "✔ " + data.notice;
-      statusEl.insertAdjacentElement("afterend", p);
-    }
+    renderUploadMessages(statusEl, data);
     showToast(data.warning ||
       `원티드 ${formRequests.length}건${staffUpdated ? `, 인원 ${data.staff.length}명` : ""}` +
       `${teamB.length ? `, B팀 ${teamB.length}명` : ""}을 자동으로 채웠습니다`,
@@ -1311,6 +1326,7 @@ $("#staffTableInput").onchange = async () => {
     // 모르는 근무표기는 빈칸(=OFF)으로 읽힌다 — 조용히 넘어가면 그 사람의 연속근무일수·
     // 야간블록 이월이 틀어진 채로 다음 달이 만들어진다.
     const unknownCodes = data.unknown_grid_marks || [];
+    renderUploadMessages(statusEl, data);
     statusEl.textContent =
       `${kept} (연간 근무표 ${data.annual_days}일치 포함)` +
       (teamB.length ? `, B팀 ${teamB.length}명 인식` : "") +

@@ -644,3 +644,16 @@ table.compact-grid td.annual-sum, table.compact-grid th.annual-sum-h {
   line-height: 1.55;
   word-break: keep-all;
 }
+
+/* ? 확인 — "이건 무슨 의미인가요". 못 읽어서 그 칸만 빠진 값이라, 파일 자체는 쓸 수
+   있다. 오류(빨강)와 같은 색을 쓰면 고칠 수 없는 문제처럼 보이고, 안내(초록)와 같은
+   색을 쓰면 손댈 게 없는 줄 안다. 그래서 셋째 색이 필요하다. */
+.upload-unclear {
+  margin: 6px 0 0;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: rgba(176, 122, 20, 0.12);
+  border-left: 3px solid #b07a14;
+  line-height: 1.55;
+  word-break: keep-all;
+}
