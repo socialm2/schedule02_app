@@ -1241,18 +1241,16 @@ async function refreshStaffTableStatus() {
   try { s = await api("/api/staff_table_status"); } catch (e) { return; }
   const banner = $("#staffTableActive");
   const clearBtn = $("#staffTableClearBtn");
-  if (s.loaded) {
-    banner.style.display = "";
-    banner.style.color = "var(--warn)";
-    banner.style.fontWeight = "700";
-    banner.textContent = `⚠ 연간근무표 반영 중 — ${s.staff_count}명, ${s.last_date || "?"}까지` +
-      ` (연간 ${s.annual_days}일치). "생성"을 누르면 이 값이 계속 자동으로 쓰입니다.` +
-      ` 최신 연간근무표를 다시 안 올렸다면 확인하세요.`;
-    clearBtn.style.display = "";
-  } else {
-    banner.style.display = "none";
-    clearBtn.style.display = "none";
-  }
+  // 예전엔 여기에 "⚠ 연간근무표 반영 중 — N명, YYYY-MM-DD까지…"를 띄웠다. 그런데 바로
+  // 아래 '반영 해제' 옆 줄이 같은 내용을 더 자세히("명단은 입력①(40명) 기준 유지, 누적
+  // 통계·이월정보만 반영 … 전월잔휴 40명분 확인") 보여줘서, 같은 말이 두 번 나왔다.
+  // 노란 글씨가 두 줄 겹치면 정작 읽어야 할 쪽(못 읽은 값 안내)이 묻힌다.
+  //
+  // 반영 상태를 잊는 사고는 이 배너 없이도 막힌다 — 파일을 다시 읽어들이는 것은 워커
+  // 메모리라 새로고침하면 사라지고(그때는 배너도 어차피 안 떴다), 반영 중일 때는 '반영
+  // 해제' 버튼이 계속 보여서 그 자체가 상태 표시가 된다.
+  banner.style.display = "none";
+  clearBtn.style.display = s.loaded ? "" : "none";
 }
 
 $("#staffTableClearBtn").onclick = async () => {
