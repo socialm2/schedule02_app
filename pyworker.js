@@ -30,8 +30,11 @@ async function boot() {
   const zipBuf = await (await fetch("py_app.zip")).arrayBuffer();
   pyodide.unpackArchive(zipBuf, "zip");
 
-  const sampleBuf = await (await fetch("sample_input.xlsx")).arrayBuffer();
-  pyodide.FS.writeFile("/sample_input.xlsx", new Uint8Array(sampleBuf));
+  // 화면 첫 기본값의 '명단' — 파트장이 실제로 쓰는 양식(원티드표)과 같은 형식이다.
+  // 설정·최소인력은 파일이 아니라 nurse_scheduler/sample_defaults.py에서 온다.
+  const ROSTER = "입력1_원티드표_샘플.xlsx";
+  const rosterBuf = await (await fetch("templates/" + ROSTER)).arrayBuffer();
+  pyodide.FS.writeFile("/" + ROSTER, new Uint8Array(rosterBuf));
 
   pyodide.runPython("import sys\nif '/' not in sys.path: sys.path.insert(0, '/')");
   bridge = pyodide.pyimport("bridge");

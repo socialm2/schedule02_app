@@ -797,8 +797,11 @@ function fillForm(cfg) {
   $("#f_nightquota_high").value = p.night_quota_high ?? 6;
   $("#f_advanced_track").value = (p.advanced_track_staff || []).join("\n");
   updateAdvancedTrackCount();
-  formHolidays = [...(p.holidays || [])];
-  formSubHolidays = [...(p.substitute_holidays || [])];
+  // 공휴일은 서버가 준 값이 아니라 화면이 고른 '그 해'로 다시 잡는다. 예전엔 샘플이
+  // 준 값을 그대로 썼는데, 샘플의 연월과 위 nextMonth()가 고른 연월이 다른 달에는
+  // (샘플을 구운 달이 지나면 항상 그렇다) 달력에 공휴일이 하나도 안 뜨거나 남의 달
+  // 공휴일이 떴다. 휴일수는 잔휴·주말야간 계산의 기준이라 조용히 틀리면 안 된다.
+  seedHolidaysForYear(nm.year);
   renderHolidayCalendar();
 
   // 샘플 명단은 아무것도 안 올린 상태에서 '바로 생성'이 되게 하는 용도다. 입력①이
