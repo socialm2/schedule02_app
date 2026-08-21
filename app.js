@@ -1406,18 +1406,39 @@ function unresolvedUploadErrors() {
     .map(([, label]) => label);
 }
 
+// ✕ 오류(빨강) — 생성이 반려된 이유. 예전엔 토스트로만 띄웠는데 몇 초 뒤 사라져서,
+// 그 순간 화면을 안 보고 있으면 "눌렀는데 아무 일도 안 일어났다"로 보였다. 무엇을
+// 고쳐야 하는지가 적힌 줄이라 남아 있어야 한다(업로드의 초록·노랑과 같은 취급).
+function clearGenError(statusEl) {
+  if (!statusEl || !statusEl.parentElement) return;
+  statusEl.parentElement.querySelectorAll(".gen-error").forEach(n => n.remove());
+}
+function showGenError(statusEl, text) {
+  if (!statusEl || !statusEl.parentElement || !text) return;
+  clearGenError(statusEl);
+  const p = document.createElement("p");
+  p.className = "hint gen-error";
+  p.textContent = "\u2716 " + text;
+  statusEl.insertAdjacentElement("afterend", p);
+}
+
 async function runGenerate(btn, statusEl) {
+  clearGenError(statusEl);
   const unresolved = unresolvedUploadErrors();
   if (unresolved.length) {
-    showToast(`${unresolved.join(", ")}에 아직 해결되지 않은 업로드 오류가 있습니다 — 오류 문구를 ` +
-      `지우거나(반영 해제) 파일을 고쳐 다시 올린 뒤 생성하세요`, true);
+    const msg = `${unresolved.join(", ")}에 아직 해결되지 않은 업로드 오류가 있습니다 — 오류 문구를 ` +
+      `지우거나(반영 해제) 파일을 고쳐 다시 올린 뒤 생성하세요`;
+    showToast(msg, true);
+    showGenError(statusEl, msg);
     return;
   }
   // 최소인력 칸을 먼저 읽어본다 — 못 읽는 칸이 있으면 생성하지 않는다. 대충 0으로 채워
   // 만들면 "그 근무가 아무도 없어도 되는 달"이 조용히 만들어진다.
   const preCfg = buildCfgFromForm();
   if (minStaffErrors.length) {
-    showToast(`근무인력 칸을 확인해주세요 — ${minStaffErrors.join(" / ")}`, true);
+    const msg = `근무인력 칸을 확인해주세요 — ${minStaffErrors.join(" / ")}`;
+    showToast(msg, true);
+    showGenError(statusEl, msg);
     return;
   }
   const btns = [$("#generateBtn"), $("#generateBtnMid")].filter(Boolean);
@@ -1436,6 +1457,7 @@ async function runGenerate(btn, statusEl) {
     showToast(lastConfigWarning || "근무표 생성 완료", !!lastConfigWarning);
   } catch (e) {
     if (statusEl) statusEl.textContent = "";
+    showGenError(statusEl, (e && e.message) ? e.message : String(e));
   } finally {
     btns.forEach(b => b.disabled = false);
     // "생성 중..."은 진행 표시일 뿐이라 성공/실패와 무관하게 항상 지운다.
