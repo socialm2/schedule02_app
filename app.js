@@ -254,6 +254,10 @@ function seedHolidaysForYear(year) {
 
 let ST = null;       // 생성 후 서버 상태 캐시
 let lastConfigWarning = null;  // set_config가 돌려준 경고(예: 연간근무표 이월 불일치) — 출력화면에 계속 보여줌
+// set_config가 돌려준 인력 압박 진단(엔진의 staffing_pressure). 생성 대기화면과
+// 출력화면에 함께 쓴다. 안내 문구는 엔진이 만든 것을 그대로 쓴다 — 화면이 두 벌이라
+// 여기서 문구를 조립하면 언젠가 한쪽만 고쳐져 같은 상황에 다른 안내가 나간다.
+let lastStaffing = null;
 let picker = null;
 let formStaff = [];      // [{id, role, level, allowed:[...], flags:[...]}]
 // 인원 명단을 어디서 받았는지 — 입력①(원티드표)는 '이번 달 명단(미래)', 입력②(연간근무표)은
@@ -1371,22 +1375,58 @@ $("#staffTableInput").onchange = async () => {
 // 실사용 규모는 이 안에서 끝나 게이지가 자연스럽게 92%까지 차고, 인원이 많아
 // 시간예산을 넘기는 드문 경우엔 92~98% 사이에서 천천히 계속 채워서 "멈춘 게
 // 아니라 아직 계산 중"임을 보여준다(실제 100%는 응답이 와서 오버레이가 닫힐 때뿐).
-const GEN_TIME_BUDGET_SEC = 10;
+// 진행 게이지가 '대략 이만큼 걸린다'고 그릴 때 쓰는 기준 시간. 엔진이 실제로 멈추는
+// 기준(최대 3회 시도)과는 다른 값이다 — 게이지는 시간을 그려야 하기 때문이다.
+//
+// 여유로운 달은 1회차에서 끝난다(브라우저 실측 1.2~3초). 그래서 기본값은 짧게 잡는다.
+const GEN_TIME_BUDGET_SEC = 8;
+// 인력이 빠듯한 달은 '시도 1회' 자체가 훨씬 오래 걸린다. 브라우저에서 직접 잰 값:
+// 여유로운 40명은 1.2초인데 빠듯한 36명은 25.7초다(네이티브로는 각각 0.53초/12.8초 —
+// Pyodide가 2.0~2.3배 느리다). 게이지 예산을 짧게 두면 금방 92%에 닿은 뒤 한참을
+// 기어가서, 사용자는 앱이 멈춘 줄 알고 새로고침한다(그러면 처음부터 다시다).
+// 엔진의 안전판이 30초이고 시도 1회가 그보다 길어질 수 있으니 그보다 넉넉히 잡는다.
+const GEN_TIME_BUDGET_TIGHT_SEC = 45;
+// 진행 바 아래 보조문구의 기본값. index.html에 적힌 것과 같은 문장을 여기에도 두는
+// 이유는 markGenOverlaySlow가 이 자리를 갈아끼우기 때문이다 — 되돌릴 원본이 필요하다.
+//
+// 예전 문구는 "인원이 많은 병동은 더 걸릴 수 있어요"였는데 원인을 거꾸로 말하고 있었다.
+// 브라우저 실측으로 여유로운 40명이 1.2초, 빠듯한 36명이 25.7초다 — 느리게 만드는 건
+// 인원이 많아서가 아니라 모자라서다(경우의 수를 다 뒤져도 최소인력이 안 채워져 수리
+// 로직이 계속 돈다). 틀린 원인을 알려주면 파트장이 엉뚱한 조치를 한다.
+const GEN_SUB_DEFAULT = "보통 몇 초면 끝납니다. 창을 닫지 말고 잠시만 기다려주세요.";
+const GEN_SUB_TIGHT = "인원이 빠듯한 달은 맞는 배치를 찾기 어려워 오래 걸립니다" +
+  "(기기에 따라 10~40초). 새로고침하면 처음부터 다시 하니 그대로 기다려주세요.";
 let genProgressTimer = null;
+let genProgressT0 = 0;
+let genProgressBudget = GEN_TIME_BUDGET_SEC;
 function showGenOverlay(msg) {
   $("#genOverlayMsg").textContent = msg;
+  const sub = $("#genOverlaySub");
+  if (sub) sub.textContent = GEN_SUB_DEFAULT;   // 지난번 '느림' 문구가 남아있지 않게
   $("#genOverlay").style.display = "";
   const fill = $("#genProgressFill");
   fill.style.width = "0%";
-  const t0 = Date.now();
+  genProgressT0 = Date.now();
+  genProgressBudget = GEN_TIME_BUDGET_SEC;
   clearInterval(genProgressTimer);
   genProgressTimer = setInterval(() => {
-    const elapsed = (Date.now() - t0) / 1000;
-    const pct = elapsed <= GEN_TIME_BUDGET_SEC
-      ? (elapsed / GEN_TIME_BUDGET_SEC) * 92
-      : 92 + Math.min(6, (elapsed - GEN_TIME_BUDGET_SEC) * 0.5);
+    const elapsed = (Date.now() - genProgressT0) / 1000;
+    const budget = genProgressBudget;
+    const pct = elapsed <= budget
+      ? (elapsed / budget) * 92
+      : 92 + Math.min(6, (elapsed - budget) * 0.5);
     fill.style.width = pct.toFixed(1) + "%";
   }, 200);
+}
+// 생성이 이미 시작된 뒤(set_config 응답을 받은 뒤)에야 인력난인지 알 수 있으므로,
+// 그때 문구와 게이지 예산을 갈아끼운다. 경과시간(genProgressT0)은 일부러 건드리지
+// 않는다 — 다시 0부터 채우면 앞서 지난 시간이 없던 일이 돼 더 느려 보인다.
+function markGenOverlaySlow(msg) {
+  const el = $("#genOverlayMsg");
+  if (el) el.textContent = msg;
+  const sub = $("#genOverlaySub");
+  if (sub) sub.textContent = GEN_SUB_TIGHT;
+  genProgressBudget = GEN_TIME_BUDGET_TIGHT_SEC;
 }
 function hideGenOverlay() {
   $("#genOverlay").style.display = "none";
@@ -1450,6 +1490,10 @@ async function runGenerate(btn, statusEl) {
       body: JSON.stringify(cfg),
     });
     lastConfigWarning = cfgResult.warning || null;
+    lastStaffing = cfgResult.staffing || null;
+    if (lastStaffing && lastStaffing.level && lastStaffing.level !== "ok") {
+      markGenOverlaySlow("인원이 빠듯해 평소보다 오래 걸립니다 — 계산 중입니다…");
+    }
     ST = await api("/api/generate", { method: "POST" });
     render();
     showToast(lastConfigWarning || "근무표 생성 완료", !!lastConfigWarning);
@@ -1675,6 +1719,11 @@ function renderGrid() {
   html += `<p class="output-subtitle">${wardLabel}${ST.year}년 ${ST.month}월</p>`;
   if (lastConfigWarning) {
     html += `<p class="carry-warning">⚠ ${esc(lastConfigWarning)}</p>`;
+  }
+  // 인력난 안내는 결과를 볼 때도 남아 있어야 한다 — 위반이 왜 남았는지에 대한 답이라,
+  // 대기화면에서 스쳐 지나가고 말면 파트장은 "왜 위반이 있지"만 보게 된다.
+  if (lastStaffing && lastStaffing.message) {
+    html += `<p class="carry-warning">⚠ ${esc(lastStaffing.message)}</p>`;
   }
   html += '<div class="legend">';
   const legendItems = [["D","#BDD7EE"],["E","#F8CBAD"],["N","#1F3864"],["NK","#7030A0"],
@@ -2217,6 +2266,10 @@ window.discardAll = async function () {
 
 window.applyEdits = async function () {
   showGenOverlay("수정 사항을 반영해 다시 계산하는 중입니다…");
+  // 재생성도 같은 엔진을 같은 입력으로 돌리므로 빠듯하면 똑같이 오래 걸린다.
+  if (lastStaffing && lastStaffing.level && lastStaffing.level !== "ok") {
+    markGenOverlaySlow("인원이 빠듯해 평소보다 오래 걸립니다 — 다시 계산 중입니다…");
+  }
   try {
     ST = await api("/api/apply", { method: "POST" });
     render();
