@@ -2238,6 +2238,11 @@ function renderPending() {
   }
   html += "</ul>";
   html += '<div id="feedbackBox"><p style="color:var(--sub);font-size:12px">피드백 확인 중...</p></div>';
+  // 재생성은 고친 칸만 손보는 것이 아니라 표 전체를 다시 짠다. 한 칸만 바꿨다고
+  // 생각하고 눌렀다가 다른 사람 근무가 통째로 움직여 있으면 그때는 되돌릴 수 없다.
+  html += '<p class="apply-warn">누르면 <b>표 전체를 다시 짭니다</b> — ' +
+          '고친 칸만 바뀌는 것이 아니라 다른 사람 근무도 함께 움직입니다. ' +
+          '지금 표를 남겨두려면 먼저 내려받아 두세요.</p>';
   html += '<div class="action-row">' +
           '<button class="danger" onclick="discardAll()">전체 취소</button>' +
           '<button class="primary" onclick="applyEdits()">재생성 적용</button>' +
@@ -2273,10 +2278,20 @@ window.applyEdits = async function () {
   if (lastStaffing && lastStaffing.level && lastStaffing.level !== "ok") {
     markGenOverlaySlow("인원이 빠듯해 평소보다 오래 걸립니다 — 다시 계산 중입니다…");
   }
+  // 몇 칸이 실제로 움직였는지 세어 보여준다 — "한 칸 고쳤을 뿐"이라는 오해를
+  // 눌러본 직후에 깨는 것이 사후에 표를 대조하는 것보다 훨씬 싸다.
+  const before = ST.grid || {};
   try {
     ST = await api("/api/apply", { method: "POST" });
+    let moved = 0;
+    for (const sid in ST.grid) {
+      const a = before[sid];
+      if (!a) continue;
+      const b = ST.grid[sid];
+      for (let i = 0; i < b.length; i++) if (a[i] !== b[i]) moved++;
+    }
     render();
-    showToast(`${ST.round}회차로 재생성 완료`);
+    showToast(`${ST.round}회차로 재생성 완료 — ${moved}칸 바뀜`);
   } catch (e) {
   } finally {
     hideGenOverlay();
