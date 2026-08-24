@@ -1684,9 +1684,9 @@ function shiftText(v, isWanted) {
   return SHIFT_TEXT[v] !== undefined ? SHIFT_TEXT[v] : v;
 }
 
-// 미적용 편집이 없던 마지막 순간의 날짜별 인원 수 — "이 숫자는 내가 고쳐서 달라진 것"을
+// 미적용 편집이 없던 마지막 순간의 하단 통계 값 — "이 숫자는 내가 고쳐서 달라진 것"을
 // 가려내는 기준. 서버 응답에는 편집이 반영된 값만 오므로 화면이 직접 기억한다.
-let BASE_COUNTS = null;
+let BASE_FOOT = null;
 
 // 표를 다시 그리면 .grid-scroll이 통째로 새 요소로 바뀌므로 가로 스크롤이 1일로,
 // 페이지 스크롤도 맨 위로 되돌아간다. 생성 직후엔 그게 맞지만(결과를 처음 보는 순간),
@@ -1714,9 +1714,9 @@ function render(opts) {
   if (!ST) return;
   const keepScroll = !!(opts && opts.keepScroll);
   const pos = keepScroll ? captureScroll() : null;
-  // 미적용 편집이 하나도 없는 상태 = 지금 화면이 곧 기준값이다. 이 순간의 인원 수를
-  // 적어 두었다가, 편집으로 값이 달라진 인원 칸에 점선을 둘러 보여준다(아래 인원 행).
-  if (!(ST.pending && ST.pending.length)) BASE_COUNTS = computeDailyStaffCounts();
+  // 미적용 편집이 하나도 없는 상태 = 지금 화면이 곧 기준값이다. 이 순간의 하단 통계를
+  // 적어 두었다가, 편집으로 값이 달라진 칸에 점선을 둘러 보여준다(아래 통계 행).
+  if (!(ST.pending && ST.pending.length)) BASE_FOOT = computeFootValues();
   $("#intake").style.display = "none";
   gridContent.style.display = "block";
   sidePane.style.display = "block";
@@ -1743,7 +1743,7 @@ function render(opts) {
 function snapshotGrid() {
   const grid = {};
   if (ST && ST.grid) for (const sid in ST.grid) grid[sid] = ST.grid[sid].slice();
-  return { grid, counts: ST ? computeDailyStaffCounts() : [] };
+  return { grid, foot: ST ? computeFootValues() : {} };
 }
 
 function blinkCell(el) {
@@ -1767,11 +1767,11 @@ function flashChanges(before) {
   gridContent.querySelectorAll("td[data-sid][data-day]").forEach(td => {
     if (changed.has(td.dataset.sid + ":" + td.dataset.day)) blinkCell(td);
   });
-  const after = computeDailyStaffCounts();
-  gridContent.querySelectorAll("td[data-count][data-day]").forEach(td => {
-    const d = Number(td.dataset.day), k = td.dataset.count;
-    const a = before.counts[d], b = after[d];
-    if (a && b && a[k] !== b[k]) blinkCell(td);
+  const after = computeFootValues();
+  gridContent.querySelectorAll("td[data-stat][data-day]").forEach(td => {
+    const d = Number(td.dataset.day), k = td.dataset.stat;
+    const a = before.foot[k], b = after[k];
+    if (a && b && a[d] !== b[d]) blinkCell(td);
   });
 }
 
@@ -1954,7 +1954,21 @@ function computeDailyStaffCounts() {
   return days;
 }
 
-function renderDailyStaffCountRows() {
+// 하단 통계 7행(D·E·N·prn 인원 + 레벨평균·Lv4-5·Lv1-3)의 '화면에 보이는 값' 한 벌.
+// 숫자가 아니라 글자로 두는 이유는 레벨평균 때문이다 — 소수 한 자리로 반올림해 보여주므로
+// 숫자로 비교하면 눈에는 똑같은 3.4인데 "바뀌었다"고 표시하게 된다.
+function computeFootValues() {
+  const counts = computeDailyStaffCounts();
+  const lv = computeDailyLevelStats();
+  const out = {};
+  for (const k of COUNT_ROWS) out[k] = counts.map(c => String(c[k]));
+  out["레벨평균"] = lv.map(d => (d.avg === null ? "–" : d.avg.toFixed(1)));
+  out["Lv4-5"] = lv.map(d => String(d.hi));
+  out["Lv1-3"] = lv.map(d => String(d.lo));
+  return out;
+}
+
+function renderDailyStaffCountRows(foot) {
   const counts = computeDailyStaffCounts();
   const blankTail = '<td class="stat-col">–</td>'.repeat(7);
   const blankHead = '<td class="stat-col">–</td><td class="stat-col">–</td>';
@@ -1968,32 +1982,38 @@ function renderDailyStaffCountRows() {
       // 깜빡임은 몇 초면 끝나므로, 반영/취소할 때까지 남는 표시가 따로 있어야
       // "내가 고쳐서 이렇게 된 숫자"를 나중에도 알아볼 수 있다. 기준 미달의 빨강은
       // 그대로 둔다(배경색과 테두리라 서로 가리지 않는다).
-      const moved = BASE_COUNTS && BASE_COUNTS[d] && BASE_COUNTS[d][k] !== c[k];
+      const moved = BASE_FOOT && BASE_FOOT[k] && BASE_FOOT[k][d] !== foot[k][d];
       const cls = "stat-col" + (short ? " stat-short" : "") + (moved ? " count-changed" : "");
-      const base = moved ? `\n수정 전 ${BASE_COUNTS[d][k]}명 → 지금 ${c[k]}명` : "";
+      const base = moved ? `\n수정 전 ${BASE_FOOT[k][d]}명 → 지금 ${c[k]}명` : "";
       const title = need === null && !moved ? ""
         : ` title="${escAttr(`${d + 1}일 ${k} ${c[k]}명` + (need === null ? "" : ` (기준 ${need}명)`) + base)}"`;
-      // data-count/data-day: 근무를 고쳤을 때 값이 달라진 칸만 찾아 깜빡이기 위한 표식.
-      return `<td class="${cls}" data-count="${k}" data-day="${d}"${title}>${c[k]}</td>`;
+      // data-stat/data-day: 근무를 고쳤을 때 값이 달라진 칸만 찾아 깜빡이기 위한 표식.
+      return `<td class="${cls}" data-stat="${k}" data-day="${d}"${title}>${c[k]}</td>`;
     }).join("") + `${blankTail}</tr>`).join("");
 }
 
 function renderDailyLevelFootRows() {
-  const days = computeDailyLevelStats();
+  const foot = computeFootValues();
   const blankTail = '<td class="stat-col">–</td>'.repeat(7);
   const blankHead = '<td class="stat-col">–</td><td class="stat-col">–</td>';
-  const rowHtml = (label, fmt) =>
+  // 레벨평균·Lv4-5·Lv1-3도 인원 행과 똑같이 다룬다. 근무를 하나 바꾸면 그날 누가
+  // 서 있는지가 바뀌므로 이 셋도 같이 움직이는데, 표시가 없으면 조용히 달라진다 —
+  // 레벨 균형은 파트장이 근무를 고칠 때 실제로 보는 값이라 놓치면 안 된다.
+  const rowHtml = (label) =>
     `<tr class="level-foot-row"><td class="nm">${label}</td>${blankHead}` +
-    days.map(d => `<td class="stat-col">${fmt(d)}</td>`).join("") +
-    `${blankTail}</tr>`;
+    foot[label].map((v, d) => {
+      const moved = BASE_FOOT && BASE_FOOT[label] && BASE_FOOT[label][d] !== v;
+      const title = moved
+        ? ` title="${escAttr(`${d + 1}일 ${label} 수정 전 ${BASE_FOOT[label][d]} → 지금 ${v}`)}"` : "";
+      return `<td class="stat-col${moved ? " count-changed" : ""}" ` +
+             `data-stat="${label}" data-day="${d}"${title}>${v}</td>`;
+    }).join("") + `${blankTail}</tr>`;
   // B팀 구분행과 같은 스타일로, 통계 3행 위에도 제목 행을 붙인다.
   const totalCols = 3 + ST.num_days + 7;  // 이름 + 잔휴2 + 날짜 + 계산열7
   const divider = `<tr class="team-b-divider"><td colspan="${totalCols}">통계</td></tr>`;
   return divider +
-    renderDailyStaffCountRows() +
-    rowHtml("레벨평균", d => (d.avg === null ? "–" : d.avg.toFixed(1))) +
-    rowHtml("Lv4-5", d => d.hi) +
-    rowHtml("Lv1-3", d => d.lo);
+    renderDailyStaffCountRows(foot) +
+    rowHtml("레벨평균") + rowHtml("Lv4-5") + rowHtml("Lv1-3");
 }
 
 // 그리드·사이드 패널·공휴일 달력은 통째로 다시 그려지므로, 개별 요소가 아니라 바뀌지 않는
