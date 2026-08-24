@@ -205,6 +205,25 @@ tr.level-foot-row td.nm { font-weight: 700; }
 
 tr.level-foot-row:first-of-type td { border-top: 2px solid var(--accent); }
 
+/* 근무를 고친 직후 "무엇이 달라졌는지"를 두세 번 깜빡여 보여준다. 표가 제자리에
+   남게 되면서(app.js의 render keepScroll) 화면이 안 움직이니, 바뀐 칸이 눈에
+   안 띄면 파트장은 눌린 건지조차 모른다. 근무 칸의 색(td span의 배경)은 그대로
+   두고 위에 덧칠하는 방식이라 무슨 근무였는지도 같이 보인다. */
+@keyframes flash-change {
+  0%, 100% { box-shadow: inset 0 0 0 99px rgba(255, 193, 7, 0); }
+  50%      { box-shadow: inset 0 0 0 99px rgba(255, 193, 7, 0.85); }
+}
+td.flash-change { animation: flash-change 0.36s ease-in-out 3; }
+/* 근무 칸은 td 위에 span(width/height 100%)이 근무색을 깔고 덮으므로, td에만 걸면
+   깜빡임이 그 아래 가려 아예 안 보인다 — 인원 숫자 칸(span 없음)만 깜빡이고 정작
+   고친 칸은 안 깜빡였다. span에도 같이 건다. */
+table.grid td.cell.flash-change span { animation: flash-change 0.36s ease-in-out 3; }
+@media (prefers-reduced-motion: reduce) {
+  /* 깜빡임을 끄는 사람에게는 한 번만 밝게 떴다 사라지게 — 표시 자체는 남긴다. */
+  td.flash-change,
+  table.grid td.cell.flash-change span { animation: flash-change 0.9s ease-in-out 1; }
+}
+
 td.sd span { background: #BDD7EE; color: #1C2523; }
 td.se span { background: #F8CBAD; color: #1C2523; }
 td.sn span { background: #1F3864; color: #fff; }

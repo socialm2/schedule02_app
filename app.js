@@ -1684,18 +1684,82 @@ function shiftText(v, isWanted) {
   return SHIFT_TEXT[v] !== undefined ? SHIFT_TEXT[v] : v;
 }
 
-function render() {
+// 표를 다시 그리면 .grid-scroll이 통째로 새 요소로 바뀌므로 가로 스크롤이 1일로,
+// 페이지 스크롤도 맨 위로 되돌아간다. 생성 직후엔 그게 맞지만(결과를 처음 보는 순간),
+// 칸 하나 고쳤을 때는 파트장이 보던 자리를 잃는다 — 모바일은 한 화면에 며칠치만
+// 보여서 "20일을 고쳤는데 표가 1일로 튀는" 것으로 보인다. 그래서 편집 경로에서는
+// 다시 그리기 전 위치를 재어 두었다가 그대로 돌려놓는다.
+function captureScroll() {
+  const inner = gridContent.querySelector(".grid-scroll");
+  return {
+    y: window.scrollY || window.pageYOffset || 0,
+    paneTop: gridPane.scrollTop, paneLeft: gridPane.scrollLeft,
+    innerTop: inner ? inner.scrollTop : 0, innerLeft: inner ? inner.scrollLeft : 0,
+  };
+}
+
+function restoreScroll(pos) {
+  const inner = gridContent.querySelector(".grid-scroll");
+  if (inner) { inner.scrollTop = pos.innerTop; inner.scrollLeft = pos.innerLeft; }
+  gridPane.scrollTop = pos.paneTop;
+  gridPane.scrollLeft = pos.paneLeft;
+  window.scrollTo(0, pos.y);
+}
+
+function render(opts) {
   if (!ST) return;
+  const keepScroll = !!(opts && opts.keepScroll);
+  const pos = keepScroll ? captureScroll() : null;
   $("#intake").style.display = "none";
   gridContent.style.display = "block";
   sidePane.style.display = "block";
   updateInfoLabel(true);
   renderGrid();
   renderSide();
+  if (pos) { restoreScroll(pos); return; }
   // 모바일은 화면 전체가 스크롤되는 구조라, 생성 전 스크롤 위치가 그대로
   // 남으면 결과 화면이 맨 아래에서 시작한 것처럼 보인다 — 맨 위(근무표)로 리셋.
   window.scrollTo(0, 0);
   gridPane.scrollTop = 0;
+}
+
+// 바뀐 칸 깜빡이기 — 표가 제자리에 남게 되니(위) 이번엔 "눌렀는데 뭐가 달라졌지"가
+// 문제가 된다. 고친 근무 칸과, 그 때문에 값이 달라진 하단 인원 숫자를 두세 번
+// 깜빡여 둘의 연결을 눈으로 보여준다(인원 행은 표 맨 아래라 같이 안 보일 때가
+// 많지만, 스크롤해 내려가도 애니메이션이 끝나기 전이면 여전히 깜빡이고 있다).
+function snapshotGrid() {
+  const grid = {};
+  if (ST && ST.grid) for (const sid in ST.grid) grid[sid] = ST.grid[sid].slice();
+  return { grid, counts: ST ? computeDailyStaffCounts() : [] };
+}
+
+function blinkCell(el) {
+  // 같은 칸을 연달아 고쳐도 매번 처음부터 깜빡이게 — 클래스를 그대로 두면
+  // 브라우저가 "이미 그 애니메이션 중"으로 보고 다시 시작하지 않는다.
+  el.classList.remove("flash-change");
+  void el.offsetWidth;
+  el.classList.add("flash-change");
+}
+
+function flashChanges(before) {
+  if (!before || !ST || !ST.grid) return;
+  const changed = new Set();
+  for (const sid in ST.grid) {
+    const a = before.grid[sid];
+    if (!a) continue;
+    const b = ST.grid[sid];
+    for (let d = 0; d < b.length; d++) if (a[d] !== b[d]) changed.add(sid + ":" + d);
+  }
+  if (!changed.size) return;
+  gridContent.querySelectorAll("td[data-sid][data-day]").forEach(td => {
+    if (changed.has(td.dataset.sid + ":" + td.dataset.day)) blinkCell(td);
+  });
+  const after = computeDailyStaffCounts();
+  gridContent.querySelectorAll("td[data-count][data-day]").forEach(td => {
+    const d = Number(td.dataset.day), k = td.dataset.count;
+    const a = before.counts[d], b = after[d];
+    if (a && b && a[k] !== b[k]) blinkCell(td);
+  });
 }
 
 function renderGrid() {
@@ -1888,7 +1952,8 @@ function renderDailyStaffCountRows() {
       const need = (ST.days[d] && ST.days[d].min) ? (ST.days[d].min[k] || 0) : null;
       const short = need !== null && c[k] < need;
       const title = need === null ? "" : ` title="${d + 1}일 ${k} ${c[k]}명 (기준 ${need}명)"`;
-      return `<td class="stat-col${short ? " stat-short" : ""}"${title}>${c[k]}</td>`;
+      // data-count/data-day: 근무를 고쳤을 때 값이 달라진 칸만 찾아 깜빡이기 위한 표식.
+      return `<td class="stat-col${short ? " stat-short" : ""}" data-count="${k}" data-day="${d}"${title}>${c[k]}</td>`;
     }).join("") + `${blankTail}</tr>`).join("");
 }
 
@@ -1947,22 +2012,26 @@ window.openPicker = function (ev, sid, day) {
 function closePicker() { if (picker) { picker.remove(); picker = null; } }
 
 async function stageEdit(sid, day, shift) {
+  const before = snapshotGrid();
   try {
     ST = await api("/api/edit", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ staff_id: sid, day, shift }),
     });
-    render();
+    render({ keepScroll: true });
+    flashChanges(before);
     refreshFeedback();
   } catch (e) {}
 }
 
 async function undoEdit(sid, day) {
+  const before = snapshotGrid();
   ST = await api("/api/edit/undo", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ staff_id: sid, day }),
   });
-  render();
+  render({ keepScroll: true });
+  flashChanges(before);
   refreshFeedback();
 }
 window.undoEdit = undoEdit;
@@ -2269,7 +2338,7 @@ async function refreshFeedback() {
 
 window.discardAll = async function () {
   ST = await api("/api/discard", { method: "POST" });
-  render();
+  render({ keepScroll: true });
 };
 
 window.applyEdits = async function () {
@@ -2290,7 +2359,7 @@ window.applyEdits = async function () {
       const b = ST.grid[sid];
       for (let i = 0; i < b.length; i++) if (a[i] !== b[i]) moved++;
     }
-    render();
+    render({ keepScroll: true });
     showToast(`${ST.round}회차로 재생성 완료 — ${moved}칸 바뀜`);
   } catch (e) {
   } finally {
