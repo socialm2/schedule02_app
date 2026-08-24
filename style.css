@@ -221,11 +221,11 @@ tr.level-foot-row:first-of-type td { border-top: 2px solid var(--accent); }
   0%, 100% { box-shadow: inset 0 0 0 99px rgba(255, 193, 7, 0); }
   50%      { box-shadow: inset 0 0 0 99px rgba(255, 193, 7, 0.95); }
 }
-td.flash-change { animation: flash-change 0.4s ease-in-out 3; }
+td.flash-change { animation: flash-change 1s ease-in-out 3; }
 /* 근무 칸은 td 위에 span(width/height 100%)이 근무색을 깔고 덮으므로, td에만 걸면
    깜빡임이 그 아래 가려 아예 안 보인다 — 인원 숫자 칸(span 없음)만 깜빡이고 정작
    고친 칸은 안 깜빡였다. span에도 같이 건다. */
-table.grid td.cell.flash-change span { animation: flash-change 0.4s ease-in-out 3; }
+table.grid td.cell.flash-change span { animation: flash-change 1s ease-in-out 3; }
 /* 미적용 편집으로 값이 달라진 인원 숫자 — 바뀐 근무 칸(td.pending)과 같은 점선.
    깜빡임은 몇 초면 끝나니, 반영/취소할 때까지 남는 표시가 따로 있어야 한다.
    기준 미달의 빨강(.stat-short)은 배경색이라 이 테두리와 겹쳐도 서로 안 가린다. */
@@ -235,7 +235,7 @@ table.grid td.cell.flash-change span { animation: flash-change 0.4s ease-in-out 
 @media (prefers-reduced-motion: reduce) {
   /* 깜빡임을 끄는 사람에게는 한 번만 밝게 떴다 사라지게 — 표시 자체는 남긴다. */
   td.flash-change,
-  table.grid td.cell.flash-change span { animation: flash-change 0.9s ease-in-out 1; }
+  table.grid td.cell.flash-change span { animation: flash-change 1s ease-in-out 1; }
 }
 
 td.sd span { background: #BDD7EE; color: #1C2523; }
