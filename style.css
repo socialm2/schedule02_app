@@ -156,7 +156,14 @@ input[type=file] { font-size: 12.5px; max-width: 220px; }
    더해지지 않게 한다. overflow:auto로 안에서 스크롤은 되지만, 그것만으로는 넘친 만큼이
    문서 높이에 계속 반영돼 노트북에서 푸터를 지나 150px쯤 빈 회색 공간까지 더 내려갔다
    (폰에서는 페이지가 원래 내용만큼 길어 티가 안 났고, 그래서 노트북에서만 보였다). */
-#gridPane { flex: 1; overflow: auto; padding: 14px; contain: paint; }
+/* overflow-anchor: none — 표를 통째로 다시 그릴 때 브라우저의 스크롤 앵커링이
+   "사라진 요소"를 기준으로 위치를 자기 마음대로 보정하는 것을 막는다. 편집 후
+   위치를 되돌려 놓아도 그 뒤에 한 번 더 움직여 버리는 원인이 된다. */
+/* 모바일은 페이지 전체가 스크롤되므로 표 안쪽(#gridContent)에도 같이 걸어야 한다 —
+   앵커링은 스크롤 컨테이너가 아니라 '기준으로 삼을 요소'를 고르는 기능이라, 그 후보에서
+   표를 통째로 빼는 것이 확실하다. */
+#gridContent { overflow-anchor: none; }
+#gridPane { flex: 1; overflow: auto; padding: 14px; contain: paint; overflow-anchor: none; }
 #sidePane {
   width: 340px; flex: none; border-left: 1px solid var(--line); background: var(--card);
   overflow-y: auto; padding: 14px 16px;
@@ -168,7 +175,8 @@ input[type=file] { font-size: 12.5px; max-width: 220px; }
 }
 .empty-state .big { font-size: 15px; font-weight: 700; color: var(--ink); }
 
-.grid-scroll { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
+.grid-scroll { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch;
+  overflow-anchor: none; }
 table.grid { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
 table.grid th {
   position: sticky; top: 0; background: var(--card); padding: 3px 4px; text-align: center;
@@ -211,13 +219,19 @@ tr.level-foot-row:first-of-type td { border-top: 2px solid var(--accent); }
    두고 위에 덧칠하는 방식이라 무슨 근무였는지도 같이 보인다. */
 @keyframes flash-change {
   0%, 100% { box-shadow: inset 0 0 0 99px rgba(255, 193, 7, 0); }
-  50%      { box-shadow: inset 0 0 0 99px rgba(255, 193, 7, 0.85); }
+  50%      { box-shadow: inset 0 0 0 99px rgba(255, 193, 7, 0.95); }
 }
-td.flash-change { animation: flash-change 0.36s ease-in-out 3; }
+td.flash-change { animation: flash-change 0.4s ease-in-out 3; }
 /* 근무 칸은 td 위에 span(width/height 100%)이 근무색을 깔고 덮으므로, td에만 걸면
    깜빡임이 그 아래 가려 아예 안 보인다 — 인원 숫자 칸(span 없음)만 깜빡이고 정작
    고친 칸은 안 깜빡였다. span에도 같이 건다. */
-table.grid td.cell.flash-change span { animation: flash-change 0.36s ease-in-out 3; }
+table.grid td.cell.flash-change span { animation: flash-change 0.4s ease-in-out 3; }
+/* 미적용 편집으로 값이 달라진 인원 숫자 — 바뀐 근무 칸(td.pending)과 같은 점선.
+   깜빡임은 몇 초면 끝나니, 반영/취소할 때까지 남는 표시가 따로 있어야 한다.
+   기준 미달의 빨강(.stat-short)은 배경색이라 이 테두리와 겹쳐도 서로 안 가린다. */
+.level-foot-row .stat-col.count-changed {
+  outline: 2px dashed var(--warn); outline-offset: -2px; font-weight: 800;
+}
 @media (prefers-reduced-motion: reduce) {
   /* 깜빡임을 끄는 사람에게는 한 번만 밝게 떴다 사라지게 — 표시 자체는 남긴다. */
   td.flash-change,

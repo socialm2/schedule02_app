@@ -1684,6 +1684,10 @@ function shiftText(v, isWanted) {
   return SHIFT_TEXT[v] !== undefined ? SHIFT_TEXT[v] : v;
 }
 
+// 미적용 편집이 없던 마지막 순간의 날짜별 인원 수 — "이 숫자는 내가 고쳐서 달라진 것"을
+// 가려내는 기준. 서버 응답에는 편집이 반영된 값만 오므로 화면이 직접 기억한다.
+let BASE_COUNTS = null;
+
 // 표를 다시 그리면 .grid-scroll이 통째로 새 요소로 바뀌므로 가로 스크롤이 1일로,
 // 페이지 스크롤도 맨 위로 되돌아간다. 생성 직후엔 그게 맞지만(결과를 처음 보는 순간),
 // 칸 하나 고쳤을 때는 파트장이 보던 자리를 잃는다 — 모바일은 한 화면에 며칠치만
@@ -1710,13 +1714,22 @@ function render(opts) {
   if (!ST) return;
   const keepScroll = !!(opts && opts.keepScroll);
   const pos = keepScroll ? captureScroll() : null;
+  // 미적용 편집이 하나도 없는 상태 = 지금 화면이 곧 기준값이다. 이 순간의 인원 수를
+  // 적어 두었다가, 편집으로 값이 달라진 인원 칸에 점선을 둘러 보여준다(아래 인원 행).
+  if (!(ST.pending && ST.pending.length)) BASE_COUNTS = computeDailyStaffCounts();
   $("#intake").style.display = "none";
   gridContent.style.display = "block";
   sidePane.style.display = "block";
   updateInfoLabel(true);
   renderGrid();
   renderSide();
-  if (pos) { restoreScroll(pos); return; }
+  if (pos) {
+    restoreScroll(pos);
+    // 표가 커서 레이아웃이 한 박자 늦게 끝나거나(40명 × 31일), 브라우저의 스크롤
+    // 앵커링이 뒤늦게 위치를 건드리는 경우가 있어 다음 프레임에 한 번 더 맞춘다.
+    requestAnimationFrame(() => restoreScroll(pos));
+    return;
+  }
   // 모바일은 화면 전체가 스크롤되는 구조라, 생성 전 스크롤 위치가 그대로
   // 남으면 결과 화면이 맨 아래에서 시작한 것처럼 보인다 — 맨 위(근무표)로 리셋.
   window.scrollTo(0, 0);
@@ -1951,9 +1964,17 @@ function renderDailyStaffCountRows() {
       // days[d].min이 없는 옛 응답(캐시된 예전 화면 등)에서는 색만 빠지고 숫자는 나온다.
       const need = (ST.days[d] && ST.days[d].min) ? (ST.days[d].min[k] || 0) : null;
       const short = need !== null && c[k] < need;
-      const title = need === null ? "" : ` title="${d + 1}일 ${k} ${c[k]}명 (기준 ${need}명)"`;
+      // 미적용 편집 때문에 달라진 숫자는 바뀐 근무 칸과 같은 점선으로 묶어 준다 —
+      // 깜빡임은 몇 초면 끝나므로, 반영/취소할 때까지 남는 표시가 따로 있어야
+      // "내가 고쳐서 이렇게 된 숫자"를 나중에도 알아볼 수 있다. 기준 미달의 빨강은
+      // 그대로 둔다(배경색과 테두리라 서로 가리지 않는다).
+      const moved = BASE_COUNTS && BASE_COUNTS[d] && BASE_COUNTS[d][k] !== c[k];
+      const cls = "stat-col" + (short ? " stat-short" : "") + (moved ? " count-changed" : "");
+      const base = moved ? `\n수정 전 ${BASE_COUNTS[d][k]}명 → 지금 ${c[k]}명` : "";
+      const title = need === null && !moved ? ""
+        : ` title="${escAttr(`${d + 1}일 ${k} ${c[k]}명` + (need === null ? "" : ` (기준 ${need}명)`) + base)}"`;
       // data-count/data-day: 근무를 고쳤을 때 값이 달라진 칸만 찾아 깜빡이기 위한 표식.
-      return `<td class="stat-col${short ? " stat-short" : ""}" data-count="${k}" data-day="${d}"${title}>${c[k]}</td>`;
+      return `<td class="${cls}" data-count="${k}" data-day="${d}"${title}>${c[k]}</td>`;
     }).join("") + `${blankTail}</tr>`).join("");
 }
 
