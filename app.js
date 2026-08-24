@@ -68,6 +68,13 @@ const SHIFT_CLASS = {D:"sd", E:"se", N:"sn", NK:"sk", prn:"sp", "8A":"sa", "9A":
 const SHIFT_TEXT = {OFF:"·", "연차":"연", prn:"p"};
 const ALL_SHIFTS = ["D","E","N","NK","prn","8A","9A","10A","T","TW","OFF","연차","연1","연2","연3","연4",
                     "S/","조","경","공","병","휴","승","군"];
+// 누구에게나 고를 수 있는 휴가·교육 계열. 파트장은 여기에 "8A로 되돌리기"만 더한다
+// (근무는 안 서므로 D/E/N/prn은 뺀다). 서버(webapp/app.py·pyodide-app/py/bridge.py의
+// _PARTJANG_EDITABLE)도 같은 목록으로 한 번 더 막는다 — 화면에만 있는 잠금은 잠금이 아니다.
+const REST_PICK = ["OFF", "연차", "연1", "연2", "연3", "연4", "S/", "군", "TW", "T",
+                   "조", "경", "공", "병", "휴", "승"];
+const PARTJANG_PICK = ["8A", ...REST_PICK];
+
 const MIN_STAFF_ROWS = [["D","D"],["E","E"],["N","N"],["prn","prn"]];
 const MIN_STAFF_COLS = [["weekday","평일"],["saturday","토요일"],["sunday_holiday","일요일·공휴일"]];
 const MIN_STAFF_DOWS = [["0","월"],["1","화"],["2","수"],["3","목"],["4","금"]];
@@ -1867,9 +1874,12 @@ function renderGrid() {
         cls.push(viol.strict ? "viol-hard" : "viol-soft");
         title = ` title="${escAttr(viol.msgs.join("\n"))}"`;
       }
-      const disabled = s.is_partjang;
-      if (disabled) cls.push("disabled");
-      html += `<td class="${cls.join(" ")}" data-sid="${escAttr(s.id)}" data-day="${d}"${title}${disabled ? "" : ' data-pick="1"'}>` +
+      // 파트장 행도 고칠 수 있다. 근무는 평일 8A로 고정 배정되지만 파트장도 연차·
+      // 병가를 쓰므로, 표에 그렇게 적을 길이 있어야 한다 — 예전엔 이 행만 회색으로
+      // 잠겨 있어 파트장이 쉬는 날을 근무표에 넣을 방법이 아예 없었다.
+      // 고를 수 있는 것은 휴가 계열과 8A뿐이다(D/E/N은 파트장 자리가 아니다 —
+      // openPicker에서 거르고, 서버도 같은 기준으로 한 번 더 막는다).
+      html += `<td class="${cls.join(" ")}" data-sid="${escAttr(s.id)}" data-day="${d}"${title} data-pick="1">` +
               `<span>${esc(shiftText(v, isWanted))}</span></td>`;
     }
     html += `<td class="stat-col">${dCnt}</td><td class="stat-col">${eCnt}</td><td class="stat-col">${nCnt}</td>` +
@@ -2028,8 +2038,11 @@ delegateClick(document.getElementById("holidayCalendar"), "td[data-iso]",
 window.openPicker = function (ev, sid, day) {
   closePicker();
   const staff = ST.staff.find(s => s.id === sid);
-  const allowed = new Set(["OFF", "연차", "연1", "연2", "연3", "연4", "S/", "군", "TW", "T",
-                           "조", "경", "공", "병", "휴", "승", ...staff.allowed]);
+  // 파트장은 근무(D/E/N/prn)를 서지 않는다 — 평일 상근 8A다. 그래서 고를 수 있는 것은
+  // 휴가 계열과 "8A로 되돌리기"뿐이다. 나머지는 전원 공통 휴가 계열 + 그 사람의 허용 근무.
+  const allowed = staff.is_partjang
+    ? new Set([...PARTJANG_PICK])
+    : new Set([...REST_PICK, ...staff.allowed]);
   const cur = ST.grid[sid][day];
   const rect = ev.target.closest("td").getBoundingClientRect();
 
