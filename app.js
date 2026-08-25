@@ -209,6 +209,10 @@ let lastConfigWarning = null;  // set_config가 돌려준 경고(예: 연간근�
 // 여기서 문구를 조립하면 언젠가 한쪽만 고쳐져 같은 상황에 다른 안내가 나간다.
 let lastStaffing = null;
 let picker = null;
+// 지금 고르는 중인 칸. 피커는 칸에서 떨어진 자리에 뜨는데다 칸 하나가 26px밖에 안 돼서,
+// 옆 칸을 눌러도 피커가 거의 안 움직인다 — 칸 자체에 표시가 없으면 어느 칸을 눌렀는지
+// 알 수가 없다("눌렀는데 반응이 없나?" → 같은 자리를 두 번 누르게 된다).
+let pickerCell = null;
 let formStaff = [];      // [{id, role, level, allowed:[...], flags:[...]}]
 // 인원 명단을 어디서 받았는지 — 입력①(원티드표)는 '이번 달 명단(미래)', 입력②(연간근무표)은
 // '지난달 실적(과거)'이라 성격이 다르다. 입력①이 이미 명단을 준 뒤에 입력②를 올려도
@@ -1883,10 +1887,15 @@ window.openPicker = function (ev, sid, day) {
   }
   document.body.appendChild(div);
   picker = div;
+  pickerCell = td;
+  td.classList.add("picking");
   ev.stopPropagation();
   setTimeout(() => document.addEventListener("click", closePicker, { once: true }), 0);
 };
-function closePicker() { if (picker) { picker.remove(); picker = null; } }
+function closePicker() {
+  if (picker) { picker.remove(); picker = null; }
+  if (pickerCell) { pickerCell.classList.remove("picking"); pickerCell = null; }
+}
 
 async function stageEdit(sid, day, shift, isTeamB) {
   const before = snapshotGrid();
