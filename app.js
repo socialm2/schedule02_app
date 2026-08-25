@@ -68,12 +68,16 @@ const SHIFT_CLASS = {D:"sd", E:"se", N:"sn", NK:"sk", prn:"sp", "8A":"sa", "9A":
 const SHIFT_TEXT = {OFF:"·", "연차":"연", prn:"p"};
 const ALL_SHIFTS = ["D","E","N","NK","prn","8A","9A","10A","T","TW","OFF","연차","연1","연2","연3","연4",
                     "S/","조","경","공","병","휴","승","군"];
-// 누구에게나 고를 수 있는 휴가·교육 계열. 파트장은 여기에 "8A로 되돌리기"만 더한다
-// (근무는 안 서므로 D/E/N/prn은 뺀다). 서버(webapp/app.py·pyodide-app/py/bridge.py의
-// _PARTJANG_EDITABLE)도 같은 목록으로 한 번 더 막는다 — 화면에만 있는 잠금은 잠금이 아니다.
+// 누구에게나 고를 수 있는 휴가·교육 계열.
 const REST_PICK = ["OFF", "연차", "연1", "연2", "연3", "연4", "S/", "군", "TW", "T",
                    "조", "경", "공", "병", "휴", "승"];
-const PARTJANG_PICK = ["8A", ...REST_PICK];
+// 파트장에게만 막는 것 — 근무 다섯 가지뿐이고 나머지는 다 고를 수 있다.
+// 막는 이유는 인원 계산이다: 최소인력·레벨 통계는 파트장을 빼고 세므로(computeDailyStaffCounts),
+// 파트장에게 D를 주면 그날 사람이 하나 더 있는 것처럼 보이는데 어느 숫자에도 안 잡힌다.
+// NK도 같이 막는다 — 야간전담이라 이 앱은 어디서나 NK를 N으로 센다(COUNT_KEY).
+// 서버(webapp/app.py·pyodide-app/py/bridge.py의 _PARTJANG_BLOCKED_SHIFTS)도 같은 다섯으로
+// 한 번 더 막는다 — 화면에만 있는 잠금은 잠금이 아니다.
+const PARTJANG_BLOCK = ["D", "E", "N", "NK", "prn"];
 
 const MIN_STAFF_ROWS = [["D","D"],["E","E"],["N","N"],["prn","prn"]];
 const MIN_STAFF_COLS = [["weekday","평일"],["saturday","토요일"],["sunday_holiday","일요일·공휴일"]];
@@ -2038,11 +2042,13 @@ delegateClick(document.getElementById("holidayCalendar"), "td[data-iso]",
 window.openPicker = function (ev, sid, day) {
   closePicker();
   const staff = ST.staff.find(s => s.id === sid);
-  // 파트장은 근무(D/E/N/prn)를 서지 않는다 — 평일 상근 8A다. 그래서 고를 수 있는 것은
-  // 휴가 계열과 "8A로 되돌리기"뿐이다. 나머지는 전원 공통 휴가 계열 + 그 사람의 허용 근무.
-  const allowed = staff.is_partjang
-    ? new Set([...PARTJANG_PICK])
-    : new Set([...REST_PICK, ...staff.allowed]);
+  // 전원 공통 휴가 계열 + 그 사람의 허용 근무. 파트장은 여기서 근무 다섯만 뺀다.
+  const allowed = new Set([...REST_PICK, ...staff.allowed]);
+  if (staff.is_partjang) {
+    // 기본 배정값(평일 상근)으로 되돌릴 길은 명단에 뭐라 적혀 있든 항상 열어둔다.
+    allowed.add("8A");
+    for (const k of PARTJANG_BLOCK) allowed.delete(k);
+  }
   const cur = ST.grid[sid][day];
   const rect = ev.target.closest("td").getBoundingClientRect();
 
