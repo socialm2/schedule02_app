@@ -1550,6 +1550,8 @@ function render(opts) {
 function snapshotGrid() {
   const grid = {};
   if (ST && ST.grid) for (const sid in ST.grid) grid[sid] = ST.grid[sid].slice();
+  // 신입 칸도 같이 담는다 — 안 담으면 그 칸만 깜빡임 없이 조용히 바뀐다.
+  if (ST && ST.team_b_grid) for (const n in ST.team_b_grid) grid[n] = ST.team_b_grid[n].slice();
   return { grid, foot: ST ? computeFootValues() : {} };
 }
 
@@ -1564,10 +1566,11 @@ function blinkCell(el) {
 function flashChanges(before) {
   if (!before || !ST || !ST.grid) return;
   const changed = new Set();
-  for (const sid in ST.grid) {
+  const now = Object.assign({}, ST.grid, ST.team_b_grid || {});
+  for (const sid in now) {
     const a = before.grid[sid];
     if (!a) continue;
-    const b = ST.grid[sid];
+    const b = now[sid];
     for (let d = 0; d < b.length; d++) if (a[d] !== b[d]) changed.add(sid + ":" + d);
   }
   if (!changed.size) return;
@@ -1694,10 +1697,15 @@ function renderGrid() {
     const totalCols = 3 + ST.num_days + 7;  // 이름 + 잔휴2 + 날짜 + 계산열7
     html += `<tr class="team-b-divider"><td colspan="${totalCols}">B팀(신입)</td></tr>`;
     for (const name of ST.team_b) {
+      const bRow = (ST.team_b_grid && ST.team_b_grid[name]) || [];
       html += `<tr><td class="nm">${esc(name)}<span class="role">B팀</span></td>` +
         `<td class="stat-col">–</td><td class="stat-col">–</td>`;
       for (let d = 0; d < ST.num_days; d++) {
-        html += `<td class="cell disabled"><span></span></td>`;
+        const v = bRow[d] || "";
+        // 신입 칸은 파트장이 직접 채운다 — 엔진이 배정하지 않으므로 고쳐도 다시 계산할
+        // 것이 없고, 그래서 '미적용 편집'으로 쌓지 않고 바로 반영한다(data-teamb).
+        html += `<td class="cell ${shiftClass(v)}" data-sid="${escAttr(name)}" data-day="${d}"` +
+                ` data-teamb="1" data-pick="1"><span>${esc(shiftText(v))}</span></td>`;
       }
       html += `<td class="stat-col">–</td><td class="stat-col">–</td><td class="stat-col">–</td>` +
         `<td class="stat-col">–</td><td class="stat-col">–</td><td class="stat-col">–</td><td class="stat-col">–</td>`;
@@ -1837,7 +1845,13 @@ delegateClick(document.getElementById("holidayCalendar"), "td[data-iso]",
 
 window.openPicker = function (ev, sid, day) {
   closePicker();
-  const staff = ST.staff.find(s => s.id === sid);
+  const td = ev.target.closest("td");
+  const isTeamB = td && td.dataset.teamb === "1";
+  // 신입은 엔진이 배정하지 않는다 = 인원 수에도 안 잡힌다. 그래서 무엇을 골라도
+  // 다른 사람 근무표에 영향이 없어, 파트장이 쓰는 그대로 다 열어둔다(지우기 포함).
+  const staff = isTeamB
+    ? { id: sid, allowed: ALL_SHIFTS, is_partjang: false }
+    : ST.staff.find(s => s.id === sid);
   // 전원 공통 휴가 계열 + 그 사람의 허용 근무. 파트장은 여기서 근무 다섯만 뺀다.
   const allowed = new Set([...REST_PICK, ...staff.allowed]);
   if (staff.is_partjang) {
@@ -1845,8 +1859,8 @@ window.openPicker = function (ev, sid, day) {
     allowed.add("8A");
     for (const k of PARTJANG_BLOCK) allowed.delete(k);
   }
-  const cur = ST.grid[sid][day];
-  const rect = ev.target.closest("td").getBoundingClientRect();
+  const cur = isTeamB ? ((ST.team_b_grid[sid] || [])[day] || "") : ST.grid[sid][day];
+  const rect = td.getBoundingClientRect();
 
   const div = document.createElement("div");
   div.className = "picker";
@@ -1857,7 +1871,14 @@ window.openPicker = function (ev, sid, day) {
     const b = document.createElement("button");
     b.textContent = shiftText(sh);
     if (sh === cur) b.classList.add("current");
-    b.onclick = (e) => { e.stopPropagation(); stageEdit(sid, day, sh); closePicker(); };
+    b.onclick = (e) => { e.stopPropagation(); stageEdit(sid, day, sh, isTeamB); closePicker(); };
+    div.appendChild(b);
+  }
+  if (isTeamB) {
+    const b = document.createElement("button");
+    b.textContent = "지움";
+    if (!cur) b.classList.add("current");
+    b.onclick = (e) => { e.stopPropagation(); stageEdit(sid, day, "", true); closePicker(); };
     div.appendChild(b);
   }
   document.body.appendChild(div);
@@ -1867,10 +1888,10 @@ window.openPicker = function (ev, sid, day) {
 };
 function closePicker() { if (picker) { picker.remove(); picker = null; } }
 
-async function stageEdit(sid, day, shift) {
+async function stageEdit(sid, day, shift, isTeamB) {
   const before = snapshotGrid();
   try {
-    ST = await api("/api/edit", {
+    ST = await api(isTeamB ? "/api/edit/team_b" : "/api/edit", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ staff_id: sid, day, shift }),
     });

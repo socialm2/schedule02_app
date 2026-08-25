@@ -58,6 +58,7 @@ function callBridge(path, opts) {
     case "/api/generate": return bridge.api_generate();
     case "/api/state": return bridge.api_state();
     case "/api/edit": return bridge.api_edit(opts.body);
+    case "/api/edit/team_b": return bridge.api_edit_team_b(opts.body);
     case "/api/edit/undo": return bridge.api_edit_undo(opts.body);
     case "/api/discard": return bridge.api_discard();
     case "/api/feedback": return bridge.api_feedback();
