@@ -20,7 +20,7 @@
 // index.html의 빌드시각만 새것으로 바뀌니 "최신 버전인데 고친 게 하나도 안 보인다"가
 // 된다. 하루치 수정이 통째로 안 보인 채 나갔었다.
 
-const CACHE_NAME = "ns-sched-20260825-090933-4fcbfd3";
+const CACHE_NAME = "ns-sched-20260825-144234-7bba300";
 
 // py_app.zip은 엔진 코드라 배포마다 바뀌므로 APP_FILES(네트워크 우선)로 둔다 —
 // HEAVY_FILES(캐시 우선)에 있으면, 서비스워커가 갱신되는 그 페이지 로드에서조차
@@ -34,7 +34,7 @@ const CACHE_NAME = "ns-sched-20260825-090933-4fcbfd3";
 // 도움말 3종도 여기에 있어야 한다. 앱 안 '설명서'에서 링크로 여는 페이지인데, 목록에
 // 없으면 한 번도 열어본 적 없는 기기에서는 오프라인일 때 그냥 안 열린다 — 정작 도움말이
 // 가장 필요한 순간(비행기모드·병원 지하·데이터 없음)에 없는 셈이다. 합쳐 60KB 남짓이다.
-const APP_FILES = ["./", "index.html", "app.js", "style.css", "pyworker.js",
+const APP_FILES = ["./", "index.html", "app.js", "platform.js", "style.css", "pyworker.js",
                    "manifest.json", "py_app.zip",
                    "templates/입력2_연간근무표_2026-08.xlsx",
                    "templates/입력1_원티드표_샘플.xlsx",

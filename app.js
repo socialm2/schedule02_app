@@ -1,66 +1,5 @@
 "use strict";
 
-// ================================================================ 접속 비밀번호 게이트
-// 서버가 없는 정적 배포판이라 "진짜 로그인"이 아니라 억제 수준의 문 — 링크를 모르고
-// 우연히 들어오는 걸 막는 용도. 비밀번호를 바꾸려면 아래 새 해시로 교체하면 된다
-// (브라우저 콘솔에서 다음처럼 뽑을 수 있다:
-//   crypto.subtle.digest("SHA-256", new TextEncoder().encode("새비밀번호"))
-//     .then(b => console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")))
-// ).
-const AUTH_HASH = "2cbbfffee7c0a89ffa87b2320543fb71b4bc5443c5ccc4d04723e17c59367355";
-const AUTH_KEY = "ns_auth_ok";
-
-async function sha256Hex(text) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
-}
-
-(function initAuthGate() {
-  const gate = document.getElementById("authGate");
-  // 저장소 접근이 막힌 환경에서도 문(gate) 자체는 떠야 한다 — 예전엔 여기서 던진
-  // SecurityError가 초기화 전체를 멈춰 화면이 빈 채로 남았다.
-  let alreadyIn = false;
-  try { alreadyIn = localStorage.getItem(AUTH_KEY) === "1"; } catch (e) { alreadyIn = false; }
-  if (alreadyIn) {
-    gate.style.display = "none";
-    return;
-  }
-  // crypto.subtle은 보안 컨텍스트(https 또는 localhost)에서만 존재한다. 사내망에 http로
-  // 올리는 경우 등 이게 없으면 비밀번호 확인 자체가 불가능하므로, 조용히 먹통되는 대신
-  // 폼을 아예 안 보여주고 이유를 바로 알려준다.
-  if (!window.crypto || !window.crypto.subtle) {
-    document.getElementById("authForm").style.display = "none";
-    document.getElementById("authUnsupported").style.display = "";
-    return;
-  }
-  document.getElementById("authForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const input = document.getElementById("authInput");
-    let hash;
-    try {
-      hash = await sha256Hex(input.value);
-    } catch (err) {
-      document.getElementById("authForm").style.display = "none";
-      document.getElementById("authUnsupported").style.display = "";
-      return;
-    }
-    if (hash === AUTH_HASH) {
-      try { localStorage.setItem(AUTH_KEY, "1"); } catch (err) { /* 다음에 또 물어볼 뿐 */ }
-      gate.style.display = "none";
-    } else {
-      document.getElementById("authError").style.display = "";
-      input.value = "";
-      input.focus();
-    }
-  });
-})();
-
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
-  });
-}
-
 const SHIFT_CLASS = {D:"sd", E:"se", N:"sn", NK:"sk", prn:"sp", "8A":"sa", "9A":"sa9", "10A":"sa10",
                      "연차":"sy", OFF:"so", "S/":"ssl", "TW":"stw", "군":"smi", "T":"st",
                      "조":"sjo", "경":"sgyeong", "공":"sgong", "병":"sbyeong", "휴":"shyu", "승":"sseung",
@@ -332,157 +271,6 @@ function clearUploadError(statusEl) {
   statusEl.classList.remove("upload-error");
 }
 
-// ================================================================ Pyodide 브릿지 (Web Worker)
-// 서버(Flask) 없이 브라우저 안에서 Python(nurse_scheduler 엔진)을 직접 돌리되,
-// 계산 자체는 별도 Worker 스레드(pyworker.js)에서 실행한다. 근무표 생성처럼
-// 오래 걸리는 계산 중에도 이 메인 스레드(화면)는 얼어붙지 않고 계속 반응한다.
-// api(path, opts)의 시그니처는 원래 fetch 버전과 동일하게 유지해서, 이 함수를
-// 호출하는 나머지 코드는 전혀 손대지 않아도 되게 만들었다.
-
-let worker = null;
-let _reqId = 0;
-const _pending = new Map();
-
-const HISTORY_PREFIX = "ns_history_";
-
-// 브라우저 저장소는 항상 쓸 수 있는 게 아니다 — 사내 정책이나 브라우저 설정으로 접근
-// 자체가 막히면(SecurityError) 예전엔 앱 초기화가 통째로 멈췄고, 용량이 꽉 차면
-// (QuotaExceededError) 확정 저장이 조용히 실패했다. 저장이 안 되는 것보다 나쁜 건
-// "왜 안 되는지 모르는 것"이라, 실패해도 앱은 계속 돌리되 이유를 알려준다.
-let storageWarned = false;
-function _storageFailed(e, what) {
-  console.warn("localStorage", what, e);
-  if (storageWarned) return;
-  storageWarned = true;
-  const quota = e && (e.name === "QuotaExceededError" || e.code === 22);
-  showToast(quota
-    ? "브라우저 저장공간이 가득 차 지난달 기록을 저장하지 못했습니다 — 오래된 기록을 지우거나 다른 브라우저를 쓰세요. 근무표 생성·다운로드는 그대로 됩니다."
-    : "이 브라우저에서는 저장소를 쓸 수 없어 지난달 기록이 남지 않습니다(사내 정책·시크릿 모드 등) — 근무표 생성·다운로드는 그대로 됩니다.",
-    true);
-}
-
-function _readHistorySnapshot() {
-  const out = {};
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith(HISTORY_PREFIX)) out[k] = localStorage.getItem(k);
-    }
-  } catch (e) { _storageFailed(e, "read"); }
-  return out;
-}
-
-function _applyHistoryPatch(patch) {
-  if (!patch) return;
-  try {
-    for (const [k, v] of Object.entries(patch)) localStorage.setItem(k, v);
-  } catch (e) { _storageFailed(e, "write"); }
-}
-
-async function bootPyodide() {
-  const msg = document.getElementById("loadingMsg");
-  worker = new Worker("pyworker.js");
-  await new Promise((resolve, reject) => {
-    worker.onmessage = (ev) => {
-      const d = ev.data;
-      if (d.type === "boot_progress") { msg.textContent = d.msg; return; }
-      if (d.type === "ready") { resolve(); return; }
-      if (d.type === "boot_error") { reject(new Error(d.error)); return; }
-    };
-    worker.onerror = (e) => reject(new Error(e.message || "Worker 로딩 실패"));
-  });
-  // 부팅 완료 후 메시지 핸들러를 요청/응답(RPC) 방식으로 교체
-  worker.onmessage = (ev) => {
-    const { id, ok, raw, error, binary } = ev.data;
-    const p = _pending.get(id);
-    if (!p) return;
-    _pending.delete(id);
-    if (ok) p.resolve({ raw, binary }); else p.reject(new Error(error));
-  };
-  // 연간 근무표 기록(localStorage)은 Worker 안에서 직접 못 읽으므로, 부팅 직후
-  // 현재 스냅샷을 한 번 넣어준다.
-  await callWorker("/api/_bootstrap_history", { body: JSON.stringify(_readHistorySnapshot()) });
-}
-
-function callWorker(path, opts) {
-  return new Promise((resolve, reject) => {
-    const id = ++_reqId;
-    _pending.set(id, { resolve, reject });
-    worker.postMessage({ id, path, opts: opts || {} });
-  });
-}
-
-async function api(path, opts) {
-  let raw, binary;
-  try {
-    ({ raw, binary } = await callWorker(path, opts));
-  } catch (e) {
-    const message = (e && e.message) ? e.message.split("\n")[0] : String(e);
-    showToast(message, true);
-    throw e;
-  }
-  if (binary) return raw; // 바이너리(xlsx) 응답은 JSON이 아니므로 그대로 반환
-  const data = JSON.parse(raw);
-  if (data && data.error) {
-    showToast(data.error, true);
-    throw new Error(data.error);
-  }
-  if (data && data._history_patch) {
-    _applyHistoryPatch(data._history_patch);
-    delete data._history_patch;
-  }
-  return data;
-}
-
-function triggerDownload(content, filename, mime) {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
-}
-
-// 다운로드는 JSON이 아니라 순수 바이너리를 그대로 돌려주므로,
-// JSON.parse를 하는 api() 대신 callWorker()로 원본 응답을 직접 받는다.
-// 파일명(병동명 포함, 회차 포함)은 서버(bridge.py) 쪽에서 만들어서 그대로 쓴다.
-window.downloadXlsx = async function () {
-  const { raw: bytes } = await callWorker("/api/download/xlsx");
-  const { raw: filename } = await callWorker("/api/download_filename/xlsx");
-  triggerDownload(bytes, filename,
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-};
-window.downloadXlsxOcs = async function () {
-  const { raw: bytes } = await callWorker("/api/download/xlsx_ocs");
-  const { raw: filename } = await callWorker("/api/download_filename/xlsx_ocs");
-  triggerDownload(bytes, filename,
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-};
-window.downloadStaffTable = async function () {
-  const { raw: bytes } = await callWorker("/api/download/staff_table");
-  const { raw: filename } = await callWorker("/api/download_filename/staff_table");
-  triggerDownload(bytes, filename,
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-};
-// 입력① 원티드표 양식 — "설정"의 연/월과 지금 알고 있는 인원 목록으로 매번 새로
-// 만든다(달마다 일수가 다르므로 고정 파일로는 못 맞춘다). 별도 선택 없이 "설정"
-// 연/월을 그대로 쓴다 — 원티드표는 늘 같은 달 것이라 따로 고를 필요가 없다. 인원의
-// 직급·숙련도·가능근무·비고까지 현재 값으로 미리 채워 내려줘서, 다시 올릴 때 필요한
-// 부분만 고치면 된다.
-window.downloadWantedTemplate = async function () {
-  const year = parseInt($("#f_year").value, 10);
-  const month = parseInt($("#f_month").value, 10);
-  const staff = formStaff.map(s => ({ id: s.id, role: s.role, level: s.level,
-                                      allowed_shifts: s.allowed, flags: s.flags }));
-  const { raw: bytes } = await callWorker("/api/download/wanted_template",
-    { body: JSON.stringify({ year, month, staff, team_b_names: teamBNamesFromForm() }) });
-  triggerDownload(bytes, `입력1_원티드표_${year}-${String(month).padStart(2, "0")}.xlsx`,
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-};
-
 function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 // 속성값 안에 들어가므로 따옴표를 반드시 둘 다 막는다 — 큰따옴표를 빼먹으면
 // 이름에 `홍길동" onclick="...` 같은 걸 넣었을 때 없던 속성이 만들어진다.
@@ -742,6 +530,25 @@ function setFormYearMonth(year, month) {
   renderHolidayCalendar();
   saveSettings();
 }
+
+// 입력① 원티드표 양식 — "설정"의 연/월과 지금 알고 있는 인원 목록으로 매번 새로
+// 만든다(달마다 일수가 다르므로 고정 파일로는 못 맞춘다). 별도 선택 없이 "설정"
+// 연/월을 그대로 쓴다 — 원티드표는 늘 같은 달 것이라 따로 고를 필요가 없다. 인원의
+// 직급·숙련도·가능근무·비고까지 현재 값으로 미리 채워 내려줘서, 다시 올릴 때 필요한
+// 부분만 고치면 된다.
+window.downloadWantedTemplate = async function () {
+  const year = parseInt($("#f_year").value, 10);
+  const month = parseInt($("#f_month").value, 10);
+  const staff = formStaff.map(s => ({ id: s.id, role: s.role, level: s.level,
+                                      allowed_shifts: s.allowed, flags: s.flags }));
+  await apiDownloadWantedTemplate(
+    { year, month, staff, team_b_names: teamBNamesFromForm() },
+    `입력1_원티드표_${year}-${String(month).padStart(2, "0")}.xlsx`);
+};
+
+// 결과 화면의 다운로드 두 개 — 어느 판이냐에 따라 받는 방법이 다르다(platform.js).
+window.downloadXlsxOcs = () => apiDownload("xlsx_ocs");
+window.downloadStaffTable = () => apiDownload("staff_table");
 
 function renderHolidayCalendar() {
   const y = parseInt($("#f_year").value, 10);
@@ -1064,6 +871,7 @@ function buildCfgFromForm() {
 document.querySelectorAll(".upload-btn[data-target]").forEach(btn => {
   btn.onclick = () => $("#" + btn.dataset.target).click();
 });
+
 // "양식(다운로드)" — <a download>였던 걸 <button>으로 바꿨으니, 클릭 시 임시 <a>를
 // 만들어 다운로드를 대신 트리거한다(파일명 지정 등 기존 동작은 그대로 유지).
 document.querySelectorAll(".upload-btn[data-href]").forEach(btn => {
@@ -1155,8 +963,7 @@ $("#wantedInput").onchange = async () => {
   if (!f) return;
   const statusEl = $("#wantedStatus");
   try {
-    const bytes = new Uint8Array(await f.arrayBuffer());
-    const data = await api("/api/upload_wanted", { _fileBytes: bytes });
+    const data = await apiUpload("/api/upload_wanted", f);
     // 이 파일의 연월이 곧 '생성할 달'이다 — 파트장이 OCS에서 그 달 날짜를 복붙해
     // 만들기 때문. 예전엔 화면 설정과 다르면 반려했는데, 그러면 파일을 올리기 전에
     // 화면 연월부터 맞춰야 해서 순서를 틀리기 쉬웠다. 이제 화면을 파일에 맞춘다.
@@ -1300,8 +1107,7 @@ $("#staffTableInput").onchange = async () => {
   if (!f) return;
   const statusEl = $("#staffTableStatus");
   try {
-    const bytes = new Uint8Array(await f.arrayBuffer());
-    const data = await api("/api/upload_staff_table", { _fileBytes: bytes });
+    const data = await apiUpload("/api/upload_staff_table", f);
     // 입력②는 '지난달 실적(과거)'이다. 입력①(이번 달 명단, 미래)가 이미 명단을 채웠다면
     // 절대 덮어쓰지 않는다 — 덮어쓰면 이번 달 전입자가 조용히 사라진다. 이 경우 여기서
     // 읽은 명단은 전입·전출 대조용으로만 쓴다. 입력①이 아직 없을 때만 출발점으로 채운다.
@@ -1380,8 +1186,8 @@ $("#staffTableInput").onchange = async () => {
   } finally { $("#staffTableInput").value = ""; }
 };
 
-// 생성/재생성은 인원이 많으면 수십 초~1~2분 걸릴 수 있다. Worker 덕분에 화면
-// 자체는 멈추지 않지만, 진행 상황을 안내하는 오버레이는 그대로 띄워준다.
+// 생성/재생성은 인원이 많으면 수십 초~1~2분 걸릴 수 있다. 그동안 화면이 멈춘 것처럼
+// 보이지 않도록 안내 오버레이를 띄운다(브라우저판은 Worker 덕분에 화면 자체는 안 멈춘다).
 //
 // 진행 게이지: 서버가 진행률을 알려주지 않으므로(생성이 끝나야 응답이 옴) 실제
 // 진행률이 아니라 "경과시간 vs time_budget"으로 추정해서 보여준다 — nurse_scheduler
@@ -1529,19 +1335,9 @@ if (generateBtnMid) {
   generateBtnMid.onclick = () => runGenerate(generateBtnMid, $("#genStatusMid"));
 }
 
-// 페이지 로드 시: Pyodide(브라우저 안 Python) 부팅 → 샘플 데이터로 폼 기본 채움
+// 페이지 로드 시: 판별 준비(브라우저판은 Pyodide 부팅) → 샘플 데이터로 폼 기본 채움
 (async function boot() {
-  try {
-    await bootPyodide();
-  } catch (e) {
-    console.error(e);
-    document.getElementById("loadingMsg").textContent =
-      "불러오기 실패: " + (e && e.message ? e.message : String(e));
-    document.querySelector(".loading-box").classList.add("err");
-    return;
-  }
-  document.getElementById("loadingOverlay").style.display = "none";
-  document.getElementById("app").style.display = "";
+  if (!(await bootPlatform())) return;   // 실패 사유는 platform.js가 화면에 띄운다
   try {
     const cfg = await api("/api/sample");
     // 샘플 기본값 위에 이 브라우저에 저장해둔 설정을 덮어쓴다 — 병동인력표 파일(옛 입력①)이 없어진
