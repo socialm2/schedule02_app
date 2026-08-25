@@ -1970,11 +1970,16 @@ function renderSide() {
   const hasPending = ST.pending.length > 0;
   html += `<div class="side-sec" id="pendingSec"><h3>${hasPending ? "편집 중 (미적용)" : "편집"}</h3><div id="pendingBody"></div></div>`;
 
+  // 파일에도 화면에도 같은 번호를 쓴다 — 받는 파일 이름이 "출력1_월간근무표…"인데
+  // 버튼에는 번호가 없어서, 파트장이 "출력②를 입력②로 올리세요"라는 안내를 읽고도
+  // 어느 버튼인지 되짚어야 했다. 번호가 곧 다음 달 입력 번호다(출력② → 입력②).
   html += `<div class="side-sec"><h3>다운로드</h3><div class="download-row">
-    <button onclick="if (confirmDownloadWithViolations()) downloadXlsxOcs()" ${hasPending ? "disabled" : ""}>월간근무표</button>
-    <button onclick="if (confirmDownloadWithViolations()) downloadStaffTable()" ${hasPending ? "disabled" : ""}>연간근무표</button>
+    <button onclick="if (confirmDownloadWithViolations()) downloadXlsxOcs()" ${hasPending ? "disabled" : ""}><span class="io-tag">출력①</span>월간근무표</button>
+    <button onclick="if (confirmDownloadWithViolations()) downloadStaffTable()" ${hasPending ? "disabled" : ""}><span class="io-tag">출력②</span>연간근무표</button>
   </div>
-  ${hasPending ? '<p class="hint">적용 안 한 편집이 있습니다 — "재생성 적용"을 눌러야 다운로드할 수 있습니다.</p>' : ""}
+  ${hasPending
+    ? '<p class="hint">적용 안 한 편집이 있습니다 — "재생성 적용"을 눌러야 다운로드할 수 있습니다.</p>'
+    : '<p class="hint">출력②(연간근무표)를 보관해두면 다음 달에 <b>입력②</b>로 그대로 올려 이월정보를 이어갈 수 있습니다.</p>'}
   </div>`;
 
   // 입력 요약
