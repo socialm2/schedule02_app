@@ -1839,7 +1839,13 @@ function renderDailyStaffCountRows(foot) {
   const counts = computeDailyStaffCounts();
   const blankTail = '<td class="stat-col">–</td>'.repeat(7);
   const blankHead = '<td class="stat-col">–</td><td class="stat-col">–</td>';
-  return COUNT_ROWS.map(k =>
+  // '지정' 행은 쓰는 병동에서만 붙인다 — 안 쓰는 병동에는 0만 늘어선 줄이 하나 더
+  // 생길 뿐이고, 무슨 값인지 물어볼 일만 생긴다. 다운로드 엑셀도 같은 조건으로
+  // 붙이고(_write_daily_staff_count_rows) 화면 안내도 그렇게 적혀 있는데, 화면만
+  // 항상 붙이고 있었다 — 셋이 같은 말을 해야 한다.
+  const usesDesignated = (ST.days || []).some(
+    d => d.min && (d.min["지정"] || 0) > 0);
+  return COUNT_ROWS.filter(k => k !== "지정" || usesDesignated).map(k =>
     `<tr class="level-foot-row"><td class="nm">${k} 인원</td>${blankHead}` +
     counts.map((c, d) => {
       // days[d].min이 없는 옛 응답(캐시된 예전 화면 등)에서는 색만 빠지고 숫자는 나온다.
