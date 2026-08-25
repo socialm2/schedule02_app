@@ -18,7 +18,10 @@ const REST_PICK = ["OFF", "연차", "연1", "연2", "연3", "연4", "S/", "군",
 // 한 번 더 막는다 — 화면에만 있는 잠금은 잠금이 아니다.
 const PARTJANG_BLOCK = ["D", "E", "N", "NK", "prn"];
 
-const MIN_STAFF_ROWS = [["D","D"],["E","E"],["N","N"],["prn","prn"]];
+// '지정'은 근무유형이 아니라 "그날 지정 가능자가 몇 명 근무해야 하는가"다. 가능근무 칸에
+// '지정'을 적은 사람이 그날 D·E·N·prn 중 무엇이든 서면 1명으로 세진다(엔진이 따로 고르지
+// 않는다). 0이면 지정을 쓰지 않는 병동이라 규칙이 통째로 지나간다.
+const MIN_STAFF_ROWS = [["D","D"],["E","E"],["N","N"],["prn","prn"],["지정","지정"]];
 const MIN_STAFF_COLS = [["weekday","평일"],["saturday","토요일"],["sunday_holiday","일요일·공휴일"]];
 const MIN_STAFF_DOWS = [["0","월"],["1","화"],["2","수"],["3","목"],["4","금"]];
 
@@ -464,7 +467,14 @@ const INFO_HTML_OUTPUT = `
 <p>날짜마다 그날 몇 명이 서는지를 세어 보여줍니다. 칸을 수정하면 재생성 적용 전에도 바로 다시 셉니다.</p>
 <ul>
 <li><b>D · E · N · prn 인원</b> — 그날 각 근무에 서는 사람 수입니다. <b>N 인원에는 NK가, prn 인원에는
-8A·9A·10A가 함께 들어갑니다.</b></li>
+8A·9A·10A와 8H·9H·10H, 그리고 그 변형(8A*·8A◎ 등)이 함께 들어갑니다.</b>
+반일 근무(8AH·9AH·9H*)만 <b>0.5명</b>으로 세기 때문에 "2.5" 같은 값이 뜰 수 있습니다 —
+반나절만 서는 사람을 온종일 선 것으로 세면 못 채운 날이 채운 날처럼 보이기 때문입니다.</li>
+<li><b>지정 인원</b> — 근무인력 표의 '지정' 값이 0보다 클 때만 나옵니다. 가능근무 칸에
+'지정'을 적은 사람이 그날 D·E·N·prn 중 무엇이든 서면 한 명으로 세집니다(이름 옆에
+<span class="kbd">지</span> 표가 붙습니다). 이미 위의 D·E·N·prn 인원에도 들어 있는
+사람이라, 인력을 더 쓰는 값이 아니라 <b>그 자리를 누가 채웠는지</b>를 따로 보는 줄입니다.
+반일이어도 1명입니다 — 그 사람이 그날 병동에 있느냐를 보는 값이라서요.</li>
 <li><b>파트장은 빼고 셉니다</b> — 최소인력 기준 자체가 파트장을 뺀 숫자라서, 같이 세면 파트장의 8A가
 prn으로 잡혀 못 채운 날이 채운 날처럼 보입니다.</li>
 <li><b>빨간 칸 = 그날 최소인력에 못 미침</b>입니다. 칸에 마우스를 올리면 "3일 N 4명 (기준 5명)"처럼
@@ -1320,6 +1330,9 @@ async function runGenerate(btn, statusEl) {
     if (lastStaffing && lastStaffing.level && lastStaffing.level !== "ok") {
       markGenOverlaySlow("인원이 빠듯해 평소보다 오래 걸립니다 — 계산 중입니다…");
     }
+    if (lastStaffing && lastStaffing.designated && lastStaffing.designated.message) {
+      showToast(lastStaffing.designated.message, true);
+    }
     ST = await api("/api/generate", { method: "POST" });
     render();
     showToast(lastConfigWarning || "근무표 생성 완료", !!lastConfigWarning);
@@ -1621,6 +1634,11 @@ function renderGrid() {
   if (lastStaffing && lastStaffing.message) {
     html += `<p class="carry-warning">⚠ ${esc(lastStaffing.message)}</p>`;
   }
+  // 지정 인원을 산술적으로 못 채우는 경우 — 인력 압박과 별개로 알려준다. 하드 규칙이라
+  // 못 채우면 위반이 남는데, 인원이 모자라서 못 채우는 것은 다시 돌려도 안 된다.
+  if (lastStaffing && lastStaffing.designated && lastStaffing.designated.message) {
+    html += `<p class="carry-warning">⚠ ${esc(lastStaffing.designated.message)}</p>`;
+  }
   html += '<div class="legend">';
   const legendItems = [["D","#BDD7EE"],["E","#F8CBAD"],["N","#1F3864"],["NK","#7030A0"],
                        ["prn","#C6E0B4"],["8A","#D9D9D9"],["9A","#BFBFBF"],["10A","#A6A6A6"],
@@ -1667,7 +1685,13 @@ function renderGrid() {
     }
     const offBefore = s.off_balance || 0;
     const offAfter = Math.round((offBefore + holCount - offCnt) * 100) / 100;
-    html += `<tr><td class="nm">${esc(s.id)}<span class="role">${s.role} Lv${s.level}</span></td>` +
+    // 지정 가능자는 이름 옆에 작은 '지' 표를 단다. .role(직급·Lv)은 폰에서 숨기지만
+    // 이건 안 숨긴다 — 하단 '지정 인원' 행이 미달로 빨개졌을 때, 누구를 넣으면 되는지
+    // 찾을 수 있는 유일한 단서라서다.
+    const desigMark = s.is_designated
+      ? '<span class="desig-mark" title="지정 가능(가능근무에 &#39;지정&#39;)">지</span>' : "";
+    html += `<tr><td class="nm">${esc(s.id)}${desigMark}` +
+      `<span class="role">${s.role} Lv${s.level}</span></td>` +
       `<td class="stat-col">${offBefore}</td><td class="stat-col">${offAfter}</td>`;
     for (let d = 0; d < ST.num_days; d++) {
       const v = row[d];
@@ -1737,7 +1761,19 @@ function renderGrid() {
 // 평균 레벨과, 고랩(Lv4-5)·저랩(Lv1-3) 인원수를 화면 그리드(미적용 편집 포함)에서
 // 매번 다시 계산해 그리드 맨 아래 행으로 붙인다 — 잔휴·D/E/N 칸과 같은 패턴으로,
 // 파트장이 칸을 수정하면 재생성 없이 즉시 갱신된다.
-const LEVEL_SHIFT_KEY = { D: "D", E: "E", N: "N", NK: "N", prn: "prn", "8A": "prn" };
+// prn으로 세는 근무코드 — 8A·9A·10A와 8H·9H·10H, 그리고 그 변형까지 전부 한 덩어리다
+// (시작시각만 다른 같은 근무라 파트장 눈에는 하나다). 이 목록은 파이썬
+// nurse_scheduler/models.py의 PRN_LIKE_SHIFTS와 **한 글자도 다르면 안 된다** —
+// tests/test_pyodide_sync.py가 두 곳을 대조한다. 어긋나면 화면과 엑셀이 같은 날
+// 다른 인원을 표시하게 되는데, 어느 쪽이 맞는지 사용자는 알 방법이 없다.
+const PRN_FULL_CODES = ["10A", "10H", "8A", "8A(10", "8A*", "8A◎", "8H", "9A", "9H", "prn"];
+// 반일 근무 — 인원 수에서 0.5명으로 센다(실제 근무가 4시간대다).
+const PRN_HALF_CODES = ["8AH", "9AH", "9H*"];
+
+const LEVEL_SHIFT_KEY = { D: "D", E: "E", N: "N", NK: "N" };
+// 레벨 통계는 **사람 단위로 1명씩** 센다 — 반일도 그 사람은 그날 그 근무에 있으므로
+// 고랩 유무 판정에는 온전히 들어간다. 0.5는 아래 인원 수에서만 쓴다.
+for (const c of PRN_FULL_CODES.concat(PRN_HALF_CODES)) LEVEL_SHIFT_KEY[c] = "prn";
 
 function computeDailyLevelStats() {
   const generals = ST.staff.filter(s => !s.is_partjang);
@@ -1760,18 +1796,25 @@ function computeDailyLevelStats() {
 // 날짜별 D·E·N·prn 인원 — 레벨 통계와 같은 방식으로 화면 그리드에서 매번 다시 센다.
 // 파트장은 뺀다: 최소인력이 파트장을 빼고 잡는 값이라(H1-1도 그렇게 본다) 같이 세면
 // 파트장의 8A가 prn으로 잡혀 못 채운 날이 채운 것처럼 보인다.
-const COUNT_KEY = { D: "D", E: "E", N: "N", NK: "N", prn: "prn", "8A": "prn",
-                    "9A": "prn", "10A": "prn" };
-const COUNT_ROWS = ["D", "E", "N", "prn"];
+const COUNT_KEY = { D: "D", E: "E", N: "N", NK: "N" };
+const COUNT_WEIGHT = { D: 1, E: 1, N: 1, NK: 1 };
+for (const c of PRN_FULL_CODES) { COUNT_KEY[c] = "prn"; COUNT_WEIGHT[c] = 1; }
+for (const c of PRN_HALF_CODES) { COUNT_KEY[c] = "prn"; COUNT_WEIGHT[c] = 0.5; }
+const COUNT_ROWS = ["D", "E", "N", "prn", "지정"];
 
 function computeDailyStaffCounts() {
   const generals = ST.staff.filter(s => !s.is_partjang);
   const days = [];
   for (let d = 0; d < ST.num_days; d++) {
-    const c = { D: 0, E: 0, N: 0, prn: 0 };
+    const c = { D: 0, E: 0, N: 0, prn: 0, "지정": 0 };
     for (const s of generals) {
-      const k = COUNT_KEY[ST.grid[s.id][d]];
-      if (k) c[k] += 1;
+      const v = ST.grid[s.id][d];
+      const k = COUNT_KEY[v];
+      if (k) c[k] += COUNT_WEIGHT[v];
+      // 지정은 **사람 수**다 — 반일이어도 그 사람은 그날 병동에 있으므로 1명이다.
+      // 그리고 이미 위에서 D·E·N·prn 어딘가에 세어진 사람이라, 인력을 더 쓰는 값이
+      // 아니라 "그 자리를 누가 채웠나"를 따로 보여주는 값이다.
+      if (k && s.is_designated) c["지정"] += 1;
     }
     days.push(c);
   }

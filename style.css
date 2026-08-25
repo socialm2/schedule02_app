@@ -193,6 +193,14 @@ table.grid td.nm {
   border-right: 2px solid var(--line);
 }
 table.grid td.nm .role { color: var(--sub); font-weight: 400; font-size: 10.5px; margin-left: 4px; }
+/* 지정 가능자 표시 — 이름 옆 작은 배지. .role과 달리 폰에서도 숨기지 않는다(아래
+   미디어쿼리에 없다): 하단 '지정 인원' 행이 빨개졌을 때 누구를 넣으면 되는지 찾을
+   단서가 이것뿐이다. */
+table.grid td.nm .desig-mark {
+  display: inline-block; margin-left: 4px; padding: 0 3px;
+  font-size: 10px; font-weight: 700; line-height: 1.4;
+  border-radius: 3px; background: #E7D9F5; color: #5B2E8C;
+}
 table.grid td.cell span { display: block; width: 100%; height: 100%; line-height: 26px; }
 table.grid th.stat-col, table.grid td.stat-col {
   background: var(--code-bg); color: var(--sub); font-weight: 600; cursor: default; min-width: 34px;
