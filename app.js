@@ -2202,7 +2202,9 @@ async function loadAnnualView() {
 
   html += `<h4 class="annual-sub">누적 합계 (표시된 ${months.length}개월) — 다음달 배치 참고용</h4>` +
     '<table class="mini-table"><tr><th>이름</th><th>OFF</th><th>야간</th><th>근무</th>' +
-    '<th>월평균야간</th><th>주말야간</th><th>2일블록</th><th>3일블록</th></tr>';
+    '<th>월평균야간</th><th>주말야간</th>' +
+    '<th title="야간을 2일 연속으로 선 횟수(일수가 아니라 건수)">2일 블록 야간</th>' +
+    '<th title="야간을 3일 연속으로 선 횟수(일수가 아니라 건수)">3일 블록 야간</th></tr>';
   for (const sid of generalIds) {
     const c = data.cumulative[sid] || { off: 0, night: 0, workday: 0, months: 0,
       weekend_night: 0, blocks_2: 0, blocks_3: 0, blocks_other: 0 };
@@ -2218,7 +2220,9 @@ async function loadAnnualView() {
   if (nkIds.length) {
     html += `<h4 class="annual-sub">야간전담(NK) 누적 — 참고용, 2:3 블록 혼합이 정상</h4>` +
       '<table class="mini-table"><tr><th>이름</th><th>OFF</th><th>야간</th>' +
-      '<th>월평균야간</th><th>주말야간</th><th>2일블록</th><th>3일블록</th></tr>';
+      '<th>월평균야간</th><th>주말야간</th>' +
+    '<th title="야간을 2일 연속으로 선 횟수(일수가 아니라 건수)">2일 블록 야간</th>' +
+    '<th title="야간을 3일 연속으로 선 횟수(일수가 아니라 건수)">3일 블록 야간</th></tr>';
     for (const sid of nkIds) {
       const c = data.cumulative[sid] || { off: 0, night: 0, months: 0,
         weekend_night: 0, blocks_2: 0, blocks_3: 0 };
