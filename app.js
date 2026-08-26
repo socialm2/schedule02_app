@@ -2022,6 +2022,24 @@ function confirmDownloadWithViolations() {
     `그래도 내려받으시겠습니까?`);
 }
 
+// 확정 저장은 다운로드보다 무겁다 — 그 달을 기록에 넣는 동작이고, 그 기록이 다음 달
+// 형평성 계산의 출발점이 된다. 못 채운 자리가 있는 채로 확정하면 "실제로는 못 돌아간
+// 근무표"가 다음 달의 기준이 되는 셈이라, 무엇이 남았는지 보여주고 한 번 묻는다.
+// 막지는 않는다 — 지정 미달처럼 하루가 구조적으로 안 채워지는 달이 실제로 나오는데,
+// 막아버리면 파트장은 이월을 이어갈 방법이 없어진다.
+function confirmFinalizeWithViolations() {
+  const r = ST && ST.report;
+  if (!r || !r.hard_count) return true;
+  const lines = r.hard.filter(v => !v.best_effort).slice(0, 5)
+    .map(v => `  · ${v.rule} ${v.message}`).join("\n");
+  const more = r.hard_count > 5 ? `\n  … 외 ${r.hard_count - 5}건` : "";
+  return confirm(
+    `필수 위반 ${r.hard_count}건이 남아 있는 근무표입니다.\n\n${lines}${more}\n\n` +
+    `확정 저장하면 이 값이 다음 달 형평성 계산의 출발점이 됩니다.\n` +
+    `(연간 보기에서 그 달에 ⚠ 표시가 남습니다.)\n\n` +
+    `그래도 확정하시겠습니까?`);
+}
+
 function feasibilityBanner(r) {
   const total = r.hard.length;
   if (r.hard_count > 0) {
@@ -2171,8 +2189,14 @@ function renderAnnualPane() {
     <div id="annualBody" style="margin-top:12px"></div>
   </div>`;
   $("#finalizeBtn").onclick = async () => {
+    if (!confirmFinalizeWithViolations()) return;
     try {
-      const r = await api("/api/finalize", { method: "POST" });
+      // 위반이 남아 있어도 확인창에서 동의했으면 그대로 확정한다 — 잠금은 서버가 걸고
+      // (api_finalize), 화면은 사용자의 동의를 전달만 한다.
+      const r = await api("/api/finalize", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ force: true }),
+      });
       showToast(`${r.saved} 확정 저장 — 연간 근무표에 반영됨`);
       loadAnnualView();
     } catch (e) {}
@@ -2181,7 +2205,12 @@ function renderAnnualPane() {
 }
 
 function renderCompactMonth(m) {
-  let html = `<div class="annual-month"><div class="annual-month-title">${m.year}년 ${m.month}월</div>`;
+  // 위반이 남은 채로 확정한 달은 그렇게 표시한다 — 저장하고 나면 그 사실이 사라져,
+  // 두 달 뒤에 "이 달 숫자가 왜 이렇지"를 되짚을 단서가 없었다.
+  const warn = m.hard_count
+    ? ` <span class="annual-hard" title="확정할 때 필수 위반 ${m.hard_count}건이 남아 있었습니다">⚠ 위반 ${m.hard_count}건</span>`
+    : "";
+  let html = `<div class="annual-month"><div class="annual-month-title">${m.year}년 ${m.month}월${warn}</div>`;
   html += '<div class="annual-grid-wrap"><table class="grid compact-grid"><thead><tr><th class="nm"></th>';
   for (const d of m.days) html += `<th class="${d.weekend ? "we" : ""}">${d.n}</th>`;
   html += '<th class="annual-sum-h">OFF·야간</th></tr></thead><tbody>';

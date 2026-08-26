@@ -63,7 +63,7 @@ function callBridge(path, opts) {
     case "/api/discard": return bridge.api_discard();
     case "/api/feedback": return bridge.api_feedback();
     case "/api/apply": return bridge.api_apply();
-    case "/api/finalize": return bridge.api_finalize();
+    case "/api/finalize": return bridge.api_finalize(opts.body || "");
     case "/api/annual": return bridge.api_annual();
     case "/api/_bootstrap_history": return bridge.bootstrap_history(opts.body);
     case "/api/download_filename/xlsx": return bridge.download_filename_schedule();

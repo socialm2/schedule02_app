@@ -633,6 +633,12 @@ button.big { font-size: 15px; padding: 11px 26px; }
 .annual-months { display: flex; flex-direction: column; gap: 12px; margin-bottom: 6px; }
 .annual-month { border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
 .annual-month-title { font-size: 11.5px; font-weight: 700; color: var(--sub); margin-bottom: 5px; }
+
+/* 위반이 남은 채로 확정한 달 표시 — 연간 보기에서 그 달을 되짚을 수 있게. */
+.annual-hard {
+  font-size: 11px; font-weight: 700; color: var(--hard); background: var(--hard-soft);
+  border-radius: 999px; padding: 1px 7px; margin-left: 6px; vertical-align: 1px;
+}
 .annual-grid-wrap { overflow-x: auto; }
 table.compact-grid { font-size: 9.5px; }
 table.compact-grid td, table.compact-grid th { padding: 0; min-width: 14px; height: 16px; }
