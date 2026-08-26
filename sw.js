@@ -20,7 +20,7 @@
 // index.html의 빌드시각만 새것으로 바뀌니 "최신 버전인데 고친 게 하나도 안 보인다"가
 // 된다. 하루치 수정이 통째로 안 보인 채 나갔었다.
 
-const CACHE_NAME = "ns-sched-20260826-122603-db1caea";
+const CACHE_NAME = "ns-sched-20260826-142150-d9b8ac3";
 
 // py_app.zip은 엔진 코드라 배포마다 바뀌므로 APP_FILES(네트워크 우선)로 둔다 —
 // HEAVY_FILES(캐시 우선)에 있으면, 서비스워커가 갱신되는 그 페이지 로드에서조차
