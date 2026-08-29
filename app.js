@@ -583,6 +583,64 @@ window.downloadWantedTemplate = async function () {
 };
 
 // 결과 화면의 다운로드 두 개 — 어느 판이냐에 따라 받는 방법이 다르다(platform.js).
+// 엑셀에서 고친 월간근무표를 되올린다 — 재생성 없이 그 값 그대로 화면에 반영.
+// 올린 직후에만 '즉시/재생성' 두 갈래를 띄우기 위한 표시(회차가 바뀌면 사라진다).
+let uploadedMonthAt = 0;
+
+window.uploadMonth = () => $("#monthInput").click();
+
+window.downloadBothOutputs = async function () {
+  await apiDownload("xlsx_ocs");
+  await apiDownload("staff_table");
+};
+
+window.regenerateThenDownload = async function () {
+  showGenOverlay("고친 칸은 두고 나머지를 다시 짜는 중입니다…");
+  if (lastStaffing && lastStaffing.level && lastStaffing.level !== "ok") {
+    markGenOverlaySlow("인원이 빠듯해 평소보다 오래 걸립니다 — 다시 계산 중입니다…");
+  }
+  const before = (ST && ST.grid) || {};
+  try {
+    ST = await api("/api/regenerate", { method: "POST" });
+    let moved = 0;
+    for (const sid in ST.grid) {
+      const a = before[sid];
+      if (!a) continue;
+      const b = ST.grid[sid];
+      for (let i = 0; i < b.length; i++) if (a[i] !== b[i]) moved++;
+    }
+    uploadedMonthAt = 0;
+    render();
+    showToast(`${ST.round}회차로 재생성 완료 — ${moved}칸 바뀜`);
+    await downloadBothOutputs();
+  } catch (e) {
+  } finally {
+    hideGenOverlay();
+  }
+};
+
+window.applyUploadedMonth = async function (f) {
+  showGenOverlay("올린 근무표를 화면에 반영하는 중입니다…");
+  const before = (ST && ST.grid) || {};
+  try {
+    const next = await apiUpload("/api/upload_month", f);
+    let moved = 0;
+    for (const sid in next.grid) {
+      const a = before[sid];
+      if (!a) continue;
+      const b = next.grid[sid];
+      for (let i = 0; i < b.length; i++) if (a[i] !== b[i]) moved++;
+    }
+    ST = next;
+    uploadedMonthAt = Date.now();
+    render();
+    showToast(moved ? `${moved}칸을 화면에 반영했습니다` : "바뀐 칸이 없습니다");
+  } catch (e) {
+  } finally {
+    hideGenOverlay();
+  }
+};
+
 window.downloadXlsxOcs = () => apiDownload("xlsx_ocs");
 window.downloadStaffTable = () => apiDownload("staff_table");
 
@@ -993,6 +1051,15 @@ function renderUploadMessages(statusEl, data) {
   if (data.unclear) add("upload-unclear", "\u26A0", data.unclear);
   if (data.notice) add("upload-notice", "\u2714", data.notice);
 }
+
+$("#monthInput").onchange = async () => {
+  const el = $("#monthInput");
+  const f = el.files[0];
+  // 같은 파일을 고쳐서 다시 올리는 일이 잦다 — 값을 비워두지 않으면 onchange가
+  // 안 걸려 "올렸는데 아무 일도 안 일어난다"가 된다.
+  el.value = "";
+  if (f) await applyUploadedMonth(f);
+};
 
 $("#wantedInput").onchange = async () => {
   const f = $("#wantedInput").files[0];
@@ -2102,6 +2169,26 @@ function renderSide() {
     ? '<p class="hint">적용 안 한 편집이 있습니다 — "재생성 적용"을 눌러야 다운로드할 수 있습니다.</p>'
     : '<p class="hint">출력②(연간근무표)를 보관해두면 다음 달에 <b>입력②</b>로 그대로 올려 이월정보를 이어갈 수 있습니다.</p>'}
   </div>`;
+
+  // 엑셀에서 고친 월간근무표를 되올리는 자리. 다운로드 바로 아래에 둔다 —
+  // 내려받아 고쳐서 되올리는 한 흐름이라 두 버튼이 떨어져 있으면 찾지 못한다.
+  html += `<div class="side-sec"><h3>수정 엑셀 파일 업로드</h3>
+    <button class="wide" onclick="uploadMonth()">수정 엑셀 파일 업로드</button>
+    <p class="hint">내려받아 엑셀에서 고친 <b>출력① 월간근무표</b>를 올리면 그 값 그대로
+    화면에 반영되고, 바뀐 칸은 확정(고정)으로 잠깁니다.</p>`;
+  if (uploadedMonthAt) {
+    // 올린 직후에만 두 갈래를 띄운다. 평소에 늘 떠 있으면 '재생성'이 눌리기 쉬운데,
+    // 그건 고정 칸 말고는 표 전체를 다시 짜는 동작이라 되돌릴 수 없다.
+    html += `<div class="upload-branch">
+      <p class="branch-title">올린 수정본이 반영되었습니다 — 이제 어떻게 할까요?</p>
+      <button class="wide" onclick="downloadBothOutputs()">① 즉시 다운로드</button>
+      <p class="hint">고친 그대로 출력①·출력②를 내려받습니다. <b>다시 계산하지 않습니다.</b></p>
+      <button class="wide" onclick="regenerateThenDownload()">② 재생성 후 다운로드</button>
+      <p class="hint">고친 칸은 그대로 두고 <b>나머지를 규칙에 맞게 다시 짭니다</b> —
+      고정하지 않은 칸은 사람이 바뀔 수 있습니다.</p>
+    </div>`;
+  }
+  html += "</div>";
 
   // 입력 요약
   const ps = ST.params_summary;

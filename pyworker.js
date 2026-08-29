@@ -52,6 +52,7 @@ function callBridge(path, opts) {
     case "/api/upload_prev_month": return bridge.api_upload_prev_month(opts._fileBytes);
     case "/api/upload_wanted": return bridge.api_upload_wanted(opts._fileBytes);
     case "/api/upload_staff_table": return bridge.api_upload_staff_table(opts._fileBytes);
+    case "/api/upload_month": return bridge.api_upload_month(opts._fileBytes);
     case "/api/staff_table_status": return bridge.api_staff_table_status();
     case "/api/clear_staff_table": return bridge.api_clear_staff_table();
     case "/api/set_config": return bridge.api_set_config(opts.body);
@@ -63,6 +64,7 @@ function callBridge(path, opts) {
     case "/api/discard": return bridge.api_discard();
     case "/api/feedback": return bridge.api_feedback();
     case "/api/apply": return bridge.api_apply();
+    case "/api/regenerate": return bridge.api_regenerate();
     case "/api/finalize": return bridge.api_finalize(opts.body || "");
     case "/api/annual": return bridge.api_annual();
     case "/api/_bootstrap_history": return bridge.bootstrap_history(opts.body);
