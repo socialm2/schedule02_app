@@ -467,6 +467,12 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 적용으로 확정한 뒤 다시 눌러야 받을 수 있습니다.</li>
 <li><b>다운로드</b> — <b>월간근무표</b>(병원 OCS 형식, 부서 배포·기록용)와 <b>연간근무표</b>(다음 달
 입력②로 바로 재사용 — 이월정보·형평성 지표가 여기 하나로 이어짐) 두 파일을 꼭 둘 다 받아 보관하세요.</li>
+<li><b>수정 엑셀 파일 업로드</b> — 내려받은 <b>출력① 월간근무표</b>를 엑셀에서 고쳐 그대로 올리면
+<b>다시 계산하지 않고</b> 그 값이 화면에 들어옵니다(엑셀에서 손으로 맞춘 배치를 재생성이
+갈아엎지 않게). 바뀐 칸은 확정(고정)으로 잠기고, 규칙 위반이 생겨도 막지 않고 표시만 합니다.
+행을 지우거나 더하지 말고 <b>근무 칸만</b> 고쳐주세요 — 다른 달·다른 명단 파일은 반려됩니다.
+올린 직후에만 <b>① 즉시 다운로드</b>(고친 그대로)와 <b>② 재생성 후 다운로드</b>(고친 칸은 두고
+나머지를 다시 배정) 두 갈래가 뜹니다.</li>
 </ul>
 
 <h3>위반이 어느 칸인지 — 모서리 삼각형</h3>
@@ -584,13 +590,25 @@ window.downloadWantedTemplate = async function () {
 
 // 결과 화면의 다운로드 두 개 — 어느 판이냐에 따라 받는 방법이 다르다(platform.js).
 // 엑셀에서 고친 월간근무표를 되올린다 — 재생성 없이 그 값 그대로 화면에 반영.
-// 올린 직후에만 '즉시/재생성' 두 갈래를 띄우기 위한 표시(회차가 바뀌면 사라진다).
-let uploadedMonthAt = 0;
+// 올린 직후에만 '즉시/재생성' 두 갈래를 띄운다. 그 '직후'를 시각이 아니라 **회차**로
+// 잡는다 — 시각으로 잡았더니 한 번 올린 뒤로는 생성·재생성·되돌리기를 해도 배너가
+// 계속 떠 있었고, "올린 수정본이 반영되었습니다"라는 문구가 사실이 아닌 채로 남았다.
+// 늘 떠 있으면 '② 재생성'이 눌리기 쉬운데 그건 고정 칸 말고 표 전체를 다시 짜는,
+// 되돌릴 수 없는 동작이다.
+let uploadedMonthRound = -1;
+const monthUploadJustApplied = () => ST && ST.round === uploadedMonthRound;
 
 window.uploadMonth = () => $("#monthInput").click();
 
 window.downloadBothOutputs = async function () {
+  // 기존 다운로드 버튼 두 개는 필수 위반이 남아 있으면 한 번 묻는다. 이 분기만
+  // 그 확인을 안 거치면, 새로 생긴 길로는 못 채운 칸이 있는 근무표가 아무 경고 없이
+  // 나간다 — 같은 파일을 받는 동작이 어느 버튼을 눌렀느냐로 갈리면 안 된다.
+  if (!confirmDownloadWithViolations()) return;
   await apiDownload("xlsx_ocs");
+  // 두 번째를 곧바로 시작하지 않고 한 박자 쉰다. 브라우저에 따라 짧은 간격의 연속
+  // 다운로드를 하나로 묶거나 두 번째를 막는다 — 그러면 출력①만 받고 끝난 줄 안다.
+  await new Promise(r => setTimeout(r, 400));
   await apiDownload("staff_table");
 };
 
@@ -609,7 +627,7 @@ window.regenerateThenDownload = async function () {
       const b = ST.grid[sid];
       for (let i = 0; i < b.length; i++) if (a[i] !== b[i]) moved++;
     }
-    uploadedMonthAt = 0;
+    uploadedMonthRound = -1;
     render();
     showToast(`${ST.round}회차로 재생성 완료 — ${moved}칸 바뀜`);
     await downloadBothOutputs();
@@ -623,6 +641,7 @@ window.applyUploadedMonth = async function (f) {
   showGenOverlay("올린 근무표를 화면에 반영하는 중입니다…");
   const before = (ST && ST.grid) || {};
   try {
+    const beforeB = (ST && ST.team_b_grid) || {};
     const next = await apiUpload("/api/upload_month", f);
     let moved = 0;
     for (const sid in next.grid) {
@@ -631,8 +650,15 @@ window.applyUploadedMonth = async function (f) {
       const b = next.grid[sid];
       for (let i = 0; i < b.length; i++) if (a[i] !== b[i]) moved++;
     }
+    // 신입(B팀) 행은 엔진 grid에 없다 — 여기서 안 세면 신입만 고친 파일을 올렸을 때
+    // "바뀐 칸이 없습니다"가 떠서, 반영은 됐는데 안 된 것처럼 보인다.
+    for (const name in next.team_b_grid || {}) {
+      const a = beforeB[name] || [];
+      const b = next.team_b_grid[name] || [];
+      for (let i = 0; i < b.length; i++) if ((a[i] || "") !== (b[i] || "")) moved++;
+    }
     ST = next;
-    uploadedMonthAt = Date.now();
+    uploadedMonthRound = next.round;
     render();
     showToast(moved ? `${moved}칸을 화면에 반영했습니다` : "바뀐 칸이 없습니다");
   } catch (e) {
@@ -2176,7 +2202,7 @@ function renderSide() {
     <button class="wide" onclick="uploadMonth()">수정 엑셀 파일 업로드</button>
     <p class="hint">내려받아 엑셀에서 고친 <b>출력① 월간근무표</b>를 올리면 그 값 그대로
     화면에 반영되고, 바뀐 칸은 확정(고정)으로 잠깁니다.</p>`;
-  if (uploadedMonthAt) {
+  if (monthUploadJustApplied()) {
     // 올린 직후에만 두 갈래를 띄운다. 평소에 늘 떠 있으면 '재생성'이 눌리기 쉬운데,
     // 그건 고정 칸 말고는 표 전체를 다시 짜는 동작이라 되돌릴 수 없다.
     html += `<div class="upload-branch">
