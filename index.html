@@ -48,7 +48,7 @@
   <!-- .build-time 값은 배포할 때 GitHub Actions가 실제 배포 시각(KST)으로
        바꿔 넣는다(.github/workflows/deploy.yml). 손으로 고칠 필요 없다. -->
   <header>
-    <h1>SMC Fair Shift <span class="version-badge">v0.83</span><span class="build-time">2026-08-30 09:46:53 KST</span></h1>
+    <h1>SMC Fair Shift <span class="version-badge">v0.83</span><span class="build-time">2026-08-30 11:34:03 KST</span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
@@ -96,7 +96,7 @@
                   <select id="f_month"></select>
                 </span>
               </label>
-              <label>월 최대야간 <input type="number" id="f_maxnights" placeholder="0" style="width:60px"></label>
+              <label>월 최대야간 <input type="number" id="f_maxnights" min="0" placeholder="0" style="width:60px"></label>
               <label>연속근무제한 <input type="number" id="f_maxconsecutive" min="1" placeholder="0" style="width:60px"></label>
               <label>야간목표하한 <input type="number" id="f_nightquota_low" min="0" placeholder="0" style="width:60px"></label>
               <label>야간목표상한 <input type="number" id="f_nightquota_high" min="0" placeholder="0" style="width:60px"></label>
@@ -161,7 +161,7 @@
               </div>
               <span id="staffSummary" class="hint"></span>
               <div class="upload-row">
-                <input type="file" id="wantedInput" accept=".xlsx" class="file-input-hidden">
+                <input type="file" id="wantedInput" accept=".xlsx" class="file-input-hidden" tabindex="-1">
                 <button type="button" class="upload-btn" data-target="wantedInput">업로드</button>
                 <button type="button" class="upload-btn format-btn" onclick="downloadWantedTemplate()">양식(다운로드)</button>
               </div>
@@ -173,7 +173,7 @@
               <div class="upload-item-label">입력② 연간근무표 <span class="hint">전월 연간근무표(출력②)를 올리세요 — 처음 쓰는 달이면 OCS 지난달 근무표도 됩니다</span></div>
               <p class="hint" id="staffTableActive" style="display:none"></p>
               <div class="upload-row">
-                <input type="file" id="staffTableInput" accept=".xlsx" class="file-input-hidden">
+                <input type="file" id="staffTableInput" accept=".xlsx" class="file-input-hidden" tabindex="-1">
                 <button type="button" class="upload-btn" data-target="staffTableInput">업로드</button>
                 <button type="button" class="upload-btn format-btn" data-href="templates/입력2_연간근무표_2026-08.xlsx" data-download="입력2_연간근무표_2026-08.xlsx">양식(다운로드)</button>
               </div>
@@ -211,7 +211,7 @@
 
 <!-- 출력 화면의 "월간근무표 올리기" — 숨은 파일 칸. 접었다 폈다 하는 영역 안에
      두면 그 영역이 닫혀 있을 때 브라우저가 클릭을 무시할 수 있어 바깥에 둔다. -->
-<input type="file" id="monthInput" accept=".xlsx" class="file-input-hidden">
+<input type="file" id="monthInput" accept=".xlsx" class="file-input-hidden" tabindex="-1">
 <div class="toast" id="toast"></div>
 <!-- platform.js가 먼저다 — app.js가 시작하자마자 부르는 api()·bootPlatform()이
      여기 들어 있다(로컬 웹앱판/브라우저판이 다르게 구현한 다섯 가지). -->

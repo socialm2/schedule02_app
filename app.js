@@ -1664,6 +1664,7 @@ function render(opts) {
   updateInfoLabel(true);
   renderGrid();
   renderSide();
+  restorePendingFocus();
   if (pos) {
     restoreScroll(pos);
     // 표가 커서 레이아웃이 한 박자 늦게 끝나거나(40명 × 31일), 브라우저의 스크롤
@@ -1827,7 +1828,11 @@ function renderGrid() {
       // 잠겨 있어 파트장이 쉬는 날을 근무표에 넣을 방법이 아예 없었다.
       // 고를 수 있는 것은 휴가 계열과 8A뿐이다(D/E/N은 파트장 자리가 아니다 —
       // openPicker에서 거르고, 서버도 같은 기준으로 한 번 더 막는다).
-      html += `<td class="${cls.join(" ")}" data-sid="${escAttr(s.id)}" data-day="${d}"${title} data-pick="1">` +
+      // 마우스 없이도 고칠 수 있어야 한다 — 예전엔 td에 클릭만 걸려 있어 키보드만
+      // 쓰는 사람은 이 앱의 핵심 기능(칸 수정)에 아예 닿을 수 없었다.
+      const aria = `${s.id} ${d + 1}일 ${shiftText(v, isWanted) || "빈칸"}`;
+      html += `<td class="${cls.join(" ")}" data-sid="${escAttr(s.id)}" data-day="${d}"${title}` +
+              ` data-pick="1" tabindex="0" role="button" aria-label="${escAttr(aria)}">` +
               `<span>${esc(shiftText(v, isWanted))}</span></td>`;
     }
     html += `<td class="stat-col">${dCnt}</td><td class="stat-col">${eCnt}</td><td class="stat-col">${nCnt}</td>` +
@@ -1850,7 +1855,9 @@ function renderGrid() {
         // 신입 칸은 파트장이 직접 채운다 — 엔진이 배정하지 않으므로 고쳐도 다시 계산할
         // 것이 없고, 그래서 '미적용 편집'으로 쌓지 않고 바로 반영한다(data-teamb).
         html += `<td class="cell ${shiftClass(v)}" data-sid="${escAttr(name)}" data-day="${d}"` +
-                ` data-teamb="1" data-pick="1"><span>${esc(shiftText(v))}</span></td>`;
+                ` data-teamb="1" data-pick="1" tabindex="0" role="button"` +
+                ` aria-label="${escAttr(`${name} ${d + 1}일 ${shiftText(v) || "빈칸"}`)}">` +
+                `<span>${esc(shiftText(v))}</span></td>`;
       }
       html += `<td class="stat-col">–</td><td class="stat-col">–</td><td class="stat-col">–</td>` +
         `<td class="stat-col">–</td><td class="stat-col">–</td><td class="stat-col">–</td><td class="stat-col">–</td>`;
@@ -2008,6 +2015,14 @@ function renderDailyLevelFootRows() {
 // 상위 컨테이너에 한 번만 리스너를 건다(다시 그려도 계속 동작한다).
 delegateClick(document.getElementById("gridContent"), 'td[data-pick="1"]',
   (td, ev) => openPicker(ev, td.dataset.sid, Number(td.dataset.day)));
+// 키보드로도 같은 자리를 연다. 클릭과 마찬가지로 상위 컨테이너에 한 번만 건다.
+document.getElementById("gridContent").addEventListener("keydown", (ev) => {
+  if (ev.key !== "Enter" && ev.key !== " ") return;
+  const td = ev.target.closest('td[data-pick="1"]');
+  if (!td) return;
+  ev.preventDefault();                     // Space가 화면을 스크롤하지 않게
+  openPicker(ev, td.dataset.sid, Number(td.dataset.day));
+});
 delegateClick(document.getElementById("sidePane"), "button.undo-edit",
   (b) => undoEdit(b.dataset.sid, Number(b.dataset.day)));
 delegateClick(document.getElementById("holidayCalendar"), "td[data-iso]",
@@ -2034,6 +2049,12 @@ window.openPicker = function (ev, sid, day) {
 
   const div = document.createElement("div");
   div.className = "picker";
+  // 마우스 없이도 닫고 고를 수 있어야 한다 — 역할을 밝히고, 열 때 첫 버튼으로 포커스를
+  // 옮기고, Esc로 닫으면 누른 칸으로 되돌린다. 안 하면 키보드 사용자는 이 상자를
+  // 열자마자 갇힌다(배경이 그대로 조작되고, 닫을 방법도 없다).
+  div.setAttribute("role", "dialog");
+  div.setAttribute("aria-modal", "true");
+  div.setAttribute("aria-label", `${sid} ${day + 1}일 근무 고르기`);
   div.style.left = Math.min(rect.left, window.innerWidth - 230) + "px";
   div.style.top = (rect.bottom + 4) + "px";
   for (const sh of ALL_SHIFTS) {
@@ -2052,6 +2073,9 @@ window.openPicker = function (ev, sid, day) {
     div.appendChild(b);
   }
   document.body.appendChild(div);
+  trapPickerKeys(div);
+  const first = div.querySelector("button");
+  if (first) first.focus();
   picker = div;
   pickerCell = td;
   td.classList.add("picking");
@@ -2059,8 +2083,48 @@ window.openPicker = function (ev, sid, day) {
   setTimeout(() => document.addEventListener("click", closePicker, { once: true }), 0);
 };
 function closePicker() {
+  // 포커스를 상자 안에 둔 채로 지우면 body로 튄다 — 그러면 키보드 사용자는 다음 칸으로
+  // 갈 수가 없다. 누른 칸으로 되돌리되, **노드가 아니라 좌표로** 되돌린다: 근무를 고르면
+  // 표가 통째로 다시 그려져 그 td는 이미 다른 노드다(잡아둔 참조는 화면 밖 것이 된다).
+  const inside = picker && picker.contains(document.activeElement);
+  const back = inside && pickerCell
+    ? { sid: pickerCell.dataset.sid, day: pickerCell.dataset.day } : null;
   if (picker) { picker.remove(); picker = null; }
   if (pickerCell) { pickerCell.classList.remove("picking"); pickerCell = null; }
+  if (back) focusCell(back.sid, back.day);
+}
+
+// 근무를 고르면 stageEdit가 서버를 다녀온 뒤 표를 통째로 다시 그린다 — 그 사이 잡아둔
+// td는 화면 밖 노드가 된다. 그래서 좌표만 남겨두고 **다시 그린 다음** 되돌린다.
+// 안 하면 한 칸 고칠 때마다 포커스가 body로 튀어 키보드로는 다음 칸에 갈 수가 없다.
+let pendingFocus = null;
+
+function focusCell(sid, day) {
+  pendingFocus = { sid, day };
+  restorePendingFocus();
+}
+
+function restorePendingFocus() {
+  if (!pendingFocus) return;
+  const el = document.querySelector(
+    `td[data-pick="1"][data-sid="${CSS.escape(pendingFocus.sid)}"]` +
+    `[data-day="${CSS.escape(pendingFocus.day)}"]`);
+  if (el) el.focus();
+}
+
+function trapPickerKeys(div) {
+  div.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape") { ev.preventDefault(); closePicker(); return; }
+    if (ev.key !== "Tab") return;
+    // Tab이 상자 밖으로 나가면 배경을 조작하게 된다 — 안에서 돌게 한다.
+    const btns = [...div.querySelectorAll("button")];
+    if (!btns.length) return;
+    const i = btns.indexOf(document.activeElement);
+    const next = ev.shiftKey ? (i <= 0 ? btns.length - 1 : i - 1)
+                             : (i === btns.length - 1 ? 0 : i + 1);
+    ev.preventDefault();
+    btns[next].focus();
+  });
 }
 
 async function stageEdit(sid, day, shift, isTeamB) {

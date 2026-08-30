@@ -38,6 +38,7 @@ async function sha256Hex(text) {
   try { alreadyIn = localStorage.getItem(AUTH_KEY) === "1"; } catch (e) { alreadyIn = false; }
   if (alreadyIn) {
     gate.style.display = "none";
+    showSignOut();
     return;
   }
   // crypto.subtle은 보안 컨텍스트(https 또는 localhost)에서만 존재한다. 사내망에 http로
@@ -62,6 +63,7 @@ async function sha256Hex(text) {
     if (hash === AUTH_HASH) {
       try { localStorage.setItem(AUTH_KEY, "1"); } catch (err) { /* 다음에 또 물어볼 뿐 */ }
       gate.style.display = "none";
+      showSignOut();
     } else {
       document.getElementById("authError").style.display = "";
       input.value = "";
@@ -69,6 +71,26 @@ async function sha256Hex(text) {
     }
   });
 })();
+
+// 한 번 들어오면 브라우저 데이터를 지우기 전까지 계속 들어와 있다 — 공용 PC에서
+// 다음 사람이 그대로 열 수 있다는 뜻이다. 나갈 방법을 화면에 둔다.
+// (인증 자체가 이 브라우저 안에서만 이뤄지므로 이건 '조심해서 쓰는 길'이지 접근통제가
+//  아니다. 진짜 통제는 서버·엣지 쪽에서 해야 한다 — 보안 안내에 그렇게 적혀 있다.)
+function showSignOut() {
+  if (document.getElementById("signOutBtn")) return;
+  const host = document.querySelector("header h1") || document.body;
+  const b = document.createElement("button");
+  b.id = "signOutBtn";
+  b.type = "button";
+  b.className = "sign-out";
+  b.textContent = "잠금";
+  b.title = "이 브라우저에서 나갑니다 — 다음에 열면 비밀번호를 다시 묻습니다";
+  b.onclick = () => {
+    try { localStorage.removeItem(AUTH_KEY); } catch (e) { /* 아래에서 새로고침 */ }
+    location.reload();
+  };
+  host.appendChild(b);
+}
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
