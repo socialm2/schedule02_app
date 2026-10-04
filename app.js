@@ -303,7 +303,7 @@ const INFO_SHIFT_LEGEND = `
 <h3>근무 색상</h3>
 <ul>
 <li><span class="kbd">D</span> 주간 · <span class="kbd">E</span> 저녁 · <span class="kbd">N</span> 야간 ·
-<span class="kbd">NK</span> 야간전담 · <span class="kbd">prn</span> 정규 · <span class="kbd">8A</span>/<span class="kbd">9A</span> 파트장·리더 상근 ·
+<span class="kbd">NK</span> 야간전담 · <span class="kbd">prn</span> 정규 · <span class="kbd">8A</span>/<span class="kbd">9A</span>/<span class="kbd">10A</span> 오전 상근(prn으로 셉니다) ·
 <span class="kbd">연차</span> · <span class="kbd">S/</span> 수면오프 · <span class="kbd">TW</span> 반근무+반교육 · <span class="kbd">군</span> 군공가 ·
 <span class="kbd">/</span> 일반오프 · <span class="kbd">X</span> 원티드오프</li>
 </ul>
@@ -317,6 +317,8 @@ const INFO_RULES = `
 야간 후 반드시 휴식 2일</li>
 <li>연속근무 5일 이하, 저녁(E) 다음날 주간/정규 근무 금지</li>
 <li>월 최소 휴무일수 확보, NK 전담자는 월 15일(2월 14일) 야간 고정</li>
+<li>쉬는 날이 <b>연속 14일을 넘지 않음</b> — 원티드표에 15일 넘게 이어 적으면
+15일째부터 반려됩니다(앞의 14일은 반영)</li>
 <li>임부·야간불가 인력 야간 배정 금지</li>
 </ul>
 
