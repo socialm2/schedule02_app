@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SMC Fair Shift — 상세 사용가이드 (v0.83)</title>
+<title>SMC Fair Shift — 상세 사용가이드 (v0.84)</title>
 <style>
 :root {
   --paper: #F7F8F6; --ink: #1C2523; --sub: #5A6763; --accent: #0F6E6B;
@@ -60,7 +60,7 @@ footer { margin-top: 68px; padding-top: 20px; border-top: 1px solid var(--line);
 
 <header class="doc">
   <p class="eyebrow">Step-by-Step Guide</p>
-  <h1>SMC Fair Shift — 상세 사용가이드 (v0.83)</h1>
+  <h1>SMC Fair Shift — 상세 사용가이드 (v0.84)</h1>
   <div class="meta">
     <span>대상 <b>병동 파트장</b></span>
     <span>소요시간 <b>처음이면 10분, 익숙해지면 1분</b></span>
@@ -121,6 +121,11 @@ footer { margin-top: 68px; padding-top: 20px; border-top: 1px solid var(--line);
 오류가 아니라 안내라서 생성은 그대로 되고, 표준 표기만 쓴 파일에서는 아예 뜨지 않는다.
 <b>다음 달에는 화살표 오른쪽 표기로 적는 편이 안전하다</b> — 관대함이 닿지 않는 값을 만나면
 그때는 반려되는데, 지난달엔 되던 것이 왜 안 되는지 알기 어렵기 때문이다.</p>
+<p class="tip"><b>연속 오프는 14일까지만 받는다.</b> 원티드표에 쉬는 날을 15일 넘게
+이어 적으면 <b>15일째부터 반려</b>된다(앞의 14일은 그대로 반영된다). 업로드 결과에
+"연속 휴무가 14일을 넘습니다"로 이유가 뜨니, 더 쉬어야 하면 구간을 나눠 적으면 된다.
+한 행에 오프 표시를 실수로 쭉 붙여넣은 경우도 여기서 걸린다.</p>
+
 <p class="tip"><b>표준 표기</b> — 근무: <code>D</code> <code>E</code> <code>N</code>
 <code>NK</code> <code>8A</code> <code>9A</code> <code>10A</code> <code>prn</code>
 <code>T</code> <code>TW</code>(원티드 근무는 뒤에 <code>*</code>) · 오프: <code>X</code> ·
@@ -253,7 +258,7 @@ D/E/N/prn 요일별 최소 필요 인원) 칸은 생성 전에 눈으로 한 번
 생성만큼 시간이 걸릴 수 있다(인원 수가 많아서가 아니다). 편집을 취소하고 싶으면 "전체 취소"를 누르면 되고, "입력으로 돌아가기"를
 누르면 수정 내역이 전부 사라지고 처음부터 다시 시작하니 주의.</p>
 <p>누른 칸에는 강조 테두리가 생긴다 — 피커가 칸에서 떨어져 떠서, 표시가 없으면 어느 칸을 고르는지 모른다.
-<b>파트장 행</b>은 D·E·N·NK·prn만 고를 수 없고, 연차·병가·교육·8A 등은 넣을 수 있다(평일 상근으로 되돌리려면 8A).
+<b>파트장 행</b>은 D·E·N·NK·prn만 고를 수 없고, 연차·병가·교육·8A 등은 넣을 수 있다(평일 상근으로 되돌리려면 8A). <b>8A·9A·10A는 주말·공휴일에도 넣을 수 있다</b> — 자동으로 채워지는 것은 평일뿐이지만, 주말에 서야 하면 칸을 눌러 바꾸거나 원티드표에 적으면 된다. 간호사도 가능근무에 <code>8A</code>를 적어두면 설 수 있고, 그 칸은 <b>prn 인원으로 센다</b>.
 <b>B팀(신입) 행</b>은 칸을 눌러 바로 넣으며 미적용 목록에 쌓이지 않고, 재생성해도 사라지지 않는다.</p>
 </div>
 
@@ -287,7 +292,7 @@ D/E/N/prn 요일별 최소 필요 인원) 칸은 생성 전에 눈으로 한 번
 확정한 근무표는 꼭 엑셀로 다운로드해서 따로 보관해두자.</p>
 </div>
 
-<footer>SMC Fair Shift 프로그램 · 상세 사용가이드 (v0.83) · 압축 1장 요약은 <a href="one-pager.html">원페이지</a> · 접속
+<footer>SMC Fair Shift 프로그램 · 상세 사용가이드 (v0.84) · 압축 1장 요약은 <a href="one-pager.html">원페이지</a> · 접속
 비밀번호·데이터 보안은 <a href="security.html">보안안내</a> · <a href="../index.html">앱으로 돌아가기</a></footer>
 </div>
 </body>
