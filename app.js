@@ -1899,19 +1899,32 @@ const LEVEL_SHIFT_KEY = { D: "D", E: "E", N: "N", NK: "N" };
 // 고랩 유무 판정에는 온전히 들어간다. 0.5는 아래 인원 수에서만 쓴다.
 for (const c of PRN_FULL_CODES.concat(PRN_HALF_CODES)) LEVEL_SHIFT_KEY[c] = "prn";
 
+// 근무조(D/E/N)마다 따로 낸다. 예전엔 그날 근무자 전체를 섞어 평균 하나만 보여줬는데,
+// 조마다 숙련도 구성이 다르므로 섞으면 **어느 조가 얇은지 안 보인다** — 평균이 3.1이어도
+// 그날 E조는 전원 저연차일 수 있다. H1-5(그 조에 Lv4+ 1명)가 근무별로 걸리는 규칙이니
+// 화면도 근무별이어야 파트장이 고칠 자리를 찾는다.
+// prn은 레벨 줄에 따로 두지 않는다 — H1-5가 prn을 보지 않고(시간대가 짧다), 줄만 늘어난다.
 function computeDailyLevelStats() {
   const generals = ST.staff.filter(s => !s.is_partjang);
   const days = [];
   for (let d = 0; d < ST.num_days; d++) {
-    const levels = [];
+    const byKey = { D: [], E: [], N: [] };
+    const all = [];
     for (const s of generals) {
-      const v = ST.grid[s.id][d];
-      if (LEVEL_SHIFT_KEY[v]) levels.push(s.level);
+      const k = LEVEL_SHIFT_KEY[ST.grid[s.id][d]];
+      if (!k) continue;
+      all.push(s.level);
+      if (byKey[k]) byKey[k].push(s.level);
     }
+    const avg = (a) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
     days.push({
-      avg: levels.length ? levels.reduce((a, b) => a + b, 0) / levels.length : null,
-      hi: levels.filter(l => l >= 4).length,
-      lo: levels.filter(l => l <= 3).length,
+      D: avg(byKey.D), E: avg(byKey.E), N: avg(byKey.N),
+      // 그 조에 Lv4+가 하나도 없으면 H1-5 위반이다 — 칸을 빨갛게 해서 바로 보이게 한다.
+      short: { D: byKey.D.length > 0 && !byKey.D.some(l => l >= 4),
+               E: byKey.E.length > 0 && !byKey.E.some(l => l >= 4),
+               N: byKey.N.length > 0 && !byKey.N.some(l => l >= 4) },
+      hi: all.filter(l => l >= 4).length,
+      lo: all.filter(l => l <= 3).length,
     });
   }
   return days;
@@ -1953,9 +1966,20 @@ function computeFootValues() {
   const lv = computeDailyLevelStats();
   const out = {};
   for (const k of COUNT_ROWS) out[k] = counts.map(c => String(c[k]));
-  out["레벨평균"] = lv.map(d => (d.avg === null ? "–" : d.avg.toFixed(1)));
+  for (const k of ["D", "E", "N"]) {
+    out[`${k} 레벨`] = lv.map(d => (d[k] === null ? "–" : d[k].toFixed(1)));
+  }
   out["Lv4-5"] = lv.map(d => String(d.hi));
   out["Lv1-3"] = lv.map(d => String(d.lo));
+  return out;
+}
+
+// 그 날 그 조에 Lv4+가 없는지 — 레벨 줄을 빨갛게 칠할지 판단용(H1-5).
+function computeLevelShortFlags() {
+  const lv = computeDailyLevelStats();
+  const out = {};
+  for (const k of ["D", "E", "N"]) out[`${k} 레벨`] = lv.map(d => d.short[k]);
+  for (const k of ["Lv4-5", "Lv1-3"]) out[k] = lv.map(() => false);
   return out;
 }
 
@@ -1991,6 +2015,7 @@ function renderDailyStaffCountRows(foot) {
 
 function renderDailyLevelFootRows() {
   const foot = computeFootValues();
+  const shortFlags = computeLevelShortFlags();
   const blankTail = '<td class="stat-col">–</td>'.repeat(7);
   const blankHead = '<td class="stat-col">–</td><td class="stat-col">–</td>';
   // 레벨평균·Lv4-5·Lv1-3도 인원 행과 똑같이 다룬다. 근무를 하나 바꾸면 그날 누가
@@ -2000,9 +2025,11 @@ function renderDailyLevelFootRows() {
     `<tr class="level-foot-row"><td class="nm">${label}</td>${blankHead}` +
     foot[label].map((v, d) => {
       const moved = BASE_FOOT && BASE_FOOT[label] && BASE_FOOT[label][d] !== v;
-      const title = moved
-        ? ` title="${escAttr(`${d + 1}일 ${label} 수정 전 ${BASE_FOOT[label][d]} → 지금 ${v}`)}"` : "";
-      return `<td class="stat-col${moved ? " count-changed" : ""}" ` +
+      const isShort = shortFlags[label] && shortFlags[label][d];
+      const tip = (isShort ? `${d + 1}일 ${label.slice(0, 1)}조에 숙련도 4 이상이 없습니다` : "")
+        + (moved ? `${isShort ? " · " : ""}${d + 1}일 ${label} 수정 전 ${BASE_FOOT[label][d]} → 지금 ${v}` : "");
+      const title = tip ? ` title="${escAttr(tip)}"` : "";
+      return `<td class="stat-col${moved ? " count-changed" : ""}${isShort ? " short" : ""}" ` +
              `data-stat="${label}" data-day="${d}"${title}>${v}</td>`;
     }).join("") + `${blankTail}</tr>`;
   // B팀 구분행과 같은 스타일로, 통계 3행 위에도 제목 행을 붙인다.
@@ -2010,7 +2037,8 @@ function renderDailyLevelFootRows() {
   const divider = `<tr class="team-b-divider"><td colspan="${totalCols}">통계</td></tr>`;
   return divider +
     renderDailyStaffCountRows(foot) +
-    rowHtml("레벨평균") + rowHtml("Lv4-5") + rowHtml("Lv1-3");
+    rowHtml("D 레벨") + rowHtml("E 레벨") + rowHtml("N 레벨") +
+    rowHtml("Lv4-5") + rowHtml("Lv1-3");
 }
 
 // 그리드·사이드 패널·공휴일 달력은 통째로 다시 그려지므로, 개별 요소가 아니라 바뀌지 않는
