@@ -1808,7 +1808,11 @@ function renderGrid() {
     // 찾을 수 있는 유일한 단서라서다.
     const desigMark = s.is_designated
       ? '<span class="desig-mark" title="지정 가능(가능근무에 &#39;지정&#39;)">지</span>' : "";
-    html += `<tr><td class="nm">${esc(s.id)}${desigMark}` +
+    // 야간리더도 같은 이유로 이름 옆에 단다 — N조 레벨 줄이 빨개졌을 때 누구를
+    // 밤에 넣으면 풀리는지 찾을 단서가 이것뿐이다.
+    const nlMark = s.is_night_leader
+      ? '<span class="desig-mark nl-mark" title="야간리더 — 이 사람이 선 밤은 숙련도 4 이상 조건을 채운 것으로 봅니다">밤</span>' : "";
+    html += `<tr><td class="nm">${esc(s.id)}${desigMark}${nlMark}` +
       `<span class="role">${s.role} Lv${s.level}</span></td>` +
       `<td class="stat-col">${offBefore}</td><td class="stat-col">${offAfter}</td>`;
     for (let d = 0; d < ST.num_days; d++) {
@@ -1910,19 +1914,24 @@ function computeDailyLevelStats() {
   for (let d = 0; d < ST.num_days; d++) {
     const byKey = { D: [], E: [], N: [] };
     const all = [];
+    let nightLeaderOn = false;
     for (const s of generals) {
       const k = LEVEL_SHIFT_KEY[ST.grid[s.id][d]];
       if (!k) continue;
       all.push(s.level);
       if (byKey[k]) byKey[k].push(s.level);
+      if (k === "N" && s.is_night_leader) nightLeaderOn = true;
     }
     const avg = (a) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
     days.push({
       D: avg(byKey.D), E: avg(byKey.E), N: avg(byKey.N),
       // 그 조에 Lv4+가 하나도 없으면 H1-5 위반이다 — 칸을 빨갛게 해서 바로 보이게 한다.
+      // N조는 '야간리더'가 서 있어도 충족이다(검사기 H1-5와 같은 판정) — 화면과
+      // 검사가 다르면 파트장이 빨간 칸을 보고 고쳤는데 위반 목록은 그대로가 된다.
       short: { D: byKey.D.length > 0 && !byKey.D.some(l => l >= 4),
                E: byKey.E.length > 0 && !byKey.E.some(l => l >= 4),
-               N: byKey.N.length > 0 && !byKey.N.some(l => l >= 4) },
+               N: byKey.N.length > 0 && !byKey.N.some(l => l >= 4)
+                  && !nightLeaderOn },
       hi: all.filter(l => l >= 4).length,
       lo: all.filter(l => l <= 3).length,
     });
