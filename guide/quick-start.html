@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SMC Fair Shift — 상세 사용가이드 (v0.84)</title>
+<title>SMC Fair Shift — 상세 사용가이드 (v0.85)</title>
 <style>
 :root {
   --paper: #F7F8F6; --ink: #1C2523; --sub: #5A6763; --accent: #0F6E6B;
@@ -60,7 +60,7 @@ footer { margin-top: 68px; padding-top: 20px; border-top: 1px solid var(--line);
 
 <header class="doc">
   <p class="eyebrow">Step-by-Step Guide</p>
-  <h1>SMC Fair Shift — 상세 사용가이드 (v0.84)</h1>
+  <h1>SMC Fair Shift — 상세 사용가이드 (v0.85)</h1>
   <div class="meta">
     <span>대상 <b>병동 파트장</b></span>
     <span>소요시간 <b>처음이면 10분, 익숙해지면 1분</b></span>
@@ -135,8 +135,26 @@ footer { margin-top: 68px; padding-top: 20px; border-top: 1px solid var(--line);
 숙련도: <code>Lv1</code>~<code>Lv5</code> ·
 가능근무에만 쓰는 표시: <code>2N</code> <code>3N</code>(야간을 며칠씩 묶어 설지 — 안 적으면 2N)
 <code>지정</code>(근무인력 표의 '지정' 인원으로 셀 수 있는 사람) ·
+<b>야간리더 칸</b>: 해당자만 <code>O</code> ·
 비고: <code>야간전담</code> <code>임부</code> <code>야간금지</code> ·
 전입: <code>전입</code> + 전입일.</p>
+
+<p class="tip"><b>'야간리더' 칸이 새로 생겼다 — 가능근무 바로 옆이다.</b>
+밤에는 <b>숙련도 4 이상이 한 명은 반드시 있어야 한다</b>(필수 규칙). 그런데 리더가
+주간 상근인 병동에서는 밤에 세울 Lv4·Lv5가 한두 명뿐이라, 아무리 잘 짜도 매일 밤을
+채울 수가 없다. <b>밤을 맡길 수 있는 분에게 <code>O</code>를 적어 두면</b> 그분이 선
+밤은 숙련도와 상관없이 이 조건을 채운 것으로 본다.</p>
+<ul>
+<li>쓰지 않는 병동은 <b>전부 비워 두면 된다</b> — 지금까지와 똑같이 숙련도로만 판정한다.</li>
+<li><b>야간 횟수가 늘지는 않는다.</b> 표시했다고 그분만 밤을 더 서지 않는다
+(월 목표는 그대로다).</li>
+<li>낮(D·E)에는 적용되지 않는다 — 거기는 그대로 숙련도로 본다.</li>
+<li><b>몇 명이나 표시해야 하나</b> — 밤마다 한 명씩 필요하고 한 사람이 월 6회까지
+서므로, <b>한 달 날수 ÷ 6</b>이 최소선이다(30일이면 5명). 야간을 서는 Lv4·Lv5가 이미
+있으면 그만큼 빼도 된다. 실측에서 20명 병동은 2명만 표시하면 여전히 모자랐고
+<b>6명에서 거의 0</b>이 됐다 — 한두 명만 표시하면 효과가 작다.</li>
+<li>결과 화면에서 그분 이름 옆에 파란 <b>밤</b> 표가 붙는다.</li>
+</ul>
 
 <h3>업로드 결과 메시지는 세 가지다</h3>
 <p>입력①·입력② 둘 다, 파일을 올리면 칸 아래에 결과가 색으로 구분돼 남는다. <b>색이 곧 할 일</b>이다.</p>
@@ -186,7 +204,7 @@ footer { margin-top: 68px; padding-top: 20px; border-top: 1px solid var(--line);
 1일부터 근무를 넣으면 야간 후 휴식 규칙이 깨지는데, 이력이 있으면 자동으로 막힌다.</p>
 <ol>
 <li>출력②(연간근무표)를 받아 엑셀로 연다.</li>
-<li><b>기존 인원 목록 바로 아래</b>(맨 아래 'D 인원'·'레벨평균' 통계 줄보다 위)에 행을 추가하고 이름·직급·
+<li><b>기존 인원 목록 바로 아래</b>(맨 아래 'D 인원'·'D 레벨' 통계 줄보다 위)에 행을 추가하고 이름·직급·
 숙련도·가능근무를 적는다. ⚠ 통계 줄 뒤에 넣으면 읽히지 않는다(넣으면 경고로 알려준다).</li>
 <li><b>'전입' 칸에서 '전입'을 고른다</b> — 드롭다운이라 직접 타이핑할 필요가 없다.</li>
 <li><b>월중에 온 사람이면 '전입일' 칸에 날짜를 넣는다</b> — 날짜 셀이라 달력에서 고르거나
@@ -292,7 +310,7 @@ D/E/N/prn 요일별 최소 필요 인원) 칸은 생성 전에 눈으로 한 번
 확정한 근무표는 꼭 엑셀로 다운로드해서 따로 보관해두자.</p>
 </div>
 
-<footer>SMC Fair Shift 프로그램 · 상세 사용가이드 (v0.84) · 압축 1장 요약은 <a href="one-pager.html">원페이지</a> · 접속
+<footer>SMC Fair Shift 프로그램 · 상세 사용가이드 (v0.85) · 압축 1장 요약은 <a href="one-pager.html">원페이지</a> · 접속
 비밀번호·데이터 보안은 <a href="security.html">보안안내</a> · <a href="../index.html">앱으로 돌아가기</a></footer>
 </div>
 </body>
