@@ -704,7 +704,9 @@ function renderHolidayCalendar() {
   const numDays = new Date(y, m, 0).getDate();
   const holSet = new Set(formHolidays);
   const subSet = new Set(formSubHolidays);
-  const todayIso = new Date().toISOString().slice(0, 10);
+  // toISOString()은 UTC라 한국시간 0~9시에는 '오늘'이 어제로 칠해진다 — 현지 날짜로 만든다.
+  const _t = new Date();
+  const todayIso = `${_t.getFullYear()}-${String(_t.getMonth() + 1).padStart(2, "0")}-${String(_t.getDate()).padStart(2, "0")}`;
 
   let html = '<table class="cal-table"><thead><tr>';
   for (const w of ["일", "월", "화", "수", "목", "금", "토"]) html += `<th>${w}</th>`;
@@ -2285,9 +2287,12 @@ function renderSide() {
   let html = "";
   html += `<div class="side-sec"><h3>검증 요약</h3>`;
   if (r.timed_out) {
-    html += `<p class="status-banner warn">⏱ 시간 제한으로 자동 중단되었습니다 — 지금 결과는
-      그 시간 안에서 찾은 최선입니다. 더 나은 결과를 원하면 "근무표 생성"을 다시 눌러보세요
-      (무작위 재시도라 결과가 달라질 수 있습니다).</p>`;
+    // 시도는 시드 0·1·2로 고정이라 같은 입력이면 같은 결과다. 예전 문구는 "무작위 재시도라
+    // 다시 누르면 달라질 수 있다"였는데 사실이 아니어서, 같은 버튼을 계속 누르게 만들었다.
+    // 시간 제한에 걸리는 건 기기가 느릴 때라, 빠른 기기에서는 끝까지 시도한다.
+    html += `<p class="status-banner warn">⏱ 시간 제한(30초)으로 시도를 다 마치지 못하고
+      멈췄습니다 — 지금 결과는 그 안에서 찾은 최선입니다. 같은 입력으로 다시 눌러도 결과는
+      같습니다. 더 빠른 기기(PC)에서 열면 끝까지 시도합니다.</p>`;
   }
   html += feasibilityBanner(r);
   html += `<div class="kpi-row">
