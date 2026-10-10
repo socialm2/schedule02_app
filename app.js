@@ -2432,7 +2432,11 @@ function renderAnnualPane() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ force: true }),
       });
-      showToast(`${r.saved} 확정 저장 — 연간 근무표에 반영됨`);
+      // 브라우저판에서 기록 저장이 실패하면 r._storage_failed가 붙어 온다. 그때
+      // "확정 저장 — 반영됨"을 띄우면 **영구 저장은 0건인데 성공이라고 말하는** 꼴이
+      // 된다(v0.84 독립 QA, QA-01). 실패 이유와 대처는 platform.js가 이미 띄웠다.
+      // 로컬 웹앱(Flask)은 파일로 쓰고 실패하면 오류 응답이라 이 값이 안 온다.
+      if (!r._storage_failed) showToast(`${r.saved} 확정 저장 — 연간 근무표에 반영됨`);
       loadAnnualView();
     } catch (e) {}
   };

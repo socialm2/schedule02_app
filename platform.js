@@ -115,15 +115,20 @@ const HISTORY_PREFIX = "ns_history_";
 // 자체가 막히면(SecurityError) 예전엔 앱 초기화가 통째로 멈췄고, 용량이 꽉 차면
 // (QuotaExceededError) 확정 저장이 조용히 실패했다. 저장이 안 되는 것보다 나쁜 건
 // "왜 안 되는지 모르는 것"이라, 실패해도 앱은 계속 돌리되 이유를 알려준다.
-let storageWarned = false;
+let storageReadWarned = false;
 function _storageFailed(e, what) {
   console.warn("localStorage", what, e);
-  if (storageWarned) return;
-  storageWarned = true;
+  // 읽기 실패는 화면을 그릴 때마다 터질 수 있어 한 번만 알린다. **쓰기 실패는 매번
+  // 알린다** — 사용자가 '확정 저장'을 누를 때마다 생기는 일이고, 두 번째부터 조용하면
+  // "아까는 경고가 떴는데 이번엔 됐나 보다"로 읽힌다(v0.84 독립 QA, QA-01).
+  if (what === "read") {
+    if (storageReadWarned) return;
+    storageReadWarned = true;
+  }
   const quota = e && (e.name === "QuotaExceededError" || e.code === 22);
   showToast(quota
-    ? "브라우저 저장공간이 가득 차 지난달 기록을 저장하지 못했습니다 — 오래된 기록을 지우거나 다른 브라우저를 쓰세요. 근무표 생성·다운로드는 그대로 됩니다."
-    : "이 브라우저에서는 저장소를 쓸 수 없어 지난달 기록이 남지 않습니다(사내 정책·시크릿 모드 등) — 근무표 생성·다운로드는 그대로 됩니다.",
+    ? "브라우저 저장공간이 가득 차 이번 달 기록을 저장하지 못했습니다 — 오래된 기록을 지우거나 다른 브라우저를 쓰세요. 출력①·②를 엑셀로 받아 보관하시면 기록은 안전합니다."
+    : "이 브라우저에서는 저장소를 쓸 수 없어 이번 달 기록이 남지 않습니다(사내 정책·시크릿 모드 등) — 출력①·②를 엑셀로 받아 보관하시면 기록은 안전합니다.",
     true);
 }
 
@@ -138,11 +143,21 @@ function _readHistorySnapshot() {
   return out;
 }
 
+// 저장에 성공했는지 **돌려준다.** 예전엔 실패를 삼키고 호출부가 그대로 성공 토스트를
+// 띄웠다 — 영구 저장은 0건인데 화면은 "확정 저장 완료"라고 말하는 상태였다. 그 기록만
+// 믿고 다음 달을 시작하면 이월정보가 통째로 빈다(v0.84 독립 QA, QA-01).
 function _applyHistoryPatch(patch) {
-  if (!patch) return;
+  if (!patch) return true;
+  const keys = Object.keys(patch);
   try {
-    for (const [k, v] of Object.entries(patch)) localStorage.setItem(k, v);
-  } catch (e) { _storageFailed(e, "write"); }
+    for (const k of keys) localStorage.setItem(k, patch[k]);
+  } catch (e) {
+    _storageFailed(e, "write");
+    // 일부만 쓰이고 끊기면 반쪽짜리 기록이 남는다 — 쓴 것을 되돌린다.
+    for (const k of keys) { try { localStorage.removeItem(k); } catch (_) {} }
+    return false;
+  }
+  return true;
 }
 
 async function bootPyodide() {
@@ -164,6 +179,17 @@ async function bootPyodide() {
     if (!p) return;
     _pending.delete(id);
     if (ok) p.resolve({ raw, binary }); else p.reject(new Error(error));
+  };
+  // 부팅 뒤에 Worker가 죽으면(런타임 오류·메모리 부족 등) 보낸 요청의 응답이 영영
+  // 안 온다. 예전엔 onerror가 부팅용 reject만 가리키고 있어서, 생성 중에 죽으면
+  // **로딩 화면이 그대로 멈춰 있었다** — 사용자는 앱이 느린 줄 알고 몇 분을 기다린다
+  // (v0.84 독립 QA, QA-04). 기다리는 요청을 전부 실패로 끝내고 이유를 알린다.
+  worker.onerror = (e) => {
+    const why = (e && e.message) || "브라우저에서 계산이 중단됐습니다";
+    for (const [, p] of _pending) p.reject(new Error(why));
+    _pending.clear();
+    showToast(`${why} — 새로고침한 뒤 다시 시도해 주세요. `
+      + `받아두신 엑셀 파일은 그대로 쓰실 수 있습니다.`, true);
   };
   // 연간 근무표 기록(localStorage)은 Worker 안에서 직접 못 읽으므로, 부팅 직후
   // 현재 스냅샷을 한 번 넣어준다.
@@ -194,8 +220,16 @@ async function api(path, opts) {
     throw new Error(data.error);
   }
   if (data && data._history_patch) {
-    _applyHistoryPatch(data._history_patch);
+    const saved = _applyHistoryPatch(data._history_patch);
     delete data._history_patch;
+    // 저장이 안 됐으면 **응답에 표시해서** 돌려준다. 호출부(확정 저장)가 이걸 보고
+    // 성공 토스트를 건너뛴다 — 이유는 _storageFailed가 이미 화면에 띄웠다.
+    //
+    // ⚠ 여기서 예외를 던지면 안 된다. api()는 부팅 중(_bootstrap_history)에도
+    // 불리므로, 저장소가 막힌 브라우저에서 던지면 **앱이 아예 안 뜬다** — 고치기
+    // 전보다 나쁘다(저장만 안 되던 것이 전부 안 되는 것이 된다). 실제로 그렇게
+    // 짰다가 브라우저 확인에서 부팅이 멈추는 것을 봤다.
+    if (!saved) data._storage_failed = true;
   }
   return data;
 }
