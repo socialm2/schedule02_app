@@ -700,9 +700,9 @@ table.compact-grid td.annual-sum, table.compact-grid th.annual-sum-h {
   #sidePane { width: auto; border-left: none; border-top: 2px solid var(--accent); }
 
   header { padding: 8px 12px; }
-  /* 세로 폰: 첫 줄은 제목만, 둘째 줄 오른쪽에 [설명서][잠금]을 한 묶음으로.
+  /* 세로 폰: 첫 줄은 제목만, 둘째 줄 오른쪽에 [설명서][LogOut]을 한 묶음으로.
      제목이 한 줄을 다 쓰지 않으면 버튼이 제목 줄 끝에 끼었다가 폭에 따라 하나씩 다음
-     줄로 떨어진다 — 잠금만 혼자 왼쪽 아래로 툭 튀어나온 게 그 모양이었다. */
+     줄로 떨어진다 — LogOut 버튼만 혼자 왼쪽 아래로 툭 튀어나온 게 그 모양이었다. */
   header h1 { font-size: 18px; flex-basis: 100%; }
   header .spacer { display: none; }
   header #infoBtn { order: 5; margin-left: auto; }
