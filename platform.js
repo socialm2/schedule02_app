@@ -78,11 +78,13 @@ async function sha256Hex(text) {
 //  아니다. 진짜 통제는 서버·엣지 쪽에서 해야 한다 — 보안 안내에 그렇게 적혀 있다.)
 function showSignOut() {
   if (document.getElementById("signOutBtn")) return;
-  // 제목(h1) '안'이 아니라 제목 '옆'(헤더의 한 칸)에 붙인다. 예전엔 h1 안에 넣었는데,
-  // 세로 폰에서는 제목·버전·빌드시각이 한 줄을 다 차지해 이 버튼만 다음 줄 왼쪽으로
-  // 툭 떨어졌다. 헤더의 항목이어야 좁은 화면에서 설명서 버튼과 한 묶음으로 옮길 수
-  // 있다(style.css의 max-width: 680px). 넓은 화면에서는 지금처럼 제목 바로 옆이다.
-  const h1 = document.querySelector("header h1");
+  // 헤더 맨 오른쪽, 설명서 버튼 바로 뒤에 붙인다 — 가로·세로 어느 화면에서든
+  // [설명서][Log-out] 순서로 나란히 선다. 예전엔 h1 '안'에 넣었다가 세로 폰에서 이
+  // 버튼만 다음 줄 왼쪽으로 툭 떨어졌고, 그 뒤 h1 '옆'으로 옮겼더니 넓은 화면에서는
+  // 제목 바로 옆에 홀로 떨어져 있었다. 설명서 버튼이 없으면(화면 구조가 바뀐 경우)
+  // 헤더 끝에, 헤더도 없으면 body 끝에 붙인다.
+  const anchor = document.getElementById("infoBtn");
+  const header = document.querySelector("header");
   const b = document.createElement("button");
   b.id = "signOutBtn";
   b.type = "button";
@@ -93,7 +95,7 @@ function showSignOut() {
     try { localStorage.removeItem(AUTH_KEY); } catch (e) { /* 아래에서 새로고침 */ }
     location.reload();
   };
-  if (h1) h1.after(b); else document.body.appendChild(b);
+  if (anchor) anchor.after(b); else (header || document.body).appendChild(b);
 }
 
 if ("serviceWorker" in navigator) {
