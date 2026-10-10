@@ -87,7 +87,7 @@ function showSignOut() {
   b.id = "signOutBtn";
   b.type = "button";
   b.className = "sign-out";
-  b.textContent = "LogOut";
+  b.textContent = "Log-out";
   b.title = "이 브라우저에서 나갑니다 — 다음에 열면 비밀번호를 다시 묻습니다";
   b.onclick = () => {
     try { localStorage.removeItem(AUTH_KEY); } catch (e) { /* 아래에서 새로고침 */ }
