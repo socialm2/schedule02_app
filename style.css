@@ -700,7 +700,13 @@ table.compact-grid td.annual-sum, table.compact-grid th.annual-sum-h {
   #sidePane { width: auto; border-left: none; border-top: 2px solid var(--accent); }
 
   header { padding: 8px 12px; }
-  header h1 { font-size: 18px; }
+  /* 세로 폰: 첫 줄은 제목만, 둘째 줄 오른쪽에 [설명서][잠금]을 한 묶음으로.
+     제목이 한 줄을 다 쓰지 않으면 버튼이 제목 줄 끝에 끼었다가 폭에 따라 하나씩 다음
+     줄로 떨어진다 — 잠금만 혼자 왼쪽 아래로 툭 튀어나온 게 그 모양이었다. */
+  header h1 { font-size: 18px; flex-basis: 100%; }
+  header .spacer { display: none; }
+  header #infoBtn { order: 5; margin-left: auto; }
+  header .sign-out { order: 6; }
   .intake-box { padding: 14px 16px; }
   /* 세로로 하나씩 쌓는 대신 2칸씩 가로로 붙여 공간 절약 — 병동명·연월처럼 폭이
      필요한 칸만 .wide로 한 줄 전체를 차지 */
@@ -762,6 +768,6 @@ table.compact-grid td.annual-sum, table.compact-grid th.annual-sum-h {
 /* 접속 잠금 버튼 — 브라우저판에만 뜬다(platform.js가 인증 뒤에 붙인다).
    공용 PC에서 다음 사람이 그대로 열리는 것을 막을 유일한 수단이다. */
 button.sign-out {
-  margin-left: 10px; padding: 2px 9px; font-size: 11.5px; font-weight: 600;
+  margin-left: 0; padding: 2px 9px; font-size: 11.5px; font-weight: 600;
   vertical-align: middle; border-radius: 999px;
 }

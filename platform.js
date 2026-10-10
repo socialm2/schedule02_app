@@ -78,7 +78,11 @@ async function sha256Hex(text) {
 //  아니다. 진짜 통제는 서버·엣지 쪽에서 해야 한다 — 보안 안내에 그렇게 적혀 있다.)
 function showSignOut() {
   if (document.getElementById("signOutBtn")) return;
-  const host = document.querySelector("header h1") || document.body;
+  // 제목(h1) '안'이 아니라 제목 '옆'(헤더의 한 칸)에 붙인다. 예전엔 h1 안에 넣었는데,
+  // 세로 폰에서는 제목·버전·빌드시각이 한 줄을 다 차지해 이 버튼만 다음 줄 왼쪽으로
+  // 툭 떨어졌다. 헤더의 항목이어야 좁은 화면에서 설명서 버튼과 한 묶음으로 옮길 수
+  // 있다(style.css의 max-width: 680px). 넓은 화면에서는 지금처럼 제목 바로 옆이다.
+  const h1 = document.querySelector("header h1");
   const b = document.createElement("button");
   b.id = "signOutBtn";
   b.type = "button";
@@ -89,7 +93,7 @@ function showSignOut() {
     try { localStorage.removeItem(AUTH_KEY); } catch (e) { /* 아래에서 새로고침 */ }
     location.reload();
   };
-  host.appendChild(b);
+  if (h1) h1.after(b); else document.body.appendChild(b);
 }
 
 if ("serviceWorker" in navigator) {
