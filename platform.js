@@ -24,6 +24,12 @@
 // ).
 const AUTH_HASH = "2cbbfffee7c0a89ffa87b2320543fb71b4bc5443c5ccc4d04723e17c59367355";
 const AUTH_KEY = "ns_auth_ok";
+// Log-out 버튼(showSignOut)은 지금 숨겨 둔다 — 2026-10-10, 헤더에 버튼이 하나 더 있는 게
+// 보기 좋지 않다는 사용자 요청. 다시 보이게 하려면 이 값만 true로 바꾸면 된다(모양·위치는
+// style.css에 그대로 있다). 숨긴 동안 공용 PC에서 나가려면 브라우저 사이트 데이터를 지워야 한다.
+// 이 줄은 아래 initAuthGate()보다 위에 있어야 한다 — 그 함수가 즉시 실행되며 showSignOut()을
+// 부르는데, const는 선언 줄 전에 읽으면 오류가 나서 화면 부팅 전체가 멈춘다(실제로 멈췄다).
+const SHOW_SIGN_OUT_BUTTON = false;
 
 async function sha256Hex(text) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
@@ -77,6 +83,7 @@ async function sha256Hex(text) {
 // (인증 자체가 이 브라우저 안에서만 이뤄지므로 이건 '조심해서 쓰는 길'이지 접근통제가
 //  아니다. 진짜 통제는 서버·엣지 쪽에서 해야 한다 — 보안 안내에 그렇게 적혀 있다.)
 function showSignOut() {
+  if (!SHOW_SIGN_OUT_BUTTON) return;
   if (document.getElementById("signOutBtn")) return;
   // 헤더 맨 오른쪽, 설명서 버튼 바로 뒤에 붙인다 — 가로·세로 어느 화면에서든
   // [설명서][Log-out] 순서로 나란히 선다. 예전엔 h1 '안'에 넣었다가 세로 폰에서 이
