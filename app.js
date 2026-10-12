@@ -14,7 +14,7 @@ const REST_PICK = ["OFF", "연차", "연1", "연2", "연3", "연4", "S/", "군",
 // 막는 이유는 인원 계산이다: 최소인력·레벨 통계는 파트장을 빼고 세므로(computeDailyStaffCounts),
 // 파트장에게 D를 주면 그날 사람이 하나 더 있는 것처럼 보이는데 어느 숫자에도 안 잡힌다.
 // NK도 같이 막는다 — 야간전담이라 이 앱은 어디서나 NK를 N으로 센다(COUNT_KEY).
-// 서버(webapp/app.py·pyodide-app/py/bridge.py의 _PARTJANG_BLOCKED_SHIFTS)도 같은 다섯으로
+// API(pyodide-app/py/bridge.py의 _PARTJANG_BLOCKED_SHIFTS)도 같은 다섯으로
 // 한 번 더 막는다 — 화면에만 있는 잠금은 잠금이 아니다.
 const PARTJANG_BLOCK = ["D", "E", "N", "NK", "prn"];
 
@@ -1541,7 +1541,7 @@ const SETTINGS_ON_KEY = "ns_settings_on";
 // 브라우저 저장소는 사내 정책·시크릿 모드에서 아예 막힐 수 있다(SecurityError). 저장이
 // 안 되는 것보다 나쁜 건 "왜 안 되는지 모르는 것"이라, 실패해도 앱은 계속 돌리되 한
 // 번은 알려준다. (예전엔 여기서 pyodide 판에만 있는 함수를 불러서, 저장소가 막힌 바로
-// 그 순간에 Flask 판이 ReferenceError로 넘어졌다 — 하필 알려야 할 때 말이 없었다.)
+// 그 순간에 옛 Flask 판이 ReferenceError로 넘어졌다 — 하필 알려야 할 때 말이 없었다.)
 let settingsStorageWarned = false;
 function settingsStorageFailed(e, what) {
   console.warn("localStorage", what, e);
@@ -2458,7 +2458,6 @@ function renderAnnualPane() {
       // 브라우저판에서 기록 저장이 실패하면 r._storage_failed가 붙어 온다. 그때
       // "확정 저장 — 반영됨"을 띄우면 **영구 저장은 0건인데 성공이라고 말하는** 꼴이
       // 된다(v0.84 독립 QA, QA-01). 실패 이유와 대처는 platform.js가 이미 띄웠다.
-      // 로컬 웹앱(Flask)은 파일로 쓰고 실패하면 오류 응답이라 이 값이 안 온다.
       if (!r._storage_failed) showToast(`${r.saved} 확정 저장 — 연간 근무표에 반영됨`);
       loadAnnualView();
     } catch (e) {}

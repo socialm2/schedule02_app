@@ -2,18 +2,19 @@
 
 // ================================================================ 브라우저판 전용 배선 (Pyodide)
 //
-// 이 파일과 webapp/static/platform.js는 **같은 이름의 함수를 서로 다르게 구현한 한 쌍**이다.
-// 나머지 화면 코드(app.js)는 두 판이 한 글자도 다르지 않다 — 예전엔 app.js가 두 벌이었고,
-// 그 두 벌의 차이가 295줄·14덩어리로 흩어져 있어서 "한쪽만 고치는" 사고가 반복됐다.
-// 갈리는 것은 딱 다섯 가지뿐이라 여기로 모았다:
+// 화면 코드(app.js)는 요청을 어떻게 보내는지 모른다 — 그건 여기서 정한다. 예전엔 로컬
+// Flask판이 따로 있어 이 파일이 'fetch로 보내는 판'과 한 쌍이었고, 그 전엔 app.js 자체가
+// 두 벌이라 차이가 295줄·14덩어리로 흩어져 "한쪽만 고치는" 사고가 반복됐다. 2026-10에
+// Flask판을 없앴지만, 전송을 여기 모아 두는 구조는 그대로 둔다 — 화면 로직과 Worker
+// 배선이 섞이면 한쪽을 고칠 때 다른 쪽이 깨진다. 여기 있는 것:
 //
-//   api(path, opts)                       요청 보내기        (워커 ↔ fetch)
-//   apiUpload(path, file)                 파일 올리기        (바이트 ↔ FormData)
-//   apiDownload(kind)                     파일 받기          (워커+blob ↔ 링크 이동)
+//   api(path, opts)                       요청 보내기        (Worker에 보내고 받기)
+//   apiUpload(path, file)                 파일 올리기        (바이트로 바꿔 전달)
+//   apiDownload(kind)                     파일 받기          (바이트+파일명 → blob 저장)
 //   apiDownloadWantedTemplate(payload, filename)   양식 받기
-//   bootPlatform()                        시작 준비          (Pyodide 부팅 ↔ 할 일 없음)
+//   bootPlatform()                        시작 준비          (Pyodide 부팅)
 //
-// 그 외에 브라우저판에만 있는 것: 접속 비밀번호 게이트와 서비스워커 등록(아래).
+// 그 밖에: 접속 비밀번호 게이트와 서비스워커 등록(아래).
 
 // ================================================================ 접속 비밀번호 게이트
 // 서버가 없는 정적 배포판이라 "진짜 로그인"이 아니라 억제 수준의 문 — 링크를 모르고
@@ -112,7 +113,7 @@ if ("serviceWorker" in navigator) {
 }
 
 // ================================================================ Pyodide 브릿지 (Web Worker)
-// 서버(Flask) 없이 브라우저 안에서 Python(nurse_scheduler 엔진)을 직접 돌리되,
+// 서버 없이 브라우저 안에서 Python(nurse_scheduler 엔진)을 직접 돌리되,
 // 계산 자체는 별도 Worker 스레드(pyworker.js)에서 실행한다. 근무표 생성처럼
 // 오래 걸리는 계산 중에도 이 메인 스레드(화면)는 얼어붙지 않고 계속 반응한다.
 // api(path, opts)의 시그니처는 원래 fetch 버전과 동일하게 유지해서, 이 함수를
@@ -284,7 +285,7 @@ function triggerDownload(content, filename, mime) {
 
 // 다운로드는 JSON이 아니라 순수 바이너리를 그대로 돌려주므로,
 // JSON.parse를 하는 api() 대신 callWorker()로 원본 응답을 직접 받는다.
-// 파일명(병동명·회차 포함)은 bridge.py가 만들어 준다 — Flask판이 헤더로 내려주는 것과 같은 값.
+// 파일명(병동명·회차 포함)은 bridge.py가 만들어 준다.
 async function apiDownload(kind) {
   const { raw: bytes } = await callWorker(`/api/download/${kind}`);
   const { raw: filename } = await callWorker(`/api/download_filename/${kind}`);
