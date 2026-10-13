@@ -271,17 +271,8 @@ async function apiUpload(path, file) {
   return api(path, { _fileBytes: bytes });
 }
 
-function triggerDownload(content, filename, mime) {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
-}
+// (triggerDownload는 위에 한 벌만 둔다 — 같은 함수가 두 번 선언돼 있었다. JS는 뒤 선언이
+//  이기므로 동작엔 차이가 없었지만, 한쪽만 고치면 고친 쪽이 조용히 무시되는 자리였다.)
 
 // 다운로드는 JSON이 아니라 순수 바이너리를 그대로 돌려주므로,
 // JSON.parse를 하는 api() 대신 callWorker()로 원본 응답을 직접 받는다.
