@@ -577,6 +577,13 @@ $("#infoBtn").onclick = () => {
 };
 $("#closeInfoBtn").onclick = () => $("#infoModalBackdrop").classList.remove("show");
 $("#infoModalBackdrop").onclick = (e) => { if (e.target.id === "infoModalBackdrop") e.currentTarget.classList.remove("show"); };
+// Esc로도 닫힌다 — 근무 선택기는 Esc로 닫히는데 설명서만 안 닫혀, 키보드로 쓰는 사람은
+// ✕ 버튼까지 Tab으로 가야 했다(2026-10-13 화면 훑기). 선택기가 열려 있으면 그쪽이 먼저다.
+document.addEventListener("keydown", (ev) => {
+  if (ev.key !== "Escape" || picker) return;
+  const bd = $("#infoModalBackdrop");
+  if (bd.classList.contains("show")) { bd.classList.remove("show"); $("#infoBtn").focus(); }
+});
 
 // ================================================================ 입력 폼 채우기
 
@@ -1466,7 +1473,11 @@ async function runGenerate(btn, statusEl) {
   const preCfg = buildCfgFromForm();
   if (minStaffErrors.length) {
     const msg = `근무인력 칸을 확인해주세요 — ${minStaffErrors.join(" / ")}`;
-    showToast(msg, true);
+    // 칸이 많이 비어 있으면(설정을 지운 직후 19칸) 토스트가 화면 반을 덮고 생성 버튼까지
+    // 가린다 — 토스트는 몇 칸인지만, 어느 칸인지는 아래 빨간 안내에 그대로 둔다.
+    showToast(minStaffErrors.length > 3
+      ? `근무인력·설정 칸 ${minStaffErrors.length}개가 비어 있거나 잘못됐습니다 — 생성 버튼 아래 빨간 안내에서 어느 칸인지 확인해주세요`
+      : msg, true);
     showGenError(statusEl, msg);
     return;
   }
@@ -1912,6 +1923,14 @@ function renderGrid() {
   html += "</tbody></table></div>";
   gridContent.innerHTML = html;
   $("#backToInputBtn").onclick = () => {
+    // 손으로 고친 칸(미적용 편집·되올린 수정본의 고정 칸)은 돌아가는 순간 사라지고,
+    // 다시 생성해도 돌아오지 않는다 — 같은 입력이면 같은 근무표가 나오지만 고친 칸은
+    // 입력이 아니다. 예전엔 묻지 않고 지웠다(2026-10-13 화면 훑기).
+    const edited = (ST.pending && ST.pending.length) || (ST.locked && ST.locked.length);
+    if (edited && !confirm(
+        `손으로 고친 칸이 ${(ST.pending || []).length + (ST.locked || []).length}개 있습니다 — ` +
+        `입력으로 돌아가면 이 수정은 사라지고, 다시 생성해도 돌아오지 않습니다.\n` +
+        `남겨두려면 먼저 "재생성 적용" 뒤 내려받아 두세요.\n\n그래도 돌아가시겠습니까?`)) return;
     ST = null;
     gridContent.style.display = "none";
     gridContent.innerHTML = "";

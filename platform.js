@@ -279,6 +279,10 @@ async function apiUpload(path, file) {
 // 파일명(병동명·회차 포함)은 bridge.py가 만들어 준다.
 async function apiDownload(kind) {
   const { raw: bytes } = await callWorker(`/api/download/${kind}`);
+  // bridge는 생성 전이면 None을 돌려준다 — 그대로 Blob에 넣으면 내용이 "null" 네 글자인
+  // 엑셀 파일이 받아진다(열면 깨진 파일). 화면 버튼은 생성 뒤에만 있지만, 이 함수는
+  // 다른 길로도 불리므로 여기서 막는다(2026-10-13 화면 훑기).
+  if (!bytes) { showToast("아직 생성된 근무표가 없습니다 — 먼저 근무표를 생성해주세요", true); return; }
   const { raw: filename } = await callWorker(`/api/download_filename/${kind}`);
   triggerDownload(bytes, filename, XLSX_MIME);
 }
