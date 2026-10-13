@@ -253,7 +253,6 @@ let minStaffWeekdayExpanded = false;
 const $ = (sel) => document.querySelector(sel);
 const gridPane = $("#gridPane");
 const gridContent = $("#gridContent");
-const annualPane = $("#annualPane");
 const sidePane = $("#sidePane");
 const toast = $("#toast");
 
@@ -1934,8 +1933,6 @@ function renderGrid() {
     ST = null;
     gridContent.style.display = "none";
     gridContent.innerHTML = "";
-    annualPane.style.display = "none";
-    annualPane.innerHTML = "";
     $("#intake").style.display = "block";
     sidePane.style.display = "none";
     updateInfoLabel(false);
@@ -2276,24 +2273,6 @@ function confirmDownloadWithViolations() {
     `그래도 내려받으시겠습니까?`);
 }
 
-// 확정 저장은 다운로드보다 무겁다 — 그 달을 기록에 넣는 동작이고, 그 기록이 다음 달
-// 형평성 계산의 출발점이 된다. 못 채운 자리가 있는 채로 확정하면 "실제로는 못 돌아간
-// 근무표"가 다음 달의 기준이 되는 셈이라, 무엇이 남았는지 보여주고 한 번 묻는다.
-// 막지는 않는다 — 지정 미달처럼 하루가 구조적으로 안 채워지는 달이 실제로 나오는데,
-// 막아버리면 파트장은 이월을 이어갈 방법이 없어진다.
-function confirmFinalizeWithViolations() {
-  const r = ST && ST.report;
-  if (!r || !r.hard_count) return true;
-  const lines = r.hard.filter(v => !v.best_effort).slice(0, 5)
-    .map(v => `  · ${v.rule} ${v.message}`).join("\n");
-  const more = r.hard_count > 5 ? `\n  … 외 ${r.hard_count - 5}건` : "";
-  return confirm(
-    `필수 위반 ${r.hard_count}건이 남아 있는 근무표입니다.\n\n${lines}${more}\n\n` +
-    `확정 저장하면 이 값이 다음 달 형평성 계산의 출발점이 됩니다.\n` +
-    `(연간 보기에서 그 달에 ⚠ 표시가 남습니다.)\n\n` +
-    `그래도 확정하시겠습니까?`);
-}
-
 function feasibilityBanner(r) {
   const total = r.hard.length;
   if (r.hard_count > 0) {
@@ -2456,115 +2435,6 @@ function renderSide() {
   renderPending();
 }
 
-function renderAnnualPane() {
-  annualPane.innerHTML = `<div class="annual-pane-box">
-    <div class="annual-pane-head">
-      <h2>연간 근무표</h2>
-      <p class="hint">이번 달을 확정 저장하면 다음에 볼 때 최근 달로 계속 쌓여 보입니다.</p>
-    </div>
-    <button id="finalizeBtn" class="small">📌 이번 달 확정 저장</button>
-    <div id="annualBody" style="margin-top:12px"></div>
-  </div>`;
-  $("#finalizeBtn").onclick = async () => {
-    if (!confirmFinalizeWithViolations()) return;
-    try {
-      // 위반이 남아 있어도 확인창에서 동의했으면 그대로 확정한다 — 잠금은 서버가 걸고
-      // (api_finalize), 화면은 사용자의 동의를 전달만 한다.
-      const r = await api("/api/finalize", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ force: true }),
-      });
-      // 브라우저판에서 기록 저장이 실패하면 r._storage_failed가 붙어 온다. 그때
-      // "확정 저장 — 반영됨"을 띄우면 **영구 저장은 0건인데 성공이라고 말하는** 꼴이
-      // 된다(v0.84 독립 QA, QA-01). 실패 이유와 대처는 platform.js가 이미 띄웠다.
-      if (!r._storage_failed) showToast(`${r.saved} 확정 저장 — 연간 근무표에 반영됨`);
-      loadAnnualView();
-    } catch (e) {}
-  };
-  loadAnnualView();
-}
-
-function renderCompactMonth(m) {
-  // 위반이 남은 채로 확정한 달은 그렇게 표시한다 — 저장하고 나면 그 사실이 사라져,
-  // 두 달 뒤에 "이 달 숫자가 왜 이렇지"를 되짚을 단서가 없었다.
-  const warn = m.hard_count
-    ? ` <span class="annual-hard" title="확정할 때 필수 위반 ${m.hard_count}건이 남아 있었습니다">⚠ 위반 ${m.hard_count}건</span>`
-    : "";
-  let html = `<div class="annual-month"><div class="annual-month-title">${m.year}년 ${m.month}월${warn}</div>`;
-  html += '<div class="annual-grid-wrap"><table class="grid compact-grid"><thead><tr><th class="nm"></th>';
-  for (const d of m.days) html += `<th class="${d.weekend ? "we" : ""}">${d.n}</th>`;
-  html += '<th class="annual-sum-h">OFF·야간</th></tr></thead><tbody>';
-  for (const s of m.staff) {
-    const row = m.grid[s.id] || [];
-    html += `<tr><td class="nm">${esc(s.id)}</td>`;
-    for (let d = 0; d < m.num_days; d++) {
-      const v = row[d];
-      html += `<td class="cell ${shiftClass(v)}"><span>${esc(shiftText(v))}</span></td>`;
-    }
-    const sum = m.summary[s.id] || { off: 0, night: 0, workday: 0 };
-    html += `<td class="annual-sum">${sum.off} · ${sum.night}</td></tr>`;
-  }
-  html += "</tbody></table></div></div>";
-  return html;
-}
-
-async function loadAnnualView() {
-  const box = $("#annualBody");
-  if (!box) return;
-  box.innerHTML = '<p style="color:var(--sub);font-size:12px">불러오는 중...</p>';
-  let data;
-  try {
-    data = await api("/api/annual");
-  } catch (e) {
-    box.innerHTML = '<p style="color:var(--sub);font-size:12px">연간 근무표를 불러오지 못했습니다.</p>';
-    return;
-  }
-  const months = [data.current, ...data.history];
-  let html = '<div class="annual-months">' + months.map(renderCompactMonth).join("") + "</div>";
-
-  const generalIds = data.current.staff.filter(s => !s.is_nk).map(s => s.id);
-  const nkIds = data.current.staff.filter(s => s.is_nk).map(s => s.id);
-  const avgs = generalIds.map(sid => {
-    const c = data.cumulative[sid];
-    return c && c.months > 0 ? c.night / c.months : 0;
-  }).filter(v => v > 0);
-  const teamAvg = avgs.length ? avgs.reduce((a, b) => a + b, 0) / avgs.length : 0;
-
-  html += `<h4 class="annual-sub">누적 합계 (표시된 ${months.length}개월) — 다음달 배치 참고용</h4>` +
-    '<table class="mini-table"><tr><th>이름</th><th>OFF</th><th>야간</th><th>근무</th>' +
-    '<th>월평균야간</th><th>주말야간</th>' +
-    '<th title="야간을 2일 연속으로 선 횟수(일수가 아니라 건수)">2일 블록 야간</th>' +
-    '<th title="야간을 3일 연속으로 선 횟수(일수가 아니라 건수)">3일 블록 야간</th></tr>';
-  for (const sid of generalIds) {
-    const c = data.cumulative[sid] || { off: 0, night: 0, workday: 0, months: 0,
-      weekend_night: 0, blocks_2: 0, blocks_3: 0, blocks_other: 0 };
-    const avg = c.months > 0 ? c.night / c.months : 0;
-    const dev = c.months > 1 && teamAvg > 0 && (avg - teamAvg) >= 1.5;
-    html += `<tr><td>${esc(sid)}</td><td>${c.off}</td><td>${c.night}</td><td>${c.workday}</td>` +
-      `<td class="${dev ? "badge-bad" : ""}">${avg.toFixed(1)}${dev ? " 야간多" : ""}</td>` +
-      `<td>${c.weekend_night}</td><td>${c.blocks_2}</td>` +
-      `<td class="${c.blocks_3 > 0 ? "badge-bad" : ""}">${c.blocks_3}</td></tr>`;
-  }
-  html += "</table>";
-
-  if (nkIds.length) {
-    html += `<h4 class="annual-sub">야간전담(NK) 누적 — 참고용, 2:3 블록 혼합이 정상</h4>` +
-      '<table class="mini-table"><tr><th>이름</th><th>OFF</th><th>야간</th>' +
-      '<th>월평균야간</th><th>주말야간</th>' +
-    '<th title="야간을 2일 연속으로 선 횟수(일수가 아니라 건수)">2일 블록 야간</th>' +
-    '<th title="야간을 3일 연속으로 선 횟수(일수가 아니라 건수)">3일 블록 야간</th></tr>';
-    for (const sid of nkIds) {
-      const c = data.cumulative[sid] || { off: 0, night: 0, months: 0,
-        weekend_night: 0, blocks_2: 0, blocks_3: 0 };
-      const avg = c.months > 0 ? c.night / c.months : 0;
-      html += `<tr><td>${esc(sid)}</td><td>${c.off}</td><td>${c.night}</td>` +
-        `<td>${avg.toFixed(1)}</td><td>${c.weekend_night}</td>` +
-        `<td>${c.blocks_2}</td><td>${c.blocks_3}</td></tr>`;
-    }
-    html += "</table>";
-  }
-  box.innerHTML = html;
-}
 
 function renderPending() {
   const body = $("#pendingBody");

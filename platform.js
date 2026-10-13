@@ -113,6 +113,8 @@ if ("serviceWorker" in navigator) {
 }
 
 // ================================================================ Pyodide 브릿지 (Web Worker)
+// (예전엔 여기서 '확정 저장' 기록을 localStorage에 넣고 빼는 코드가 있었다 — 그 길은
+//  2026-08부터 화면에서 숨겨진 채였고 2026-10-13에 걷어냈다. 이어짐은 파일로만 간다.)
 // 서버 없이 브라우저 안에서 Python(nurse_scheduler 엔진)을 직접 돌리되,
 // 계산 자체는 별도 Worker 스레드(pyworker.js)에서 실행한다. 근무표 생성처럼
 // 오래 걸리는 계산 중에도 이 메인 스레드(화면)는 얼어붙지 않고 계속 반응한다.
@@ -122,57 +124,6 @@ if ("serviceWorker" in navigator) {
 let worker = null;
 let _reqId = 0;
 const _pending = new Map();
-
-const HISTORY_PREFIX = "ns_history_";
-
-// 브라우저 저장소는 항상 쓸 수 있는 게 아니다 — 사내 정책이나 브라우저 설정으로 접근
-// 자체가 막히면(SecurityError) 예전엔 앱 초기화가 통째로 멈췄고, 용량이 꽉 차면
-// (QuotaExceededError) 확정 저장이 조용히 실패했다. 저장이 안 되는 것보다 나쁜 건
-// "왜 안 되는지 모르는 것"이라, 실패해도 앱은 계속 돌리되 이유를 알려준다.
-let storageReadWarned = false;
-function _storageFailed(e, what) {
-  console.warn("localStorage", what, e);
-  // 읽기 실패는 화면을 그릴 때마다 터질 수 있어 한 번만 알린다. **쓰기 실패는 매번
-  // 알린다** — 사용자가 '확정 저장'을 누를 때마다 생기는 일이고, 두 번째부터 조용하면
-  // "아까는 경고가 떴는데 이번엔 됐나 보다"로 읽힌다(v0.84 독립 QA, QA-01).
-  if (what === "read") {
-    if (storageReadWarned) return;
-    storageReadWarned = true;
-  }
-  const quota = e && (e.name === "QuotaExceededError" || e.code === 22);
-  showToast(quota
-    ? "브라우저 저장공간이 가득 차 이번 달 기록을 저장하지 못했습니다 — 오래된 기록을 지우거나 다른 브라우저를 쓰세요. 출력①·②를 엑셀로 받아 보관하시면 기록은 안전합니다."
-    : "이 브라우저에서는 저장소를 쓸 수 없어 이번 달 기록이 남지 않습니다(사내 정책·시크릿 모드 등) — 출력①·②를 엑셀로 받아 보관하시면 기록은 안전합니다.",
-    true);
-}
-
-function _readHistorySnapshot() {
-  const out = {};
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith(HISTORY_PREFIX)) out[k] = localStorage.getItem(k);
-    }
-  } catch (e) { _storageFailed(e, "read"); }
-  return out;
-}
-
-// 저장에 성공했는지 **돌려준다.** 예전엔 실패를 삼키고 호출부가 그대로 성공 토스트를
-// 띄웠다 — 영구 저장은 0건인데 화면은 "확정 저장 완료"라고 말하는 상태였다. 그 기록만
-// 믿고 다음 달을 시작하면 이월정보가 통째로 빈다(v0.84 독립 QA, QA-01).
-function _applyHistoryPatch(patch) {
-  if (!patch) return true;
-  const keys = Object.keys(patch);
-  try {
-    for (const k of keys) localStorage.setItem(k, patch[k]);
-  } catch (e) {
-    _storageFailed(e, "write");
-    // 일부만 쓰이고 끊기면 반쪽짜리 기록이 남는다 — 쓴 것을 되돌린다.
-    for (const k of keys) { try { localStorage.removeItem(k); } catch (_) {} }
-    return false;
-  }
-  return true;
-}
 
 async function bootPyodide() {
   const msg = document.getElementById("loadingMsg");
@@ -205,9 +156,6 @@ async function bootPyodide() {
     showToast(`${why} — 새로고침한 뒤 다시 시도해 주세요. `
       + `받아두신 엑셀 파일은 그대로 쓰실 수 있습니다.`, true);
   };
-  // 연간 근무표 기록(localStorage)은 Worker 안에서 직접 못 읽으므로, 부팅 직후
-  // 현재 스냅샷을 한 번 넣어준다.
-  await callWorker("/api/_bootstrap_history", { body: JSON.stringify(_readHistorySnapshot()) });
 }
 
 function callWorker(path, opts) {
@@ -232,18 +180,6 @@ async function api(path, opts) {
   if (data && data.error) {
     showToast(data.error, true);
     throw new Error(data.error);
-  }
-  if (data && data._history_patch) {
-    const saved = _applyHistoryPatch(data._history_patch);
-    delete data._history_patch;
-    // 저장이 안 됐으면 **응답에 표시해서** 돌려준다. 호출부(확정 저장)가 이걸 보고
-    // 성공 토스트를 건너뛴다 — 이유는 _storageFailed가 이미 화면에 띄웠다.
-    //
-    // ⚠ 여기서 예외를 던지면 안 된다. api()는 부팅 중(_bootstrap_history)에도
-    // 불리므로, 저장소가 막힌 브라우저에서 던지면 **앱이 아예 안 뜬다** — 고치기
-    // 전보다 나쁘다(저장만 안 되던 것이 전부 안 되는 것이 된다). 실제로 그렇게
-    // 짰다가 브라우저 확인에서 부팅이 멈추는 것을 봤다.
-    if (!saved) data._storage_failed = true;
   }
   return data;
 }

@@ -4,9 +4,8 @@
 // 않고 계속 반응한다 — 스피너가 돌고, 스크롤도 되고, 브라우저가 "응답 없음"으로
 // 오인하지 않는다.
 //
-// 이 파일 안에서는 window/document/localStorage에 접근할 수 없다(Worker 제약).
-// localStorage가 필요한 연간 근무표 기록은 bootstrap_history()/"_history_patch"로
-// 메인 스레드와 데이터를 주고받는다 (bridge.py 쪽 설명 참고).
+// 이 파일 안에서는 window/document/localStorage에 접근할 수 없다(Worker 제약) —
+// 그래서 달 사이의 이어짐은 파일(출력②→입력②)로만 간다(bridge.py 머리말 참고).
 
 importScripts("vendor/pyodide/pyodide.js");
 
@@ -48,7 +47,6 @@ function callBridge(path, opts) {
   opts = opts || {};
   switch (path) {
     case "/api/sample": return bridge.api_sample();
-    case "/api/upload_prev_month": return bridge.api_upload_prev_month(opts._fileBytes);
     case "/api/upload_wanted": return bridge.api_upload_wanted(opts._fileBytes);
     case "/api/upload_staff_table": return bridge.api_upload_staff_table(opts._fileBytes);
     case "/api/upload_month": return bridge.api_upload_month(opts._fileBytes);
@@ -64,9 +62,6 @@ function callBridge(path, opts) {
     case "/api/feedback": return bridge.api_feedback();
     case "/api/apply": return bridge.api_apply();
     case "/api/regenerate": return bridge.api_regenerate();
-    case "/api/finalize": return bridge.api_finalize(opts.body || "");
-    case "/api/annual": return bridge.api_annual();
-    case "/api/_bootstrap_history": return bridge.bootstrap_history(opts.body);
     case "/api/download_filename/xlsx": return bridge.download_filename_schedule();
     case "/api/download_filename/xlsx_ocs": return bridge.download_filename_schedule_ocs();
     case "/api/download_filename/staff_table": return bridge.download_filename_staff_table();
