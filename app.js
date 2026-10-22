@@ -532,7 +532,8 @@ NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니�
 같은 숫자로 손봐야 할 사람을 추려 줍니다(연간근무표를 올렸으면 지난달 대비 늘어난 사람도). 이 세 열은 화면에만 있고
 다운로드 엑셀에는 없습니다.</li>
 <li><b>미달 날 채울 수 있는 사람</b> — 오른쪽 '일별 근무인력'에 미달 날이 있으면, 그날 쉬는 사람 중 그 근무를 설 수 있고
-넣어도 새 필수 위반이 없는 사람을 날짜마다 적어 줍니다. 이름을 보고 그 칸을 눌러 넣으면 됩니다.</li>
+넣어도 새 필수 위반이 없는 사람을 날짜마다 적어 줍니다. 추천일 뿐이라 다른 사람을 넣어도 되고(그 칸이 빨강·노랑으로
+표시될 뿐), 위반이 남은 채로 확정·다운로드도 됩니다.</li>
 <li><b>주말·공휴일 근무자</b> — 오른쪽에 접힌 표로, 주말마다 D·E·N에 누가 서는지와 최소인력 대비 인원을 보여줍니다.</li>
 <li><b>® / ⓡ</b> — 병원 HR 전용 항목이라 이 앱은 값을 몰라 항상 빈칸입니다(다운로드 파일과 동일).</li>
 <li><b>금월</b> — 이번 달 휴일수(전 직원 공통) · <b>Lv</b> — 직급입니다.</li>
@@ -2797,10 +2798,11 @@ async function refreshFillHints() {
     box.innerHTML = '<ul class="burden-list">' + items.map(it => {
       const ok = it.ok.map(c => `<span class="who" title="${escAttr(c.warnings.length ? "최선노력 위반 생김: " + c.warnings.join(", ") : "새 위반 없음")}">${esc(c.id)}</span>` +
         (c.warnings.length ? `<small>(${esc(c.warnings.join(","))})</small>` : "")).join(", ");
-      const bl = it.blocked.length ? ` <small>· 막힘 ${it.blocked.length}명(${esc([...new Set(it.blocked.flatMap(b => b.rules))].join(","))})</small>` : "";
-      return `<li>${it.day}일 ${esc(it.key)} ${it.have}/${it.need}명 → 넣을 수 있는 사람: ${ok || "<b>없음</b>"}${bl}</li>`;
+      const bl = it.blocked.length ? ` <small>· 넣으면 필수 위반 ${it.blocked.length}명(${esc([...new Set(it.blocked.flatMap(b => b.rules))].join(","))})</small>` : "";
+      return `<li>${it.day}일 ${esc(it.key)} ${it.have}/${it.need}명 → 위반 없이 넣을 수 있는 사람: ${ok || "<b>없음</b>"}${bl}</li>`;
     }).join("") + "</ul>" +
-      '<p class="side-note">쉬는 사람 중 그 근무를 설 수 있고, 넣어도 새 필수 위반이 없는 사람(괄호는 생기는 최선노력 위반). 잠긴 칸·원티드는 뺐습니다. 칸을 눌러 넣으면 됩니다.</p>';
+      '<p class="side-note">추천일 뿐입니다 — 다른 사람을 넣어도 됩니다(그 칸이 빨강·노랑으로 표시될 뿐, 확정·다운로드는 됩니다). ' +
+      '목록은 쉬는 사람 중 그 근무를 설 수 있고 넣어도 새 필수 위반이 없는 사람이고, 괄호는 생기는 최선노력 위반입니다. 잠긴 칸·원티드는 뺐습니다.</p>';
   } catch (e) {
     box.textContent = "";
   }
