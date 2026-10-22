@@ -2355,8 +2355,10 @@ document.getElementById("gridContent").addEventListener("keydown", (ev) => {
 delegateClick(document.getElementById("sidePane"), "table.attempt-table tr[data-seed]", async (tr) => {
   const seed = Number(tr.dataset.seed);
   if (!ST || seed === ST.current_seed) return;
-  if (ST.pending && ST.pending.length &&
-      !confirm(`미적용 편집 ${ST.pending.length}개는 버려집니다 — 시드 ${seed}의 표로 바꿀까요?`)) return;
+  if (ST.pending && ST.pending.length) {
+    const kept = (ST.locked && ST.locked.length) ? `\n적용(고정)한 ${ST.locked.length}칸은 새 표에도 그대로 들어갑니다.` : "";
+    if (!confirm(`시드 ${seed}의 표로 바꾸면 지금 표에서 손으로 고친 ${ST.pending.length}칸이 사라집니다.${kept}\n바꿀까요?`)) return;
+  }
   showGenOverlay(`시드 ${seed}의 근무표로 바꾸는 중입니다…`);
   try {
     ST = await api("/api/select_attempt", { method: "POST", body: JSON.stringify({ seed }) });
@@ -2722,7 +2724,8 @@ function renderSide() {
   // (운영 필수 → 숙련도 → 전체 하드 → 공평성). 공평성은 주말·야간·D/E·원티드 미반영의 합(사람·일 수).
   if (ST.attempt_table && ST.attempt_table.length > 0) {
     const rows = ST.attempt_table;
-    html += `<div class="side-sec"><h3>시도 점수표 <span class="count-badge">시드 ${rows.length}개</span></h3>` +
+    html += `<div class="side-sec"><h3>시도 점수표 <span class="count-badge">시드 ${rows.length}개</span>` +
+      `<span class="tap-hint">줄을 누르면 그 시드의 표로 바뀝니다(다운로드도 그 표)</span></h3>` +
       '<table class="mini-table attempt-table"><tr><th>시드</th><th title="최소인력·지정·연속근무 등 그날 병동이 못 돌아가는 필수 위반">운영필수</th>' +
       '<th title="조에 숙련도 4 이상이 없는 횟수(H1-5)">숙련도</th><th title="최선노력 규칙까지 포함한 전체 하드 위반">전체</th>' +
       '<th title="같은 조건끼리 D·E·N 횟수가 가능일 비례 목표에서 벗어난 날수의 합(×2로 가장 무겁게)">횟수</th>' +
