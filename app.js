@@ -2725,18 +2725,22 @@ function renderSide() {
     html += `<div class="side-sec"><h3>시도 점수표 <span class="count-badge">시드 ${rows.length}개</span></h3>` +
       '<table class="mini-table attempt-table"><tr><th>시드</th><th title="최소인력·지정·연속근무 등 그날 병동이 못 돌아가는 필수 위반">운영필수</th>' +
       '<th title="조에 숙련도 4 이상이 없는 횟수(H1-5)">숙련도</th><th title="최선노력 규칙까지 포함한 전체 하드 위반">전체</th>' +
-      '<th title="같은 조건끼리 주말 근무가 평균에서 벗어난 날수">주말</th><th title="야간 횟수가 개인 목표(4·6)에서 벗어난 날수">야간</th>' +
-      '<th title="D 횟수가 병동 D/E 비율에서 벗어난 날수">D/E</th><th title="반려된 원티드 신청 건수">미반영</th><th title="주말+야간+D/E+미반영">공평성</th></tr>' +
+      '<th title="같은 조건끼리 D·E·N 횟수가 가능일 비례 목표에서 벗어난 날수의 합(×2로 가장 무겁게)">횟수</th>' +
+      '<th title="같은 조건끼리 주말 근무가 평균에서 벗어난 날수">주말</th>' +
+      '<th title="날짜·조마다 레벨 띠(1-2·3·4-5) 구성이 병동 비율에서 벗어난 사람 수의 합">조구성</th>' +
+      '<th title="혼자 Lv4+인 조에 선 횟수가 고연차 평균에서 벗어난 횟수의 합">단독</th>' +
+      '<th title="반려된 원티드 신청 건수">미반영</th><th title="2×횟수+주말+조구성+단독+미반영">공평성</th></tr>' +
       rows.map(a => {
         const cur = a.seed === ST.current_seed;
         const cls = (a.chosen ? "chosen " : "") + (cur ? "current" : "");
         const mark = (a.chosen ? " ✓" : "") + (cur ? " ◀" : "");
+        const v = k => (a[k] === undefined ? "–" : a[k]);
         return `<tr class="${cls}" data-seed="${a.seed}" role="button" tabindex="0" ` +
           `title="${escAttr(cur ? "지금 보는 표" : `시드 ${a.seed}의 표로 바꿔 보기`)}"><td>${a.seed}${mark}</td><td>${a.blocking}</td><td>${a.h15}</td><td>${a.hard}</td>` +
-          `<td>${a.weekend}</td><td>${a.night}</td><td>${a.de}</td><td>${a.wanted}</td><td><b>${a.fairness}</b></td></tr>`;
+          `<td>${v("count")}</td><td>${v("weekend")}</td><td>${v("mix")}</td><td>${v("sole")}</td><td>${v("wanted")}</td><td><b>${a.fairness}</b></td></tr>`;
       }).join("") +
       '</table>' +
-      `<p class="side-note">앞 열부터 견줘 다르면 뒤 열은 보지 않습니다. 공평성은 네 값의 합(단위: 사람·일). ` +
+      `<p class="side-note">앞 열부터 견줘 다르면 뒤 열은 보지 않습니다. 공평성 = 2×횟수 + 주말 + 조구성 + 단독 + 미반영(단위: 사람·일, 낮을수록 좋음). ` +
       `✓ = 점수가 가장 좋은 시드(기본값), ◀ = 지금 보는 표. <b>줄을 누르면 그 시드의 표로 바뀝니다</b>(다운로드도 그 표). ` +
       `${(window.__genMode || "").startsWith("parallel") ? "세 시드를 동시에 계산했습니다." : ""}</p></div>`;
   }
@@ -2823,6 +2827,18 @@ function renderBurdenSummary() {
   // 연속근무 상한 초과(필수 위반이기도 하다 — 위 위반 목록에도 뜨지만 여기서는 사람 단위로)
   const maxC = (ST.params_summary && ST.params_summary.max_consecutive_work) || 5;
   const runOver = rows.filter(r => r.maxRun > maxC).sort((a, b) => b.maxRun - a.maxRun);
+  // 단독 고연차: 그 조에 Lv4+가 자기뿐인 횟수 — 고연차끼리 평균에서 2회 이상 많은 사람
+  const soleCnt = {};
+  const seniors = people.filter(s => s.level >= 4);
+  for (const s of seniors) soleCnt[s.id] = 0;
+  for (let d = 0; d < ST.num_days; d++) {
+    for (const codes of [["D"], ["E"], ["N", "NK"]]) {
+      const hi = seniors.filter(s => codes.includes((ST.grid[s.id] || [])[d]));
+      if (hi.length === 1) soleCnt[hi[0].id]++;
+    }
+  }
+  const soleMean = seniors.length ? Object.values(soleCnt).reduce((a, b) => a + b, 0) / seniors.length : 0;
+  const soleTop = seniors.filter(s => soleCnt[s.id] - soleMean >= 2).sort((a, b) => soleCnt[b.id] - soleCnt[a.id]).slice(0, 5);
   // 지난달 대비(연간근무표가 있을 때) — 주말이 2일 이상 늘거나 야간이 늘어난 사람
   const prev = ST.prev_burden || {};
   const prevMonth = Object.values(prev)[0] && Object.values(prev)[0].month;
@@ -2838,6 +2854,7 @@ function renderBurdenSummary() {
   if (nightOff.length) items.push(`<li>야간이 목표와 다름: ${nightOff.slice(0, 6).map(r => `<span class="who">${esc(r.s.id)}</span> ${r.nights}/${r.s.night_target}`).join(", ")}${nightOff.length > 6 ? ` 외 ${nightOff.length - 6}명` : ""}</li>`);
   if (deOff.length) items.push(`<li>D·E 쏠림(병동 D 비율 ${(ratio * 100).toFixed(0)}%): ${deOff.map(r => `<span class="who">${esc(r.s.id)}</span> D${r.dCnt}·E${r.eCnt}`).join(", ")}</li>`);
   if (runOver.length) items.push(`<li>연속근무 ${maxC}일 초과: ${runOver.map(r => `<span class="who">${esc(r.s.id)}</span> ${r.maxRun}일`).join(", ")}</li>`);
+  if (soleTop.length) items.push(`<li>혼자 Lv4+인 조에 많이 섬(고연차 평균 ${soleMean.toFixed(1)}회): ${soleTop.map(s => `<span class="who">${esc(s.id)}</span> ${soleCnt[s.id]}회`).join(", ")}</li>`);
   const body = items.length ? `<ul class="burden-list">${items.join("")}</ul>`
     : '<p class="side-note">주말·야간·D/E·연속근무 어느 쪽도 눈에 띄게 쏠린 사람이 없습니다.</p>';
   return `<div class="side-sec"><h3>부담 요약 <span class="count-badge">${items.length}항목</span></h3>${body}` +
