@@ -668,6 +668,12 @@ th.burden, td.burden { background: var(--soft, #f6f8fa); }
 td.burden.stat-short { background: #ffc7ce; color: #8a2020; font-weight: 600; }
 td.burden.stat-warn { background: var(--warn-soft); color: var(--warn); font-weight: 600; }
 .burden-list { font-size: 12px; margin: 4px 0 0; padding-left: 0; list-style: none; }
+details.side-sec summary { cursor: pointer; list-style: none; }
+details.side-sec summary::-webkit-details-marker { display: none; }
+details.side-sec summary h3::before { content: "▸ "; color: var(--sub); }
+details.side-sec[open] summary h3::before { content: "▾ "; }
+.weekend-roster td small { display: block; color: var(--sub); font-size: 10px; white-space: normal; }
+.weekend-roster td.badge-bad small { color: inherit; }
 .burden-list li { margin: 2px 0; }
 .burden-list .who { font-weight: 600; }
 .attempt-table tr[data-seed] { cursor: pointer; }

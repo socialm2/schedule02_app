@@ -529,7 +529,11 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니다. 다운로드 엑셀의 '듀티별 횟수' 블록과 같은 값입니다.</li>
 <li><b>주말 / 연속 / 야간</b> — 사람별 부담입니다. 주말·공휴일 근무 날 수, 이번 달 가장 길게 이어진 연속근무
 (전월 말에서 이어진 것 포함, 상한을 넘으면 빨강), 야간 횟수/개인 목표(다르면 노랑). 오른쪽 '부담 요약'이
-같은 숫자로 손봐야 할 사람을 추려 줍니다. 이 세 열은 화면에만 있고 다운로드 엑셀에는 없습니다.</li>
+같은 숫자로 손봐야 할 사람을 추려 줍니다(연간근무표를 올렸으면 지난달 대비 늘어난 사람도). 이 세 열은 화면에만 있고
+다운로드 엑셀에는 없습니다.</li>
+<li><b>미달 날 채울 수 있는 사람</b> — 오른쪽 '일별 근무인력'에 미달 날이 있으면, 그날 쉬는 사람 중 그 근무를 설 수 있고
+넣어도 새 필수 위반이 없는 사람을 날짜마다 적어 줍니다. 이름을 보고 그 칸을 눌러 넣으면 됩니다.</li>
+<li><b>주말·공휴일 근무자</b> — 오른쪽에 접힌 표로, 주말마다 D·E·N에 누가 서는지와 최소인력 대비 인원을 보여줍니다.</li>
 <li><b>® / ⓡ</b> — 병원 HR 전용 항목이라 이 앱은 값을 몰라 항상 빈칸입니다(다운로드 파일과 동일).</li>
 <li><b>금월</b> — 이번 달 휴일수(전 직원 공통) · <b>Lv</b> — 직급입니다.</li>
 </ul>
@@ -1887,6 +1891,8 @@ async function stageSwap(sid, day, partner) {
 
 function render(opts) {
   if (!ST) return;
+  // 미달 날 후보는 Worker에 따로 묻는다(수 십 ms~수 백 ms) — 그리기가 끝난 뒤 채운다.
+  setTimeout(refreshFillHints, 0);
   const keepScroll = !!(opts && opts.keepScroll);
   const pos = keepScroll ? captureScroll() : null;
   // 미적용 편집이 하나도 없는 상태 = 지금 화면이 곧 기준값이다. 이 순간의 하단 통계를
@@ -2100,9 +2106,11 @@ function renderGrid() {
       const tgt = s.night_target;
       const nightTxt = tgt == null ? String(b.nights) : `${b.nights}/${tgt}`;
       const nightCls = (tgt != null && b.nights !== tgt) ? " stat-warn" : "";
-      html += `<td class="stat-col burden" data-burden="weekend">${b.weekend}</td>` +
+      const pv = (ST.prev_burden || {})[s.id];
+      const wkTip = `주말·공휴일 근무 ${b.weekend}일` + (pv ? ` (지난달 ${pv.weekend}일)` : "");
+      html += `<td class="stat-col burden" data-burden="weekend" title="${escAttr(wkTip)}">${b.weekend}</td>` +
         `<td class="stat-col burden${runCls}" data-burden="run" title="${escAttr(`최장 연속근무 ${b.maxRun}일 (상한 ${maxC}일)`)}">${b.maxRun}</td>` +
-        `<td class="stat-col burden${nightCls}" data-burden="night" title="${escAttr(tgt == null ? `야간 ${b.nights}회` : `야간 ${b.nights}회 / 목표 ${tgt}회`)}">${nightTxt}</td>`;
+        `<td class="stat-col burden${nightCls}" data-burden="night" title="${escAttr((tgt == null ? `야간 ${b.nights}회` : `야간 ${b.nights}회 / 목표 ${tgt}회`) + (pv ? ` (지난달 ${pv.nights}회)` : ""))}">${nightTxt}</td>`;
     }
     html += `<td class="stat-col">–</td><td class="stat-col">–</td>` +
       `<td class="stat-col">${holCount}</td><td class="stat-col">${s.level}</td>`;
@@ -2711,9 +2719,14 @@ function renderSide() {
         `<td class="${d.counts.E < d.min.E ? "badge-bad" : ""}">${d.counts.E}/${d.min.E}</td>` +
         `<td class="${d.counts.N < d.min.N ? "badge-bad" : ""}">${d.counts.N}/${d.min.N}</td>` +
         `<td class="${d.counts.prn < d.min.prn ? "badge-bad" : ""}">${d.counts.prn}/${d.min.prn}</td></tr>`
-      ).join("") + "</table>";
+      ).join("") + "</table>" +
+      // 미달 (날짜, 근무)마다 "누구를 넣으면 채워지나" — 생성 뒤 Worker에 따로 물어 채운다
+      '<div id="fillHintsBox" class="side-note">채울 수 있는 사람을 찾는 중…</div>';
   }
   html += "</div>";
+
+  // 주말·공휴일 근무자 명단 — "이번 주말에 누가 서나"를 그리드를 훑지 않고 본다
+  html += renderWeekendRoster();
 
   // 야간블록 히스토그램
   const blockH = Object.entries(r.night_block_hist).map(([k, v]) => `${k}일×${v}`).join(", ") || "없음";
@@ -2772,6 +2785,50 @@ function renderSide() {
 }
 
 
+// 미달 날 채울 후보 — 서버(new_hard_keys)가 "넣어도 새 필수 위반이 없는 사람"을 골라 준다.
+async function refreshFillHints() {
+  const box = document.getElementById("fillHintsBox");
+  if (!box || !ST) return;
+  try {
+    const r = await api("/api/fill_hints", { method: "POST" });
+    const items = (r && r.items) || [];
+    if (!items.length) { box.textContent = ""; return; }
+    box.className = "";
+    box.innerHTML = '<ul class="burden-list">' + items.map(it => {
+      const ok = it.ok.map(c => `<span class="who" title="${escAttr(c.warnings.length ? "최선노력 위반 생김: " + c.warnings.join(", ") : "새 위반 없음")}">${esc(c.id)}</span>` +
+        (c.warnings.length ? `<small>(${esc(c.warnings.join(","))})</small>` : "")).join(", ");
+      const bl = it.blocked.length ? ` <small>· 막힘 ${it.blocked.length}명(${esc([...new Set(it.blocked.flatMap(b => b.rules))].join(","))})</small>` : "";
+      return `<li>${it.day}일 ${esc(it.key)} ${it.have}/${it.need}명 → 넣을 수 있는 사람: ${ok || "<b>없음</b>"}${bl}</li>`;
+    }).join("") + "</ul>" +
+      '<p class="side-note">쉬는 사람 중 그 근무를 설 수 있고, 넣어도 새 필수 위반이 없는 사람(괄호는 생기는 최선노력 위반). 잠긴 칸·원티드는 뺐습니다. 칸을 눌러 넣으면 됩니다.</p>';
+  } catch (e) {
+    box.textContent = "";
+  }
+}
+
+// 주말·공휴일마다 누가 서는지 — D·E·N 이름과 최소인력 대비 인원
+function renderWeekendRoster() {
+  const days = (ST.days || []).map((d, i) => ({ ...d, i })).filter(d => d.weekend);
+  if (!days.length) return "";
+  const generals = ST.staff.filter(s => !s.is_partjang);
+  const rows = days.map(d => {
+    const who = { D: [], E: [], N: [] };
+    for (const s of generals) {
+      const v = (ST.grid[s.id] || [])[d.i];
+      if (v === "D") who.D.push(s.id); else if (v === "E") who.E.push(s.id); else if (v === "N" || v === "NK") who.N.push(s.id);
+    }
+    const cell = k => {
+      const need = (d.min && d.min[k]) || 0;
+      const short = need && who[k].length < need;
+      return `<td class="${short ? "badge-bad" : ""}" title="${escAttr(who[k].join(", ") || "없음")}">${who[k].length}${need ? `/${need}` : ""}<br><small>${esc(who[k].join(" "))}</small></td>`;
+    };
+    return `<tr><td>${d.n}일 ${esc(d.dow)}</td>${cell("D")}${cell("E")}${cell("N")}</tr>`;
+  }).join("");
+  return `<details class="side-sec"><summary><h3 style="display:inline">주말·공휴일 근무자 <span class="count-badge">${days.length}일</span></h3></summary>` +
+    '<table class="mini-table weekend-roster"><tr><th>날</th><th>D</th><th>E</th><th>N</th></tr>' + rows + "</table>" +
+    '<p class="side-note">인원/최소인력과 이름. 빨강은 미달. 접어 두면 자리를 안 차지합니다.</p></details>';
+}
+
 function renderBurdenSummary() {
   const people = ST.staff.filter(s => !s.is_partjang);
   if (!people.length) return "";
@@ -2798,7 +2855,16 @@ function renderBurdenSummary() {
   // 연속근무 상한 초과(필수 위반이기도 하다 — 위 위반 목록에도 뜨지만 여기서는 사람 단위로)
   const maxC = (ST.params_summary && ST.params_summary.max_consecutive_work) || 5;
   const runOver = rows.filter(r => r.maxRun > maxC).sort((a, b) => b.maxRun - a.maxRun);
+  // 지난달 대비(연간근무표가 있을 때) — 주말이 2일 이상 늘거나 야간이 늘어난 사람
+  const prev = ST.prev_burden || {};
+  const prevMonth = Object.values(prev)[0] && Object.values(prev)[0].month;
+  const wkUp = rows.filter(r => prev[r.s.id] && r.weekend - prev[r.s.id].weekend >= 2)
+    .sort((a, b) => (b.weekend - prev[b.s.id].weekend) - (a.weekend - prev[a.s.id].weekend)).slice(0, 6);
+  const nightUp = rows.filter(r => prev[r.s.id] && r.nights - prev[r.s.id].nights >= 2)
+    .sort((a, b) => (b.nights - prev[b.s.id].nights) - (a.nights - prev[a.s.id].nights)).slice(0, 6);
   const items = [];
+  if (wkUp.length) items.push(`<li>지난달(${esc(prevMonth)})보다 주말이 2일 이상 는 사람: ${wkUp.map(r => `<span class="who">${esc(r.s.id)}</span> ${prev[r.s.id].weekend}→${r.weekend}`).join(", ")}</li>`);
+  if (nightUp.length) items.push(`<li>지난달보다 야간이 2회 이상 는 사람: ${nightUp.map(r => `<span class="who">${esc(r.s.id)}</span> ${prev[r.s.id].nights}→${r.nights}`).join(", ")}</li>`);
   if (wkTop.length) items.push(`<li>주말 근무 많음(평균 ${wkMean.toFixed(1)}일): ${wkTop.map(r => `<span class="who">${esc(r.s.id)}</span> ${r.weekend}일`).join(", ")}</li>`);
   if (wkLow.length) items.push(`<li>주말 근무 적음: ${wkLow.map(r => `<span class="who">${esc(r.s.id)}</span> ${r.weekend}일`).join(", ")}</li>`);
   if (nightOff.length) items.push(`<li>야간이 목표와 다름: ${nightOff.slice(0, 6).map(r => `<span class="who">${esc(r.s.id)}</span> ${r.nights}/${r.s.night_target}`).join(", ")}${nightOff.length > 6 ? ` 외 ${nightOff.length - 6}명` : ""}</li>`);
