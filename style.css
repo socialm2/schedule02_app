@@ -663,7 +663,10 @@ button.big { font-size: 15px; padding: 11px 26px; }
 .mini-table th { text-align: left; color: var(--sub); }
 .attempt-table td { text-align: right; }
 .attempt-table td:first-child { text-align: left; }
-.attempt-table tr.chosen td { background: var(--ok-soft, #e6f4ea); font-weight: 600; }
+.attempt-table tr[data-seed] { cursor: pointer; }
+.attempt-table tr[data-seed]:hover td { background: var(--line); }
+.attempt-table tr.chosen td { font-weight: 600; }
+.attempt-table tr.current td { background: var(--ok-soft, #e6f4ea); }
 .side-note { font-size: 11px; color: var(--sub); margin: 6px 0 0; }
 .badge-ok { color: var(--ok); font-weight: 700; }
 .badge-bad { color: var(--hard); font-weight: 700; }

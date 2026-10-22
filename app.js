@@ -2329,6 +2329,32 @@ document.getElementById("gridContent").addEventListener("keydown", (ev) => {
   ev.preventDefault();                     // Space가 화면을 스크롤하지 않게
   openPicker(ev, td.dataset.sid, Number(td.dataset.day));
 });
+// 점수표의 줄을 누르면 그 시드의 표로 바꾼다. 미적용 편집은 버려지므로 먼저 묻는다 — 바꾼 표에는
+// 그 편집이 뜻이 없다(다른 표의 칸이다). 고정 칸(재생성 때 잠근 것)은 그대로 적용돼 있다.
+delegateClick(document.getElementById("sidePane"), "table.attempt-table tr[data-seed]", async (tr) => {
+  const seed = Number(tr.dataset.seed);
+  if (!ST || seed === ST.current_seed) return;
+  if (ST.pending && ST.pending.length &&
+      !confirm(`미적용 편집 ${ST.pending.length}개는 버려집니다 — 시드 ${seed}의 표로 바꿀까요?`)) return;
+  showGenOverlay(`시드 ${seed}의 근무표로 바꾸는 중입니다…`);
+  try {
+    ST = await api("/api/select_attempt", { method: "POST", body: JSON.stringify({ seed }) });
+    SWAP = null;
+    render();
+    showToast(`시드 ${seed}의 근무표를 보고 있습니다`);
+    refreshFragile();
+  } finally {
+    hideGenOverlay();
+  }
+});
+document.getElementById("sidePane").addEventListener("keydown", (ev) => {
+  if (ev.key !== "Enter" && ev.key !== " ") return;
+  const tr = ev.target.closest("table.attempt-table tr[data-seed]");
+  if (!tr) return;
+  ev.preventDefault();
+  tr.click();
+});
+
 delegateClick(document.getElementById("sidePane"), "button.undo-edit",
   (b) => undoEdit(b.dataset.sid, Number(b.dataset.day)));
 delegateClick(document.getElementById("sidePane"), "button.swap-pick",
@@ -2675,11 +2701,18 @@ function renderSide() {
       '<th title="조에 숙련도 4 이상이 없는 횟수(H1-5)">숙련도</th><th title="최선노력 규칙까지 포함한 전체 하드 위반">전체</th>' +
       '<th title="같은 조건끼리 주말 근무가 평균에서 벗어난 날수">주말</th><th title="야간 횟수가 개인 목표(4·6)에서 벗어난 날수">야간</th>' +
       '<th title="D 횟수가 병동 D/E 비율에서 벗어난 날수">D/E</th><th title="반려된 원티드 신청 건수">미반영</th><th title="주말+야간+D/E+미반영">공평성</th></tr>' +
-      rows.map(a => `<tr class="${a.chosen ? "chosen" : ""}"><td>${a.seed}${a.chosen ? " ✓" : ""}</td><td>${a.blocking}</td><td>${a.h15}</td><td>${a.hard}</td>` +
-        `<td>${a.weekend}</td><td>${a.night}</td><td>${a.de}</td><td>${a.wanted}</td><td><b>${a.fairness}</b></td></tr>`).join("") +
+      rows.map(a => {
+        const cur = a.seed === ST.current_seed;
+        const cls = (a.chosen ? "chosen " : "") + (cur ? "current" : "");
+        const mark = (a.chosen ? " ✓" : "") + (cur ? " ◀" : "");
+        return `<tr class="${cls}" data-seed="${a.seed}" role="button" tabindex="0" ` +
+          `title="${escAttr(cur ? "지금 보는 표" : `시드 ${a.seed}의 표로 바꿔 보기`)}"><td>${a.seed}${mark}</td><td>${a.blocking}</td><td>${a.h15}</td><td>${a.hard}</td>` +
+          `<td>${a.weekend}</td><td>${a.night}</td><td>${a.de}</td><td>${a.wanted}</td><td><b>${a.fairness}</b></td></tr>`;
+      }).join("") +
       '</table>' +
-      `<p class="side-note">앞 열부터 견줘 다르면 뒤 열은 보지 않습니다. 공평성은 네 값의 합(단위: 사람·일). ✓ = 선택된 시드. ` +
-      `${(window.__genMode || "").startsWith("parallel") ? "세 시드를 동시에 계산했습니다." : (window.__genMode === "sequential:1" ? "이 기기는 코어가 적어 시드 하나만 계산했습니다." : "")}</p></div>`;
+      `<p class="side-note">앞 열부터 견줘 다르면 뒤 열은 보지 않습니다. 공평성은 네 값의 합(단위: 사람·일). ` +
+      `✓ = 점수가 가장 좋은 시드(기본값), ◀ = 지금 보는 표. <b>줄을 누르면 그 시드의 표로 바뀝니다</b>(다운로드도 그 표). ` +
+      `${(window.__genMode || "").startsWith("parallel") ? "세 시드를 동시에 계산했습니다." : ""}</p></div>`;
   }
 
   // 처리 로그

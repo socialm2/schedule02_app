@@ -61,6 +61,7 @@ function callBridge(path, opts) {
     case "/api/generate_attempt": return bridge.api_generate_attempt(opts.body);
     case "/api/pick_attempt": return bridge.api_pick_attempt(opts.body);
     case "/api/generate_seed": return bridge.api_generate_seed(opts.body);
+    case "/api/select_attempt": return bridge.api_select_attempt(opts.body);
     case "/api/state": return bridge.api_state();
     case "/api/edit": return bridge.api_edit(opts.body);
     case "/api/edit/team_b": return bridge.api_edit_team_b(opts.body);

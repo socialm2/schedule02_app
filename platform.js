@@ -287,12 +287,9 @@ async function api(path, opts) {
         window.__genMode = "sequential:fallback";
         raw = (await callWorker("/api/generate_seed", { body: "{}" })).raw;
       }
-    } else if (PARALLEL_PATHS.has(path) && !parallelAllowed()) {
-      // 코어 4개 미만(폰 등)은 시드 하나만 돌린다 — 사용자 결정(2026-10-22). 세 시드를 차례로
-      // 돌리면 세 배 기다리는데, 거의 모든 생성은 PC에서 한다.
-      window.__genMode = "sequential:1";
-      ({ raw, binary } = await callWorker(path, { body: JSON.stringify({ attempts: 1 }) }));
     } else {
+      // 코어가 적은 기기(폰)도 세 시드를 차례로 다 돌린다 — 사용자 결정(2026-10-22, 모바일 테스트
+      // 뒤). 세 배 기다리는 대신 PC와 같은 표가 나오고, 점수표에서 세 표를 바꿔 볼 수 있다.
       if (PARALLEL_PATHS.has(path)) window.__genMode = "sequential";
       ({ raw, binary } = await callWorker(path, opts));
     }
