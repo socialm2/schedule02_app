@@ -663,6 +663,13 @@ button.big { font-size: 15px; padding: 11px 26px; }
 .mini-table th { text-align: left; color: var(--sub); }
 .attempt-table td { text-align: right; }
 .attempt-table td:first-child { text-align: left; }
+/* 사람별 부담 열 — 다른 계산열과 구분되게 옅은 바탕. 연속근무 초과는 빨강, 야간 목표 불일치는 노랑 */
+th.burden, td.burden { background: var(--soft, #f6f8fa); }
+td.burden.stat-short { background: #ffc7ce; color: #8a2020; font-weight: 600; }
+td.burden.stat-warn { background: var(--warn-soft); color: var(--warn); font-weight: 600; }
+.burden-list { font-size: 12px; margin: 4px 0 0; padding-left: 0; list-style: none; }
+.burden-list li { margin: 2px 0; }
+.burden-list .who { font-weight: 600; }
 .attempt-table tr[data-seed] { cursor: pointer; }
 .attempt-table tr[data-seed]:hover td { background: var(--line); }
 .attempt-table tr.chosen td { font-weight: 600; }

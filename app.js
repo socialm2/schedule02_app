@@ -527,6 +527,9 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 <li><b>잔휴전월 / 잔휴이후</b> — 이월된 잔여 휴무 기준으로 자동 계산됩니다.</li>
 <li><b>D / E / N … (듀티별 횟수)</b> — 이번 달에 그 근무 코드가 적힌 날 수입니다. D·E·N은 항상 보이고,
 NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니다. 다운로드 엑셀의 '듀티별 횟수' 블록과 같은 값입니다.</li>
+<li><b>주말 / 연속 / 야간</b> — 사람별 부담입니다. 주말·공휴일 근무 날 수, 이번 달 가장 길게 이어진 연속근무
+(전월 말에서 이어진 것 포함, 상한을 넘으면 빨강), 야간 횟수/개인 목표(다르면 노랑). 오른쪽 '부담 요약'이
+같은 숫자로 손봐야 할 사람을 추려 줍니다. 이 세 열은 화면에만 있고 다운로드 엑셀에는 없습니다.</li>
 <li><b>® / ⓡ</b> — 병원 HR 전용 항목이라 이 앱은 값을 몰라 항상 빈칸입니다(다운로드 파일과 동일).</li>
 <li><b>금월</b> — 이번 달 휴일수(전 직원 공통) · <b>Lv</b> — 직급입니다.</li>
 </ul>
@@ -2029,6 +2032,9 @@ function renderGrid() {
   for (const code of dutyCols) {
     html += `<th class="stat-col" title="${escAttr(`이번 달 ${code} 횟수(코드가 적힌 날 수)`)}">${esc(code)}</th>`;
   }
+  html += '<th class="stat-col burden" title="주말·공휴일에 근무한 날 수">주말</th>' +
+    '<th class="stat-col burden" title="이번 달 가장 길게 이어진 연속근무 일수(전월 말에서 이어진 것 포함). 상한을 넘으면 빨강">연속</th>' +
+    '<th class="stat-col burden" title="야간 횟수 / 개인 목표(4 또는 6, 야간전담 15). 목표와 다르면 노랑">야간</th>';
   html +=
     '<th class="stat-col" title="병원 HR 전용 항목 — 이 앱은 값을 추적하지 않아 항상 빈칸입니다">®</th>' +
     '<th class="stat-col" title="병원 HR 전용 항목 — 이 앱은 값을 추적하지 않아 항상 빈칸입니다">ⓡ</th>' +
@@ -2084,8 +2090,21 @@ function renderGrid() {
               ` data-pick="1" tabindex="0" role="button" aria-label="${escAttr(aria)}">` +
               `<span>${esc(shiftText(v, isWanted))}</span></td>`;
     }
-    html += dutyCols.map(code => `<td class="stat-col">${dutyCnt[code]}</td>`).join("") +
-      `<td class="stat-col">–</td><td class="stat-col">–</td>` +
+    html += dutyCols.map(code => `<td class="stat-col">${dutyCnt[code]}</td>`).join("");
+    if (s.is_partjang) {
+      html += '<td class="stat-col">–</td><td class="stat-col">–</td><td class="stat-col">–</td>';
+    } else {
+      const b = burdenOf(s, row);
+      const maxC = (ST.params_summary && ST.params_summary.max_consecutive_work) || 5;
+      const runCls = b.maxRun > maxC ? " stat-short" : "";
+      const tgt = s.night_target;
+      const nightTxt = tgt == null ? String(b.nights) : `${b.nights}/${tgt}`;
+      const nightCls = (tgt != null && b.nights !== tgt) ? " stat-warn" : "";
+      html += `<td class="stat-col burden" data-burden="weekend">${b.weekend}</td>` +
+        `<td class="stat-col burden${runCls}" data-burden="run" title="${escAttr(`최장 연속근무 ${b.maxRun}일 (상한 ${maxC}일)`)}">${b.maxRun}</td>` +
+        `<td class="stat-col burden${nightCls}" data-burden="night" title="${escAttr(tgt == null ? `야간 ${b.nights}회` : `야간 ${b.nights}회 / 목표 ${tgt}회`)}">${nightTxt}</td>`;
+    }
+    html += `<td class="stat-col">–</td><td class="stat-col">–</td>` +
       `<td class="stat-col">${holCount}</td><td class="stat-col">${s.level}</td>`;
     html += "</tr>";
   }
@@ -2203,7 +2222,29 @@ function dutyColumns() {
 }
 // 날짜 뒤에 붙는 계산열 수 — 듀티별 횟수 + ®·ⓡ·금월·Lv. 하단 통계 행과 B팀 행의 빈칸
 // 수, 구분행의 colspan이 전부 이 값을 써야 열이 어긋나지 않는다.
-function tailStatCount() { return dutyColumns().length + 4; }
+// 사람별 부담 열 세 개(주말·연속·야간) — 듀티별 횟수 뒤, ®·ⓡ·금월·Lv 앞.
+const BURDEN_COLS = ["주말", "연속", "야간"];
+function tailStatCount() { return dutyColumns().length + BURDEN_COLS.length + 4; }
+// 근무로 세는 코드 — 엔진 WORK_SHIFTS와 같은 뜻으로, 화면에서는 '휴무 계열이 아니면 근무'로 본다
+// (빈칸은 휴무). 연속근무·주말 근무 횟수를 그리드에서 바로 세는 데 쓴다.
+function isWorkCode(v) { return !!v && !REST_PICK.includes(v); }
+// 한 사람의 부담 숫자: 주말·공휴일 근무 횟수, 이번 달 최장 연속근무(전월 말에서 이어진 것 포함),
+// 야간 횟수. 칸을 고치면 다른 계산열처럼 그 자리에서 다시 센다.
+function burdenOf(s, row) {
+  let weekend = 0, nights = 0, run = s.carry_run || 0, maxRun = run;
+  for (let d = 0; d < ST.num_days; d++) {
+    const v = row[d];
+    if (isWorkCode(v)) {
+      if (ST.days[d].weekend) weekend++;
+      run++;
+      if (run > maxRun) maxRun = run;
+    } else {
+      run = 0;
+    }
+    if (v === "N" || v === "NK") nights++;
+  }
+  return { weekend, maxRun, nights };
+}
 function blankTailCells() { return '<td class="stat-col">–</td>'.repeat(tailStatCount()); }
 
 // 날짜별 D·E·N·prn 인원 — 레벨 통계와 같은 방식으로 화면 그리드에서 매번 다시 센다.
@@ -2692,6 +2733,11 @@ function renderSide() {
       "</table></div>";
   }
 
+  // 부담 요약 — 파트장이 손봐야 할 사람이 누군지 한눈에. 그리드 오른쪽 부담 열과 같은 숫자를
+  // 사람별로 추린다: 주말 근무가 많은 순, 야간이 목표와 다른 사람, D·E가 한쪽으로 쏠린 사람.
+  // 숫자는 그리드에서 그 자리에서 세므로 칸을 고치면 재생성 전에도 바뀐다.
+  html += renderBurdenSummary();
+
   // 시도 점수표 — 시드마다 어떤 숫자로 견줘 어느 것을 골랐는지. 앞 열이 다르면 뒤 열은 보지 않는다
   // (운영 필수 → 숙련도 → 전체 하드 → 공평성). 공평성은 주말·야간·D/E·원티드 미반영의 합(사람·일 수).
   if (ST.attempt_table && ST.attempt_table.length > 0) {
@@ -2725,6 +2771,45 @@ function renderSide() {
   renderPending();
 }
 
+
+function renderBurdenSummary() {
+  const people = ST.staff.filter(s => !s.is_partjang);
+  if (!people.length) return "";
+  const rows = people.map(s => {
+    const row = ST.grid[s.id] || [];
+    const b = burdenOf(s, row);
+    const dCnt = row.filter(v => v === "D").length, eCnt = row.filter(v => v === "E").length;
+    return { s, ...b, dCnt, eCnt };
+  });
+  // 주말: 같은 조건끼리 견주는 것이 정확하지만 화면은 단순하게 전체 평균과 견준다 —
+  // 평균보다 2일 이상 많은 사람만 올린다(없으면 줄 자체를 안 그린다).
+  const wkMean = rows.reduce((a, r) => a + r.weekend, 0) / rows.length;
+  const wkTop = rows.filter(r => r.weekend - wkMean >= 2).sort((a, b) => b.weekend - a.weekend || a.s.id.localeCompare(b.s.id)).slice(0, 5);
+  const wkLow = rows.filter(r => wkMean - r.weekend >= 2).sort((a, b) => a.weekend - b.weekend || a.s.id.localeCompare(b.s.id)).slice(0, 5);
+  // 야간: 목표(4·6)와 다른 사람. 야간전담은 15일 고정이라 다르면 그 자체가 문제다.
+  const nightOff = rows.filter(r => r.s.night_target != null && r.nights !== r.s.night_target)
+    .sort((a, b) => Math.abs(b.nights - b.s.night_target) - Math.abs(a.nights - a.s.night_target) || a.s.id.localeCompare(b.s.id));
+  // D·E 쏠림: D와 E를 둘 다 설 수 있는 사람 중 병동 비율에서 2회 넘게 벗어난 사람.
+  const de = rows.filter(r => !r.s.is_nk && r.s.allowed.includes("D") && r.s.allowed.includes("E"));
+  const totD = de.reduce((a, r) => a + r.dCnt, 0), tot = de.reduce((a, r) => a + r.dCnt + r.eCnt, 0);
+  const ratio = tot ? totD / tot : 0;
+  const deOff = de.map(r => ({ ...r, dev: r.dCnt - ratio * (r.dCnt + r.eCnt) }))
+    .filter(r => Math.abs(r.dev) > 2).sort((a, b) => Math.abs(b.dev) - Math.abs(a.dev)).slice(0, 5);
+  // 연속근무 상한 초과(필수 위반이기도 하다 — 위 위반 목록에도 뜨지만 여기서는 사람 단위로)
+  const maxC = (ST.params_summary && ST.params_summary.max_consecutive_work) || 5;
+  const runOver = rows.filter(r => r.maxRun > maxC).sort((a, b) => b.maxRun - a.maxRun);
+  const items = [];
+  if (wkTop.length) items.push(`<li>주말 근무 많음(평균 ${wkMean.toFixed(1)}일): ${wkTop.map(r => `<span class="who">${esc(r.s.id)}</span> ${r.weekend}일`).join(", ")}</li>`);
+  if (wkLow.length) items.push(`<li>주말 근무 적음: ${wkLow.map(r => `<span class="who">${esc(r.s.id)}</span> ${r.weekend}일`).join(", ")}</li>`);
+  if (nightOff.length) items.push(`<li>야간이 목표와 다름: ${nightOff.slice(0, 6).map(r => `<span class="who">${esc(r.s.id)}</span> ${r.nights}/${r.s.night_target}`).join(", ")}${nightOff.length > 6 ? ` 외 ${nightOff.length - 6}명` : ""}</li>`);
+  if (deOff.length) items.push(`<li>D·E 쏠림(병동 D 비율 ${(ratio * 100).toFixed(0)}%): ${deOff.map(r => `<span class="who">${esc(r.s.id)}</span> D${r.dCnt}·E${r.eCnt}`).join(", ")}</li>`);
+  if (runOver.length) items.push(`<li>연속근무 ${maxC}일 초과: ${runOver.map(r => `<span class="who">${esc(r.s.id)}</span> ${r.maxRun}일`).join(", ")}</li>`);
+  const body = items.length ? `<ul class="burden-list">${items.join("")}</ul>`
+    : '<p class="side-note">주말·야간·D/E·연속근무 어느 쪽도 눈에 띄게 쏠린 사람이 없습니다.</p>';
+  return `<div class="side-sec"><h3>부담 요약 <span class="count-badge">${items.length}항목</span></h3>${body}` +
+    '<p class="side-note">그리드 오른쪽 주말·연속·야간 열과 같은 숫자입니다. 칸을 고치면 바로 다시 셉니다. ' +
+    '주말은 전체 평균과 2일 이상 차이 나는 사람만, D·E는 병동 비율에서 2회 넘게 벗어난 사람만 올립니다.</p></div>';
+}
 
 function renderPending() {
   const body = $("#pendingBody");
