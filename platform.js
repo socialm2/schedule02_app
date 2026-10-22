@@ -166,10 +166,136 @@ function callWorker(path, opts) {
   });
 }
 
+// ================================================================ 병렬 생성 (여러 코어)
+// 생성(generate_best)은 시드 0·1·2를 차례로 돌려 고른다 — 어려운 달은 세 번을 다 돌고,
+// 한 번에 5~10초씩이다. 코어가 넉넉한 PC에서는 도우미 Worker 둘(같은 pyworker.js, 각자
+// Pyodide를 따로 부팅)에 시드 1·2를 맡기고 주 Worker는 시드 0을 돌린다. 끝나면 세 통계를
+// 엔진의 판정(/api/pick_attempt)에 넣어 고르고, 시드 0이 아니면 그 시드를 한 번 더 돌린다.
+// 그래서 어려운 달은 3회 → 최대 2회 시간이 되고, 쉬운 달(시드 0으로 끝)은 예전과 같다.
+//
+// 결정성: 고르는 규칙이 엔진 한 벌(choose_attempt)이라 순차와 **같은 표**가 나온다 — 병렬이든
+// 아니든, PC든 폰이든. 도우미가 하나라도 실패하면 순차 길로 되돌아간다(결과는 같고 느릴 뿐).
+//
+// 폰·코어 적은 기기에서는 켜지 않는다. Pyodide 하나가 메모리 100MB 남짓이라 셋이면 폰이
+// 버거워지고, 코어보다 Worker가 많으면 서로 CPU를 뺏어 오히려 늦어진다(CI에서 그랬다).
+const PAR = { helpers: [], booting: null, busy: 0 };
+const PARALLEL_PATHS = new Set(["/api/generate", "/api/apply", "/api/regenerate"]);
+
+function parallelAllowed() {
+  const cores = navigator.hardwareConcurrency || 1;
+  const mem = navigator.deviceMemory;             // 크롬만 준다. 없으면 코어 수만 본다.
+  const mobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  return cores >= 4 && !mobile && (mem === undefined || mem >= 4);
+}
+
+function rpc(w, path, opts) {
+  return new Promise((resolve, reject) => {
+    const id = ++w._reqId;
+    w._pending.set(id, { resolve, reject });
+    w.postMessage({ id, path, opts: opts || {} });
+  });
+}
+
+function bootHelper() {
+  return new Promise((resolve, reject) => {
+    const w = new Worker("pyworker.js");
+    w._reqId = 0;
+    w._pending = new Map();
+    w.onmessage = (ev) => {
+      const d = ev.data;
+      if (d.type === "boot_progress") return;
+      if (d.type === "ready") {
+        w.onmessage = (ev2) => {
+          const { id, ok, raw, error } = ev2.data;
+          const p = w._pending.get(id);
+          if (!p) return;
+          w._pending.delete(id);
+          if (ok) p.resolve(raw); else p.reject(new Error(error));
+        };
+        resolve(w);
+        return;
+      }
+      if (d.type === "boot_error") reject(new Error(d.error));
+    };
+    w.onerror = (e) => {
+      for (const [, p] of w._pending) p.reject(new Error((e && e.message) || "도우미 Worker 중단"));
+      w._pending.clear();
+      reject(new Error((e && e.message) || "도우미 Worker 중단"));
+    };
+  });
+}
+
+// 주 Worker 부팅이 끝난 뒤 조용히 띄운다 — 첫 화면을 늦추지 않는다. 다 뜨기 전에 생성을
+// 누르면 그 생성은 순차로 간다(결과는 같다).
+// 점검 스크립트(tools/ui_smoke.py)가 도우미가 떴는지 보고 생성을 누르기 위한 창.
+window.__parallelState = () => ({ allowed: parallelAllowed(), helpers: PAR.helpers.length, busy: PAR.busy });
+
+function bootHelpersInBackground() {
+  if (!parallelAllowed()) return;
+  const n = Math.min(2, (navigator.hardwareConcurrency || 1) - 2);
+  if (n < 1) return;
+  PAR.booting = Promise.all(Array.from({ length: n }, bootHelper))
+    .then(ws => { PAR.helpers = ws; })
+    .catch(e => { console.warn("도우미 Worker 부팅 실패 — 순차 생성으로 갑니다", e); PAR.helpers = []; });
+}
+
+async function generateParallel(path, opts) {
+  const mode = path === "/api/generate" ? "generate" : path === "/api/apply" ? "apply" : "regenerate";
+  const plan = JSON.parse(await callWorker("/api/generate_plan", { body: JSON.stringify({ mode }) }).then(r => r.raw));
+  if (plan.error) throw new Error(plan.error);
+  const helperSeeds = plan.seeds.slice(1, 1 + PAR.helpers.length);
+  PAR.busy++;
+  const helperRuns = PAR.helpers.slice(0, helperSeeds.length).map((w, i) =>
+    rpc(w, "/api/generate_attempt",
+        { body: JSON.stringify({ cfg: plan.cfg, fixed: plan.fixed, seed: helperSeeds[i] }) })
+      .then(raw => JSON.parse(raw)));
+  let main;
+  try {
+    main = await callWorker(path, { body: JSON.stringify({ seed: plan.seeds[0] }) }).then(r => r.raw);
+  } finally {
+    Promise.allSettled(helperRuns).then(() => { PAR.busy--; });
+  }
+  const data = JSON.parse(main);
+  if (data.error || !data.attempt) return main;
+  // 세 시드를 다 기다려 점수표로 고른다 — 동시에 돌므로 다 기다려도 가장 느린 하나만큼이다.
+  const others = await Promise.all(helperRuns);          // 실패하면 throw → 호출부가 순차로
+  if (others.some(o => o.error)) throw new Error(others.find(o => o.error).error);
+  const stats = [data.attempt, ...others];
+  const pick = JSON.parse(await callWorker("/api/pick_attempt",
+    { body: JSON.stringify({ stats, h15_floor: plan.h15_floor }) }).then(r => r.raw));
+  if (pick.error) throw new Error(pick.error);
+  window.__genMode = `parallel:seed${pick.seed}`;
+  // 점수표는 pick이 세션에 남겼다 — 시드 0이 이겼으면 상태만 다시 받고, 아니면 그 시드를 한 번 더 돌린다.
+  if (pick.seed === plan.seeds[0]) return callWorker("/api/state", {}).then(r => r.raw);
+  return callWorker("/api/generate_seed", { body: JSON.stringify({ seed: pick.seed }) }).then(r => r.raw);
+}
+
 async function api(path, opts) {
   let raw, binary;
   try {
-    ({ raw, binary } = await callWorker(path, opts));
+    if (PARALLEL_PATHS.has(path) && parallelAllowed()) {
+      // 도우미가 아직 뜨는 중이면 기다린다(부팅 몇 초) — 그래야 PC에서는 언제 눌러도 세 시드다.
+      if (PAR.booting && !PAR.helpers.length) { try { await PAR.booting; } catch (e) { /* 아래서 순차 */ } }
+    }
+    if (PARALLEL_PATHS.has(path) && PAR.helpers.length && !PAR.busy) {
+      try {
+        raw = await generateParallel(path, opts);
+      } catch (e) {
+        // 병렬 길이 막히면(도우미 중단 등) 순차로. 주 Worker가 이미 시드 0 상태를 만들었어도
+        // generate_seed(seed 없음)는 처음부터 세 시드를 다시 돌려 같은 표를 만든다.
+        console.warn("병렬 생성 실패 — 순차로 다시 계산합니다", e);
+        window.__genMode = "sequential:fallback";
+        raw = (await callWorker("/api/generate_seed", { body: "{}" })).raw;
+      }
+    } else if (PARALLEL_PATHS.has(path) && !parallelAllowed()) {
+      // 코어 4개 미만(폰 등)은 시드 하나만 돌린다 — 사용자 결정(2026-10-22). 세 시드를 차례로
+      // 돌리면 세 배 기다리는데, 거의 모든 생성은 PC에서 한다.
+      window.__genMode = "sequential:1";
+      ({ raw, binary } = await callWorker(path, { body: JSON.stringify({ attempts: 1 }) }));
+    } else {
+      if (PARALLEL_PATHS.has(path)) window.__genMode = "sequential";
+      ({ raw, binary } = await callWorker(path, opts));
+    }
   } catch (e) {
     const message = (e && e.message) ? e.message.split("\n")[0] : String(e);
     showToast(message, true);
@@ -243,5 +369,6 @@ async function bootPlatform() {
   }
   document.getElementById("loadingOverlay").style.display = "none";
   document.getElementById("app").style.display = "";
+  bootHelpersInBackground();
   return true;
 }

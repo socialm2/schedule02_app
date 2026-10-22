@@ -212,6 +212,11 @@ let lastConfigWarning = null;  // set_config가 돌려준 경고(예: 연간근�
 // 출력화면에 함께 쓴다. 안내 문구는 엔진이 만든 것을 그대로 쓴다 — 화면이 두 벌이라
 // 여기서 문구를 조립하면 언젠가 한쪽만 고쳐져 같은 상황에 다른 안내가 나간다.
 let lastStaffing = null;
+// 수정 보조(D-1·D-2). FRAGILE: 지금 회차의 취약 칸 지도({round, total, fixed, row_fixed,
+// swap_only, cells}) — 생성·재생성 뒤 Worker에 따로 요청해 채운다(40명 병동에서 수 초).
+// SWAP: 마지막 맞교환 탐색 결과 — 오른쪽 패널에 상대 목록으로 그린다.
+let FRAGILE = null;
+let SWAP = null;
 let picker = null;
 // 지금 고르는 중인 칸. 피커는 칸에서 떨어진 자리에 뜨는데다 칸 하나가 26px밖에 안 돼서,
 // 옆 칸을 눌러도 피커가 거의 안 움직인다 — 칸 자체에 표시가 없으면 어느 칸을 눌렀는지
@@ -520,7 +525,8 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 누르기 전에도 바로 값이 바뀝니다.</p>
 <ul>
 <li><b>잔휴전월 / 잔휴이후</b> — 이월된 잔여 휴무 기준으로 자동 계산됩니다.</li>
-<li><b>D / E / N</b> — 이번 달 근무유형별 횟수입니다.</li>
+<li><b>D / E / N … (듀티별 횟수)</b> — 이번 달에 그 근무 코드가 적힌 날 수입니다. D·E·N은 항상 보이고,
+NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니다. 다운로드 엑셀의 '듀티별 횟수' 블록과 같은 값입니다.</li>
 <li><b>® / ⓡ</b> — 병원 HR 전용 항목이라 이 앱은 값을 몰라 항상 빈칸입니다(다운로드 파일과 동일).</li>
 <li><b>금월</b> — 이번 달 휴일수(전 직원 공통) · <b>Lv</b> — 직급입니다.</li>
 </ul>
@@ -675,8 +681,10 @@ window.regenerateThenDownload = async function () {
       for (let i = 0; i < b.length; i++) if (a[i] !== b[i]) moved++;
     }
     uploadedMonthRound = -1;
+    SWAP = null;
     render();
     showToast(`${ST.round}회차로 재생성 완료 — ${moved}칸 바뀜`);
+    refreshFragile();
     await downloadBothOutputs();
   } catch (e) {
   } finally {
@@ -1280,6 +1288,35 @@ $("#staffTableClearBtn").onclick = async () => {
   } catch (e) {}
 };
 
+// 인계 카드(E-1) — 전출 병동이 만든 출력②의 '인계카드' 시트. 올리면 이름만 적어 두고,
+// 실제 적용(누구에게 어떻게 썼는지)은 생성 때 set_config의 경고와 '입력 요약'에 나온다.
+$("#handoverInput").onchange = async () => {
+  const f = $("#handoverInput").files[0];
+  if (!f) return;
+  const statusEl = $("#handoverStatus");
+  try {
+    const data = await apiUpload("/api/upload_handover", f);
+    clearUploadError(statusEl);
+    const names = data.cards.map(c => `${c.id}(${c.ward || "병동 미기재"}, ${c.days}일치)`);
+    statusEl.textContent = `인계 카드 ${data.cards.length}명 읽음: ${names.join(", ")}` +
+      (data.tampered.length ? ` — ⚠ 손으로 고쳐진 카드 ${data.tampered.length}명(${data.tampered.join(", ")}): 다이제스트가 내용과 맞지 않습니다` : "") +
+      ". 이번 달 명단(입력①)에 있는 사람에게만, 입력②에 기록이 없을 때 적용됩니다.";
+    $("#handoverClearBtn").style.display = "";
+    if (data.tampered.length) showToast("손으로 고쳐진 인계 카드가 있습니다 — 원본인지 확인해주세요", true);
+    else showToast(`인계 카드 ${data.cards.length}명 읽음`);
+  } catch (e) {
+    showUploadError(statusEl, e);
+    $("#handoverClearBtn").style.display = "";
+  } finally { $("#handoverInput").value = ""; }
+};
+$("#handoverClearBtn").onclick = async () => {
+  const statusEl = $("#handoverStatus");
+  await api("/api/clear_handover", { method: "POST" });
+  clearUploadError(statusEl);
+  statusEl.textContent = "";
+  $("#handoverClearBtn").style.display = "none";
+};
+
 $("#staffTableInput").onchange = async () => {
   const f = $("#staffTableInput").files[0];
   if (!f) return;
@@ -1439,7 +1476,7 @@ function hideGenOverlay() {
 // 사용자가 방금 올린 값이 반영됐다고 착각한 채 옛 값으로 근무표가 만들어질 수
 // 있으므로, 생성 자체를 막고 어느 입력에 문제가 남아있는지 알려준다.
 function unresolvedUploadErrors() {
-  return [["#wantedStatus", "입력①"], ["#staffTableStatus", "입력②"]]
+  return [["#wantedStatus", "입력①"], ["#staffTableStatus", "입력②"], ["#handoverStatus", "인계 카드"]]
     .filter(([sel]) => $(sel)?.classList.contains("upload-error"))
     .map(([, label]) => label);
 }
@@ -1502,8 +1539,10 @@ async function runGenerate(btn, statusEl) {
       showToast(lastStaffing.designated.message, true);
     }
     ST = await api("/api/generate", { method: "POST" });
+    SWAP = null;
     render();
     showToast(lastConfigWarning || "근무표 생성 완료", !!lastConfigWarning);
+    refreshFragile();
   } catch (e) {
     if (statusEl) statusEl.textContent = "";
     showGenError(statusEl, (e && e.message) ? e.message : String(e));
@@ -1704,6 +1743,145 @@ function restoreScroll(pos) {
   window.scrollTo(0, pos.y);
 }
 
+// ---------------------------------------------------------------- 수정 보조 (D-1·D-2)
+// 지도는 "채택된 표" 기준이라 미적용 편집이 있는 동안은 그 칸의 표시가 낡을 수 있다 —
+// 적용하면 표가 새로 만들어지고 지도도 새로 받는다.
+async function refreshFragile() {
+  if (!ST) return;
+  const round = ST.round;
+  FRAGILE = { round, loading: true, done: false, total: 0, cells: {} };
+  paintFragile();
+  // 사람·반달 단위로 나눠 받는다 — 한 번에 받으면 Worker가 수 초 동안 막혀 그 사이 누른
+  // 칸 편집이 기다린다. 조각마다 빗금을 바로 얹어 진행이 보이게 한다.
+  const half = Math.ceil(ST.num_days / 2);
+  try {
+    for (const s of ST.staff) {
+      for (const [d0, d1] of [[0, half], [half, ST.num_days]]) {
+        const part = await api("/api/fragile_map", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ staff_id: s.id, day_from: d0, day_to: d1 }),
+        });
+        if (!ST || ST.round !== round) return;     // 그 사이 다시 생성됐으면 버린다
+        Object.assign(FRAGILE.cells, part.cells);
+        FRAGILE.total = part.total;
+        if (part.done) {
+          Object.assign(FRAGILE, { done: true, fixed: part.fixed, row_fixed: part.row_fixed, swap_only: part.swap_only });
+        }
+        paintFragile();
+      }
+    }
+    FRAGILE.loading = false;
+  } catch (e) {
+    FRAGILE = null;
+  }
+  paintFragile();
+}
+
+function fragileTitle(info) {
+  if (info.row) return "고정 칸 — 어느 근무로 바꿔도 이 사람 행의 규칙(" + info.rules.join(", ") + ")을 깹니다. 맞교환도 안 됩니다";
+  if (info.alts === 0) return "맞교환으로만 — 혼자 바꾸면 그날 인원·숙련도 규칙(" + info.rules.join(", ") + ")이 깨집니다";
+  return "바꿀 수 있는 근무가 하나뿐입니다";
+}
+
+function paintFragile() {
+  const box = $("#fragileBox");
+  const grid = document.getElementById("gridContent");
+  if (!grid) return;
+  grid.querySelectorAll("td.fragile-row, td.fragile-day, td.fragile-1").forEach(td => {
+    td.classList.remove("fragile-row", "fragile-day", "fragile-1");
+    if (td.dataset.fragileTitle !== undefined) {
+      td.title = td.dataset.baseTitle || "";
+      delete td.dataset.fragileTitle;
+    }
+  });
+  if (!FRAGILE || !ST || FRAGILE.round !== ST.round) {
+    if (box) box.innerHTML = '<p class="fragile-note">생성 뒤에 점검합니다.</p>';
+    return;
+  }
+  for (const key in FRAGILE.cells) {
+    const info = FRAGILE.cells[key];
+    const i = key.lastIndexOf(":");
+    const sid = key.slice(0, i), day = key.slice(i + 1);
+    const td = grid.querySelector(`td[data-pick="1"][data-sid="${CSS.escape(sid)}"][data-day="${CSS.escape(day)}"]`);
+    if (!td) continue;
+    td.classList.add(info.row ? "fragile-row" : (info.alts === 0 ? "fragile-day" : "fragile-1"));
+    if (td.dataset.fragileTitle === undefined) td.dataset.baseTitle = td.title || "";
+    td.dataset.fragileTitle = "1";
+    td.title = (td.dataset.baseTitle ? td.dataset.baseTitle + "\n" : "") + fragileTitle(info);
+  }
+  if (box && !FRAGILE.done) {
+    box.innerHTML = '<p class="fragile-note">건드리면 안 되는 칸을 점검하는 중입니다… (수 초, 빗금이 차례로 얹힙니다)</p>';
+  } else if (box) {
+    const pct = FRAGILE.total ? Math.round(100 * FRAGILE.fixed / FRAGILE.total) : 0;
+    const free = FRAGILE.total - FRAGILE.fixed;
+    const warn = pct >= 60 ? ' <span class="warn-text">— 인원이 빠듯한 달입니다. 손 수정보다 맞교환이나 재생성이 안전합니다.</span>' : "";
+    box.innerHTML =
+      `<ul class="issue-list" style="font-size:12px">` +
+      `<li class="hard"><span class="rule">고정</span>${FRAGILE.row_fixed}칸 — 어느 근무로 바꿔도 그 사람 행의 규칙이 깨짐(맞교환도 불가)</li>` +
+      `<li class="soft"><span class="rule">교환만</span>${FRAGILE.swap_only}칸 — 혼자 바꾸면 그날 인원·숙련도 규칙이 깨짐(맞교환은 가능할 수 있음)</li>` +
+      `<li class="none"><span class="rule">자유</span>${free}칸 — 혼자 바꿔도 새 필수 위반 없음</li>` +
+      `</ul><p class="fragile-note">전체 ${FRAGILE.total}칸 중 ${pct}%가 혼자서는 못 바꾸는 칸${warn}</p>`;
+  }
+}
+
+async function findSwap(sid, day, shift) {
+  try {
+    SWAP = await api("/api/swap_candidates", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ staff_id: sid, day, shift }),
+    });
+  } catch (e) { return; }
+  renderSide();
+  const sec = $("#swapSec");
+  if (sec) sec.scrollIntoView({ block: "nearest" });
+  if (!SWAP.candidates.length) showToast(SWAP.reason || "맞교환 상대가 없습니다", true);
+}
+
+function renderSwap() {
+  if (!SWAP) return "";
+  const s = SWAP;
+  let html = `<div class="side-sec" id="swapSec"><h3>맞교환 상대 <span class="count-badge">${s.candidates.length}명</span></h3>`;
+  html += `<p class="fragile-note">${esc(s.staff_id)} ${s.day + 1}일 ${esc(s.current)} → ${esc(s.want)}. ` +
+          `그 날 ${esc(s.want)}인 사람과 둘의 하루만 바꿉니다(두 칸). 새 필수 위반이 없는 상대만 보입니다.</p>`;
+  if (!s.candidates.length) {
+    html += `<p class="fragile-note">${esc(s.reason || "상대가 없습니다")}</p>`;
+  } else {
+    html += '<ul class="swap-list">';
+    for (const c of s.candidates) {
+      const eq = c.equity_delta > 0 ? `형평 ${c.equity_delta > 0 ? "+" : ""}${c.equity_delta}` : (c.equity_delta < 0 ? `형평 ${c.equity_delta}` : "형평 변화 없음");
+      const tags = [eq];
+      if (c.breaks_wish) tags.push("상대 희망 칸 깨짐");
+      if (c.warnings.length) tags.push("경고 " + c.warnings.join("·"));
+      html += `<li><button class="swap-pick" data-sid="${escAttr(s.staff_id)}" data-day="${s.day}" data-partner="${escAttr(c.partner)}">` +
+              `${esc(c.partner)} <span class="lv">Lv${c.partner_level}</span></button>` +
+              `<span class="swap-meta">${esc(c.partner)} ${esc(c.partner_shift)}→${esc(c.my_shift)} · ${esc(tags.join(" · "))}</span></li>`;
+    }
+    html += "</ul>";
+  }
+  const skipped = [];
+  if (s.skipped_locked) skipped.push(`잠김·편집 중 ${s.skipped_locked}`);
+  if (s.skipped_fragile) skipped.push(`고정 칸 ${s.skipped_fragile}`);
+  if (s.skipped_cannot) skipped.push(`그 근무 불가 ${s.skipped_cannot}`);
+  html += `<p class="fragile-note">검사 ${s.checked}명${skipped.length ? " · 제외: " + esc(skipped.join(", ")) : ""}</p>`;
+  html += '<div class="action-row"><button class="swap-close">닫기</button></div></div>';
+  return html;
+}
+
+async function stageSwap(sid, day, partner) {
+  const before = snapshotGrid();
+  try {
+    ST = await api("/api/swap_stage", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ staff_id: sid, day, partner }),
+    });
+    SWAP = null;
+    render({ keepScroll: true });
+    flashChanges(before);
+    refreshFeedback();
+    showToast(`${sid} ↔ ${partner} ${day + 1}일 맞교환을 편집 목록에 올렸습니다 — 두 칸만 바뀝니다`);
+  } catch (e) {}
+}
+
 function render(opts) {
   if (!ST) return;
   const keepScroll = !!(opts && opts.keepScroll);
@@ -1717,6 +1895,7 @@ function render(opts) {
   updateInfoLabel(true);
   renderGrid();
   renderSide();
+  paintFragile();
   restorePendingFocus();
   if (pos) {
     restoreScroll(pos);
@@ -1808,6 +1987,11 @@ function renderGrid() {
   if (lastStaffing && lastStaffing.designated && lastStaffing.designated.message) {
     html += `<p class="carry-warning">⚠ ${esc(lastStaffing.designated.message)}</p>`;
   }
+  // 어떤 배정으로도 남는 위반의 하한(엔진 feasibility_bounds) — "다시 만들면 되나"에 대한
+  // 답이라 결과 화면에 붙인다. 문구는 엔진이 만든 것을 그대로 쓴다.
+  if (lastStaffing && lastStaffing.bounds && lastStaffing.bounds.message) {
+    html += `<p class="carry-warning">⚠ ${esc(lastStaffing.bounds.message)}</p>`;
+  }
   html += '<div class="legend">';
   const legendItems = [["D","#BDD7EE"],["E","#F8CBAD"],["N","#1F3864"],["NK","#7030A0"],
                        ["prn","#C6E0B4"],["8A","#D9D9D9"],["9A","#BFBFBF"],["10A","#A6A6A6"],
@@ -1822,6 +2006,8 @@ function renderGrid() {
   html += `<span class="sw"><span class="box wanted-swatch"></span>원티드 반영</span>`;
   html += `<span class="sw"><span class="viol-swatch viol-hard-swatch"></span>필수위반</span>`;
   html += `<span class="sw"><span class="viol-swatch viol-soft-swatch"></span>최선노력위반</span>`;
+  html += `<span class="sw"><span class="box fragile-row-swatch"></span>고정 칸(수정 불가)</span>`;
+  html += `<span class="sw"><span class="box fragile-day-swatch"></span>맞교환으로만</span>`;
   html += `<button id="backToInputBtn" class="small" style="margin-left:auto">← 입력으로 돌아가기(새로 만들기)</button>`;
   html += "</div>";
 
@@ -1837,7 +2023,13 @@ function renderGrid() {
   html += '<div class="grid-scroll"><table class="grid"><thead><tr><th class="nm">이름</th>' +
     '<th class="stat-col">잔휴<br>전월</th><th class="stat-col">잔휴<br>이후</th>';
   for (const d of ST.days) html += `<th class="${d.weekend ? "we" : ""}">${d.n}<br>${d.dow}</th>`;
-  html += '<th class="stat-col">D</th><th class="stat-col">E</th><th class="stat-col">N</th>' +
+  // 듀티별 횟수 — D·E·N만이 아니라 이 달 표에 나온 모든 근무 코드를 열로 붙인다.
+  // 다운로드 엑셀의 '듀티별 횟수' 블록과 같은 순서·같은 셈법(코드가 적힌 날 수)이다.
+  const dutyCols = dutyColumns();
+  for (const code of dutyCols) {
+    html += `<th class="stat-col" title="${escAttr(`이번 달 ${code} 횟수(코드가 적힌 날 수)`)}">${esc(code)}</th>`;
+  }
+  html +=
     '<th class="stat-col" title="병원 HR 전용 항목 — 이 앱은 값을 추적하지 않아 항상 빈칸입니다">®</th>' +
     '<th class="stat-col" title="병원 HR 전용 항목 — 이 앱은 값을 추적하지 않아 항상 빈칸입니다">ⓡ</th>' +
     '<th class="stat-col">금월</th><th class="stat-col">Lv</th>';
@@ -1845,12 +2037,12 @@ function renderGrid() {
 
   for (const s of ST.staff) {
     const row = ST.grid[s.id];
-    let dCnt = 0, eCnt = 0, nCnt = 0, offCnt = 0;
+    const dutyCnt = {};
+    for (const code of dutyCols) dutyCnt[code] = 0;
+    let offCnt = 0;
     for (const v of row) {
-      if (v === "D") dCnt++;
-      else if (v === "E") eCnt++;
-      else if (v === "N" || v === "NK") nCnt++;
-      else if (v === "OFF") offCnt++;
+      if (v === "OFF") offCnt++;
+      if (v in dutyCnt) dutyCnt[v]++;
     }
     const offBefore = s.off_balance || 0;
     const offAfter = Math.round((offBefore + holCount - offCnt) * 100) / 100;
@@ -1892,7 +2084,7 @@ function renderGrid() {
               ` data-pick="1" tabindex="0" role="button" aria-label="${escAttr(aria)}">` +
               `<span>${esc(shiftText(v, isWanted))}</span></td>`;
     }
-    html += `<td class="stat-col">${dCnt}</td><td class="stat-col">${eCnt}</td><td class="stat-col">${nCnt}</td>` +
+    html += dutyCols.map(code => `<td class="stat-col">${dutyCnt[code]}</td>`).join("") +
       `<td class="stat-col">–</td><td class="stat-col">–</td>` +
       `<td class="stat-col">${holCount}</td><td class="stat-col">${s.level}</td>`;
     html += "</tr>";
@@ -1901,7 +2093,7 @@ function renderGrid() {
   // 화면에는 구분행 + 빈칸 행으로만 보여준다(파트장이 엑셀에서 직접 배정하는 용도라
   // 여기서는 편집 대상이 아니다 — 파트장 행과 같은 disabled 처리).
   if (ST.team_b && ST.team_b.length) {
-    const totalCols = 3 + ST.num_days + 7;  // 이름 + 잔휴2 + 날짜 + 계산열7
+    const totalCols = 3 + ST.num_days + tailStatCount();  // 이름 + 잔휴2 + 날짜 + 계산열
     html += `<tr class="team-b-divider"><td colspan="${totalCols}">B팀(신입)</td></tr>`;
     for (const name of ST.team_b) {
       const bRow = (ST.team_b_grid && ST.team_b_grid[name]) || [];
@@ -1916,8 +2108,7 @@ function renderGrid() {
                 ` aria-label="${escAttr(`${name} ${d + 1}일 ${shiftText(v) || "빈칸"}`)}">` +
                 `<span>${esc(shiftText(v))}</span></td>`;
       }
-      html += `<td class="stat-col">–</td><td class="stat-col">–</td><td class="stat-col">–</td>` +
-        `<td class="stat-col">–</td><td class="stat-col">–</td><td class="stat-col">–</td><td class="stat-col">–</td>`;
+      html += blankTailCells();
       html += "</tr>";
     }
   }
@@ -1996,6 +2187,25 @@ function computeDailyLevelStats() {
   return days;
 }
 
+// 그리드 오른쪽 '듀티별 횟수' 열 — 이 달 표에 실제로 나온 근무 코드만, 고정 순서로.
+// D·E·N은 비어 있어도 항상 앞에 둔다(그 셋이 없으면 파트장이 표를 못 알아본다).
+// 안 쓰는 코드까지 전부 늘어놓으면 24열이 0으로 채워져 보려던 값이 묻힌다.
+// 순서는 다운로드 엑셀(excel_export.duty_codes_present)과 같다: D·E·N·NK → 엔진 Shift 선언 순
+// → 그 외(표에 모르는 코드가 있을 때)는 글자순.
+// DUTY_ORDER는 엔진의 excel_export._DUTY_ORDER와 같아야 한다 — tests/test_pyodide_sync.py가 대조한다.
+const DUTY_ORDER = ["D", "E", "N", "NK", "8A", "9A", "10A", "prn", "OFF", "연차", "T", "조", "경", "연1", "연2", "연3", "연4", "공", "병", "휴", "승", "S/", "TW", "군", "5A", "5AH", "5M", "6A", "7A", "7A(10", "7A(11", "7H", "8A(10", "8A*", "8AH", "8A◎", "8H", "9AH", "9H", "9H*", "10H", "11A", "11*", "13H", "1P", "1P*", "MD", "DH", "EH", "TDH", "TEH", "TH", "DP", "EP", "RD", "RE", "RP", "D◎", "E◎", "8공연", "연6", "공4", "격", "원", "포", "힐", "가", "난", "생", "근", "유", "출", "특", "결*", "조*", "R", "사", "산전", "상", "육법", "육법*", "육연", "출산"];
+function dutyColumns() {
+  const seen = new Set(["D", "E", "N"]);
+  for (const s of ST.staff) for (const v of (ST.grid[s.id] || [])) if (v) seen.add(v);
+  const out = DUTY_ORDER.filter(c => seen.has(c));
+  for (const c of [...seen].sort()) if (!out.includes(c)) out.push(c);
+  return out;
+}
+// 날짜 뒤에 붙는 계산열 수 — 듀티별 횟수 + ®·ⓡ·금월·Lv. 하단 통계 행과 B팀 행의 빈칸
+// 수, 구분행의 colspan이 전부 이 값을 써야 열이 어긋나지 않는다.
+function tailStatCount() { return dutyColumns().length + 4; }
+function blankTailCells() { return '<td class="stat-col">–</td>'.repeat(tailStatCount()); }
+
 // 날짜별 D·E·N·prn 인원 — 레벨 통계와 같은 방식으로 화면 그리드에서 매번 다시 센다.
 // 파트장은 뺀다: 최소인력이 파트장을 빼고 잡는 값이라(H1-1도 그렇게 본다) 같이 세면
 // 파트장의 8A가 prn으로 잡혀 못 채운 날이 채운 것처럼 보인다.
@@ -2051,7 +2261,7 @@ function computeLevelShortFlags() {
 
 function renderDailyStaffCountRows(foot) {
   const counts = computeDailyStaffCounts();
-  const blankTail = '<td class="stat-col">–</td>'.repeat(7);
+  const blankTail = blankTailCells();
   const blankHead = '<td class="stat-col">–</td><td class="stat-col">–</td>';
   // '지정' 행은 쓰는 병동에서만 붙인다 — 안 쓰는 병동에는 0만 늘어선 줄이 하나 더
   // 생길 뿐이고, 무슨 값인지 물어볼 일만 생긴다. 다운로드 엑셀도 같은 조건으로
@@ -2082,7 +2292,7 @@ function renderDailyStaffCountRows(foot) {
 function renderDailyLevelFootRows() {
   const foot = computeFootValues();
   const shortFlags = computeLevelShortFlags();
-  const blankTail = '<td class="stat-col">–</td>'.repeat(7);
+  const blankTail = blankTailCells();
   const blankHead = '<td class="stat-col">–</td><td class="stat-col">–</td>';
   // 레벨평균·Lv4-5·Lv1-3도 인원 행과 똑같이 다룬다. 근무를 하나 바꾸면 그날 누가
   // 서 있는지가 바뀌므로 이 셋도 같이 움직이는데, 표시가 없으면 조용히 달라진다 —
@@ -2099,7 +2309,7 @@ function renderDailyLevelFootRows() {
              `data-stat="${label}" data-day="${d}"${title}>${v}</td>`;
     }).join("") + `${blankTail}</tr>`;
   // B팀 구분행과 같은 스타일로, 통계 3행 위에도 제목 행을 붙인다.
-  const totalCols = 3 + ST.num_days + 7;  // 이름 + 잔휴2 + 날짜 + 계산열7
+  const totalCols = 3 + ST.num_days + tailStatCount();  // 이름 + 잔휴2 + 날짜 + 계산열
   const divider = `<tr class="team-b-divider"><td colspan="${totalCols}">통계</td></tr>`;
   return divider +
     renderDailyStaffCountRows(foot) +
@@ -2121,6 +2331,10 @@ document.getElementById("gridContent").addEventListener("keydown", (ev) => {
 });
 delegateClick(document.getElementById("sidePane"), "button.undo-edit",
   (b) => undoEdit(b.dataset.sid, Number(b.dataset.day)));
+delegateClick(document.getElementById("sidePane"), "button.swap-pick",
+  (b) => stageSwap(b.dataset.sid, Number(b.dataset.day), b.dataset.partner));
+delegateClick(document.getElementById("sidePane"), "button.swap-close",
+  () => { SWAP = null; renderSide(); paintFragile(); });
 delegateClick(document.getElementById("holidayCalendar"), "td[data-iso]",
   (td) => toggleHolidayDate(td.dataset.iso));
 
@@ -2160,6 +2374,23 @@ window.openPicker = function (ev, sid, day) {
     if (sh === cur) b.classList.add("current");
     b.onclick = (e) => { e.stopPropagation(); stageEdit(sid, day, sh, isTeamB); closePicker(); };
     div.appendChild(b);
+  }
+  // 맞교환 줄 — 그 날 그 근무를 가진 사람과 둘의 하루만 바꾼다(두 칸). 파트장·신입은
+  // 엔진 인원에 안 들어가므로 바꿀 상대가 없다.
+  if (!isTeamB && !staff.is_partjang) {
+    const sep = document.createElement("div");
+    sep.className = "picker-sep";
+    sep.textContent = "맞교환 상대 찾기 (두 칸만 바뀜)";
+    div.appendChild(sep);
+    for (const sh of ["D", "E", "N", "NK", "prn", "8A", "OFF"]) {
+      if (!allowed.has(sh) || sh === cur) continue;
+      const b = document.createElement("button");
+      b.className = "swap";
+      b.textContent = "↔ " + shiftText(sh);
+      b.title = `${sid} ${day + 1}일을 ${shiftText(sh)}로 — 그 날 ${shiftText(sh)}인 사람과 맞바꿀 상대를 찾습니다`;
+      b.onclick = (e) => { e.stopPropagation(); findSwap(sid, day, sh); closePicker(); };
+      div.appendChild(b);
+    }
   }
   if (isTeamB) {
     const b = document.createElement("button");
@@ -2327,7 +2558,9 @@ function renderSide() {
   // 편집한 게 없는데 "편집 중"이라고 뜨면 혼선을 주므로, 스테이징된 편집이 있을 때만
   // 그 제목을 쓰고 평소엔 그냥 "편집"이라고만 표시한다.
   const hasPending = ST.pending.length > 0;
+  html += renderSwap();
   html += `<div class="side-sec" id="pendingSec"><h3>${hasPending ? "편집 중 (미적용)" : "편집"}</h3><div id="pendingBody"></div></div>`;
+  html += `<div class="side-sec"><h3>수정 전 점검 — 건드리면 안 되는 칸</h3><div id="fragileBox"></div></div>`;
 
   // 파일에도 화면에도 같은 번호를 쓴다 — 받는 파일 이름이 "출력1_월간근무표…"인데
   // 버튼에는 번호가 없어서, 파트장이 "출력②를 입력②로 올리세요"라는 안내를 읽고도
@@ -2365,8 +2598,13 @@ function renderSide() {
   const ps = ST.params_summary;
   html += `<div class="side-sec"><h3>입력 요약</h3><ul class="issue-list" style="font-size:12px">
     <li style="background:var(--code-bg)">${ST.year}년 ${ST.month}월 · ${ST.staff.length}명 ·
-    월최대야간 ${ps.max_nights}일 · NK ${ps.nk_count}명 · 공휴일 ${ps.holidays.length}개</li>
-  </ul></div>`;
+    월최대야간 ${ps.max_nights}일 · NK ${ps.nk_count}명 · 공휴일 ${ps.holidays.length}개</li>` +
+    ((ST.handover_applied || []).length
+      ? `<li class="soft"><span class="rule">인계</span>인계 카드 적용 ${ST.handover_applied.length}명 — ` +
+        esc(ST.handover_applied.map(a => `${a.id}←${a.ward || "병동 미기재"}(${a.days}일치${a.digest_ok ? "" : ", ⚠ 손 수정"})`).join(", ")) +
+        ` — 전 병동 기록으로 이월·야간 형평성을 계산했습니다</li>`
+      : "") +
+  `</ul></div>`;
 
   // 개인별 — 공정 배분 참고용으로 "야간편차"(일반 간호사 평균 대비, 파트장·NK 제외)를 같이 보여준다.
   const staffById = {};
@@ -2426,6 +2664,22 @@ function renderSide() {
         `<td class="${q.accepted ? "badge-ok" : "badge-bad"}">${q.accepted ? "수용" :
           `반려<br><span style="font-weight:400;font-size:10px;color:var(--sub)">${esc(q.reason || "")}</span>`}</td></tr>`).join("") +
       "</table></div>";
+  }
+
+  // 시도 점수표 — 시드마다 어떤 숫자로 견줘 어느 것을 골랐는지. 앞 열이 다르면 뒤 열은 보지 않는다
+  // (운영 필수 → 숙련도 → 전체 하드 → 공평성). 공평성은 주말·야간·D/E·원티드 미반영의 합(사람·일 수).
+  if (ST.attempt_table && ST.attempt_table.length > 0) {
+    const rows = ST.attempt_table;
+    html += `<div class="side-sec"><h3>시도 점수표 <span class="count-badge">시드 ${rows.length}개</span></h3>` +
+      '<table class="mini-table attempt-table"><tr><th>시드</th><th title="최소인력·지정·연속근무 등 그날 병동이 못 돌아가는 필수 위반">운영필수</th>' +
+      '<th title="조에 숙련도 4 이상이 없는 횟수(H1-5)">숙련도</th><th title="최선노력 규칙까지 포함한 전체 하드 위반">전체</th>' +
+      '<th title="같은 조건끼리 주말 근무가 평균에서 벗어난 날수">주말</th><th title="야간 횟수가 개인 목표(4·6)에서 벗어난 날수">야간</th>' +
+      '<th title="D 횟수가 병동 D/E 비율에서 벗어난 날수">D/E</th><th title="반려된 원티드 신청 건수">미반영</th><th title="주말+야간+D/E+미반영">공평성</th></tr>' +
+      rows.map(a => `<tr class="${a.chosen ? "chosen" : ""}"><td>${a.seed}${a.chosen ? " ✓" : ""}</td><td>${a.blocking}</td><td>${a.h15}</td><td>${a.hard}</td>` +
+        `<td>${a.weekend}</td><td>${a.night}</td><td>${a.de}</td><td>${a.wanted}</td><td><b>${a.fairness}</b></td></tr>`).join("") +
+      '</table>' +
+      `<p class="side-note">앞 열부터 견줘 다르면 뒤 열은 보지 않습니다. 공평성은 네 값의 합(단위: 사람·일). ✓ = 선택된 시드. ` +
+      `${(window.__genMode || "").startsWith("parallel") ? "세 시드를 동시에 계산했습니다." : (window.__genMode === "sequential:1" ? "이 기기는 코어가 적어 시드 하나만 계산했습니다." : "")}</p></div>`;
   }
 
   // 처리 로그
@@ -2501,6 +2755,8 @@ window.applyEdits = async function () {
   const before = ST.grid || {};
   try {
     ST = await api("/api/apply", { method: "POST" });
+    SWAP = null;
+    refreshFragile();
     let moved = 0;
     for (const sid in ST.grid) {
       const a = before[sid];

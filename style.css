@@ -392,6 +392,22 @@ button.wide { width: 100%; }
   min-width: 44px; padding: 5px 8px; font-size: 11.5px; border-radius: 5px;
 }
 .picker button.current { border-color: var(--accent); font-weight: 800; }
+/* 맞교환 줄 — 보통 근무 버튼과 섞이면 "그 근무로 바꾸기"로 오해하므로 구분선과 다른 색으로. */
+.picker .picker-sep { flex-basis: 100%; font-size: 10.5px; color: var(--sub); margin: 4px 2px 0; border-top: 1px dashed var(--line); padding-top: 4px; }
+.picker button.swap { border-style: dashed; color: var(--accent); }
+/* 수정 취약 칸(D-2) — 근무색은 그대로 두고 빗금만 얹는다. 고정 칸(행 규칙이 막음)은 진한
+   빗금, 맞교환으로만 바꿀 수 있는 칸(그날 인원 규칙이 막음)은 옅은 빗금. */
+td.fragile-row span { background-image: repeating-linear-gradient(135deg, rgba(0,0,0,.28) 0 2px, transparent 2px 7px); }
+td.fragile-day span { background-image: repeating-linear-gradient(135deg, rgba(0,0,0,.11) 0 1px, transparent 1px 8px); }
+.fragile-row-swatch { background: repeating-linear-gradient(135deg, rgba(0,0,0,.35) 0 2px, #e8e8e8 2px 7px); }
+.fragile-day-swatch { background: repeating-linear-gradient(135deg, rgba(0,0,0,.15) 0 1px, #e8e8e8 1px 8px); }
+.fragile-note { color: var(--sub); font-size: 12px; margin: 4px 0 6px; }
+.warn-text { color: var(--warn); font-weight: 600; }
+.swap-list { list-style: none; padding: 0; margin: 4px 0; }
+.swap-list li { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+.swap-list button.swap-pick { min-width: 72px; font-weight: 700; }
+.swap-list .lv { font-weight: 400; color: var(--sub); font-size: 11px; }
+.swap-list .swap-meta { color: var(--sub); }
 
 .toast {
   position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
@@ -645,6 +661,10 @@ button.big { font-size: 15px; padding: 11px 26px; }
 .mini-table { width: 100%; font-size: 11px; border-collapse: collapse; }
 .mini-table th, .mini-table td { padding: 2px 5px; border-bottom: 1px solid var(--line); }
 .mini-table th { text-align: left; color: var(--sub); }
+.attempt-table td { text-align: right; }
+.attempt-table td:first-child { text-align: left; }
+.attempt-table tr.chosen td { background: var(--ok-soft, #e6f4ea); font-weight: 600; }
+.side-note { font-size: 11px; color: var(--sub); margin: 6px 0 0; }
 .badge-ok { color: var(--ok); font-weight: 700; }
 .badge-bad { color: var(--hard); font-weight: 700; }
 .log-box {
