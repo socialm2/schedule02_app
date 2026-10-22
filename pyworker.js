@@ -50,8 +50,6 @@ function callBridge(path, opts) {
     case "/api/upload_wanted": return bridge.api_upload_wanted(opts._fileBytes);
     case "/api/upload_staff_table": return bridge.api_upload_staff_table(opts._fileBytes);
     case "/api/upload_month": return bridge.api_upload_month(opts._fileBytes);
-    case "/api/upload_handover": return bridge.api_upload_handover(opts._fileBytes);
-    case "/api/clear_handover": return bridge.api_clear_handover();
     case "/api/staff_table_status": return bridge.api_staff_table_status();
     case "/api/clear_staff_table": return bridge.api_clear_staff_table();
     case "/api/set_config": return bridge.api_set_config(opts.body);

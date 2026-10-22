@@ -1296,35 +1296,6 @@ $("#staffTableClearBtn").onclick = async () => {
   } catch (e) {}
 };
 
-// 인계 카드(E-1) — 전출 병동이 만든 출력②의 '인계카드' 시트. 올리면 이름만 적어 두고,
-// 실제 적용(누구에게 어떻게 썼는지)은 생성 때 set_config의 경고와 '입력 요약'에 나온다.
-$("#handoverInput").onchange = async () => {
-  const f = $("#handoverInput").files[0];
-  if (!f) return;
-  const statusEl = $("#handoverStatus");
-  try {
-    const data = await apiUpload("/api/upload_handover", f);
-    clearUploadError(statusEl);
-    const names = data.cards.map(c => `${c.id}(${c.ward || "병동 미기재"}, ${c.days}일치)`);
-    statusEl.textContent = `인계 카드 ${data.cards.length}명 읽음: ${names.join(", ")}` +
-      (data.tampered.length ? ` — ⚠ 손으로 고쳐진 카드 ${data.tampered.length}명(${data.tampered.join(", ")}): 다이제스트가 내용과 맞지 않습니다` : "") +
-      ". 이번 달 명단(입력①)에 있는 사람에게만, 입력②에 기록이 없을 때 적용됩니다.";
-    $("#handoverClearBtn").style.display = "";
-    if (data.tampered.length) showToast("손으로 고쳐진 인계 카드가 있습니다 — 원본인지 확인해주세요", true);
-    else showToast(`인계 카드 ${data.cards.length}명 읽음`);
-  } catch (e) {
-    showUploadError(statusEl, e);
-    $("#handoverClearBtn").style.display = "";
-  } finally { $("#handoverInput").value = ""; }
-};
-$("#handoverClearBtn").onclick = async () => {
-  const statusEl = $("#handoverStatus");
-  await api("/api/clear_handover", { method: "POST" });
-  clearUploadError(statusEl);
-  statusEl.textContent = "";
-  $("#handoverClearBtn").style.display = "none";
-};
-
 $("#staffTableInput").onchange = async () => {
   const f = $("#staffTableInput").files[0];
   if (!f) return;
@@ -1484,7 +1455,7 @@ function hideGenOverlay() {
 // 사용자가 방금 올린 값이 반영됐다고 착각한 채 옛 값으로 근무표가 만들어질 수
 // 있으므로, 생성 자체를 막고 어느 입력에 문제가 남아있는지 알려준다.
 function unresolvedUploadErrors() {
-  return [["#wantedStatus", "입력①"], ["#staffTableStatus", "입력②"], ["#handoverStatus", "인계 카드"]]
+  return [["#wantedStatus", "입력①"], ["#staffTableStatus", "입력②"]]
     .filter(([sel]) => $(sel)?.classList.contains("upload-error"))
     .map(([, label]) => label);
 }
@@ -2675,11 +2646,6 @@ function renderSide() {
   html += `<div class="side-sec"><h3>입력 요약</h3><ul class="issue-list" style="font-size:12px">
     <li style="background:var(--code-bg)">${ST.year}년 ${ST.month}월 · ${ST.staff.length}명 ·
     월최대야간 ${ps.max_nights}일 · NK ${ps.nk_count}명 · 공휴일 ${ps.holidays.length}개</li>` +
-    ((ST.handover_applied || []).length
-      ? `<li class="soft"><span class="rule">인계</span>인계 카드 적용 ${ST.handover_applied.length}명 — ` +
-        esc(ST.handover_applied.map(a => `${a.id}←${a.ward || "병동 미기재"}(${a.days}일치${a.digest_ok ? "" : ", ⚠ 손 수정"})`).join(", ")) +
-        ` — 전 병동 기록으로 이월·야간 형평성을 계산했습니다</li>`
-      : "") +
   `</ul></div>`;
 
   // 개인별 — 공정 배분 참고용으로 "야간편차"(일반 간호사 평균 대비, 파트장·NK 제외)를 같이 보여준다.
