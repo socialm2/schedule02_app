@@ -11,7 +11,7 @@ const ALL_SHIFTS = ["D","E","N","NK","prn","8A","9A","10A","T","TW","OFF","연�
 const REST_PICK = ["OFF", "연차", "연1", "연2", "연3", "연4", "S/", "군", "TW", "T",
                    "조", "경", "공", "병", "휴", "승"];
 // 파트장에게만 막는 것 — 근무 다섯 가지뿐이고 나머지는 다 고를 수 있다.
-// 막는 이유는 인원 계산이다: 최소인력·레벨 통계는 파트장을 빼고 세므로(computeDailyStaffCounts),
+// 막는 이유는 인원 계산이다: 최소인력·레벨 통계는 파트장을 빼고 세므로(computeDailyDutyRows),
 // 파트장에게 D를 주면 그날 사람이 하나 더 있는 것처럼 보이는데 어느 숫자에도 안 잡힌다.
 // NK도 같이 막는다 — 야간전담이라 이 앱은 어디서나 NK를 N으로 센다(COUNT_KEY).
 // API(pyodide-app/py/bridge.py의 _PARTJANG_BLOCKED_SHIFTS)도 같은 다섯으로
@@ -542,18 +542,23 @@ NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니�
 <h3>그리드 맨 아래 "통계" 줄</h3>
 <p>날짜마다 그날 몇 명이 서는지를 세어 보여줍니다. 칸을 수정하면 재생성 적용 전에도 바로 다시 셉니다.</p>
 <ul>
-<li><b>D · E · N · prn 인원</b> — 그날 각 근무에 서는 사람 수입니다. <b>N 인원에는 NK가, prn 인원에는
-8A·9A·10A와 8H·9H·10H, 그리고 그 변형(8A*·8A◎ 등)이 함께 들어갑니다.</b>
-반일 근무(8AH·9AH·9H*)만 <b>0.5명</b>으로 세기 때문에 "2.5" 같은 값이 뜰 수 있습니다 —
-반나절만 서는 사람을 온종일 선 것으로 세면 못 채운 날이 채운 날처럼 보이기 때문입니다.</li>
+<li><b>근무 코드마다 한 줄</b> — 이달 표에 나온 코드(D·E·N·NK·8A·prn·연차·OFF…)마다 그날 그 코드인
+사람 수입니다. 오른쪽 '듀티별 횟수' 열과 같은 코드 목록을 눕힌 것입니다(열은 사람별 횟수, 줄은 날짜별 인원).</li>
+<li><b>최소인력 기준이 걸리는 줄</b> — D·E는 그 코드 줄에 바로 걸립니다. 야간전담(NK)이 있는 병동은
+N·NK를 따로 세고 그 아래 <b>N+NK</b> 줄에 N 기준이 걸립니다. 8A·9A·10A·prn·반일 코드는 각자 사람 수로
+세고, 그 아래 <b>prn 합계</b> 줄에 prn 기준이 걸립니다 — 이 줄만 반일(8AH·9AH·9H*)을 <b>0.5명</b>으로
+세서 "2.5" 같은 값이 뜰 수 있습니다(반나절만 서는 사람을 온종일 선 것으로 세면 못 채운 날이 채운
+날처럼 보이기 때문입니다).</li>
+<li><b>점선 아래</b>는 최소인력에 안 세는 코드(교육·OFF·연차 같은 휴가·OCS 코드)입니다.</li>
 <li><b>지정 인원</b> — 근무인력 표의 '지정' 값이 0보다 클 때만 나옵니다. 가능근무 칸에
 '지정'을 적은 사람이 그날 D·E·N·prn 중 무엇이든 서면 한 명으로 세집니다(이름 옆에
-<span class="kbd">지</span> 표가 붙습니다). 이미 위의 D·E·N·prn 인원에도 들어 있는
+<span class="kbd">지</span> 표가 붙습니다). 이미 위의 근무 줄에도 들어 있는
 사람이라, 인력을 더 쓰는 값이 아니라 <b>그 자리를 누가 채웠는지</b>를 따로 보는 줄입니다.
 반일이어도 1명입니다 — 그 사람이 그날 병동에 있느냐를 보는 값이라서요.</li>
 <li><b>파트장은 빼고 셉니다</b> — 최소인력 기준 자체가 파트장을 뺀 숫자라서, 같이 세면 파트장의 8A가
 prn으로 잡혀 못 채운 날이 채운 날처럼 보입니다.</li>
-<li><b>빨간 칸 = 그날 최소인력에 못 미침</b>입니다. 칸에 마우스를 올리면 "3일 N 4명 (기준 5명)"처럼
+<li><b>빨간 칸 = 그날 최소인력에 못 미침, 노란 칸 = 기준보다 한 명 이상 많음</b>(상한 초과 — 결과창의
+'추가 검토'에도 같은 날이 뜹니다). 칸에 마우스를 올리면 "3일 N+NK 5명 (기준 6명 — 미달)"처럼
 실제 인원과 기준이 같이 뜹니다. 평일·토요일·일요일·공휴일마다 기준이 다르므로, 같은 숫자라도
 어떤 날은 빨갛고 어떤 날은 아닙니다.</li>
 <li><b>D 레벨 · E 레벨 · N 레벨</b> — <b>근무조마다</b> 그날 선 사람들의 평균 숙련도입니다.
@@ -2227,42 +2232,112 @@ function burdenOf(s, row) {
 }
 function blankTailCells() { return '<td class="stat-col">–</td>'.repeat(tailStatCount()); }
 
-// 날짜별 D·E·N·prn 인원 — 레벨 통계와 같은 방식으로 화면 그리드에서 매번 다시 센다.
-// 파트장은 뺀다: 최소인력이 파트장을 빼고 잡는 값이라(H1-1도 그렇게 본다) 같이 세면
-// 파트장의 8A가 prn으로 잡혀 못 채운 날이 채운 것처럼 보인다.
+// 날짜별 인원(듀티별) — 이달 표에 나온 코드마다 한 줄. 오른쪽 '듀티별 횟수' 열과 같은 코드 목록을
+// 눕힌 것이다(열 = 사람별 횟수, 줄 = 날짜별 인원). 예전엔 D·E·N·prn 네 줄뿐이라 N 줄에 NK가,
+// prn 줄에 8A·9A·10A·반일이 섞여 "그날 누가 무슨 근무로 섰나"가 안 보였다(파트장 지적).
+//
+// 파트장은 뺀다: 최소인력이 파트장을 빼고 잡는 값이라(H1-1도 그렇게 본다) 같이 세면 파트장의 8A가
+// prn으로 잡혀 못 채운 날이 채운 것처럼 보인다. 코드 목록도 파트장을 빼고 만든다 — 파트장만 쓰는
+// 8A가 있으면 0만 늘어선 줄이 하나 생긴다.
+//
+// 최소인력 기준은 기준이 걸린 줄에만 칠한다. 빨강 = 미달(H1-1), 노랑 = 초과(H1-4, 검사기와 같은
+// '기준+1 이상' — 반일 0.5 때문에 기준보다 0.5 많은 것은 초과가 아니다).
+//   D·E   코드 줄 그대로.
+//   밤    NK가 있는 병동은 N·NK 줄은 그냥 세고, 그 아래 'N+NK' 줄에 기준. NK가 없으면 N 줄에.
+//   prn   8A·9A·10A·prn·반일 코드 줄은 사람 수(반일도 1명 — 오른쪽 횟수 열과 같은 셈법),
+//         그 아래 'prn 합계' 줄은 반일을 0.5명으로 세고 거기에 기준.
+//   지정  '지정 인원' 줄 — 미달만(H1-6에는 상한이 없다).
+// 그 아래 점선부터는 최소인력에 안 세는 코드(교육·OFF·휴가·OCS 코드)다.
+//
+// 출력① 엑셀 맨 아래도 같은 구성이다(excel_export.daily_duty_row_specs). 두 쪽이 다르면 화면과
+// 내려받은 파일이 다른 숫자를 말한다 — tests/test_pyodide_sync.py가 같은 입력으로 대조한다.
 const COUNT_KEY = { D: "D", E: "E", N: "N", NK: "N" };
 const COUNT_WEIGHT = { D: 1, E: 1, N: 1, NK: 1 };
 for (const c of PRN_FULL_CODES) { COUNT_KEY[c] = "prn"; COUNT_WEIGHT[c] = 1; }
 for (const c of PRN_HALF_CODES) { COUNT_KEY[c] = "prn"; COUNT_WEIGHT[c] = 0.5; }
-const COUNT_ROWS = ["D", "E", "N", "prn", "지정"];
+const PRN_FAMILY = PRN_FULL_CODES.concat(PRN_HALF_CODES);
+const isCounted = v => Object.prototype.hasOwnProperty.call(COUNT_KEY, v);
 
-function computeDailyStaffCounts() {
-  const generals = ST.staff.filter(s => !s.is_partjang);
-  const days = [];
-  for (let d = 0; d < ST.num_days; d++) {
-    const c = { D: 0, E: 0, N: 0, prn: 0, "지정": 0 };
-    for (const s of generals) {
-      const v = ST.grid[s.id][d];
-      const k = COUNT_KEY[v];
-      if (k) c[k] += COUNT_WEIGHT[v];
-      // 지정은 **사람 수**다 — 반일이어도 그 사람은 그날 병동에 있으므로 1명이다.
-      // 그리고 이미 위에서 D·E·N·prn 어딘가에 세어진 사람이라, 인력을 더 쓰는 값이
-      // 아니라 "그 자리를 누가 채웠나"를 따로 보여주는 값이다.
-      if (k && s.is_designated) c["지정"] += 1;
-    }
-    days.push(c);
+// 줄 구성 — {label, codes: Map(코드→몇 명치)|null, need: 최소인력 키|null, upper: 초과도 칠하나,
+// kind: "code"|"total"|"designated"|"other"}. 순서와 조건이 엑셀과 한 벌이다.
+function dailyDutyRowSpecsFor(codesSeen, anyNeed) {
+  const seen = new Set(["D", "E", "N"]);
+  for (const c of codesSeen) if (c) seen.add(c);
+  const ordered = DUTY_ORDER.filter(c => seen.has(c))
+    .concat([...seen].filter(c => !DUTY_ORDER.includes(c)).sort());
+  const hasNK = seen.has("NK");
+  const prnCodes = ordered.filter(c => PRN_FAMILY.includes(c));
+  const one = c => new Map([[c, 1]]);
+  const rows = [
+    { label: "D", codes: one("D"), need: "D", upper: true, kind: "code" },
+    { label: "E", codes: one("E"), need: "E", upper: true, kind: "code" },
+    { label: "N", codes: one("N"), need: hasNK ? null : "N", upper: !hasNK, kind: "code" },
+  ];
+  if (hasNK) {
+    rows.push({ label: "NK", codes: one("NK"), need: null, upper: false, kind: "code" });
+    rows.push({ label: "N+NK", codes: new Map([["N", 1], ["NK", 1]]), need: "N", upper: true, kind: "total" });
   }
-  return days;
+  for (const c of prnCodes) rows.push({ label: c, codes: one(c), need: null, upper: false, kind: "code" });
+  if (prnCodes.length || anyNeed("prn")) {
+    rows.push({ label: "prn 합계", codes: new Map(PRN_FAMILY.map(c => [c, COUNT_WEIGHT[c]])),
+                need: "prn", upper: true, kind: "total" });
+  }
+  if (anyNeed("지정")) rows.push({ label: "지정 인원", codes: null, need: "지정", upper: false, kind: "designated" });
+  for (const c of ordered) {
+    if (["D", "E", "N", "NK"].includes(c) || PRN_FAMILY.includes(c)) continue;
+    rows.push({ label: c, codes: one(c), need: null, upper: false, kind: "other" });
+  }
+  return rows;
+}
+function dailyDutyRowSpecs() {
+  const seen = [];
+  for (const s of ST.staff) if (!s.is_partjang) seen.push(...(ST.grid[s.id] || []));
+  const anyNeed = k => (ST.days || []).some(d => d.min && (d.min[k] || 0) > 0);
+  return dailyDutyRowSpecsFor(seen, anyNeed);
+}
+function computeDailyDutyRows(specs) {
+  const people = ST.staff.filter(s => !s.is_partjang);
+  return specs.map(sp => {
+    const vals = [];
+    for (let d = 0; d < ST.num_days; d++) {
+      let n = 0;
+      for (const s of people) {
+        const v = (ST.grid[s.id] || [])[d];
+        // 지정은 **사람 수**다 — 반일이어도 그 사람은 그날 병동에 있으므로 1명이다. 이미 위의
+        // 근무 줄에 세어진 사람이라 인력을 더 쓰는 값이 아니라 "그 자리를 누가 채웠나"를 본다.
+        if (sp.kind === "designated") { if (s.is_designated && isCounted(v)) n += 1; }
+        else n += sp.codes.get(v) || 0;
+      }
+      vals.push(n);
+    }
+    return vals;
+  });
+}
+function dutyRowTip(sp) {
+  if (sp.label === "N+NK") return "밤 합계 — N과 NK(야간전담)를 더한 수. 최소인력 N 기준이 이 줄에 걸립니다(빨강 미달·노랑 초과).";
+  if (sp.kind === "total") return "prn 계열 합계 — 8A·9A·10A·prn 등을 더한 수(반일 8AH·9AH·9H*는 0.5명). 최소인력 prn 기준이 이 줄에 걸립니다(빨강 미달·노랑 초과).";
+  if (sp.kind === "designated") return "가능근무에 '지정'을 적은 사람 중 그날 D·E·N·prn 어딘가에 선 수(반일도 1명). 최소인력 '지정' 기준 — 미달만 빨강.";
+  if (sp.kind === "other") return `${sp.label} — 그날 이 코드인 사람 수(파트장 제외). 최소인력에는 안 셉니다.`;
+  if (sp.need) return `${sp.label} — 그날 이 코드인 사람 수(파트장 제외). 최소인력 ${sp.need} 기준이 이 줄에 걸립니다(빨강 미달·노랑 초과).`;
+  return `${sp.label} — 그날 이 코드인 사람 수(파트장 제외). 기준은 아래 ${sp.label === "N" || sp.label === "NK" ? "N+NK" : "prn 합계"} 줄.`;
+}
+// 그날 그 줄의 기준 판정 — 화면 색과 월간 보고가 같이 쓴다. need가 null이면 기준이 없는 줄.
+function dutyNeedState(sp, d, c) {
+  const min = ST.days[d] && ST.days[d].min;
+  if (!sp.need || !min) return { need: null, short: false, over: false };
+  const need = min[sp.need] || 0;
+  return { need, short: c < need, over: sp.upper && c >= need + 1 };
 }
 
-// 하단 통계 7행(D·E·N·prn 인원 + 레벨평균·Lv4-5·Lv1-3)의 '화면에 보이는 값' 한 벌.
+// 하단 통계(날짜별 인원 줄 + 레벨평균·Lv4-5·Lv1-3)의 '화면에 보이는 값' 한 벌.
 // 숫자가 아니라 글자로 두는 이유는 레벨평균 때문이다 — 소수 한 자리로 반올림해 보여주므로
 // 숫자로 비교하면 눈에는 똑같은 3.4인데 "바뀌었다"고 표시하게 된다.
 function computeFootValues() {
-  const counts = computeDailyStaffCounts();
+  const specs = dailyDutyRowSpecs();
+  const vals = computeDailyDutyRows(specs);
   const lv = computeDailyLevelStats();
   const out = {};
-  for (const k of COUNT_ROWS) out[k] = counts.map(c => String(c[k]));
+  specs.forEach((sp, i) => { out[sp.label] = vals[i].map(String); });
   for (const k of ["D", "E", "N"]) {
     out[`${k} 레벨`] = lv.map(d => (d[k] === null ? "–" : d[k].toFixed(1)));
   }
@@ -2281,33 +2356,35 @@ function computeLevelShortFlags() {
 }
 
 function renderDailyStaffCountRows(foot) {
-  const counts = computeDailyStaffCounts();
+  const specs = dailyDutyRowSpecs();
+  const vals = computeDailyDutyRows(specs);
   const blankTail = blankTailCells();
   const blankHead = '<td class="stat-col">–</td><td class="stat-col">–</td>';
-  // '지정' 행은 쓰는 병동에서만 붙인다 — 안 쓰는 병동에는 0만 늘어선 줄이 하나 더
-  // 생길 뿐이고, 무슨 값인지 물어볼 일만 생긴다. 다운로드 엑셀도 같은 조건으로
-  // 붙이고(_write_daily_staff_count_rows) 화면 안내도 그렇게 적혀 있는데, 화면만
-  // 항상 붙이고 있었다 — 셋이 같은 말을 해야 한다.
-  const usesDesignated = (ST.days || []).some(
-    d => d.min && (d.min["지정"] || 0) > 0);
-  return COUNT_ROWS.filter(k => k !== "지정" || usesDesignated).map(k =>
-    `<tr class="level-foot-row"><td class="nm">${k} 인원</td>${blankHead}` +
-    counts.map((c, d) => {
-      // days[d].min이 없는 옛 응답(캐시된 예전 화면 등)에서는 색만 빠지고 숫자는 나온다.
-      const need = (ST.days[d] && ST.days[d].min) ? (ST.days[d].min[k] || 0) : null;
-      const short = need !== null && c[k] < need;
-      // 미적용 편집 때문에 달라진 숫자는 바뀐 근무 칸과 같은 점선으로 묶어 준다 —
-      // 깜빡임은 몇 초면 끝나므로, 반영/취소할 때까지 남는 표시가 따로 있어야
-      // "내가 고쳐서 이렇게 된 숫자"를 나중에도 알아볼 수 있다. 기준 미달의 빨강은
-      // 그대로 둔다(배경색과 테두리라 서로 가리지 않는다).
-      const moved = BASE_FOOT && BASE_FOOT[k] && BASE_FOOT[k][d] !== foot[k][d];
-      const cls = "stat-col" + (short ? " stat-short" : "") + (moved ? " count-changed" : "");
-      const base = moved ? `\n수정 전 ${BASE_FOOT[k][d]}명 → 지금 ${c[k]}명` : "";
-      const title = need === null && !moved ? ""
-        : ` title="${escAttr(`${d + 1}일 ${k} ${c[k]}명` + (need === null ? "" : ` (기준 ${need}명)`) + base)}"`;
-      // data-stat/data-day: 근무를 고쳤을 때 값이 달라진 칸만 찾아 깜빡이기 위한 표식.
-      return `<td class="${cls}" data-stat="${k}" data-day="${d}"${title}>${c[k]}</td>`;
-    }).join("") + `${blankTail}</tr>`).join("");
+  let otherStarted = false;
+  return specs.map((sp, i) => {
+    const k = sp.label;
+    const rowCls = ["level-foot-row", "duty-row", `duty-${sp.kind}`];
+    if (sp.kind === "other" && !otherStarted) { rowCls.push("duty-other-first"); otherStarted = true; }
+    return `<tr class="${rowCls.join(" ")}"><td class="nm" title="${escAttr(dutyRowTip(sp))}">${esc(k)}</td>${blankHead}` +
+      vals[i].map((c, d) => {
+        // days[d].min이 없는 옛 응답(캐시된 예전 화면 등)에서는 색만 빠지고 숫자는 나온다.
+        const st = dutyNeedState(sp, d, c);
+        // 미적용 편집 때문에 달라진 숫자는 바뀐 근무 칸과 같은 점선으로 묶어 준다 —
+        // 깜빡임은 몇 초면 끝나므로, 반영/취소할 때까지 남는 표시가 따로 있어야
+        // "내가 고쳐서 이렇게 된 숫자"를 나중에도 알아볼 수 있다. 기준 미달의 빨강은
+        // 그대로 둔다(배경색과 테두리라 서로 가리지 않는다).
+        const moved = BASE_FOOT && BASE_FOOT[k] && BASE_FOOT[k][d] !== foot[k][d];
+        const cls = "stat-col" + (st.short ? " stat-short" : st.over ? " stat-over" : "") +
+          (moved ? " count-changed" : "");
+        const base = moved ? `\n수정 전 ${BASE_FOOT[k][d]}명 → 지금 ${c}명` : "";
+        const judge = st.need === null ? ""
+          : ` (기준 ${st.need}명${st.short ? " — 미달" : st.over ? " — 초과" : ""})`;
+        const title = st.need === null && !moved ? ""
+          : ` title="${escAttr(`${d + 1}일 ${k} ${c}명` + judge + base)}"`;
+        // data-stat/data-day: 근무를 고쳤을 때 값이 달라진 칸만 찾아 깜빡이기 위한 표식.
+        return `<td class="${cls}" data-stat="${escAttr(k)}" data-day="${d}"${title}>${c}</td>`;
+      }).join("") + `${blankTail}</tr>`;
+  }).join("");
 }
 
 function renderDailyLevelFootRows() {
@@ -2331,7 +2408,7 @@ function renderDailyLevelFootRows() {
     }).join("") + `${blankTail}</tr>`;
   // B팀 구분행과 같은 스타일로, 통계 3행 위에도 제목 행을 붙인다.
   const totalCols = 3 + ST.num_days + tailStatCount();  // 이름 + 잔휴2 + 날짜 + 계산열
-  const divider = `<tr class="team-b-divider"><td colspan="${totalCols}">통계</td></tr>`;
+  const divider = `<tr class="team-b-divider"><td colspan="${totalCols}">통계 · 날짜별 인원(파트장 제외) — 빨강 미달 · 노랑 초과 · 점선 아래는 최소인력에 안 세는 코드</td></tr>`;
   return divider +
     renderDailyStaffCountRows(foot) +
     rowHtml("D 레벨") + rowHtml("E 레벨") + rowHtml("N 레벨") +
@@ -2535,13 +2612,31 @@ function magazineHtml() {
     ${strict.length ? `<p class="bad">필수 위반 ${strict.length}건 — 이대로 확정하면 그날 병동이 규칙대로 돌아가지 않는다.</p><table class="t"><tr><th>날</th><th>규칙</th><th>사람</th><th>내용</th></tr>${strict.map(vRow).join("")}</table>` : `<p class="good">필수 위반 없음.</p>`}
     ${bestEffort.length ? `<p>추가 검토 ${bestEffort.length}건 — 최선노력 규칙(Lv4+ 배치·월 OFF 하한·주간 블록·야간 목표·수면오프). 원칙이지만 인원 사정상 못 맞출 수 있는 항목.</p><table class="t small"><tr><th>날</th><th>규칙</th><th>사람</th><th>내용</th></tr>${bestEffort.map(vRow).join("")}</table>` : ""}
     ${(r.soft || []).length ? `<p class="sub">권장 사항 ${r.soft.length}건은 생략(화면 결과창 참고).</p>` : ""}`;
-  // --- 2 일별 인원
-  const daily = r.daily || [];
-  const keys = ["D", "E", "N", "prn"].filter(k => daily.some(d => (d.counts || {})[k] !== undefined));
-  const sec2 = `<h2>2. 일별 근무인력 (인원/최소)</h2><table class="t tiny"><tr><th></th>${days.map(d => `<th class="${d.weekend ? "we" : ""}">${d.n}<br>${d.dow}</th>`).join("")}</tr>
-    ${keys.map(k => `<tr><th>${k}</th>${daily.map((d, i) => { const c = (d.counts || {})[k] || 0, m = (d.min || {})[k] || 0; return `<td class="${days[i].weekend ? "we " : ""}${c < m ? "bad" : c > m ? "over" : ""}">${c}<span class="sub">/${m}</span></td>`; }).join("")}</tr>`).join("")}
-    <tr><th>Lv4+<br>D·E·N</th>${days.map((d, i) => { const lv = k => people.filter(s => s.level >= 4 && (row(s)[i] === k || (k === "N" && row(s)[i] === "NK"))).length; const a = [lv("D"), lv("E"), lv("N")]; return `<td class="${d.weekend ? "we " : ""}${a.some(x => x === 0) ? "bad" : ""}">${a.join("·")}</td>`; }).join("")}</tr></table>
-    <p class="sub">빨강 = 미달, 회색 숫자 = 최소인력, 노랑 = 초과. 마지막 줄은 그날 D·E·N 조의 Lv4+ 수(0이 있으면 빨강, H1-5).</p>`;
+  // --- 2 일별 인원 — 화면 맨 아래 '날짜별 인원' 줄과 같은 구성(dailyDutyRowSpecs)·같은 판정(dutyNeedState).
+  // 예전엔 D·E·N·prn 합계 넷에 Lv4+를 "1·3·2"처럼 한 칸에 붙여 적어서, 근무 코드별 인원이 아니라
+  // 그날의 레벨 구성이 적힌 것처럼 읽혔다(파트장 지적). 코드마다 한 줄, Lv4+는 조마다 한 줄로 푼다.
+  const specs = dailyDutyRowSpecs(), dutyVals = computeDailyDutyRows(specs);
+  const dayHead = `<tr><th></th>${days.map(d => `<th class="${d.weekend ? "we" : ""}">${d.n}<br>${d.dow}</th>`).join("")}</tr>`;
+  let otherSeen = false;
+  const dutyRowsHtml = specs.map((sp, i) => {
+    const sep = sp.kind === "other" && !otherSeen; if (sp.kind === "other") otherSeen = true;
+    const cls = [sp.kind === "other" ? "other" : "", sp.kind === "total" || sp.kind === "designated" ? "tot" : "", sep ? "sep" : ""].filter(Boolean).join(" ");
+    return `<tr${cls ? ` class="${cls}"` : ""}><th>${esc(sp.label)}</th>${dutyVals[i].map((c, d) => {
+      const stt = dutyNeedState(sp, d, c), we = days[d].weekend ? "we " : "";
+      if (stt.need === null) return `<td class="${we}">${c ? c : ""}</td>`;
+      return `<td class="${we}${stt.short ? "bad" : stt.over ? "over" : ""}">${c}<span class="sub">/${stt.need}</span></td>`;
+    }).join("")}</tr>`;
+  }).join("");
+  const lvFlags = computeDailyLevelStats();
+  const lvRow = (k, name) => `<tr class="lv${k === "D" ? " lv1" : ""}"><th>Lv4+ ${name}</th>${days.map((d, i) => {
+    const n = people.filter(s => s.level >= 4 && (row(s)[i] === k || (k === "N" && row(s)[i] === "NK"))).length;
+    return `<td class="${d.weekend ? "we " : ""}${lvFlags[i].short[k] ? "bad" : ""}">${n}</td>`;
+  }).join("")}</tr>`;
+  const sec2 = `<h2>2. 날짜별 근무인력 — 듀티별</h2><table class="t tiny">${dayHead}${dutyRowsHtml}
+    ${lvRow("D", "D조")}${lvRow("E", "E조")}${lvRow("N", "N조")}</table>
+    <p class="sub">코드마다 그날 그 코드인 사람 수(파트장 제외). "인원/기준"이 적힌 줄에 최소인력이 걸린다 — 빨강 미달, 노랑 초과.
+    밤은 N+NK 줄(야간전담이 없으면 N 줄), prn은 prn 합계 줄(반일 0.5명). 점선 아래는 최소인력에 안 세는 코드.
+    마지막 세 줄은 그날 그 조에 선 Lv4 이상 수 — 빨강이면 그 조에 고연차가 없다(H1-5, 밤은 야간리더가 서면 충족).</p>`;
   // --- 3 주말·공휴일 근무자
   const weRows = days.map((d, i) => ({ d, i })).filter(x => x.d.weekend).map(({ d, i }) => { const who = k => people.filter(s => row(s)[i] === k || (k === "N" && row(s)[i] === "NK")).map(s => esc(s.id)).join(", "); return `<tr>${td(dayLabel(i))}${td(who("D"))}${td(who("E"))}${td(who("N"))}</tr>`; }).join("");
   const sec3 = weRows ? `<h2>3. 주말·공휴일 근무자</h2><table class="t small"><tr><th>날</th><th>D</th><th>E</th><th>N·NK</th></tr>${weRows}</table>` : "";
@@ -2596,7 +2691,8 @@ function magazineHtml() {
 .kicker{letter-spacing:.2em;font-size:11px;color:#6b7280}h1{font-size:34px;margin:2px 0 6px}h2{font-size:16px;margin:28px 0 8px;padding-top:8px;border-top:2px solid #111827}.lead{margin:0 0 10px;color:#374151}
 .nums{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.num{border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px}.num b{display:block;font-size:24px}.num span{font-size:11px;color:#6b7280}.num.bad b{color:#dc2626}.num.good b{color:#16a34a}.num.warn b{color:#ca8a04}
 table.t{border-collapse:collapse;width:100%;margin:6px 0 4px}table.t th,table.t td{border:1px solid #e5e7eb;padding:4px 6px;text-align:left;vertical-align:top}table.t th{background:#f9fafb;font-weight:600}table.t.small{font-size:12px}table.t.tiny{font-size:10.5px}table.t.tiny td,table.t.tiny th{padding:3px 2px;text-align:center;white-space:nowrap}
-td.bad{background:#fee2e2;color:#991b1b;font-weight:700}td.warn{background:#fef9c3}td.over{background:#fef3c7}td.we,th.we{background:#fff1f2}tr.nk td{color:#6b21a8}tr.chosen td{background:#ecfdf5}
+td.bad{background:#fee2e2;color:#991b1b;font-weight:700}td.warn{background:#fef9c3}td.over{background:#fef3c7}
+tr.sep th,tr.sep td{border-top:2px dashed #9ca3af}tr.tot th,tr.tot td{border-top:1.5px solid #6b7280}tr.other th{color:#6b7280;font-weight:500}tr.lv th{color:#5b21b6}tr.lv1 th,tr.lv1 td{border-top:2px solid #111827}td.we,th.we{background:#fff1f2}td.we.bad{background:#fee2e2}td.we.over{background:#fef3c7}td.we.warn{background:#fef9c3}tr.nk td{color:#6b21a8}tr.chosen td{background:#ecfdf5}
 .bad{color:#dc2626;font-weight:600}.good{color:#16a34a}.sub{color:#6b7280;font-size:11px}.small{font-size:12px}i{font-style:normal;font-size:10px;color:#7c3aed;border:1px solid #c4b5fd;border-radius:3px;padding:0 3px}
 ul{margin:6px 0;padding-left:18px}li{margin:3px 0}pre.log{font-size:11px;background:#f9fafb;border:1px solid #e5e7eb;padding:8px;white-space:pre-wrap;line-height:1.5}
 .foot{margin-top:28px;font-size:11px;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:8px}@media print{body{background:#fff}.pg{box-shadow:none;margin:0;max-width:none;padding:0}h2{break-after:avoid}table{break-inside:auto}tr{break-inside:avoid}}</style></head><body><div class="pg">
@@ -3000,7 +3096,9 @@ function renderSide() {
   // 일별 근무인력
   html += `<div class="side-sec"><h3>일별 근무인력 <span class="count-badge">${r.bad_days_count === 0 ? "전일 충족" : r.bad_days_count + "일 미달"}</span></h3>`;
   if (r.bad_days_count > 0) {
-    html += '<table class="mini-table"><tr><th>일</th><th>D</th><th>E</th><th>N</th><th>prn</th></tr>' +
+    // 아래 그리드 통계와 같은 이름으로 — 엔진의 N은 NK를 더한 값이고, prn은 prn 계열 합계(반일 0.5)다.
+    const nLabel = ST.staff.some(s => s.is_nk && !s.is_partjang) ? "N+NK" : "N";
+    html += `<table class="mini-table"><tr><th>일</th><th>D</th><th>E</th><th>${nLabel}</th><th title="prn 계열 합계(반일 0.5명)">prn 합계</th></tr>` +
       r.daily.filter(d => !d.ok).map(d =>
         `<tr><td>${d.day}</td><td class="${d.counts.D < d.min.D ? "badge-bad" : ""}">${d.counts.D}/${d.min.D}</td>` +
         `<td class="${d.counts.E < d.min.E ? "badge-bad" : ""}">${d.counts.E}/${d.min.E}</td>` +
