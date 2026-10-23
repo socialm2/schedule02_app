@@ -395,6 +395,13 @@ button.wide { width: 100%; }
 /* 맞교환 줄 — 보통 근무 버튼과 섞이면 "그 근무로 바꾸기"로 오해하므로 구분선과 다른 색으로. */
 .picker .picker-sep { flex-basis: 100%; font-size: 10.5px; color: var(--sub); margin: 4px 2px 0; border-top: 1px dashed var(--line); padding-top: 4px; }
 .picker button.swap { border-style: dashed; color: var(--accent); }
+/* 이 칸은 왜 — 선택기 아래 한 문단. 관련 칸은 표에서 거리순으로 번지며 테두리가 켜진다(파문). */
+.picker .picker-why { flex-basis: 100%; font-size: 10.5px; line-height: 1.5; color: var(--text); margin: 4px 2px 0; border-top: 1px dashed var(--line); padding-top: 4px; }
+.picker .picker-why .dim { color: var(--sub); }
+table.grid td.rip { animation: rip-in .5s ease-out both; animation-delay: var(--rd, 0ms); outline: 2px solid var(--accent); outline-offset: -2px; }
+table.grid td.rip.rip-team { outline-color: #d97706; }
+table.grid td.rip.rip-rest { outline-color: #38bdf8; }
+@keyframes rip-in { from { outline-color: transparent; } }
 /* 수정 취약 칸(D-2) — 근무색은 그대로 두고 빗금만 얹는다. 고정 칸(행 규칙이 막음)은 진한
    빗금, 맞교환으로만 바꿀 수 있는 칸(그날 인원 규칙이 막음)은 옅은 빗금. */
 td.fragile-row span { background-image: repeating-linear-gradient(135deg, rgba(0,0,0,.28) 0 2px, transparent 2px 7px); }

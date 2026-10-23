@@ -2387,6 +2387,91 @@ delegateClick(document.getElementById("sidePane"), "button.swap-close",
 delegateClick(document.getElementById("holidayCalendar"), "td[data-iso]",
   (td) => toggleHolidayDate(td.dataset.iso));
 
+// 이 칸이 묶여 있는 규칙 — 파트장이 "왜 이 칸이냐"를 물을 때 누르는 자리(근무 선택기)에 같이 띄운다.
+// 데모(여섯 가지 개념 '파문')에서 옮겨 온 간단 판정이다: 같은 블록·연속근무·같은 날 같은 조·밤 뒤 휴식.
+// 엔진의 검사기를 부르지 않는다(동기·즉시). 그래서 '간단 판정'이라고 적는다 — 실제 위반 여부는 결과창.
+function explainCell(sid, day) {
+  const s = ST.staff.find(x => x.id === sid);
+  const row = ST.grid[sid] || [];
+  const nd = ST.num_days, code = row[day];
+  const lines = [], cells = [];
+  const push = (id, d, dist, kind) => cells.push({ sid: id, day: d, dist, kind });
+  const isN = v => v === "N" || v === "NK";
+  const dayLabel = d => `${d + 1}일`;
+  if (!s || !code) return { lines, cells };
+  // 가로: 같은 근무 블록
+  let a = day, b = day;
+  while (a > 0 && row[a - 1] === code) a--;
+  while (b < nd - 1 && row[b + 1] === code) b++;
+  for (let k = a; k <= b; k++) if (k !== day) push(sid, k, Math.abs(k - day), "block");
+  const len = b - a + 1;
+  if (isN(code)) {
+    lines.push(`밤 블록 ${len}일(${dayLabel(a)}~${dayLabel(b)}). 뒤 이틀은 휴식(H2-5).`);
+    for (let k = b + 1; k <= Math.min(nd - 1, b + 2); k++) push(sid, k, k - day, "rest");
+    let gap = 0;
+    for (let k = a - 1; k >= 0 && !isN(row[k]); k--) gap++;
+    if (a > 0 && gap < a) lines.push(`앞 밤 블록과 간격 ${gap}일(기준 7일).`);
+  } else if (isWorkCode(code)) {
+    lines.push(len === 1 ? `하루짜리 ${shiftText(code)} — 주간 블록은 3~4일이 좋음(H6-1).`
+      : `${shiftText(code)} 블록 ${len}일(${dayLabel(a)}~${dayLabel(b)}) — 주간 블록은 3~4일이 좋음(H6-1).`);
+  }
+  // 연속근무
+  if (isWorkCode(code)) {
+    let s0 = day, e0 = day;
+    while (s0 > 0 && isWorkCode(row[s0 - 1])) s0--;
+    while (e0 < nd - 1 && isWorkCode(row[e0 + 1])) e0++;
+    for (let k = s0; k <= e0; k++) if (k !== day && row[k] !== code) push(sid, k, Math.abs(k - day) + 1, "run");
+    const maxC = (ST.params_summary && ST.params_summary.max_consecutive_work) || 5;
+    const runLen = e0 - s0 + 1 + (s0 === 0 ? (s.carry_run || 0) : 0);
+    lines.push(`연속근무 ${runLen}일 구간(상한 ${maxC}일)${runLen >= maxC ? " — 한도에 닿음" : ""}.`);
+    // 세로: 같은 날 같은 조
+    const sameTeam = v => v === code || (isN(code) && isN(v));   // 밤 조는 N·NK가 한 조
+    const team = ST.staff.filter(x => x.id !== sid && !x.is_partjang && sameTeam((ST.grid[x.id] || [])[day]));
+    team.forEach(x => push(x.id, day, 1, "team"));
+    const key = code === "NK" ? "N" : code;
+    const min = ST.days[day] && ST.days[day].min ? ST.days[day].min[key] : undefined;
+    if (min !== undefined) {
+      lines.push(`${dayLabel(day)} ${shiftText(code)} ${team.length + 1}명 / 최소 ${min}명` +
+        (team.length + 1 <= min ? " — 비우면 최소인력 미달(H1-1)." : " — 한 명 빠져도 됨."));
+    }
+    if (key === "D" || key === "E" || key === "N") {
+      const seniors = team.filter(x => x.level >= 4).length;
+      if (s.level >= 4) lines.push(seniors === 0 ? "이 조의 Lv4+는 이 사람뿐 — 빠지면 H1-5 위반." : `이 조 Lv4+ ${seniors + 1}명.`);
+      else if (seniors === 0) lines.push("이 조에 Lv4+가 없음(H1-5).");
+    }
+    if (ST.days[day].weekend) {
+      const wk = row.filter((v, d) => isWorkCode(v) && ST.days[d].weekend).length;
+      lines.push(`주말·공휴일 근무 — 이달 ${wk}일째.`);
+    }
+  } else if (code === "OFF") {
+    const prevN = (day >= 1 && isN(row[day - 1])) || (day >= 2 && isN(row[day - 2]) && row[day - 1] === "OFF");
+    if (prevN) lines.push("밤 블록 뒤의 휴식(H2-5).");
+    const short = ["D", "E", "N"].filter(k => {
+      const need = ST.days[day] && ST.days[day].min ? ST.days[day].min[k] || 0 : 0;
+      const have = ST.staff.filter(x => !x.is_partjang && ((ST.grid[x.id] || [])[day] === k || (k === "N" && (ST.grid[x.id] || [])[day] === "NK"))).length;
+      return have < need && s.allowed.includes(k);
+    });
+    if (short.length) lines.push(`이날 ${short.join("·")}이(가) 모자람 — 이 사람이 후보.`);
+  }
+  if (isN(code) && s.night_target != null) {
+    const nights = row.filter(isN).length;
+    lines.push(`이달 밤 ${nights}회(목표 ${s.night_target}).`);
+  }
+  return { lines, cells };
+}
+function clearRipple() {
+  document.querySelectorAll("table.grid td.rip").forEach(td => { td.classList.remove("rip", "rip-team", "rip-rest", "rip-run"); td.style.removeProperty("--rd"); });
+}
+function showRipple(cells) {
+  clearRipple();
+  for (const c of cells) {
+    const td = document.querySelector(`table.grid td[data-sid="${CSS.escape(c.sid)}"][data-day="${c.day}"]`);
+    if (!td) continue;
+    td.classList.add("rip", c.kind === "team" ? "rip-team" : c.kind === "rest" ? "rip-rest" : "rip-run");
+    td.style.setProperty("--rd", (c.dist * 70) + "ms");
+  }
+}
+
 window.openPicker = function (ev, sid, day) {
   closePicker();
   const td = ev.target.closest("td");
@@ -2441,6 +2526,16 @@ window.openPicker = function (ev, sid, day) {
       div.appendChild(b);
     }
   }
+  if (!isTeamB) {
+    const why = explainCell(sid, day);
+    if (why.lines.length) {
+      const box = document.createElement("div");
+      box.className = "picker-why";
+      box.innerHTML = `<b>이 칸은</b> ` + why.lines.map(esc).join(" ") + ` <span class="dim">(간단 판정)</span>`;
+      div.appendChild(box);
+      showRipple(why.cells);
+    }
+  }
   if (isTeamB) {
     const b = document.createElement("button");
     b.textContent = "지움";
@@ -2467,6 +2562,7 @@ function closePicker() {
     ? { sid: pickerCell.dataset.sid, day: pickerCell.dataset.day } : null;
   if (picker) { picker.remove(); picker = null; }
   if (pickerCell) { pickerCell.classList.remove("picking"); pickerCell = null; }
+  clearRipple();
   if (back) focusCell(back.sid, back.day);
 }
 
