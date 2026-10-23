@@ -307,6 +307,9 @@ async function api(path, opts) {
   return data;
 }
 
+// 화면이 만든 글(HTML 등)을 파일로 내려받는 길 — 월간지 같은 자체 생성 문서용. 파일 I/O는 여기(platform)만.
+function downloadText(content, filename, mime) { triggerDownload(content, filename, mime || "text/html;charset=utf-8"); }
+
 function triggerDownload(content, filename, mime) {
   const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);

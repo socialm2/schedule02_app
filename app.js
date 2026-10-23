@@ -2003,7 +2003,7 @@ function renderGrid() {
   const holCount = ST.days.filter(d => d.weekend).length;
   html += '<div class="grid-scroll"><table class="grid"><thead><tr><th class="nm">이름</th>' +
     '<th class="stat-col">잔휴<br>전월</th><th class="stat-col">잔휴<br>이후</th>';
-  for (const d of ST.days) html += `<th class="${d.weekend ? "we" : ""}">${d.n}<br>${d.dow}</th>`;
+  ST.days.forEach((d, i) => { html += `<th class="day-head ${d.weekend ? "we" : ""}" data-day="${i}" role="button" tabindex="0" title="누르면 그날 병동 보기">${d.n}<br>${d.dow}</th>`; });
   // 듀티별 횟수 — D·E·N만이 아니라 이 달 표에 나온 모든 근무 코드를 열로 붙인다.
   // 다운로드 엑셀의 '듀티별 횟수' 블록과 같은 순서·같은 셈법(코드가 적힌 날 수)이다.
   const dutyCols = dutyColumns();
@@ -2352,6 +2352,14 @@ document.getElementById("gridContent").addEventListener("keydown", (ev) => {
 });
 // 점수표의 줄을 누르면 그 시드의 표로 바꾼다. 미적용 편집은 버려지므로 먼저 묻는다 — 바꾼 표에는
 // 그 편집이 뜻이 없다(다른 표의 칸이다). 고정 칸(재생성 때 잠근 것)은 그대로 적용돼 있다.
+delegateClick(document.getElementById("gridPane"), "th.day-head[data-day]", (th) => openDiorama(Number(th.dataset.day)));
+document.getElementById("gridPane").addEventListener("keydown", (ev) => {
+  if (ev.key !== "Enter" && ev.key !== " ") return;
+  const th = ev.target.closest("th.day-head[data-day]");
+  if (!th) return;
+  ev.preventDefault();
+  openDiorama(Number(th.dataset.day));
+});
 delegateClick(document.getElementById("sidePane"), "table.attempt-table tr[data-seed]", async (tr) => {
   const seed = Number(tr.dataset.seed);
   if (!ST || seed === ST.current_seed) return;
@@ -2386,6 +2394,153 @@ delegateClick(document.getElementById("sidePane"), "button.swap-close",
   () => { SWAP = null; renderSide(); paintFragile(); });
 delegateClick(document.getElementById("holidayCalendar"), "td[data-iso]",
   (td) => toggleHolidayDate(td.dataset.iso));
+
+// ================================================================ 그날 병동(디오라마)
+// 날짜 머리칸을 누르면 그날 누가 어느 방에 있는지 평면도로 본다 — 표의 세로줄을 읽는 것보다
+// "오늘 밤에 누가 있나"가 한눈에 들어온다. 데모(네 가지 개념 II)에서 옮겨 왔고, 걷는 동작은 뺐다.
+let DIO = null;   // {day}
+function roomOfCode(v) {
+  if (!v) return "home";
+  if (v === "E") return "E";
+  if (v === "N" || v === "NK") return "N";
+  if (isWorkCode(v)) return "D";
+  return "home";
+}
+function openDiorama(day) {
+  DIO = { day };
+  let bd = document.getElementById("dioModalBackdrop");
+  if (!bd) {
+    bd = document.createElement("div");
+    bd.className = "modal-backdrop"; bd.id = "dioModalBackdrop";
+    bd.innerHTML = '<div class="modal dio-modal" role="dialog" aria-modal="true" aria-label="그날 병동">' +
+      '<div class="modal-head"><h2 id="dioTitle"></h2><div class="dio-nav"><button data-dio="prev" title="전날">◀</button><button data-dio="next" title="다음날">▶</button><button data-dio="close" title="닫기">✕</button></div></div>' +
+      '<div class="modal-body dio-body"><canvas id="dioCanvas"></canvas><p class="hint" id="dioHint"></p></div></div>';
+    document.body.appendChild(bd);
+    bd.addEventListener("click", (e) => { if (e.target === bd) closeDiorama(); });
+    delegateClick(bd, "button[data-dio]", (b) => {
+      if (b.dataset.dio === "close") closeDiorama();
+      else if (DIO) { DIO.day = (DIO.day + (b.dataset.dio === "next" ? 1 : ST.num_days - 1)) % ST.num_days; drawDiorama(); }
+    });
+    bd.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeDiorama();
+      if (e.key === "ArrowRight" && DIO) { DIO.day = (DIO.day + 1) % ST.num_days; drawDiorama(); }
+      if (e.key === "ArrowLeft" && DIO) { DIO.day = (DIO.day + ST.num_days - 1) % ST.num_days; drawDiorama(); }
+    });
+  }
+  bd.classList.add("show");
+  drawDiorama();
+  const first = bd.querySelector("button[data-dio='next']");
+  if (first) first.focus();
+}
+function closeDiorama() {
+  const bd = document.getElementById("dioModalBackdrop");
+  if (bd) bd.classList.remove("show");
+  DIO = null;
+}
+function drawDiorama() {
+  if (!DIO || !ST) return;
+  const day = DIO.day, cv = document.getElementById("dioCanvas"), ctx = cv.getContext("2d");
+  const W = Math.min(900, Math.max(320, (cv.parentElement.clientWidth || 600) - 4));
+  // 높이는 가장 붐비는 방의 줄 수로 — 고정 높이면 빈 방이 휑하다
+  const perRoom = { home: 0, D: 0, E: 0, N: 0 };
+  for (const s of ST.staff) { if (!s.is_partjang) perRoom[roomOfCode((ST.grid[s.id] || [])[day])]++; }
+  const colsGuess = Math.max(1, Math.floor((W * .23 - 20) / 44));
+  const maxRows = Math.max(...Object.values(perRoom).map(n => Math.ceil(n / colsGuess)));
+  const H = Math.min(560, Math.max(240, 80 + maxRows * 50));
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + "px"; cv.style.height = H + "px"; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const dark = getComputedStyle(document.body).getPropertyValue("--bg").trim() !== "" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  ctx.fillStyle = dark ? "#0c1120" : "#f3f5f9"; ctx.fillRect(0, 0, W, H);
+  const rooms = { home: [8, 8, W * .22 - 12, H - 16], D: [W * .25, 8, W * .23, H - 16], E: [W * .50, 8, W * .23, H - 16], N: [W * .75, 8, W * .25 - 8, H - 16] };
+  const label = { home: "집 · 쉼", D: "낮 D (prn·8A 포함)", E: "저녁 E", N: "밤 N·NK" };
+  const tint = { home: dark ? "#1f2937" : "#e5e7eb", D: dark ? "#1e3a8a" : "#dbeafe", E: dark ? "#7c2d12" : "#ffedd5", N: dark ? "#2e1065" : "#ede9fe" };
+  const ink = dark ? "rgba(255,255,255,.8)" : "rgba(17,24,39,.85)";
+  const groups = { home: [], D: [], E: [], N: [] };
+  for (const s of ST.staff) { if (s.is_partjang) continue; groups[roomOfCode((ST.grid[s.id] || [])[day])].push(s); }
+  const min = ST.days[day].min || {};
+  for (const k of Object.keys(rooms)) {
+    const [x, y, w, h] = rooms[k];
+    ctx.fillStyle = tint[k]; ctx.strokeStyle = dark ? "rgba(255,255,255,.14)" : "rgba(0,0,0,.12)"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, 12); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = ink; ctx.font = "600 12px system-ui, sans-serif"; ctx.textAlign = "left";
+    const need = k === "D" ? min.D : k === "E" ? min.E : k === "N" ? min.N : undefined;
+    ctx.fillText(label[k] + (need !== undefined ? `  ${groups[k].length}/${need}명` : `  ${groups[k].length}명`), x + 10, y + 18);
+    if (need !== undefined && groups[k].length < need) { ctx.fillStyle = "#dc2626"; ctx.fillText("미달", x + w - 34, y + 18); }
+    if (k === "D") { ctx.fillStyle = "#f59e0b"; ctx.beginPath(); ctx.arc(x + w - 18, y + 36, 8, 0, 7); ctx.fill(); }
+    if (k === "E") { ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.arc(x + w - 18, y + 40, 8, Math.PI, 0); ctx.fill(); }
+    if (k === "N") { ctx.fillStyle = dark ? "#e5e7eb" : "#4b5563"; ctx.beginPath(); ctx.arc(x + w - 18, y + 36, 7, 0, 7); ctx.fill(); ctx.fillStyle = tint[k]; ctx.beginPath(); ctx.arc(x + w - 15, y + 34, 6, 0, 7); ctx.fill(); }
+    const cols = Math.max(1, Math.floor((w - 20) / 44)), sc = Math.min(1, (h - 60) / (Math.ceil(groups[k].length / cols) * 50 + 10));
+    groups[k].forEach((s, j) => {
+      const px = x + 26 + (j % cols) * 44 * (sc < 1 ? sc * 1.1 : 1), py = y + 52 + Math.floor(j / cols) * 50 * sc;
+      const code = (ST.grid[s.id] || [])[day], lv = s.level || 1, z = (0.8 + lv * 0.08) * Math.max(.6, sc);
+      const col = code === "D" ? "#3b82f6" : code === "E" ? "#f97316" : code === "N" ? "#7c3aed" : code === "NK" ? "#db2777" : isWorkCode(code) ? "#16a34a" : (dark ? "#475569" : "#9ca3af");
+      ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(px - 7 * z, py - 2 * z, 14 * z, 20 * z, 4); ctx.fill();
+      ctx.fillStyle = "#fde0c8"; ctx.beginPath(); ctx.arc(px, py - 8 * z, 6 * z, 0, 7); ctx.fill();
+      if (lv >= 4) { ctx.fillStyle = "#f59e0b"; ctx.font = `${9 * z}px sans-serif`; ctx.textAlign = "center"; ctx.fillText("★", px, py - 16 * z); }
+      ctx.fillStyle = ink; ctx.font = `${Math.max(8, 9 * Math.max(.8, sc))}px system-ui, sans-serif`; ctx.textAlign = "center";
+      ctx.fillText(s.id.length > 5 ? s.id.slice(0, 5) : s.id, px, py + 27 * z);
+    });
+  }
+  const d = ST.days[day];
+  document.getElementById("dioTitle").textContent = `${ST.month}월 ${d.n}일 (${d.dow})${d.weekend ? " · 주말·공휴일" : ""}`;
+  document.getElementById("dioHint").textContent = "키가 클수록 높은 숙련도, ★는 Lv4 이상. ◀ ▶ 또는 ←→로 날짜를 넘깁니다. 파트장은 뺐습니다.";
+}
+
+// ================================================================ 월간지(한 장 요약)
+// 확정 뒤 파트장이 받는 읽을거리 — 표가 아니라 글과 숫자로 "이달은 어땠나". 데모(네 가지 개념 II)의
+// 월간지를 앱 자료로 다시 짠 것. 파일 하나(HTML)라 카톡으로 보내도 열리고, 브라우저에서 인쇄하면 PDF가 된다.
+function magazineHtml() {
+  const gen = ST.staff.filter(s => !s.is_partjang && !s.is_nk);
+  const row = s => ST.grid[s.id] || [];
+  const nights = s => row(s).filter(v => v === "N" || v === "NK").length;
+  const wk = s => row(s).filter((v, d) => isWorkCode(v) && ST.days[d].weekend).length;
+  const offs = s => row(s).filter(v => v === "OFF").length;
+  const sole = s => { if ((s.level || 0) < 4) return 0; let c = 0; for (let d = 0; d < ST.num_days; d++) { const code = row(s)[d]; if (!isWorkCode(code)) continue; const others = gen.filter(x => x !== s && x.level >= 4 && (row(x)[d] === code || ((code === "N" || code === "NK") && (row(x)[d] === "N" || row(x)[d] === "NK")))).length; if (!others) c++; } return c; };
+  // 밤은 밤을 설 수 있는 사람끼리만 견준다 — prn 전담이 "밤 0회"로 꼴찌에 오르면 뜻이 없다
+  const nightPool = gen.filter(s => (s.allowed || []).includes("N"));
+  const top = (f, pool) => [...(pool || gen)].sort((a, b) => f(b) - f(a))[0], bot = (f, pool) => [...(pool || gen)].sort((a, b) => f(a) - f(b))[0];
+  const totalN = gen.reduce((a, s) => a + nights(s), 0), totalWk = gen.reduce((a, s) => a + wk(s), 0);
+  const r = ST.report || {}, hard = r.hard_count || 0, strict = (r.hard || []).filter(v => !v.best_effort).length;
+  const att = (ST.attempt_table || []).find(a => a.chosen) || (ST.attempt_table || [])[0];
+  const colors = { D: "#60a5fa", E: "#fb923c", N: "#a78bfa", NK: "#f472b6", OFF: "#e8e1d2", prn: "#4ade80", "8A": "#cbd5e1", "S/": "#2dd4bf" };
+  const cs = 900 / ST.num_days, rh = 220 / ST.staff.length;
+  const svg = `<svg viewBox="0 0 900 220" width="100%" style="display:block;margin:18px 0">` + ST.staff.map((s, i) => row(s).map((v, d) => v ? `<rect x="${(d * cs + 1).toFixed(1)}" y="${(i * rh).toFixed(1)}" width="${(cs - 2).toFixed(1)}" height="${Math.max(1, rh - 1).toFixed(1)}" fill="${colors[v] || (isWorkCode(v) ? "#a3a3a3" : "#efe8da")}"/>` : "").join("")).join("") + "</svg>";
+  const nightMap = ST.days.map((dy, d) => { const who = gen.filter(s => row(s)[d] === "N" || row(s)[d] === "NK").map(s => esc(s.id)); return `<div class="${dy.weekend ? "we" : ""}"><b>${dy.n}</b>밤 ${who.length}명<br><span class="sub">${who.join(" ")}</span></div>`; }).join("");
+  const nk = ST.staff.filter(s => s.is_nk).map(s => esc(s.id)).join(", ");
+  const logs = (r.logs || []).filter(l => /\[균등\]|\[수리\]|\[보완\]/.test(l)).slice(0, 4).map(l => `<p class="quote">${esc(l)}</p>`).join("");
+  const wardLabel = ST.ward_id ? `${esc(ST.ward_id)} · ` : "";
+  const person = (title, s, body) => `<div class="person"><b>${esc(s.id)}</b><span class="sub">${title}</span>${body}</div>`;
+  return `<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${wardLabel}${ST.year}년 ${ST.month}월 월간지</title>
+<style>body{margin:0;background:#efe9dc;color:#1c1917;font-family:"Noto Serif KR","Apple SD Gothic Neo","Malgun Gothic",serif}
+.pg{max-width:900px;margin:30px auto 60px;background:#f8f4ea;box-shadow:0 20px 60px rgba(0,0,0,.25);padding:48px 56px}
+h1{font-size:56px;font-weight:900;letter-spacing:-.02em;margin:0;line-height:1}.kicker{letter-spacing:.3em;font-size:12px;color:#7c6f5a}h2{font-size:21px;margin:36px 0 10px;border-top:3px solid #1c1917;padding-top:10px}
+.lead{font-size:17px;line-height:1.7;margin:14px 0 0}.nums{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:14px 0}.num b{display:block;font-size:36px;font-weight:900}.num span,.sub{font-size:12px;color:#7c6f5a}
+.people{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.person{border:1px solid #d6cdbb;padding:12px;font-size:13px;line-height:1.6}.person b{font-size:17px;display:block}.person .sub{display:block;margin-bottom:4px}
+.cols{columns:2;column-gap:32px;font-size:14px;line-height:1.8}.quote{font-size:15px;font-style:italic;border-left:4px solid #1c1917;padding-left:12px;margin:10px 0;break-inside:avoid}
+.nightmap{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:11px}.nightmap div{border:1px solid #d6cdbb;padding:6px;min-height:56px}.nightmap b{display:block;font-size:14px}.nightmap .we{background:#f1e4e0}
+.foot{margin-top:36px;font-size:11px;color:#7c6f5a;border-top:1px solid #d6cdbb;padding-top:8px}@media print{body{background:#fff}.pg{box-shadow:none;margin:0;max-width:none}}</style></head><body><div class="pg">
+<div class="kicker">${wardLabel}WARD MONTHLY · ${ST.year}년 ${ST.month}월호</div><h1>이달의 근무표</h1>
+<p class="lead">${ST.staff.length}명이 ${ST.num_days}일을 나눠 섰다. 밤 ${totalN}번, 주말·공휴일 근무 ${totalWk}번. 필수 위반 ${strict}건${hard - strict > 0 ? `, 추가 검토 ${hard - strict}건` : ""}.${att ? " 세 번 만들어 가장 고른 표를 골랐다." : ""}</p>
+${svg}
+<div class="nums"><div class="num"><b>${strict}</b><span>필수 위반</span></div><div class="num"><b>${att ? att.fairness : "–"}</b><span>공평성 합(낮을수록 고름)</span></div><div class="num"><b>${gen.length ? (totalN / gen.length).toFixed(1) : "–"}</b><span>1인 평균 밤(파트장·야간전담 제외)</span></div><div class="num"><b>${gen.length ? (totalWk / gen.length).toFixed(1) : "–"}</b><span>1인 평균 주말</span></div></div>
+<h2>이달의 사람들</h2><div class="people">
+${nightPool.length ? person("밤을 가장 많이", top(nights, nightPool), `${nights(top(nights, nightPool))}회. 가장 적은 ${esc(bot(nights, nightPool).id)}은 ${nights(bot(nights, nightPool))}회(밤 가능자끼리).`) : ""}
+${gen.length ? person("주말을 가장 많이", top(wk), `${wk(top(wk))}일. 가장 적은 ${esc(bot(wk).id)}은 ${wk(bot(wk))}일 — 격차 ${wk(top(wk)) - wk(bot(wk))}일.`) : ""}
+${gen.length && sole(top(sole)) > 0 ? person("혼자 선 고연차", top(sole), `Lv${top(sole).level}. 조에 Lv4+가 자기뿐인 날 ${sole(top(sole))}번. 그 조의 기둥이었다.`) : ""}
+${gen.length ? person("가장 많이 쉰", top(offs), `쉼 ${offs(top(offs))}일. 가장 적게 쉰 ${esc(bot(offs).id)}은 ${offs(bot(offs))}일.`) : ""}
+${nk ? `<div class="person"><b>${nk}</b><span class="sub">야간전담</span>매달 15일 밤을 선다 — 이 사람들 덕에 나머지의 밤이 ${gen.length ? (totalN / gen.length).toFixed(1) : "–"}회에 머문다.</div>` : ""}
+</div>
+<h2>엔진 노트</h2><div class="cols">${logs || "<p class='quote'>이달은 수리·균등화 기록이 없다.</p>"}
+<p>표는 한 번에 만들어지지 않는다. 밤을 먼저 놓고(간격 7일, 뒤 이틀 휴식), 1일부터 낮과 저녁을 채우고, 남은 칸을 쉼으로 두고, 모자란 날을 수리하고, 짧은 블록을 늘리고, 쉼을 고르게 나눈다. 마지막에 밤 블록과 주말 창을 맞바꿔 격차를 줄인다.</p></div>
+<h2>밤의 지도</h2><div class="nightmap">${nightMap}</div>
+<div class="foot">SMC Fair Shift · ${new Date().toLocaleDateString("ko-KR")} 생성 · 이 지면은 근무표에서 자동으로 짜였다 · 인쇄하면 PDF로 저장할 수 있다</div>
+</div></body></html>`;
+}
+function downloadMagazine() {
+  if (!ST) return;
+  downloadText(magazineHtml(), `월간지_${ST.year}-${String(ST.month).padStart(2, "0")}.html`);
+}
 
 // 이 칸이 묶여 있는 규칙 — 파트장이 "왜 이 칸이냐"를 물을 때 누르는 자리(근무 선택기)에 같이 띄운다.
 // 데모(여섯 가지 개념 '파문')에서 옮겨 온 간단 판정이다: 같은 블록·연속근무·같은 날 같은 조·밤 뒤 휴식.
@@ -2713,6 +2868,7 @@ function renderSide() {
   html += `<div class="side-sec"><h3>다운로드</h3><div class="download-row">
     <button onclick="if (confirmDownloadWithViolations()) downloadXlsxOcs()" ${hasPending ? "disabled" : ""}><span class="io-tag">출력①</span>월간근무표</button>
     <button onclick="if (confirmDownloadWithViolations()) downloadStaffTable()" ${hasPending ? "disabled" : ""}><span class="io-tag">출력②</span>연간근무표</button>
+    <button onclick="if (confirmDownloadWithViolations()) downloadMagazine()" ${hasPending ? "disabled" : ""} title="이달을 글과 숫자로 — 밤 최다·주말 격차·밤의 지도. 브라우저에서 열어 인쇄하면 PDF"><span class="io-tag">월간지</span>한 장 요약</button>
   </div>
   ${hasPending
     ? '<p class="hint">적용 안 한 편집이 있습니다 — "재생성 적용"을 눌러야 다운로드할 수 있습니다.</p>'
