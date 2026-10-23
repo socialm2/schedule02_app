@@ -694,6 +694,10 @@ details.side-sec[open] summary h3::before { content: "▾ "; }
 .attempt-table tr.chosen td { font-weight: 600; }
 .attempt-table tr.current td { background: var(--ok-soft, #e6f4ea); }
 .side-note { font-size: 11px; color: var(--sub); margin: 6px 0 0; }
+/* 실험 기능 줄 — 패널 맨 아래, 글자 링크처럼 작게 */
+.side-exp { border-top: 1px dashed var(--line); margin-top: 10px; padding-top: 6px; }
+button.linklike { background: none; border: 0; padding: 0; font-size: 11px; color: var(--accent); text-decoration: underline; cursor: pointer; }
+button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: default; }
 .tap-hint { display: inline-block; font-size: 11px; font-weight: 600; color: var(--accent); margin-left: 8px; }
 .badge-ok { color: var(--ok); font-weight: 700; }
 .badge-bad { color: var(--hard); font-weight: 700; }

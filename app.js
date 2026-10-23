@@ -2486,60 +2486,127 @@ function drawDiorama() {
   document.getElementById("dioHint").textContent = "키가 클수록 높은 숙련도, ★는 Lv4 이상. ◀ ▶ 또는 ←→로 날짜를 넘깁니다. 파트장은 뺐습니다.";
 }
 
-// ================================================================ 월간지(한 장 요약)
-// 확정 뒤 파트장이 받는 읽을거리 — 표가 아니라 글과 숫자로 "이달은 어땠나". 데모(네 가지 개념 II)의
-// 월간지를 앱 자료로 다시 짠 것. 파일 하나(HTML)라 카톡으로 보내도 열리고, 브라우저에서 인쇄하면 PDF가 된다.
+// ================================================================ 월간 보고(파트장용, 실험 기능)
+// 확정 뒤 파트장이 받는 한 장짜리 보고서 — 화면 오른쪽 패널에 흩어진 것(검증·일별 인원·주말 명단·사람별
+// 집계·부담·원티드·고정 칸·야간 분포·점수표·로그)을 한 파일에 모아 인쇄·전달할 수 있게. 숫자는 전부
+// 화면과 같은 계산(burdenOf·dutyColumns·report)이라 따로 맞춰 볼 필요가 없다. 파일 하나(HTML)라 카톡으로
+// 보내도 열리고, 브라우저에서 인쇄하면 PDF가 된다. 실험 기능이라 패널 맨 아래 작은 글씨로만 연다.
 function magazineHtml() {
-  const gen = ST.staff.filter(s => !s.is_partjang && !s.is_nk);
+  const r = ST.report || {}, days = ST.days, nd = ST.num_days;
   const row = s => ST.grid[s.id] || [];
-  const nights = s => row(s).filter(v => v === "N" || v === "NK").length;
-  const wk = s => row(s).filter((v, d) => isWorkCode(v) && ST.days[d].weekend).length;
-  const offs = s => row(s).filter(v => v === "OFF").length;
-  const sole = s => { if ((s.level || 0) < 4) return 0; let c = 0; for (let d = 0; d < ST.num_days; d++) { const code = row(s)[d]; if (!isWorkCode(code)) continue; const others = gen.filter(x => x !== s && x.level >= 4 && (row(x)[d] === code || ((code === "N" || code === "NK") && (row(x)[d] === "N" || row(x)[d] === "NK")))).length; if (!others) c++; } return c; };
-  // 밤은 밤을 설 수 있는 사람끼리만 견준다 — prn 전담이 "밤 0회"로 꼴찌에 오르면 뜻이 없다
-  const nightPool = gen.filter(s => (s.allowed || []).includes("N"));
-  const top = (f, pool) => [...(pool || gen)].sort((a, b) => f(b) - f(a))[0], bot = (f, pool) => [...(pool || gen)].sort((a, b) => f(a) - f(b))[0];
-  const totalN = gen.reduce((a, s) => a + nights(s), 0), totalWk = gen.reduce((a, s) => a + wk(s), 0);
-  const r = ST.report || {}, hard = r.hard_count || 0, strict = (r.hard || []).filter(v => !v.best_effort).length;
-  const att = (ST.attempt_table || []).find(a => a.chosen) || (ST.attempt_table || [])[0];
-  const colors = { D: "#60a5fa", E: "#fb923c", N: "#a78bfa", NK: "#f472b6", OFF: "#e8e1d2", prn: "#4ade80", "8A": "#cbd5e1", "S/": "#2dd4bf" };
-  const cs = 900 / ST.num_days, rh = 220 / ST.staff.length;
-  const svg = `<svg viewBox="0 0 900 220" width="100%" style="display:block;margin:18px 0">` + ST.staff.map((s, i) => row(s).map((v, d) => v ? `<rect x="${(d * cs + 1).toFixed(1)}" y="${(i * rh).toFixed(1)}" width="${(cs - 2).toFixed(1)}" height="${Math.max(1, rh - 1).toFixed(1)}" fill="${colors[v] || (isWorkCode(v) ? "#a3a3a3" : "#efe8da")}"/>` : "").join("")).join("") + "</svg>";
-  const nightMap = ST.days.map((dy, d) => { const who = gen.filter(s => row(s)[d] === "N" || row(s)[d] === "NK").map(s => esc(s.id)); return `<div class="${dy.weekend ? "we" : ""}"><b>${dy.n}</b>밤 ${who.length}명<br><span class="sub">${who.join(" ")}</span></div>`; }).join("");
-  const nk = ST.staff.filter(s => s.is_nk).map(s => esc(s.id)).join(", ");
-  const logs = (r.logs || []).filter(l => /\[균등\]|\[수리\]|\[보완\]/.test(l)).slice(0, 4).map(l => `<p class="quote">${esc(l)}</p>`).join("");
-  const wardLabel = ST.ward_id ? `${esc(ST.ward_id)} · ` : "";
-  const person = (title, s, body) => `<div class="person"><b>${esc(s.id)}</b><span class="sub">${title}</span>${body}</div>`;
+  const holCount = days.filter(d => d.weekend).length;
+  const maxC = (ST.params_summary && ST.params_summary.max_consecutive_work) || 5;
+  const dutyCols = dutyColumns().filter(c => c !== "OFF");   // OFF는 뒤에 따로 센다
+  const people = ST.staff.filter(s => !s.is_partjang);
+  const generals = people.filter(s => !s.is_nk);
+  const nightPool = generals.filter(s => (s.allowed || []).includes("N"));
+  const att = ST.attempt_table || [], chosen = att.find(a => a.chosen);
+  const hardAll = r.hard || [], strict = hardAll.filter(v => !v.best_effort), bestEffort = hardAll.filter(v => v.best_effort);
+  const lockedList = (ST.locked || []).map(k => { const [sid, d] = k.split(":"); return { sid, d: Number(d), v: (ST.grid[sid] || [])[Number(d)] }; }).sort((a, b) => a.d - b.d || a.sid.localeCompare(b.sid));
+  const stats = people.map(s => {
+    const rw = row(s), b = burdenOf(s, rw), cnt = {};
+    for (const c of dutyCols) cnt[c] = rw.filter(v => v === c).length;
+    const offCnt = rw.filter(v => v === "OFF").length, work = rw.filter(v => isWorkCode(v)).length;
+    const offBefore = s.off_balance || 0, offAfter = Math.round((offBefore + holCount - offCnt) * 100) / 100;
+    const pp = (r.per_person || []).find(x => x.id === s.id) || {};
+    return { s, rw, b, cnt, offCnt, work, offBefore, offAfter, offOk: pp.off_ok !== false };
+    });
+  const mean = (arr, f) => arr.length ? arr.reduce((a, x) => a + f(x), 0) / arr.length : 0;
+  const wkMean = mean(stats.filter(x => !x.s.is_nk), x => x.b.weekend);
+  const td = (v, cls) => `<td${cls ? ` class="${cls}"` : ""}>${v}</td>`;
+  const dayLabel = d => `${days[d].n}일(${days[d].dow})`;
+  // --- 머리
+  const wardLabel = ST.ward_id ? `${esc(ST.ward_id)} ` : "";
+  const head = `<div class="kicker">${wardLabel}월간 근무 보고 · 파트장용</div><h1>${ST.year}년 ${ST.month}월</h1>
+    <p class="lead">전체 ${ST.staff.length}명 — 일반 ${generals.length}·야간전담 ${people.length - generals.length}·파트장 ${ST.staff.length - people.length}${(ST.team_b || []).length ? `·신입(B팀) ${ST.team_b.length}` : ""}. ${ST.round ? `${ST.round}회차` : "첫 생성"}${chosen ? `, 시드 ${chosen.seed} 선택(세 시드 중)` : ""}. 생성 ${new Date().toLocaleString("ko-KR")}.</p>
+    <div class="nums">
+      <div class="num ${strict.length ? "bad" : "good"}"><b>${strict.length}</b><span>필수 위반</span></div>
+      <div class="num ${bestEffort.length ? "warn" : ""}"><b>${bestEffort.length}</b><span>추가 검토(최선노력)</span></div>
+      <div class="num ${r.bad_days_count ? "bad" : "good"}"><b>${r.bad_days_count || 0}</b><span>최소인력 미달 날</span></div>
+      <div class="num"><b>${(r.requests && r.requests.total) ? `${r.requests.accepted}/${r.requests.total}` : "–"}</b><span>원티드 반영</span></div>
+      <div class="num"><b>${lockedList.length}</b><span>손본(고정) 칸</span></div>
+      <div class="num"><b>${mean(nightPool.map(s => stats.find(x => x.s === s)), x => x.b.nights).toFixed(1)}</b><span>1인 평균 밤(일반)</span></div>
+      <div class="num"><b>${wkMean.toFixed(1)}</b><span>1인 평균 주말·공휴일</span></div>
+      <div class="num"><b>${mean(stats.filter(x => !x.s.is_nk), x => x.offCnt).toFixed(1)}</b><span>1인 평균 OFF (허용 ${r.off_range ? `${r.off_range.lower}~${r.off_range.upper}` : "–"})</span></div>
+    </div>`;
+  // --- 1 확인할 것
+  const vRow = v => `<tr>${td(v.day ? `${v.day}일` : "")}${td(esc(v.rule))}${td(esc(v.staff_id || ""))}${td(esc(v.message))}</tr>`;
+  const sec1 = `<h2>1. 확인할 것</h2>
+    ${strict.length ? `<p class="bad">필수 위반 ${strict.length}건 — 이대로 확정하면 그날 병동이 규칙대로 돌아가지 않는다.</p><table class="t"><tr><th>날</th><th>규칙</th><th>사람</th><th>내용</th></tr>${strict.map(vRow).join("")}</table>` : `<p class="good">필수 위반 없음.</p>`}
+    ${bestEffort.length ? `<p>추가 검토 ${bestEffort.length}건 — 최선노력 규칙(Lv4+ 배치·월 OFF 하한·주간 블록·야간 목표·수면오프). 원칙이지만 인원 사정상 못 맞출 수 있는 항목.</p><table class="t small"><tr><th>날</th><th>규칙</th><th>사람</th><th>내용</th></tr>${bestEffort.map(vRow).join("")}</table>` : ""}
+    ${(r.soft || []).length ? `<p class="sub">권장 사항 ${r.soft.length}건은 생략(화면 결과창 참고).</p>` : ""}`;
+  // --- 2 일별 인원
+  const daily = r.daily || [];
+  const keys = ["D", "E", "N", "prn"].filter(k => daily.some(d => (d.counts || {})[k] !== undefined));
+  const sec2 = `<h2>2. 일별 근무인력 (인원/최소)</h2><table class="t tiny"><tr><th></th>${days.map(d => `<th class="${d.weekend ? "we" : ""}">${d.n}<br>${d.dow}</th>`).join("")}</tr>
+    ${keys.map(k => `<tr><th>${k}</th>${daily.map((d, i) => { const c = (d.counts || {})[k] || 0, m = (d.min || {})[k] || 0; return `<td class="${days[i].weekend ? "we " : ""}${c < m ? "bad" : c > m ? "over" : ""}">${c}<span class="sub">/${m}</span></td>`; }).join("")}</tr>`).join("")}
+    <tr><th>Lv4+<br>D·E·N</th>${days.map((d, i) => { const lv = k => people.filter(s => s.level >= 4 && (row(s)[i] === k || (k === "N" && row(s)[i] === "NK"))).length; const a = [lv("D"), lv("E"), lv("N")]; return `<td class="${d.weekend ? "we " : ""}${a.some(x => x === 0) ? "bad" : ""}">${a.join("·")}</td>`; }).join("")}</tr></table>
+    <p class="sub">빨강 = 미달, 회색 숫자 = 최소인력, 노랑 = 초과. 마지막 줄은 그날 D·E·N 조의 Lv4+ 수(0이 있으면 빨강, H1-5).</p>`;
+  // --- 3 주말·공휴일 근무자
+  const weRows = days.map((d, i) => ({ d, i })).filter(x => x.d.weekend).map(({ d, i }) => { const who = k => people.filter(s => row(s)[i] === k || (k === "N" && row(s)[i] === "NK")).map(s => esc(s.id)).join(", "); return `<tr>${td(dayLabel(i))}${td(who("D"))}${td(who("E"))}${td(who("N"))}</tr>`; }).join("");
+  const sec3 = weRows ? `<h2>3. 주말·공휴일 근무자</h2><table class="t small"><tr><th>날</th><th>D</th><th>E</th><th>N·NK</th></tr>${weRows}</table>` : "";
+  // --- 4 사람별 집계
+  const sec4 = `<h2>4. 사람별 집계</h2><table class="t small"><tr><th>이름</th><th>직급·Lv</th>${dutyCols.map(c => `<th>${esc(c)}</th>`).join("")}<th>근무</th><th>OFF</th><th>잔휴 전월→이후</th><th>주말</th><th>최장 연속</th><th>야간/목표</th></tr>
+    ${stats.map(x => `<tr${x.s.is_nk ? ' class="nk"' : ""}><td>${esc(x.s.id)}${x.s.is_designated ? " <i>지</i>" : ""}${x.s.is_night_leader ? " <i>밤</i>" : ""}</td>${td(`${esc(x.s.role)} Lv${x.s.level}`)}${dutyCols.map(c => td(x.cnt[c] || "")).join("")}${td(x.work)}${td(x.offCnt, x.offOk ? "" : "warn")}${td(`${x.offBefore} → ${x.offAfter}`)}${td(x.b.weekend, Math.abs(x.b.weekend - wkMean) >= 2 && !x.s.is_nk ? "warn" : "")}${td(x.b.maxRun, x.b.maxRun > maxC ? "bad" : "")}${td(x.s.night_target != null ? `${x.b.nights}/${x.s.night_target}` : x.b.nights, x.s.night_target != null && x.b.nights !== x.s.night_target ? "warn" : "")}</tr>`).join("")}</table>
+    <p class="sub">노랑 = 평균과 2일 이상 차이(주말), OFF 허용범위 밖, 야간 목표와 다름. 빨강 = 연속근무 ${maxC}일 초과. 잔휴는 전월 잔휴 + 이달 휴일수 − OFF.</p>`;
+  // --- 5 부담 요약
+  const wkTop = stats.filter(x => !x.s.is_nk && x.b.weekend - wkMean >= 2).sort((a, b) => b.b.weekend - a.b.weekend);
+  const wkLow = stats.filter(x => !x.s.is_nk && wkMean - x.b.weekend >= 2).sort((a, b) => a.b.weekend - b.b.weekend);
+  const nightOff = stats.filter(x => x.s.night_target != null && x.b.nights !== x.s.night_target);
+  const runOver = stats.filter(x => x.b.maxRun > maxC);
+  const seniors = people.filter(s => s.level >= 4), soleCnt = {};
+  for (const s of seniors) soleCnt[s.id] = 0;
+  for (let d = 0; d < nd; d++) for (const codes of [["D"], ["E"], ["N", "NK"]]) { const hi = seniors.filter(s => codes.includes(row(s)[d])); if (hi.length === 1) soleCnt[hi[0].id]++; }
+  const soleMean = seniors.length ? Object.values(soleCnt).reduce((a, b) => a + b, 0) / seniors.length : 0;
+  const soleTop = seniors.filter(s => soleCnt[s.id] - soleMean >= 2).sort((a, b) => soleCnt[b.id] - soleCnt[a.id]);
+  const li = [];
+  if (wkTop.length) li.push(`<li>주말·공휴일 근무 많음(평균 ${wkMean.toFixed(1)}일): ${wkTop.map(x => `<b>${esc(x.s.id)}</b> ${x.b.weekend}일`).join(", ")}</li>`);
+  if (wkLow.length) li.push(`<li>주말·공휴일 근무 적음: ${wkLow.map(x => `<b>${esc(x.s.id)}</b> ${x.b.weekend}일`).join(", ")}</li>`);
+  if (nightOff.length) li.push(`<li>야간이 목표와 다름: ${nightOff.map(x => `<b>${esc(x.s.id)}</b> ${x.b.nights}/${x.s.night_target}`).join(", ")}</li>`);
+  if (runOver.length) li.push(`<li>연속근무 ${maxC}일 초과: ${runOver.map(x => `<b>${esc(x.s.id)}</b> ${x.b.maxRun}일`).join(", ")}</li>`);
+  if (soleTop.length) li.push(`<li>혼자 Lv4+인 조에 많이 섬(고연차 평균 ${soleMean.toFixed(1)}회): ${soleTop.map(s => `<b>${esc(s.id)}</b> ${soleCnt[s.id]}회`).join(", ")}</li>`);
+  const prev = ST.prev_burden || {}, prevMonth = Object.values(prev)[0] && Object.values(prev)[0].month;
+  const wkUp = stats.filter(x => prev[x.s.id] && x.b.weekend - prev[x.s.id].weekend >= 2), nightUp = stats.filter(x => prev[x.s.id] && x.b.nights - prev[x.s.id].nights >= 2);
+  if (wkUp.length) li.push(`<li>지난달(${esc(prevMonth)})보다 주말이 2일 이상 는 사람: ${wkUp.map(x => `<b>${esc(x.s.id)}</b> ${prev[x.s.id].weekend}→${x.b.weekend}`).join(", ")}</li>`);
+  if (nightUp.length) li.push(`<li>지난달보다 야간이 2회 이상 는 사람: ${nightUp.map(x => `<b>${esc(x.s.id)}</b> ${prev[x.s.id].nights}→${x.b.nights}`).join(", ")}</li>`);
+  const sec5 = `<h2>5. 부담 요약</h2>${li.length ? `<ul>${li.join("")}</ul>` : "<p class='good'>주말·야간·연속근무 어느 쪽도 눈에 띄게 쏠린 사람이 없다.</p>"}`;
+  // --- 6 원티드
+  const rq = r.requests || {}, rejected = rq.rejected || [];
+  const sec6 = `<h2>6. 원티드</h2><p>신청 ${rq.total || 0}건 중 반영 ${rq.accepted || 0}건${rq.total ? ` (${Math.round((rq.accepted || 0) / rq.total * 100)}%)` : ""}.${rejected.length ? ` 반려 ${rejected.length}건:` : " 반려 없음."}</p>
+    ${rejected.length ? `<table class="t small"><tr><th>사람</th><th>날짜</th><th>신청</th><th>사유</th></tr>${rejected.map(q => `<tr>${td(esc(q.staff_id))}${td(esc(q.date))}${td(esc(q.type))}${td(esc(q.reason || ""))}</tr>`).join("")}</table>` : ""}`;
+  // --- 7 손본 칸
+  const sec7 = `<h2>7. 손본(고정) 칸</h2>${lockedList.length ? `<p>${lockedList.length}칸 — 파트장이 바꿔 잠근 칸. 재생성해도 유지된다.</p><p class="small">${lockedList.map(x => `${esc(x.sid)} ${x.d + 1}일 <b>${esc(shiftText(x.v) || x.v || "빈칸")}</b>`).join(" · ")}</p>` : "<p>없음 — 엔진이 만든 그대로다.</p>"}`;
+  // --- 8 야간
+  const hist = (h, unit) => Object.keys(h || {}).sort((a, b) => a - b).map(k => `${k}${unit} ×${h[k]}`).join(", ") || "–";
+  const endN = people.filter(s => row(s)[nd - 1] === "N" || row(s)[nd - 1] === "NK").map(s => { let k = nd - 1; while (k > 0 && (row(s)[k - 1] === "N" || row(s)[k - 1] === "NK")) k--; return `${esc(s.id)}(${nd - k}일째)`; });
+  const sec8 = `<h2>8. 야간</h2><ul><li>블록 길이 분포: ${hist(r.night_block_hist, "일")}</li><li>블록 간격 분포: ${hist(r.night_gap_hist, "일")} (기준 7일)</li><li>월말 밤으로 끝나는 사람(다음 달 1일로 이어짐): ${endN.length ? endN.join(", ") : "없음"}</li><li>야간전담: ${people.filter(s => s.is_nk).map(s => `${esc(s.id)} ${stats.find(x => x.s === s).b.nights}회`).join(", ") || "없음"}</li></ul>`;
+  // --- 9 시도 점수표
+  const sec9 = att.length ? `<h2>9. 시도 점수표</h2><table class="t small"><tr><th>시드</th><th>운영필수</th><th>숙련도</th><th>전체 하드</th><th>횟수</th><th>주말</th><th>조구성</th><th>단독</th><th>미반영</th><th>공평성</th></tr>${att.map(a => `<tr${a.chosen ? ' class="chosen"' : ""}>${td(`${a.seed}${a.chosen ? " ✓" : ""}`)}${td(a.blocking)}${td(a.h15)}${td(a.hard)}${td(a.count ?? "–")}${td(a.weekend ?? "–")}${td(a.mix ?? "–")}${td(a.sole ?? "–")}${td(a.wanted ?? "–")}${td(`<b>${a.fairness}</b>`)}</tr>`).join("")}</table><p class="sub">앞 열부터 견줘 다르면 뒤 열은 보지 않는다. 공평성 = 2×횟수 + 주말 + 조구성 + 단독 + 미반영(낮을수록 고름).</p>` : "";
+  // --- 10 처리 기록
+  const logs = (r.logs || []).filter(l => /\[수리\]|\[균등\]|\[보완\]|\[H2-9\]|\[H5-2\]|\[H1-1\]|\[전입\]/.test(l)).slice(0, 25);
+  const sec10 = `<h2>10. 처리 기록(발췌)</h2>${logs.length ? `<pre class="log">${logs.map(esc).join("\n")}</pre>` : "<p>수리·균등 기록 없음.</p>"}<p class="sub">전체 ${(r.logs || []).length}건은 화면 결과창 '처리 로그'에.</p>`;
+  // --- 표 한눈에(모자이크)
+  const colors = { D: "#93c5fd", E: "#fdba74", N: "#c4b5fd", NK: "#f9a8d4", OFF: "#eeeeee", prn: "#86efac", "8A": "#d1d5db", "S/": "#99f6e4" };
+  const cs = 1000 / nd, rh = Math.max(4, Math.min(8, 240 / ST.staff.length));
+  const svg = `<svg viewBox="0 0 1000 ${(rh * ST.staff.length).toFixed(0)}" width="100%" style="display:block;margin:8px 0 2px">` + ST.staff.map((s, i) => row(s).map((v, d) => v ? `<rect x="${(d * cs + .5).toFixed(1)}" y="${(i * rh).toFixed(1)}" width="${(cs - 1).toFixed(1)}" height="${(rh - 1).toFixed(1)}" fill="${colors[v] || (isWorkCode(v) ? "#a3a3a3" : "#f5f5f4")}"/>` : "").join("")).join("") + "</svg>";
   return `<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${wardLabel}${ST.year}년 ${ST.month}월 월간지</title>
-<style>body{margin:0;background:#efe9dc;color:#1c1917;font-family:"Noto Serif KR","Apple SD Gothic Neo","Malgun Gothic",serif}
-.pg{max-width:900px;margin:30px auto 60px;background:#f8f4ea;box-shadow:0 20px 60px rgba(0,0,0,.25);padding:48px 56px}
-h1{font-size:56px;font-weight:900;letter-spacing:-.02em;margin:0;line-height:1}.kicker{letter-spacing:.3em;font-size:12px;color:#7c6f5a}h2{font-size:21px;margin:36px 0 10px;border-top:3px solid #1c1917;padding-top:10px}
-.lead{font-size:17px;line-height:1.7;margin:14px 0 0}.nums{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:14px 0}.num b{display:block;font-size:36px;font-weight:900}.num span,.sub{font-size:12px;color:#7c6f5a}
-.people{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.person{border:1px solid #d6cdbb;padding:12px;font-size:13px;line-height:1.6}.person b{font-size:17px;display:block}.person .sub{display:block;margin-bottom:4px}
-.cols{columns:2;column-gap:32px;font-size:14px;line-height:1.8}.quote{font-size:15px;font-style:italic;border-left:4px solid #1c1917;padding-left:12px;margin:10px 0;break-inside:avoid}
-.nightmap{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:11px}.nightmap div{border:1px solid #d6cdbb;padding:6px;min-height:56px}.nightmap b{display:block;font-size:14px}.nightmap .we{background:#f1e4e0}
-.foot{margin-top:36px;font-size:11px;color:#7c6f5a;border-top:1px solid #d6cdbb;padding-top:8px}@media print{body{background:#fff}.pg{box-shadow:none;margin:0;max-width:none}}</style></head><body><div class="pg">
-<div class="kicker">${wardLabel}WARD MONTHLY · ${ST.year}년 ${ST.month}월호</div><h1>이달의 근무표</h1>
-<p class="lead">${ST.staff.length}명이 ${ST.num_days}일을 나눠 섰다. 밤 ${totalN}번, 주말·공휴일 근무 ${totalWk}번. 필수 위반 ${strict}건${hard - strict > 0 ? `, 추가 검토 ${hard - strict}건` : ""}.${att ? " 세 번 만들어 가장 고른 표를 골랐다." : ""}</p>
-${svg}
-<div class="nums"><div class="num"><b>${strict}</b><span>필수 위반</span></div><div class="num"><b>${att ? att.fairness : "–"}</b><span>공평성 합(낮을수록 고름)</span></div><div class="num"><b>${gen.length ? (totalN / gen.length).toFixed(1) : "–"}</b><span>1인 평균 밤(파트장·야간전담 제외)</span></div><div class="num"><b>${gen.length ? (totalWk / gen.length).toFixed(1) : "–"}</b><span>1인 평균 주말</span></div></div>
-<h2>이달의 사람들</h2><div class="people">
-${nightPool.length ? person("밤을 가장 많이", top(nights, nightPool), `${nights(top(nights, nightPool))}회. 가장 적은 ${esc(bot(nights, nightPool).id)}은 ${nights(bot(nights, nightPool))}회(밤 가능자끼리).`) : ""}
-${gen.length ? person("주말을 가장 많이", top(wk), `${wk(top(wk))}일. 가장 적은 ${esc(bot(wk).id)}은 ${wk(bot(wk))}일 — 격차 ${wk(top(wk)) - wk(bot(wk))}일.`) : ""}
-${gen.length && sole(top(sole)) > 0 ? person("혼자 선 고연차", top(sole), `Lv${top(sole).level}. 조에 Lv4+가 자기뿐인 날 ${sole(top(sole))}번. 그 조의 기둥이었다.`) : ""}
-${gen.length ? person("가장 많이 쉰", top(offs), `쉼 ${offs(top(offs))}일. 가장 적게 쉰 ${esc(bot(offs).id)}은 ${offs(bot(offs))}일.`) : ""}
-${nk ? `<div class="person"><b>${nk}</b><span class="sub">야간전담</span>매달 15일 밤을 선다 — 이 사람들 덕에 나머지의 밤이 ${gen.length ? (totalN / gen.length).toFixed(1) : "–"}회에 머문다.</div>` : ""}
-</div>
-<h2>엔진 노트</h2><div class="cols">${logs || "<p class='quote'>이달은 수리·균등화 기록이 없다.</p>"}
-<p>표는 한 번에 만들어지지 않는다. 밤을 먼저 놓고(간격 7일, 뒤 이틀 휴식), 1일부터 낮과 저녁을 채우고, 남은 칸을 쉼으로 두고, 모자란 날을 수리하고, 짧은 블록을 늘리고, 쉼을 고르게 나눈다. 마지막에 밤 블록과 주말 창을 맞바꿔 격차를 줄인다.</p></div>
-<h2>밤의 지도</h2><div class="nightmap">${nightMap}</div>
-<div class="foot">SMC Fair Shift · ${new Date().toLocaleDateString("ko-KR")} 생성 · 이 지면은 근무표에서 자동으로 짜였다 · 인쇄하면 PDF로 저장할 수 있다</div>
-</div></body></html>`;
+<title>${wardLabel}${ST.year}년 ${ST.month}월 월간 근무 보고</title>
+<style>body{margin:0;background:#f3f4f6;color:#111827;font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;font-size:13px;line-height:1.55}
+.pg{max-width:1040px;margin:24px auto 60px;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.12);padding:36px 44px}
+.kicker{letter-spacing:.2em;font-size:11px;color:#6b7280}h1{font-size:34px;margin:2px 0 6px}h2{font-size:16px;margin:28px 0 8px;padding-top:8px;border-top:2px solid #111827}.lead{margin:0 0 10px;color:#374151}
+.nums{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.num{border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px}.num b{display:block;font-size:24px}.num span{font-size:11px;color:#6b7280}.num.bad b{color:#dc2626}.num.good b{color:#16a34a}.num.warn b{color:#ca8a04}
+table.t{border-collapse:collapse;width:100%;margin:6px 0 4px}table.t th,table.t td{border:1px solid #e5e7eb;padding:4px 6px;text-align:left;vertical-align:top}table.t th{background:#f9fafb;font-weight:600}table.t.small{font-size:12px}table.t.tiny{font-size:10.5px}table.t.tiny td,table.t.tiny th{padding:3px 2px;text-align:center;white-space:nowrap}
+td.bad{background:#fee2e2;color:#991b1b;font-weight:700}td.warn{background:#fef9c3}td.over{background:#fef3c7}td.we,th.we{background:#fff1f2}tr.nk td{color:#6b21a8}tr.chosen td{background:#ecfdf5}
+.bad{color:#dc2626;font-weight:600}.good{color:#16a34a}.sub{color:#6b7280;font-size:11px}.small{font-size:12px}i{font-style:normal;font-size:10px;color:#7c3aed;border:1px solid #c4b5fd;border-radius:3px;padding:0 3px}
+ul{margin:6px 0;padding-left:18px}li{margin:3px 0}pre.log{font-size:11px;background:#f9fafb;border:1px solid #e5e7eb;padding:8px;white-space:pre-wrap;line-height:1.5}
+.foot{margin-top:28px;font-size:11px;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:8px}@media print{body{background:#fff}.pg{box-shadow:none;margin:0;max-width:none;padding:0}h2{break-after:avoid}table{break-inside:auto}tr{break-inside:avoid}}</style></head><body><div class="pg">
+${head}${svg}<p class="sub">표 한눈에 — 파랑 D, 주황 E, 보라 N, 분홍 NK, 초록 prn, 흰 OFF. 위에서부터 명단 순.</p>
+${sec1}${sec2}${sec3}${sec4}${sec5}${sec6}${sec7}${sec8}${sec9}${sec10}
+<div class="foot">SMC Fair Shift · 화면과 같은 계산 · 실험 기능 — 인쇄하면 PDF로 저장할 수 있다</div></div></body></html>`;
 }
 function downloadMagazine() {
   if (!ST) return;
-  downloadText(magazineHtml(), `월간지_${ST.year}-${String(ST.month).padStart(2, "0")}.html`);
+  downloadText(magazineHtml(), `월간근무보고_${ST.year}-${String(ST.month).padStart(2, "0")}.html`);
 }
 
 // 이 칸이 묶여 있는 규칙 — 파트장이 "왜 이 칸이냐"를 물을 때 누르는 자리(근무 선택기)에 같이 띄운다.
@@ -2868,7 +2935,6 @@ function renderSide() {
   html += `<div class="side-sec"><h3>다운로드</h3><div class="download-row">
     <button onclick="if (confirmDownloadWithViolations()) downloadXlsxOcs()" ${hasPending ? "disabled" : ""}><span class="io-tag">출력①</span>월간근무표</button>
     <button onclick="if (confirmDownloadWithViolations()) downloadStaffTable()" ${hasPending ? "disabled" : ""}><span class="io-tag">출력②</span>연간근무표</button>
-    <button onclick="if (confirmDownloadWithViolations()) downloadMagazine()" ${hasPending ? "disabled" : ""} title="이달을 글과 숫자로 — 밤 최다·주말 격차·밤의 지도. 브라우저에서 열어 인쇄하면 PDF"><span class="io-tag">월간지</span>한 장 요약</button>
   </div>
   ${hasPending
     ? '<p class="hint">적용 안 한 편집이 있습니다 — "재생성 적용"을 눌러야 다운로드할 수 있습니다.</p>'
@@ -3006,6 +3072,8 @@ function renderSide() {
       `<div class="log-box">${r.logs.map(esc).join("\n")}</div></div>`;
   }
 
+  // 실험 기능 — 눈에 안 띄는 맨 아래. 월간 근무 보고(HTML 한 장)를 받는다. 다운로드 게이트는 출력①②와 같다.
+  html += `<div class="side-sec side-exp"><p class="side-note">실험 기능 · <button class="linklike" onclick="if (confirmDownloadWithViolations()) downloadMagazine()" ${ST.pending.length ? "disabled" : ""} title="검증·일별 인원·주말 명단·사람별 집계·부담·원티드·고정 칸·야간·점수표·처리 기록을 한 파일에 — 열어서 인쇄하면 PDF">월간 근무 보고(HTML) 받기</button>${ST.pending.length ? " — 적용 안 한 편집이 있으면 받을 수 없습니다" : ""}</p></div>`;
   sidePane.innerHTML = html;
   renderPending();
 }
