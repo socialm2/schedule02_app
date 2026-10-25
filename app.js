@@ -2256,6 +2256,8 @@ const COUNT_WEIGHT = { D: 1, E: 1, N: 1, NK: 1 };
 for (const c of PRN_FULL_CODES) { COUNT_KEY[c] = "prn"; COUNT_WEIGHT[c] = 1; }
 for (const c of PRN_HALF_CODES) { COUNT_KEY[c] = "prn"; COUNT_WEIGHT[c] = 0.5; }
 const PRN_FAMILY = PRN_FULL_CODES.concat(PRN_HALF_CODES);
+// 주간 블록(H6-1)을 이루는 근무 — 엔진 DAY_WORK_SHIFTS와 같은 목록. 8A*·9H 같은 변형은 블록을 끊는다.
+const DAY_BLOCK_CODES = ["D", "E", "prn", "8A", "9A", "10A"];
 const isCounted = v => Object.prototype.hasOwnProperty.call(COUNT_KEY, v);
 
 // 줄 구성 — {label, codes: Map(코드→몇 명치)|null, need: 최소인력 키|null, upper: 초과도 칠하나,
@@ -2729,9 +2731,21 @@ function explainCell(sid, day) {
     let gap = 0;
     for (let k = a - 1; k >= 0 && !isN(row[k]); k--) gap++;
     if (a > 0 && gap < a) lines.push(`앞 밤 블록과 간격 ${gap}일(기준 7일).`);
+  } else if (DAY_BLOCK_CODES.includes(code)) {
+    // 엔진(_day_work_blocks·_day_block_cap)과 같은 잣대: D·E·prn·8A·9A·10A가 이어진 것이
+    // 한 블록이고, prn 계열이 하루라도 끼면 상한이 5일이다. 같은 코드끼리만 묶으면
+    // D·D·8A·8A·8A를 "D 2일"로 보여 주고 3~4일이라고 말해 엔진 판정과 어긋난다.
+    let p = day, q = day;
+    while (p > 0 && DAY_BLOCK_CODES.includes(row[p - 1])) p--;
+    while (q < nd - 1 && DAY_BLOCK_CODES.includes(row[q + 1])) q++;
+    for (let k = p; k <= q; k++) if (k < a || k > b) push(sid, k, Math.abs(k - day), "block");
+    const n = q - p + 1;
+    const cap = row.slice(p, q + 1).some(v => PRN_FAMILY.includes(v)) ? 5 : 4;
+    const rule = cap === 5 ? "prn 계열이 끼어 3~5일까지 됨(H6-1)" : "3~4일이 좋음(H6-1)";
+    lines.push(n === 1 ? `하루짜리 ${shiftText(code)} — 주간 블록은 ${rule}.`
+      : `주간 블록 ${n}일(${dayLabel(p)}~${dayLabel(q)}) — ${rule}.`);
   } else if (isWorkCode(code)) {
-    lines.push(len === 1 ? `하루짜리 ${shiftText(code)} — 주간 블록은 3~4일이 좋음(H6-1).`
-      : `${shiftText(code)} 블록 ${len}일(${dayLabel(a)}~${dayLabel(b)}) — 주간 블록은 3~4일이 좋음(H6-1).`);
+    lines.push(len === 1 ? `하루짜리 ${shiftText(code)}.` : `${shiftText(code)} ${len}일(${dayLabel(a)}~${dayLabel(b)}).`);
   }
   // 연속근무
   if (isWorkCode(code)) {
