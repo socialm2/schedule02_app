@@ -987,6 +987,21 @@ function readMinStaffCell(id, label) {
   return n;
 }
 
+// 연속근무제한은 3 이상만 받는다(워커 _validate_params와 같은 하한). 2 이하면 주간 블록
+// 3~4일(H6-1)과 동시에 지킬 수 없어, 오류 없이 전원이 '근무 2일·쉼 1일'로 끊긴 근무표가
+// 나온다 — 실제로 그렇게 만든 12월 근무표가 파트장에게 갔다. 칸 이름만 보고 '야간 연속
+// 2일' 같은 뜻으로 넣기 쉬워서, 생성 전에 이유를 말하며 멈춘다.
+const MIN_CONSECUTIVE_LIMIT = 3;
+function readConsecutiveLimit() {
+  const before = minStaffErrors.length;
+  const n = readMinStaffCell("f_maxconsecutive", "연속근무제한");
+  if (minStaffErrors.length === before && n < MIN_CONSECUTIVE_LIMIT) {
+    minStaffErrors.push(`연속근무제한 칸의 ${n}은(는) ${MIN_CONSECUTIVE_LIMIT}보다 작습니다 — ` +
+      "2 이하면 주간 블록 3~4일(H6-1)을 지킬 수 없어 모든 근무가 2일씩 끊기고 최소인력도 모자랍니다(보통은 5)");
+  }
+  return n;
+}
+
 function buildCfgFromForm() {
   const holidays = [...formHolidays];
   const subhol = [...formSubHolidays];
@@ -1038,7 +1053,7 @@ function buildCfgFromForm() {
       // 비었을 때 조용히 기본값을 쓰지 않는다 — '저장한 설정 지우기'로 비운 뒤
       // 그대로 생성하면, 우리 병동과 상관없는 숫자로 만든 근무표가 나온다.
       off_max_per_month: readMinStaffCell("f_maxnights", "월 최대야간"),
-      max_consecutive_work: readMinStaffCell("f_maxconsecutive", "연속근무제한"),
+      max_consecutive_work: readConsecutiveLimit(),
       night_quota_low: readMinStaffCell("f_nightquota_low", "야간목표하한"),
       night_quota_high: readMinStaffCell("f_nightquota_high", "야간목표상한"),
       holidays, substitute_holidays: subhol,
@@ -1495,7 +1510,7 @@ async function runGenerate(btn, statusEl) {
   // 만들면 "그 근무가 아무도 없어도 되는 달"이 조용히 만들어진다.
   const preCfg = buildCfgFromForm();
   if (minStaffErrors.length) {
-    const msg = `근무인력 칸을 확인해주세요 — ${minStaffErrors.join(" / ")}`;
+    const msg = `근무인력·설정 칸을 확인해주세요 — ${minStaffErrors.join(" / ")}`;
     // 칸이 많이 비어 있으면(설정을 지운 직후 19칸) 토스트가 화면 반을 덮고 생성 버튼까지
     // 가린다 — 토스트는 몇 칸인지만, 어느 칸인지는 아래 빨간 안내에 그대로 둔다.
     showToast(minStaffErrors.length > 3
