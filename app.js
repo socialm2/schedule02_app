@@ -2953,7 +2953,7 @@ function magazineHtml() {
   // --- 10 처리 기록
   const logs = (r.logs || []).filter(l => /\[수리\]|\[균등\]|\[보완\]|\[H2-9\]|\[H5-2\]|\[H1-1\]|\[전입\]/.test(l)).slice(0, 25);
   const sec10 = `<h2>10. 처리 기록(발췌)</h2>${logs.length ? `<pre class="log">${logs.map(esc).join("\n")}</pre>` : "<p>수리·균등 기록 없음.</p>"}<p class="sub">전체 ${(r.logs || []).length}건은 화면 결과창 '처리 로그'에.</p>`;
-  // --- 11 시각화 — 여정(클로드 개념 I)·비·바람(클로드 갤러리 II)·한 달의 궤도(지피티 01-04)를 이달 표로.
+  // --- 11 시각화 — 여정(클로드 개념 I)·비(클로드 갤러리 II)·한 달의 궤도(지피티 01-04)를 이달 표로. 바람은 뜻이 없어 뺐다(사용자).
   // 화면용(캔버스)이라 인쇄에는 안 나온다. 데이터는 명단·날짜·표뿐이고, 그리는 코드는 아래 한 덩어리.
   const vizData = JSON.stringify({
     year: ST.year, month: ST.month,
@@ -2962,12 +2962,18 @@ function magazineHtml() {
     grid: Object.fromEntries(people.map(s => [s.id, row(s).map(v => v || "")])),
   }).replace(/<\//g, "<\\/");
   const sec11 = `<h2>11. 시각화 <span class="sub">(화면용 — 인쇄에는 안 나옴)</span></h2>
-    <div class="viz" id="viz"><div class="viz-tabs"><button class="viz-tab on" data-viz="jour">여정 — 한 사람의 한 달</button><button class="viz-tab" data-viz="rain">비 · 바람</button><button class="viz-tab" data-viz="orb">한 달의 궤도</button></div>
-    <div class="viz-pane on" data-viz="jour"><div class="viz-ctl"><label>사람 <select id="vzWho"></select></label><button id="vzPrev">◀</button><button id="vzPlay">▶ 걷기</button><button id="vzNext">▶</button><span class="sub">←→·휠로 날짜. 해는 낮, 노을은 저녁, 달은 밤.</span></div><canvas id="vzJour"></canvas><div class="viz-card" id="vzCard"></div></div>
-    <div class="viz-pane" data-viz="rain"><div class="viz-ctl"><button class="viz-sub on" data-sub="rain">비 — 근무 글자가 떨어져 제자리에</button><button class="viz-sub" data-sub="wind">바람 — 그날의 근무 색으로 흐르는 바람</button><span class="sub">위에서부터 명단 순, 왼쪽부터 1일.</span></div><canvas id="vzRain"></canvas></div>
-    <div class="viz-pane" data-viz="orb"><div class="viz-ctl"><span class="sub">안쪽부터 명단 순 · 시계 방향 = 1~${nd}일 · 원호 색 = 근무(파랑 D·주황 E·보라 N·분홍 NK·초록 prn·회색 쉼). 바늘이 하루씩 돈다.</span></div><canvas id="vzOrb"></canvas></div></div>
+    <div class="viz" id="viz"><div class="viz-tabs"><button class="viz-tab on" data-viz="jour">여정 — 한 사람의 한 달</button><button class="viz-tab" data-viz="rain">비 — 근무 글자가 떨어져 제자리에</button><button class="viz-tab" data-viz="orb">한 달의 궤도</button></div>
+    <div class="viz-pane on" data-viz="jour"><div class="viz-ctl"><label>사람 <select id="vzWho"></select></label><button id="vzPrev">◀</button><button id="vzPlay">▶ 걷기</button><button id="vzNext">▶</button><button class="viz-open" data-open="jour">↗ 새 창에서 크게</button><span class="sub">←→·휠로 날짜. 해는 낮, 노을은 저녁, 달은 밤.</span></div><canvas id="vzJour"></canvas><div class="viz-card" id="vzCard"></div></div>
+    <div class="viz-pane" data-viz="rain"><div class="viz-ctl"><button class="viz-open" data-open="rain">↗ 새 창에서 크게</button><span class="sub">위에서부터 명단 순, 왼쪽부터 1일 — 날짜 열이 차례로 내려앉고, 다 앉으면 다시 시작한다.</span></div><canvas id="vzRain"></canvas></div>
+    <div class="viz-pane" data-viz="orb"><div class="viz-ctl"><button class="viz-open" data-open="orb">↗ 새 창에서 크게</button><span class="sub">안쪽부터 명단 순 · 시계 방향 = 1~${nd}일 · 원호 색 = 근무(파랑 D·주황 E·보라 N·분홍 NK·초록 prn·회색 쉼). 바늘이 하루씩 돈다.</span></div><canvas id="vzOrb"></canvas></div></div>
     <script id="vizData" type="application/json">${vizData}</script>
-    <script>${magazineVizScript()}</script>`;
+    <script id="vizSrc" type="text/plain">${magazineVizScript()}</script>
+    <script>new Function(document.getElementById("vizSrc").textContent)();</script>`;
+  // --- 목차 — 맨 위에서 절로 바로 가는 링크. 절 제목(<h2>N. …)에 id를 붙이고, 같은 제목으로 목차를 만든다.
+  const body = [sec1, sec2, sec3, sec4, sec5, sec6, sec7, sec8, sec9, sec10, sec11].join("")
+    .replace(/<h2>(\d+)\. /g, '<h2 id="s$1">$1. ');
+  const tocItems = [...body.matchAll(/<h2 id="s(\d+)">\d+\. ([^<]+)/g)].map(m => `<a href="#s${m[1]}"><b>${m[1]}</b> ${m[2].trim()}</a>`);
+  const toc = `<nav class="toc">${tocItems.join("")}</nav>`;
   // --- 표 한눈에(모자이크)
   const colors = { D: "#93c5fd", E: "#fdba74", N: "#c4b5fd", NK: "#f9a8d4", OFF: "#eeeeee", prn: "#86efac", "8A": "#d1d5db", "S/": "#99f6e4" };
   const cs = 1000 / nd, rh = Math.max(4, Math.min(8, 240 / ST.staff.length));
@@ -2984,10 +2990,13 @@ tr.sep th,tr.sep td{border-top:2px dashed #9ca3af}tr.tot th,tr.tot td{border-top
 .bad{color:#dc2626;font-weight:600}.good{color:#16a34a}.sub{color:#6b7280;font-size:11px}.small{font-size:12px}i{font-style:normal;font-size:10px;color:#7c3aed;border:1px solid #c4b5fd;border-radius:3px;padding:0 3px}
 ul{margin:6px 0;padding-left:18px}li{margin:3px 0}pre.log{font-size:11px;background:#f9fafb;border:1px solid #e5e7eb;padding:8px;white-space:pre-wrap;line-height:1.5}
 .foot{margin-top:28px;font-size:11px;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:8px}
+.toc{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}.toc a{text-decoration:none;color:#111827;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:999px;padding:4px 11px;font-size:12px}.toc a b{color:#0f6e6b;margin-right:3px}.toc a:hover{border-color:#0f6e6b;color:#0f6e6b}h2{scroll-margin-top:12px}
+.viz-open{margin-left:auto;background:#fff!important;color:#000!important;font-weight:700}
+body.full{background:#05070c}body.full .pg{max-width:none;margin:0;padding:10px;box-shadow:none;background:#05070c;min-height:100vh}body.full .viz{padding:8px}body.full .viz-tabs{display:none}body.full .viz-card{max-width:720px}
 .viz{background:#0b1020;border-radius:12px;padding:12px;color:#eef2f7}.viz-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.viz-tab,.viz-sub,.viz-ctl button{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#e5e7eb;border-radius:999px;padding:6px 13px;font-size:12.5px;cursor:pointer}.viz-tab.on,.viz-sub.on{background:#fff;color:#000;font-weight:700}.viz-pane{display:none}.viz-pane.on{display:block}.viz-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;font-size:12px}.viz-ctl .sub{color:#9aa3b2}.viz select{background:#111827;color:#fff;border:1px solid #374151;border-radius:8px;padding:4px 8px;font-size:12px}.viz canvas{display:block;width:100%;border-radius:8px;background:#05070c}.viz-card{margin-top:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.55}.viz-card .d{font-family:Georgia,serif;font-weight:300;font-size:22px}.viz-card .m{color:#9aa3b2;font-size:11px;margin-top:6px}
 @media print{body{background:#fff}.pg{box-shadow:none;margin:0;max-width:none;padding:0}h2{break-after:avoid}table{break-inside:auto}tr{break-inside:avoid}.viz,h2.viz-h{display:none}}</style></head><body><div class="pg">
-${head}${svg}<p class="sub">표 한눈에 — 파랑 D, 주황 E, 보라 N, 분홍 NK, 초록 prn, 흰 OFF. 위에서부터 명단 순.</p>
-${sec1}${sec2}${sec3}${sec4}${sec5}${sec6}${sec7}${sec8}${sec9}${sec10}${sec11}
+${head}${toc}${svg}<p class="sub">표 한눈에 — 파랑 D, 주황 E, 보라 N, 분홍 NK, 초록 prn, 흰 OFF. 위에서부터 명단 순.</p>
+${body}
 <div class="foot">SMC Fair Shift · 화면과 같은 계산 · 실험 기능 — 인쇄하면 PDF로 저장할 수 있다</div></div></body></html>`;
 }
 // 월간 보고 11절의 그리기 코드 — 보고서 파일 안에서만 도는 독립 스크립트(앱 전역을 쓰지 않는다).
@@ -3001,11 +3010,25 @@ var REST={OFF:1,"연차":1,"연1":1,"연2":1,"연3":1,"연4":1,"S/":1,"군":1,"T
 function work(v){return !!v&&!REST[v]} function isN(v){return v==="N"||v==="NK"}
 function col(v){return C[v]||(work(v)?"#e5e7eb":"#64748b")}
 function rnd(i){var x=Math.sin(i*9301+49297)*233280;return x-Math.floor(x)}
-function fit(cv,ratio,maxH){var w=cv.clientWidth||600,h=Math.max(200,Math.min(maxH||520,Math.round(w*ratio))),dpr=Math.min(2,window.devicePixelRatio||1);if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+"px"}var x=cv.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);return [x,w,h]}
-var active="jour",raf=0;
+var FULL=window.VIZ_FULL||null;
+function fit(cv,ratio,maxH){var w=cv.clientWidth||600,h=FULL?Math.max(240,window.innerHeight-(cv.getBoundingClientRect().top|0)-(FULL==="jour"?130:16)):Math.max(200,Math.min(maxH||520,Math.round(w*ratio))),dpr=Math.min(2,window.devicePixelRatio||1);if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+"px"}var x=cv.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);return [x,w,h]}
+var active=FULL||"jour",raf=0;
 // --- 탭
 var tabs=document.querySelectorAll(".viz-tab"),panes=document.querySelectorAll(".viz-pane");
-tabs.forEach(function(b){b.onclick=function(){active=b.dataset.viz;tabs.forEach(function(t){t.classList.toggle("on",t===b)});panes.forEach(function(p){p.classList.toggle("on",p.dataset.viz===active)});wind=null}});
+function showTab(k){active=k;tabs.forEach(function(t){t.classList.toggle("on",t.dataset.viz===k)});panes.forEach(function(p){p.classList.toggle("on",p.dataset.viz===k)});t0=performance.now()}
+tabs.forEach(function(b){b.onclick=function(){showTab(b.dataset.viz)}});
+if(FULL)showTab(FULL);
+// --- 새 창에서 크게 — 이 보고서의 데이터·그리기 코드·마크업을 그대로 담은 페이지를 Blob으로 열어 화면을 꽉 채운다
+// (보고서가 file://로 열려 있어도 Blob URL은 새 탭에서 열린다). 캔버스 높이는 창 높이를 따른다(FULL).
+document.querySelectorAll(".viz-open").forEach(function(b){b.onclick=function(){
+ var k=b.dataset.open,title=document.title+" — "+({jour:"여정",rain:"비 · 바람",orb:"한 달의 궤도"})[k];
+ var css="";document.querySelectorAll("style").forEach(function(s){css+=s.textContent});
+ var vizEl=document.getElementById("viz").cloneNode(true);vizEl.querySelectorAll(".viz-open").forEach(function(x){x.remove()});
+ var html='<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+title+'</title><style>'+css+'</style></head><body class="full"><div class="pg">'+vizEl.outerHTML+'</div>'+
+  '<script id="vizData" type="application/json">'+document.getElementById("vizData").textContent+'<\/script>'+
+  '<script id="vizSrc" type="text/plain">'+document.getElementById("vizSrc").textContent+'<\/script>'+
+  '<script>window.VIZ_FULL='+JSON.stringify(k)+';new Function(document.getElementById("vizSrc").textContent)();<\/script></body></html>';
+ var url=URL.createObjectURL(new Blob([html],{type:"text/html"}));var w=window.open(url,"_blank");if(!w)location.href=url}});
 // --- 1 여정
 var jc=document.getElementById("vzJour"),who=0,jday=0,jpos=0,jplay=false,jlast=0,cardDay=-1;
 var sel=document.getElementById("vzWho");P.forEach(function(s,i){var o=document.createElement("option");o.value=i;o.textContent=s.id+" (Lv"+s.level+(s.nk?", 야간전담":"")+")";sel.appendChild(o)});
@@ -3036,15 +3059,9 @@ function drawJour(now){var r=fit(jc,.5,420),x=r[0],w=r[1],h=r[2],row=G[who];if(j
  var gy=hill(cx);x.fillStyle="#fff";x.beginPath();x.arc(cx,gy-22+Math.sin(now/250)*2,6,0,7);x.fill();x.strokeStyle="#fff";x.lineWidth=3;x.beginPath();x.moveTo(cx,gy-16);x.lineTo(cx,gy+1);x.moveTo(cx,gy+1);x.lineTo(cx-6+Math.sin(now/250)*5,gy+13);x.moveTo(cx,gy+1);x.lineTo(cx+6-Math.sin(now/250)*5,gy+13);x.stroke();
  if(cardDay!==jday){cardDay=jday;var v2=row[jday],ni=row.filter(isN).length,wk=row.filter(function(z,i2){return work(z)&&D.days[i2].weekend}).length,of=row.filter(function(z){return z==="OFF"}).length;
   document.getElementById("vzCard").innerHTML='<div class="d">'+(jday+1)+'일 <span style="color:'+col(v2)+'">'+(NAME[v2]||v2||"—")+'</span></div><div>'+why(row,jday).join("<br>")+'</div><div class="m">'+P[who].id+' · 이달 밤 '+ni+'회 · 주말 '+wk+'일 · 쉼 '+of+'일</div>'}}
-// --- 2 비 · 바람
-var rc=document.getElementById("vzRain"),sub="rain",wind=null,t0=performance.now();
-document.querySelectorAll(".viz-sub").forEach(function(b){b.onclick=function(){sub=b.dataset.sub;document.querySelectorAll(".viz-sub").forEach(function(t){t.classList.toggle("on",t===b)});wind=null;t0=performance.now()}});
-function noise(a,b,t){return Math.sin(a*1.7+t)*Math.cos(b*1.3-t*.7)+.5*Math.sin(a*3.1-b*2.2+t*1.3)}
+// --- 2 비
+var rc=document.getElementById("vzRain"),t0=performance.now();
 function drawRain(now){var r=fit(rc,.78,720),x=r[0],w=r[1],h=r[2];
- if(sub==="wind"){if(!wind){wind=[];for(var k=0;k<700;k++)wind.push({x:Math.random()*w,y:Math.random()*h,i:k%nS});x.fillStyle="#05070c";x.fillRect(0,0,w,h)}
-  x.fillStyle="rgba(5,7,12,.06)";x.fillRect(0,0,w,h);var day=Math.floor(now/2200)%nD,t=now/3000;x.lineWidth=1.9;x.lineCap="round";
-  wind.forEach(function(p){var a=noise(p.x/w*4,p.y/h*4,t)*Math.PI*1.5,px=p.x,py=p.y;p.x+=Math.cos(a)*1.6;p.y+=Math.sin(a)*1.6;if(p.x<0||p.x>w||p.y<0||p.y>h){p.x=Math.random()*w;p.y=Math.random()*h;return}var v=G[p.i][day];x.strokeStyle=v?col(v):"rgba(100,116,139,.3)";x.globalAlpha=v==="OFF"?.3:.95;x.beginPath();x.moveTo(px,py);x.lineTo(p.x,p.y);x.stroke();x.globalAlpha=1});
-  x.fillStyle="rgba(255,255,255,.7)";x.font="200 36px Georgia,serif";x.textAlign="right";x.fillText(D.month+"월 "+(day+1)+"일",w-16,h-16);return}
  x.fillStyle="rgba(5,7,12,.35)";x.fillRect(0,0,w,h);var pad=14,cs=Math.min((w-pad*2)/nD,(h-pad*2)/nS),ox=(w-cs*nD)/2,oy=(h-cs*nS)/2;x.font="700 "+(cs*.72)+"px 'JetBrains Mono',monospace";x.textAlign="center";x.textBaseline="middle";
  var el=(now-t0)/1000,reveal=Math.min(nD,el*1.6),loopAt=nD/1.6+6;if(el>loopAt)t0=now;var chars="DEN/pDEN";
  for(var d=0;d<nD;d++){var speed=60+50*rnd(d),head=((now/1000)*speed+rnd(d+50)*600)%(h+300)-150;if(d<reveal-1)continue;for(var k2=0;k2<10;k2++){var y=oy+head-k2*cs;if(y<oy||y>oy+cs*nS)continue;x.fillStyle="rgba(74,222,128,"+(k2?.22-k2*.02:.6)+")";x.fillText(chars[Math.floor(rnd(d*31+k2+Math.floor(now/90))*8)],ox+d*cs+cs/2,y+cs/2)}}
