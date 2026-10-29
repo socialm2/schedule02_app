@@ -245,6 +245,8 @@ let wantedTransferInDates = {};
 // 마지막으로 성공한 입력① 업로드가 어느 달 파일이었는지 — 새 파일이 반려됐을 때
 // "그래서 지금 무엇이 쓰이고 있는가"를 화면에 그대로 적어주기 위한 꼬리표.
 let wantedActiveTag = "";
+// 마지막으로 성공한 입력①의 연월 — 화면 연월과 다르면 신청이 전부 다른 달 날짜가 된다.
+let wantedYM = null;     // {year, month} 또는 null
 let formRequests = [];   // [{staff_id, date, type, priority}]
 let formCarryover = [];  // [{staff_id, last_shift_type, consecutive_work_days, night_block_remaining_off, trailing_night_count}]
 let formHolidays = [];      // ["YYYY-MM-DD", ...] 공휴일
@@ -617,8 +619,18 @@ function populateYearMonthSelects() {
 }
 populateYearMonthSelects();
 
-$("#f_year").onchange = () => { seedHolidaysForYear(parseInt($("#f_year").value, 10)); renderHolidayCalendar(); };
-$("#f_month").onchange = () => renderHolidayCalendar();
+function noteYearMonthEdit() {
+  renderSourceBadges();
+  const y = $("#f_year").value, m = $("#f_month").value;
+  if (ymMismatch()) {
+    showToast(`연월을 ${y}년 ${m}월로 바꿨습니다 — 입력①은 ${wantedYM.year}년 ${wantedYM.month}월 파일이라 ` +
+              `신청 ${formRequests.length}건이 전부 다른 달 날짜가 됩니다. 이대로는 생성하지 않습니다.`, true);
+  } else {
+    showToast(`연월 → ${y}년 ${m}월: 화면에서 고른 값이 쓰입니다`);
+  }
+}
+$("#f_year").onchange = () => { seedHolidaysForYear(parseInt($("#f_year").value, 10)); renderHolidayCalendar(); noteYearMonthEdit(); };
+$("#f_month").onchange = () => { renderHolidayCalendar(); noteYearMonthEdit(); };
 
 // 연/월을 코드에서 바꿀 때 쓴다. 연도 목록은 올해 기준 7년치뿐이라, 그 밖의 해를
 // 그냥 대입하면 select가 조용히 안 바뀐다 — 없으면 항목을 만들어 넣는다.
@@ -938,8 +950,74 @@ renderMinStaffTable();
 function renderStaffSummary() {
   const el = $("#staffSummary");
   if (!el) return;
-  el.textContent = formStaff.length ? `현재 인원: ${formStaff.length}명` : "";
+  if (!formStaff.length) { el.textContent = ""; return; }
+  const src = staffFromWanted ? `입력①${wantedActiveTag ? `(${wantedActiveTag})` : ""}에서 반영`
+            : (staffOfAnnual.length ? "입력②(연간근무표)에서 반영" : "샘플 명단 — 입력①을 올리면 바뀝니다");
+  el.textContent = `현재 인원: ${formStaff.length}명 — ${src}`;
 }
+
+// ================================================================ 값의 출처 표시
+// 어느 값이 어디서 왔고 지금 무엇이 쓰이는지를 화면에 늘 적어 둔다. 파일을 올리면 설정도 따라올
+// 거라 믿고 화면 값을 안 본 채 생성해, 연속근무제한 2로 전원 이틀씩 끊긴 12월 근무표가 나간 적이
+// 있다. 파일이 주는 것(연월·인원·신청)과 화면이 주는 것(설정·근무인력)을 갈라서 보여주고, 화면에서
+// 바꾸면 "그 값이 쓰인다"고 그 자리에서 말한다. 연월만은 둘 다 줄 수 있어 어긋나면 노랗게 켠다.
+let settingsSource = "sample";   // sample | saved | screen | empty
+let lastScreenEdit = "";         // "연속근무제한 → 4"
+const FIELD_LABELS = { f_ward: "병동명", f_maxnights: "월 최대야간", f_maxconsecutive: "연속근무제한",
+                       f_nightquota_low: "야간목표하한", f_nightquota_high: "야간목표상한" };
+const DOW_SHORT = ["월", "화", "수", "목", "금"];
+function fieldLabel(el) {
+  if (!el || !el.id) return "";
+  if (FIELD_LABELS[el.id]) return FIELD_LABELS[el.id];
+  const m = /^ms_(.+?)_(weekday|saturday|sunday_holiday)(?:_(\d))?$/.exec(el.id);
+  if (!m) return "";
+  const col = (MIN_STAFF_COLS.find(([c]) => c === m[2]) || [])[1] || m[2];
+  return `근무인력 ${col}${m[3] !== undefined ? ` ${DOW_SHORT[Number(m[3])]}요일` : ""} ${m[1]}`;
+}
+function ymMismatch() {
+  if (!wantedYM) return false;
+  return wantedYM.year !== parseInt($("#f_year").value, 10) || wantedYM.month !== parseInt($("#f_month").value, 10);
+}
+function renderSourceBadges() {
+  const ym = $("#ymSource");
+  if (ym) {
+    if (!wantedYM) { ym.className = "src-badge"; ym.textContent = ""; }
+    else if (ymMismatch()) {
+      ym.className = "src-badge warn show";
+      ym.textContent = `⚠ 화면에서 바꿈 — 입력①은 ${wantedYM.year}년 ${wantedYM.month}월`;
+    } else { ym.className = "src-badge show"; ym.textContent = `입력①(${wantedYM.year}년 ${wantedYM.month}월)에서 반영`; }
+  }
+  const head = "이 값들은 파일에서 오지 않습니다 — ";
+  const text = {
+    sample: head + "지금은 샘플 병동 기본값입니다. 우리 병동 값으로 고쳐 쓰세요.",
+    saved: head + "지금은 이 브라우저에 저장해 둔 값(마지막으로 고친 값)입니다.",
+    empty: head + "지금은 비어 있습니다. 우리 병동 값을 채워 넣으세요.",
+    screen: `화면에서 바꾼 값이 쓰입니다 — 마지막 변경: ${lastScreenEdit}` +
+            (settingsSaveEnabled() ? " (이 브라우저에 저장됨)" : " (저장 꺼짐 — 이번 생성에만)"),
+  }[settingsSource];
+  for (const sel of ["#settingsSource", "#minStaffSource"]) {
+    const el = $(sel);
+    if (!el) continue;
+    el.textContent = text;
+    el.classList.toggle("screen", settingsSource === "screen");
+  }
+  renderStaffSummary();
+}
+function noteScreenEdit(el) {
+  const label = fieldLabel(el);
+  if (!label) return;
+  const v = (el.value ?? "").toString().trim();
+  lastScreenEdit = `${label} → ${v === "" ? "(빈칸)" : v}`;
+  settingsSource = "screen";
+  renderSourceBadges();
+  showToast(`${lastScreenEdit}: 화면에서 바꾼 값이 쓰입니다` +
+            (settingsSaveEnabled() ? " (이 브라우저에 저장됨)" : " (저장 꺼짐 — 이번 생성에만)"));
+}
+document.querySelector(".info-section")?.addEventListener("change", (ev) => {
+  const el = ev.target;
+  if (!(el instanceof HTMLInputElement)) return;   // 연월(select)은 아래에서 따로 말한다
+  noteScreenEdit(el);
+});
 
 function updateTeamBCount() {
   const n = teamBNamesFromForm().length;
@@ -1215,6 +1293,8 @@ $("#wantedInput").onchange = async () => {
       (unk ? ` (인식 못 한 표시 ${unk}개: ${data.unknown_marks.join(", ")})` : "") +
       (monthChanged ? ` — 화면의 연월을 ${data.year}년 ${data.month}월로 맞췄습니다.` : "");
     wantedActiveTag = `${data.year}년 ${data.month}월`;
+    wantedYM = { year: data.year, month: data.month };
+    renderSourceBadges();
     $("#wantedClearBtn").style.display = "";
     // 관대하게 읽어준 값이 있으면 무엇을 무엇으로 읽었는지 칸 아래에 남긴다. 토스트는
     // 몇 초 뒤 사라져서, 표준 표기를 확인하려고 다시 볼 수가 없다.
@@ -1263,6 +1343,7 @@ $("#wantedClearBtn").onclick = () => {
   formRequests = [];
   staffOfWanted = [];
   wantedActiveTag = "";
+  wantedYM = null;
   wantedTransferredIn = [];
   wantedTransferInDates = {};
   recomputeStaff();
@@ -1272,6 +1353,7 @@ $("#wantedClearBtn").onclick = () => {
     ? `반영 해제했습니다 — 명단은 ${staffOfAnnual.length ? "입력②" : "샘플"}(${formStaff.length}명) 기준으로 돌아갔습니다.`
     : "반영 해제했습니다 — 현재 인원 명단이 없습니다.";
   $("#wantedClearBtn").style.display = "none";
+  renderSourceBadges();
   showToast("입력① 반영을 해제했습니다");
 };
 
@@ -1506,6 +1588,16 @@ async function runGenerate(btn, statusEl) {
     showGenError(statusEl, msg);
     return;
   }
+  // 입력①의 달과 화면 연월이 다르면 신청이 전부 다른 달 날짜가 돼 통째로 반려된다 — 뜻이 둘로
+  // 갈리는 입력이라 고쳐 읽지 않고 멈춘다(파일 기준으로 되돌리거나 그 달 파일을 올리거나).
+  if (ymMismatch()) {
+    const msg = `입력①은 ${wantedYM.year}년 ${wantedYM.month}월 파일인데 화면 연월은 ` +
+      `${$("#f_year").value}년 ${$("#f_month").value}월입니다 — 신청 ${formRequests.length}건이 전부 다른 달 날짜가 됩니다. ` +
+      `연월을 ${wantedYM.month}월로 되돌리거나, ${$("#f_month").value}월 입력①을 다시 올리세요.`;
+    showToast(msg, true);
+    showGenError(statusEl, msg);
+    return;
+  }
   // 최소인력 칸을 먼저 읽어본다 — 못 읽는 칸이 있으면 생성하지 않는다. 대충 0으로 채워
   // 만들면 "그 근무가 아무도 없어도 되는 달"이 조용히 만들어진다.
   const preCfg = buildCfgFromForm();
@@ -1569,11 +1661,14 @@ if (generateBtnMid) {
     // 뒤로는 이게 "지난번에 맞춰둔 값"을 되찾는 유일한 길이다.
     // 저장을 꺼둔 상태면 남아 있는 값이 있어도 쓰지 않는다(끈 사람에게 옛 값이
     // 되살아나면 안 된다).
-    fillForm(restoreSaveToggle() ? withSavedSettings(cfg) : cfg);
+    const useSaved = restoreSaveToggle() && !!loadSettings();
+    fillForm(useSaved ? withSavedSettings(cfg) : cfg);
+    settingsSource = useSaved ? "saved" : "sample";
   } catch (e) {
     showToast("샘플 로드 실패 — 직접 입력해주세요", true);
   }
   settingsReady = true;
+  renderSourceBadges();
   refreshStaffTableStatus();
 })();
 
@@ -1703,6 +1798,8 @@ $("#resetSettingsBtn").onclick = () => {
   seedHolidaysForYear(nm.year);
   renderHolidayCalendar();
   settingsReady = true;
+  settingsSource = "empty";
+  renderSourceBadges();
   showToast("저장한 설정을 지웠습니다 — 우리 병동 값으로 채워 넣어주세요");
 };
 

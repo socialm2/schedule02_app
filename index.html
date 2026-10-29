@@ -48,7 +48,7 @@
   <!-- .build-time 값은 배포할 때 GitHub Actions가 실제 배포 시각(KST)으로
        바꿔 넣는다(.github/workflows/deploy.yml). 손으로 고칠 필요 없다. -->
   <header>
-    <h1>SMC Fair Shift <span class="version-badge">v0.86</span><span class="build-time">2026-10-28 20:49:45 KST</span></h1>
+    <h1>SMC Fair Shift <span class="version-badge">v0.86</span><span class="build-time">2026-10-29 12:06:09 KST</span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
@@ -87,10 +87,13 @@
                 우리 병동 기준으로 다시 채워 넣으시면 됩니다.</span>
               </div>
             </div>
+            <!-- 값이 어디서 왔는지(샘플·브라우저 저장·방금 화면에서 고침)를 늘 적어 둔다 — 파일을 올리면
+                 설정도 따라올 거라 믿고 화면 값을 안 보는 사고(연속근무제한 2)를 막는 줄이다. -->
+            <p class="hint src-line" id="settingsSource"></p>
             <div class="form-grid">
               <label class="wide">병동명 <input type="text" id="f_ward"
                 placeholder="예) 9A 병동 — 비워두셔도 근무표는 만들어집니다"></label>
-              <label class="wide">연월
+              <label class="wide">연월 <span class="src-badge" id="ymSource"></span>
                 <span class="ym-picker">
                   <select id="f_year"></select>
                   <select id="f_month"></select>
@@ -119,6 +122,7 @@
 
           <details class="form-sec" open>
             <summary>근무인력</summary>
+            <p class="hint src-line" id="minStaffSource"></p>
             <div class="tablebox">
               <table class="form-table" id="minStaffTable">
                 <thead></thead>
