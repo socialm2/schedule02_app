@@ -2202,7 +2202,8 @@ function renderGrid() {
     // 밤에 넣으면 풀리는지 찾을 단서가 이것뿐이다.
     const nlMark = s.is_night_leader
       ? '<span class="desig-mark nl-mark" title="야간리더 — 이 사람이 선 밤은 숙련도 4 이상 조건을 채운 것으로 봅니다">밤</span>' : "";
-    html += `<tr><td class="nm">${esc(s.id)}${desigMark}${nlMark}` +
+    // 이름을 누르면 그 사람의 한 달을 '여정'으로 본다(개념 I에서 옮겨 옴). 값은 data-*에만.
+    html += `<tr><td class="nm" data-journey="${escAttr(s.id)}" tabindex="0" role="button" title="누르면 이 사람의 한 달을 여정으로 봅니다">${esc(s.id)}${desigMark}${nlMark}` +
       `<span class="role">${s.role} Lv${s.level}</span></td>` +
       `<td class="stat-col">${offBefore}</td><td class="stat-col">${offAfter}</td>`;
     for (let d = 0; d < ST.num_days; d++) {
@@ -2590,6 +2591,14 @@ document.getElementById("gridContent").addEventListener("keydown", (ev) => {
 // 점수표의 줄을 누르면 그 시드의 표로 바꾼다. 미적용 편집은 버려지므로 먼저 묻는다 — 바꾼 표에는
 // 그 편집이 뜻이 없다(다른 표의 칸이다). 고정 칸(재생성 때 잠근 것)은 그대로 적용돼 있다.
 delegateClick(document.getElementById("gridPane"), "th.day-head[data-day]", (th) => openDiorama(Number(th.dataset.day)));
+delegateClick(document.getElementById("gridContent"), "td.nm[data-journey]", (td) => openJourney(td.dataset.journey));
+document.getElementById("gridContent").addEventListener("keydown", (ev) => {
+  if (ev.key !== "Enter" && ev.key !== " ") return;
+  const td = ev.target.closest("td.nm[data-journey]");
+  if (!td) return;
+  ev.preventDefault();
+  openJourney(td.dataset.journey);
+});
 document.getElementById("gridPane").addEventListener("keydown", (ev) => {
   if (ev.key !== "Enter" && ev.key !== " ") return;
   const th = ev.target.closest("th.day-head[data-day]");
@@ -2651,13 +2660,15 @@ function openDiorama(day) {
     bd.className = "modal-backdrop"; bd.id = "dioModalBackdrop";
     bd.innerHTML = '<div class="modal dio-modal" role="dialog" aria-modal="true" aria-label="그날 병동">' +
       '<div class="modal-head"><h2 id="dioTitle"></h2><div class="dio-nav"><button data-dio="prev" title="전날">◀</button><button data-dio="next" title="다음날">▶</button><button data-dio="close" title="닫기">✕</button></div></div>' +
-      '<div class="modal-body dio-body"><canvas id="dioCanvas"></canvas><p class="hint" id="dioHint"></p></div></div>';
+      '<div class="modal-body dio-body"><div class="dio-rooms" id="dioRooms"></div><p class="hint dio-hint" id="dioHint"></p></div></div>';
     document.body.appendChild(bd);
     bd.addEventListener("click", (e) => { if (e.target === bd) closeDiorama(); });
     delegateClick(bd, "button[data-dio]", (b) => {
       if (b.dataset.dio === "close") closeDiorama();
       else if (DIO) { DIO.day = (DIO.day + (b.dataset.dio === "next" ? 1 : ST.num_days - 1)) % ST.num_days; drawDiorama(); }
     });
+    // 사람을 누르면 그 사람의 여정으로 — 디오라마는 닫는다(모달 둘이 겹치면 폰에서 길을 잃는다)
+    delegateClick(bd, ".dio-person[data-sid]", (el) => { const sid = el.dataset.sid; closeDiorama(); openJourney(sid, DIO_LAST_DAY); });
     bd.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeDiorama();
       if (e.key === "ArrowRight" && DIO) { DIO.day = (DIO.day + 1) % ST.num_days; drawDiorama(); }
@@ -2669,58 +2680,160 @@ function openDiorama(day) {
   const first = bd.querySelector("button[data-dio='next']");
   if (first) first.focus();
 }
+let DIO_LAST_DAY = 0;
 function closeDiorama() {
   const bd = document.getElementById("dioModalBackdrop");
   if (bd) bd.classList.remove("show");
+  if (DIO) DIO_LAST_DAY = DIO.day;
   DIO = null;
+}
+// 캔버스가 아니라 DOM으로 그린다 — 캔버스는 폰 가로·세로에서 방 네 개가 한 줄에 눌려 이름이
+// 겹치고 별이 글자 위에 찍혔다(파트장 지적). DOM이면 방이 화면 폭에 맞춰 접히고, 사람 칩이
+// 줄바꿈되고, 이름은 제 칸 안에서 줄임표로 끝난다. 색·별·크기는 전과 같은 뜻이다.
+const DIO_ROOMS = [
+  ["home", "집 · 쉼", "🏠"], ["D", "낮 D", "☀️"], ["E", "저녁 E", "🌇"], ["N", "밤 N·NK", "🌙"]];
+function dioCodeColor(code, dark) {
+  return code === "D" ? "#3b82f6" : code === "E" ? "#f97316" : code === "N" ? "#7c3aed" : code === "NK" ? "#db2777"
+       : isWorkCode(code) ? "#16a34a" : (dark ? "#475569" : "#9ca3af");
 }
 function drawDiorama() {
   if (!DIO || !ST) return;
-  const day = DIO.day, cv = document.getElementById("dioCanvas"), ctx = cv.getContext("2d");
-  const W = Math.min(900, Math.max(320, (cv.parentElement.clientWidth || 600) - 4));
-  // 높이는 가장 붐비는 방의 줄 수로 — 고정 높이면 빈 방이 휑하다
-  const perRoom = { home: 0, D: 0, E: 0, N: 0 };
-  for (const s of ST.staff) { if (!s.is_partjang) perRoom[roomOfCode((ST.grid[s.id] || [])[day])]++; }
-  const colsGuess = Math.max(1, Math.floor((W * .23 - 20) / 44));
-  const maxRows = Math.max(...Object.values(perRoom).map(n => Math.ceil(n / colsGuess)));
-  const H = Math.min(560, Math.max(240, 80 + maxRows * 50));
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + "px"; cv.style.height = H + "px"; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const dark = getComputedStyle(document.body).getPropertyValue("--bg").trim() !== "" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-  ctx.fillStyle = dark ? "#0c1120" : "#f3f5f9"; ctx.fillRect(0, 0, W, H);
-  const rooms = { home: [8, 8, W * .22 - 12, H - 16], D: [W * .25, 8, W * .23, H - 16], E: [W * .50, 8, W * .23, H - 16], N: [W * .75, 8, W * .25 - 8, H - 16] };
-  const label = { home: "집 · 쉼", D: "낮 D (prn·8A 포함)", E: "저녁 E", N: "밤 N·NK" };
-  const tint = { home: dark ? "#1f2937" : "#e5e7eb", D: dark ? "#1e3a8a" : "#dbeafe", E: dark ? "#7c2d12" : "#ffedd5", N: dark ? "#2e1065" : "#ede9fe" };
-  const ink = dark ? "rgba(255,255,255,.8)" : "rgba(17,24,39,.85)";
+  const day = DIO.day, d = ST.days[day], min = d.min || {};
+  const dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
   const groups = { home: [], D: [], E: [], N: [] };
   for (const s of ST.staff) { if (s.is_partjang) continue; groups[roomOfCode((ST.grid[s.id] || [])[day])].push(s); }
-  const min = ST.days[day].min || {};
-  for (const k of Object.keys(rooms)) {
-    const [x, y, w, h] = rooms[k];
-    ctx.fillStyle = tint[k]; ctx.strokeStyle = dark ? "rgba(255,255,255,.14)" : "rgba(0,0,0,.12)"; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.roundRect(x, y, w, h, 12); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = ink; ctx.font = "600 12px system-ui, sans-serif"; ctx.textAlign = "left";
+  let html = "";
+  for (const [k, label, icon] of DIO_ROOMS) {
     const need = k === "D" ? min.D : k === "E" ? min.E : k === "N" ? min.N : undefined;
-    ctx.fillText(label[k] + (need !== undefined ? `  ${groups[k].length}/${need}명` : `  ${groups[k].length}명`), x + 10, y + 18);
-    if (need !== undefined && groups[k].length < need) { ctx.fillStyle = "#dc2626"; ctx.fillText("미달", x + w - 34, y + 18); }
-    if (k === "D") { ctx.fillStyle = "#f59e0b"; ctx.beginPath(); ctx.arc(x + w - 18, y + 36, 8, 0, 7); ctx.fill(); }
-    if (k === "E") { ctx.fillStyle = "#f97316"; ctx.beginPath(); ctx.arc(x + w - 18, y + 40, 8, Math.PI, 0); ctx.fill(); }
-    if (k === "N") { ctx.fillStyle = dark ? "#e5e7eb" : "#4b5563"; ctx.beginPath(); ctx.arc(x + w - 18, y + 36, 7, 0, 7); ctx.fill(); ctx.fillStyle = tint[k]; ctx.beginPath(); ctx.arc(x + w - 15, y + 34, 6, 0, 7); ctx.fill(); }
-    const cols = Math.max(1, Math.floor((w - 20) / 44)), sc = Math.min(1, (h - 60) / (Math.ceil(groups[k].length / cols) * 50 + 10));
-    groups[k].forEach((s, j) => {
-      const px = x + 26 + (j % cols) * 44 * (sc < 1 ? sc * 1.1 : 1), py = y + 52 + Math.floor(j / cols) * 50 * sc;
-      const code = (ST.grid[s.id] || [])[day], lv = s.level || 1, z = (0.8 + lv * 0.08) * Math.max(.6, sc);
-      const col = code === "D" ? "#3b82f6" : code === "E" ? "#f97316" : code === "N" ? "#7c3aed" : code === "NK" ? "#db2777" : isWorkCode(code) ? "#16a34a" : (dark ? "#475569" : "#9ca3af");
-      ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(px - 7 * z, py - 2 * z, 14 * z, 20 * z, 4); ctx.fill();
-      ctx.fillStyle = "#fde0c8"; ctx.beginPath(); ctx.arc(px, py - 8 * z, 6 * z, 0, 7); ctx.fill();
-      if (lv >= 4) { ctx.fillStyle = "#f59e0b"; ctx.font = `${9 * z}px sans-serif`; ctx.textAlign = "center"; ctx.fillText("★", px, py - 16 * z); }
-      ctx.fillStyle = ink; ctx.font = `${Math.max(8, 9 * Math.max(.8, sc))}px system-ui, sans-serif`; ctx.textAlign = "center";
-      ctx.fillText(s.id.length > 5 ? s.id.slice(0, 5) : s.id, px, py + 27 * z);
-    });
+    const n = groups[k].length;
+    const short = need !== undefined && n < need, over = need !== undefined && n >= need + 1;
+    const sub = k === "D" ? '<span class="dio-sub">prn·8A 포함</span>' : "";
+    html += `<section class="dio-room dio-${k}${short ? " short" : ""}">` +
+      `<header><span class="dio-icon">${icon}</span><b>${label}</b>${sub}` +
+      `<span class="dio-count${short ? " bad" : over ? " over" : ""}">${need !== undefined ? `${n}<small>/${need}명</small>` : `${n}<small>명</small>`}${short ? " 미달" : ""}</span></header>` +
+      `<div class="dio-people">` +
+      groups[k].map(s => {
+        const code = (ST.grid[s.id] || [])[day], lv = s.level || 1;
+        const h = 18 + lv * 3;   // 키가 클수록 숙련도가 높다
+        return `<button type="button" class="dio-person" data-sid="${escAttr(s.id)}" title="${escAttr(`${s.id} · Lv${lv} · ${shiftText(code) || "쉼"} — 누르면 여정`)}">` +
+          `<span class="dio-fig" style="--h:${h}px;--c:${dioCodeColor(code, dark)}">${lv >= 4 ? '<i class="dio-star">★</i>' : ""}<span class="dio-head"></span><span class="dio-torso"></span></span>` +
+          `<span class="dio-name">${esc(s.id)}</span><span class="dio-code">${esc(shiftText(code) || "")}</span></button>`;
+      }).join("") +
+      (n ? "" : '<span class="dio-empty">아무도 없음</span>') +
+      `</div></section>`;
   }
-  const d = ST.days[day];
+  document.getElementById("dioRooms").innerHTML = html;
   document.getElementById("dioTitle").textContent = `${ST.month}월 ${d.n}일 (${d.dow})${d.weekend ? " · 주말·공휴일" : ""}`;
-  document.getElementById("dioHint").textContent = "키가 클수록 높은 숙련도, ★는 Lv4 이상. ◀ ▶ 또는 ←→로 날짜를 넘깁니다. 파트장은 뺐습니다.";
+  document.getElementById("dioHint").textContent = "키가 클수록 높은 숙련도, ★는 Lv4 이상. 사람을 누르면 그 사람의 한 달(여정). ◀ ▶ 또는 ←→로 날짜를 넘깁니다. 파트장은 뺐습니다.";
+}
+
+// ================================================================ 여정(한 사람의 한 달)
+// 이름(표 첫 열)이나 디오라마의 사람을 누르면 그 사람의 한 달을 1인칭으로 걷는다 — 해·노을·달이 뜨고,
+// 카드에 그 칸이 왜 거기 놓였는지(이 칸은 왜와 같은 간단 판정) 적힌다. 개념 I '여정'에서 옮겨 옴.
+let JOUR = null;   // {sid, day, pos, play, last, raf}
+const JOUR_C = { D: "#60a5fa", E: "#fb923c", N: "#a78bfa", NK: "#f472b6", OFF: "#94a3b8", prn: "#4ade80", "8A": "#cbd5e1", "S/": "#2dd4bf" };
+const JOUR_NAME = { D: "낮(D)", E: "저녁(E)", N: "밤(N)", NK: "밤(야간전담)", OFF: "쉼", prn: "prn", "S/": "수면오프" };
+function jourSky(code) {
+  return code === "D" ? ["#8ec5ff", "#dff0ff"] : code === "E" ? ["#3b2a5a", "#f59e6b"]
+       : (code === "N" || code === "NK") ? ["#050816", "#1a2050"] : code === "S/" ? ["#1f2937", "#475569"]
+       : isWorkCode(code) ? ["#6b8fb3", "#d6e6f5"] : ["#5b6b84", "#c7d2e2"];
+}
+function jourRnd(i) { const x = Math.sin(i * 9301 + 49297) * 233280; return x - Math.floor(x); }
+function openJourney(sid, day) {
+  if (!ST || !ST.grid[sid]) return;
+  const row = ST.grid[sid];
+  let d0 = Number.isInteger(day) ? day : row.findIndex(v => isWorkCode(v));
+  if (d0 < 0) d0 = 0;
+  JOUR = { sid, day: d0, pos: d0, play: false, last: 0, raf: 0 };
+  let bd = document.getElementById("jourModalBackdrop");
+  if (!bd) {
+    bd = document.createElement("div");
+    bd.className = "modal-backdrop"; bd.id = "jourModalBackdrop";
+    bd.innerHTML = '<div class="modal jour-modal" role="dialog" aria-modal="true" aria-label="여정">' +
+      '<div class="modal-head"><h2 id="jourTitle"></h2><div class="dio-nav"><button data-jour="prev" title="전날">◀</button><button data-jour="play" title="걷기">▶ 걷기</button><button data-jour="next" title="다음날">▶</button><button data-jour="close" title="닫기">✕</button></div></div>' +
+      '<div class="modal-body jour-body"><div class="jour-stage"><canvas id="jourCanvas"></canvas><div class="jour-card" id="jourCard"></div></div><p class="hint" id="jourHint">◀ ▶·←→·휠로 날짜를 넘깁니다. 해는 낮, 노을은 저녁, 달은 밤. 카드에 그 칸이 왜 거기 놓였는지 적힙니다.</p></div></div>';
+    document.body.appendChild(bd);
+    bd.addEventListener("click", (e) => { if (e.target === bd) closeJourney(); });
+    delegateClick(bd, "button[data-jour]", (b) => {
+      if (!JOUR) return;
+      const k = b.dataset.jour;
+      if (k === "close") closeJourney();
+      else if (k === "play") { JOUR.play = !JOUR.play; b.textContent = JOUR.play ? "⏸ 멈춤" : "▶ 걷기"; }
+      else { JOUR.day = Math.max(0, Math.min(ST.num_days - 1, JOUR.day + (k === "next" ? 1 : -1))); JOUR.play = false; bd.querySelector("button[data-jour='play']").textContent = "▶ 걷기"; }
+    });
+    bd.addEventListener("keydown", (e) => {
+      if (!JOUR) return;
+      if (e.key === "Escape") closeJourney();
+      if (e.key === "ArrowRight") { JOUR.day = Math.min(ST.num_days - 1, JOUR.day + 1); JOUR.play = false; }
+      if (e.key === "ArrowLeft") { JOUR.day = Math.max(0, JOUR.day - 1); JOUR.play = false; }
+    });
+    bd.querySelector("#jourCanvas").addEventListener("wheel", (e) => {
+      if (!JOUR) return; e.preventDefault();
+      JOUR.day = Math.max(0, Math.min(ST.num_days - 1, JOUR.day + Math.sign(e.deltaY))); JOUR.play = false;
+    }, { passive: false });
+  }
+  bd.classList.add("show");
+  bd.querySelector("button[data-jour='play']").textContent = "▶ 걷기";
+  const s = ST.staff.find(x => x.id === sid);
+  document.getElementById("jourTitle").textContent = `${sid} · ${s ? `${s.role} Lv${s.level}` : ""} — ${ST.year}년 ${ST.month}월의 여정`;
+  const first = bd.querySelector("button[data-jour='next']");
+  if (first) first.focus();
+  cancelAnimationFrame(JOUR.raf);
+  JOUR.raf = requestAnimationFrame(drawJourney);
+}
+function closeJourney() {
+  const bd = document.getElementById("jourModalBackdrop");
+  if (bd) bd.classList.remove("show");
+  if (JOUR) cancelAnimationFrame(JOUR.raf);
+  JOUR = null;
+}
+function drawJourney(now) {
+  if (!JOUR || !ST) return;
+  const cv = document.getElementById("jourCanvas"), ctx = cv.getContext("2d");
+  const W = Math.max(280, cv.parentElement.clientWidth || 600), H = Math.max(220, Math.min(420, Math.round(W * 0.56)));
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + "px"; cv.style.height = H + "px"; }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const row = ST.grid[JOUR.sid] || [], nd = ST.num_days;
+  if (JOUR.play && now - JOUR.last > 1500) { JOUR.last = now; JOUR.day = (JOUR.day + 1) % nd; }
+  JOUR.pos += (JOUR.day - JOUR.pos) * .1;
+  const pos = JOUR.pos, colW = Math.min(170, W * .3), cx = W * .42;
+  const k = Math.max(0, Math.min(nd - 1, Math.round(pos))), sky = jourSky(row[k]);
+  const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, sky[0]); g.addColorStop(1, sky[1]); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const night = row[k] === "N" || row[k] === "NK";
+  for (let s = 0; s < 60; s++) { ctx.fillStyle = `rgba(255,255,255,${(night ? .8 : .08) * (0.3 + 0.7 * jourRnd(s + 9))})`; ctx.fillRect(((jourRnd(s) * W * 2 - pos * 30) % W + W) % W, jourRnd(s + 1) * H * .5, 1.5, 1.5); }
+  const ground = H * .72;
+  const hill = x => { const t = (x - cx) / colW + pos; return ground + Math.sin(t * 1.7) * 10 + Math.sin(t * .6) * 16; };
+  ctx.fillStyle = "rgba(10,14,24,.85)"; ctx.beginPath(); ctx.moveTo(0, H); for (let x = 0; x <= W; x += 8) ctx.lineTo(x, hill(x)); ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+  ctx.textAlign = "center";
+  for (let d = 0; d < nd; d++) {
+    const x = cx + (d - pos) * colW; if (x < -colW || x > W + colW) continue;
+    const code = row[d], near = Math.max(0, 1 - Math.abs(d - pos)), yg = hill(x), yy = H * .22;
+    if (code === "D") { ctx.fillStyle = "#fde68a"; ctx.shadowBlur = 30; ctx.shadowColor = "#fde68a"; ctx.beginPath(); ctx.arc(x, yy, 20, 0, 7); ctx.fill(); ctx.shadowBlur = 0; }
+    else if (code === "E") { ctx.fillStyle = "#fb923c"; ctx.shadowBlur = 30; ctx.shadowColor = "#fb923c"; ctx.beginPath(); ctx.arc(x, yy + 48, 20, Math.PI, 0); ctx.fill(); ctx.shadowBlur = 0; }
+    else if (code === "N" || code === "NK") { ctx.fillStyle = "#e5e7eb"; ctx.shadowBlur = 24; ctx.shadowColor = "#c7d2fe"; ctx.beginPath(); ctx.arc(x, yy, 17, 0, 7); ctx.fill(); ctx.fillStyle = jourSky(code)[0]; ctx.beginPath(); ctx.arc(x + 7, yy - 3, 15, 0, 7); ctx.fill(); ctx.shadowBlur = 0; }
+    else if (isWorkCode(code)) { ctx.fillStyle = "#fef3c7"; ctx.shadowBlur = 16; ctx.shadowColor = "#fde68a"; ctx.beginPath(); ctx.arc(x, yy + 8, 14, 0, 7); ctx.fill(); ctx.shadowBlur = 0; }
+    else { ctx.fillStyle = "rgba(255,255,255,.75)"; for (let q = 0; q < 3; q++) { ctx.beginPath(); ctx.arc(x - 14 + q * 14, yy + 6 - (q % 2) * 8, 12, 0, 7); ctx.fill(); } }
+    ctx.strokeStyle = `rgba(255,255,255,${.25 + .5 * near})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, yg); ctx.lineTo(x, yg - 32 - 24 * near); ctx.stroke();
+    ctx.fillStyle = `rgba(255,255,255,${.5 + .5 * near})`; ctx.font = `300 ${14 + 14 * near}px Georgia, "Noto Serif KR", serif`; ctx.fillText(`${d + 1}`, x, yg - 40 - 24 * near);
+    ctx.fillStyle = JOUR_C[code] || (isWorkCode(code) ? "#e5e7eb" : "#94a3b8"); ctx.font = `600 ${11 + 3 * near}px system-ui, sans-serif`; ctx.fillText(JOUR_NAME[code] || code || "", x, yg + 18);
+    if (ST.days[d].weekend) { ctx.fillStyle = "rgba(252,165,165,.9)"; ctx.font = "10px system-ui, sans-serif"; ctx.fillText("주말", x, yg + 32); }
+  }
+  // 걷는 사람
+  const gy = hill(cx);
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(cx, gy - 22 + Math.sin(now / 250) * 2, 6, 0, 7); ctx.fill();
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx, gy - 16); ctx.lineTo(cx, gy + 1); ctx.moveTo(cx, gy + 1); ctx.lineTo(cx - 6 + Math.sin(now / 250) * 5, gy + 13); ctx.moveTo(cx, gy + 1); ctx.lineTo(cx + 6 - Math.sin(now / 250) * 5, gy + 13); ctx.stroke();
+  // 카드 — '이 칸은 왜'와 같은 판정
+  if (JOUR.cardDay !== JOUR.day) {
+    JOUR.cardDay = JOUR.day;
+    const code = row[JOUR.day], why = explainCell(JOUR.sid, JOUR.day).lines;
+    const nights = row.filter(v => v === "N" || v === "NK").length, wk = row.filter((v, d) => isWorkCode(v) && ST.days[d].weekend).length, offs = row.filter(v => v === "OFF").length;
+    document.getElementById("jourCard").innerHTML =
+      `<div class="jour-day">${JOUR.day + 1}일 <span style="color:${JOUR_C[code] || "#e5e7eb"}">${esc(JOUR_NAME[code] || code || "—")}</span>${ST.days[JOUR.day].weekend ? ' <small>주말·공휴일</small>' : ""}</div>` +
+      `<div class="jour-why">${why.length ? why.map(esc).join("<br>") : "입력에서 정해진 칸이거나 쉬는 날입니다."}</div>` +
+      `<div class="jour-sum">이달 밤 ${nights}회 · 주말 ${wk}일 · 쉼 ${offs}일</div>`;
+  }
+  JOUR.raf = requestAnimationFrame(drawJourney);
 }
 
 // ================================================================ 월간 보고(파트장용, 실험 기능)
@@ -2840,6 +2953,21 @@ function magazineHtml() {
   // --- 10 처리 기록
   const logs = (r.logs || []).filter(l => /\[수리\]|\[균등\]|\[보완\]|\[H2-9\]|\[H5-2\]|\[H1-1\]|\[전입\]/.test(l)).slice(0, 25);
   const sec10 = `<h2>10. 처리 기록(발췌)</h2>${logs.length ? `<pre class="log">${logs.map(esc).join("\n")}</pre>` : "<p>수리·균등 기록 없음.</p>"}<p class="sub">전체 ${(r.logs || []).length}건은 화면 결과창 '처리 로그'에.</p>`;
+  // --- 11 시각화 — 여정(클로드 개념 I)·비·바람(클로드 갤러리 II)·한 달의 궤도(지피티 01-04)를 이달 표로.
+  // 화면용(캔버스)이라 인쇄에는 안 나온다. 데이터는 명단·날짜·표뿐이고, 그리는 코드는 아래 한 덩어리.
+  const vizData = JSON.stringify({
+    year: ST.year, month: ST.month,
+    staff: people.map(s => ({ id: s.id, level: s.level || 1, nk: !!s.is_nk })),
+    days: days.map(d => ({ n: d.n, dow: d.dow, weekend: !!d.weekend })),
+    grid: Object.fromEntries(people.map(s => [s.id, row(s).map(v => v || "")])),
+  }).replace(/<\//g, "<\\/");
+  const sec11 = `<h2>11. 시각화 <span class="sub">(화면용 — 인쇄에는 안 나옴)</span></h2>
+    <div class="viz" id="viz"><div class="viz-tabs"><button class="viz-tab on" data-viz="jour">여정 — 한 사람의 한 달</button><button class="viz-tab" data-viz="rain">비 · 바람</button><button class="viz-tab" data-viz="orb">한 달의 궤도</button></div>
+    <div class="viz-pane on" data-viz="jour"><div class="viz-ctl"><label>사람 <select id="vzWho"></select></label><button id="vzPrev">◀</button><button id="vzPlay">▶ 걷기</button><button id="vzNext">▶</button><span class="sub">←→·휠로 날짜. 해는 낮, 노을은 저녁, 달은 밤.</span></div><canvas id="vzJour"></canvas><div class="viz-card" id="vzCard"></div></div>
+    <div class="viz-pane" data-viz="rain"><div class="viz-ctl"><button class="viz-sub on" data-sub="rain">비 — 근무 글자가 떨어져 제자리에</button><button class="viz-sub" data-sub="wind">바람 — 그날의 근무 색으로 흐르는 바람</button><span class="sub">위에서부터 명단 순, 왼쪽부터 1일.</span></div><canvas id="vzRain"></canvas></div>
+    <div class="viz-pane" data-viz="orb"><div class="viz-ctl"><span class="sub">안쪽부터 명단 순 · 시계 방향 = 1~${nd}일 · 원호 색 = 근무(파랑 D·주황 E·보라 N·분홍 NK·초록 prn·회색 쉼). 바늘이 하루씩 돈다.</span></div><canvas id="vzOrb"></canvas></div></div>
+    <script id="vizData" type="application/json">${vizData}</script>
+    <script>${magazineVizScript()}</script>`;
   // --- 표 한눈에(모자이크)
   const colors = { D: "#93c5fd", E: "#fdba74", N: "#c4b5fd", NK: "#f9a8d4", OFF: "#eeeeee", prn: "#86efac", "8A": "#d1d5db", "S/": "#99f6e4" };
   const cs = 1000 / nd, rh = Math.max(4, Math.min(8, 240 / ST.staff.length));
@@ -2855,10 +2983,84 @@ td.bad{background:#fee2e2;color:#991b1b;font-weight:700}td.warn{background:#fef9
 tr.sep th,tr.sep td{border-top:2px dashed #9ca3af}tr.tot th,tr.tot td{border-top:1.5px solid #6b7280}tr.other th{color:#6b7280;font-weight:500}tr.lv th{color:#5b21b6}tr.lv1 th,tr.lv1 td{border-top:2px solid #111827}td.we,th.we{background:#fff1f2}td.we.bad{background:#fee2e2}td.we.over{background:#fef3c7}td.we.warn{background:#fef9c3}tr.nk td{color:#6b21a8}tr.chosen td{background:#ecfdf5}
 .bad{color:#dc2626;font-weight:600}.good{color:#16a34a}.sub{color:#6b7280;font-size:11px}.small{font-size:12px}i{font-style:normal;font-size:10px;color:#7c3aed;border:1px solid #c4b5fd;border-radius:3px;padding:0 3px}
 ul{margin:6px 0;padding-left:18px}li{margin:3px 0}pre.log{font-size:11px;background:#f9fafb;border:1px solid #e5e7eb;padding:8px;white-space:pre-wrap;line-height:1.5}
-.foot{margin-top:28px;font-size:11px;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:8px}@media print{body{background:#fff}.pg{box-shadow:none;margin:0;max-width:none;padding:0}h2{break-after:avoid}table{break-inside:auto}tr{break-inside:avoid}}</style></head><body><div class="pg">
+.foot{margin-top:28px;font-size:11px;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:8px}
+.viz{background:#0b1020;border-radius:12px;padding:12px;color:#eef2f7}.viz-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.viz-tab,.viz-sub,.viz-ctl button{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#e5e7eb;border-radius:999px;padding:6px 13px;font-size:12.5px;cursor:pointer}.viz-tab.on,.viz-sub.on{background:#fff;color:#000;font-weight:700}.viz-pane{display:none}.viz-pane.on{display:block}.viz-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;font-size:12px}.viz-ctl .sub{color:#9aa3b2}.viz select{background:#111827;color:#fff;border:1px solid #374151;border-radius:8px;padding:4px 8px;font-size:12px}.viz canvas{display:block;width:100%;border-radius:8px;background:#05070c}.viz-card{margin-top:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.55}.viz-card .d{font-family:Georgia,serif;font-weight:300;font-size:22px}.viz-card .m{color:#9aa3b2;font-size:11px;margin-top:6px}
+@media print{body{background:#fff}.pg{box-shadow:none;margin:0;max-width:none;padding:0}h2{break-after:avoid}table{break-inside:auto}tr{break-inside:avoid}.viz,h2.viz-h{display:none}}</style></head><body><div class="pg">
 ${head}${svg}<p class="sub">표 한눈에 — 파랑 D, 주황 E, 보라 N, 분홍 NK, 초록 prn, 흰 OFF. 위에서부터 명단 순.</p>
-${sec1}${sec2}${sec3}${sec4}${sec5}${sec6}${sec7}${sec8}${sec9}${sec10}
+${sec1}${sec2}${sec3}${sec4}${sec5}${sec6}${sec7}${sec8}${sec9}${sec10}${sec11}
 <div class="foot">SMC Fair Shift · 화면과 같은 계산 · 실험 기능 — 인쇄하면 PDF로 저장할 수 있다</div></div></body></html>`;
+}
+// 월간 보고 11절의 그리기 코드 — 보고서 파일 안에서만 도는 독립 스크립트(앱 전역을 쓰지 않는다).
+// 여정·비·바람·궤도 셋을 한 덩어리로 두고, 보이는 탭만 애니메이션한다(안 보이는 캔버스까지 돌면 폰이 뜨거워진다).
+function magazineVizScript() {
+  return String.raw`(function(){
+var D=JSON.parse(document.getElementById("vizData").textContent),P=D.staff,nD=D.days.length,nS=P.length,G=P.map(function(s){return D.grid[s.id]});
+var C={D:"#60a5fa",E:"#fb923c",N:"#a78bfa",NK:"#f472b6",OFF:"#475569",prn:"#4ade80","8A":"#cbd5e1","9A":"#cbd5e1","10A":"#cbd5e1","S/":"#2dd4bf"};
+var NAME={D:"낮(D)",E:"저녁(E)",N:"밤(N)",NK:"밤(야간전담)",OFF:"쉼",prn:"prn","S/":"수면오프"};
+var REST={OFF:1,"연차":1,"연1":1,"연2":1,"연3":1,"연4":1,"S/":1,"군":1,"TW":1,"T":1,"휴":1,"병":1,"공":1,"조":1,"경":1,"승":1};
+function work(v){return !!v&&!REST[v]} function isN(v){return v==="N"||v==="NK"}
+function col(v){return C[v]||(work(v)?"#e5e7eb":"#64748b")}
+function rnd(i){var x=Math.sin(i*9301+49297)*233280;return x-Math.floor(x)}
+function fit(cv,ratio,maxH){var w=cv.clientWidth||600,h=Math.max(200,Math.min(maxH||520,Math.round(w*ratio))),dpr=Math.min(2,window.devicePixelRatio||1);if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+"px"}var x=cv.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);return [x,w,h]}
+var active="jour",raf=0;
+// --- 탭
+var tabs=document.querySelectorAll(".viz-tab"),panes=document.querySelectorAll(".viz-pane");
+tabs.forEach(function(b){b.onclick=function(){active=b.dataset.viz;tabs.forEach(function(t){t.classList.toggle("on",t===b)});panes.forEach(function(p){p.classList.toggle("on",p.dataset.viz===active)});wind=null}});
+// --- 1 여정
+var jc=document.getElementById("vzJour"),who=0,jday=0,jpos=0,jplay=false,jlast=0,cardDay=-1;
+var sel=document.getElementById("vzWho");P.forEach(function(s,i){var o=document.createElement("option");o.value=i;o.textContent=s.id+" (Lv"+s.level+(s.nk?", 야간전담":"")+")";sel.appendChild(o)});
+sel.onchange=function(){who=+sel.value;jday=0;jpos=0;cardDay=-1};
+document.getElementById("vzPlay").onclick=function(){jplay=!jplay;this.textContent=jplay?"⏸ 멈춤":"▶ 걷기"};
+document.getElementById("vzNext").onclick=function(){jday=Math.min(nD-1,jday+1);jplay=false};document.getElementById("vzPrev").onclick=function(){jday=Math.max(0,jday-1);jplay=false};
+jc.addEventListener("wheel",function(e){e.preventDefault();jday=Math.max(0,Math.min(nD-1,jday+Math.sign(e.deltaY)));jplay=false},{passive:false});
+document.addEventListener("keydown",function(e){if(active!=="jour")return;if(e.key==="ArrowRight")jday=Math.min(nD-1,jday+1);if(e.key==="ArrowLeft")jday=Math.max(0,jday-1)});
+function sky(v){return v==="D"?["#8ec5ff","#dff0ff"]:v==="E"?["#3b2a5a","#f59e6b"]:isN(v)?["#050816","#1a2050"]:v==="S/"?["#1f2937","#475569"]:work(v)?["#6b8fb3","#d6e6f5"]:["#5b6b84","#c7d2e2"]}
+function why(row,d){var v=row[d],out=[];if(isN(v)){var a=d,b=d;while(a>0&&isN(row[a-1]))a--;while(b<nD-1&&isN(row[b+1]))b++;out.push("밤 블록 "+(b-a+1)+"일("+(a+1)+"~"+(b+1)+"일). 뒤 이틀은 휴식(H2-5).");var up=0;for(var k=0;k<=d;k++)if(isN(row[k]))up++;out.push("이번 달 "+up+"번째 밤.")}
+ else if(work(v)){var p=d,q=d;while(p>0&&work(row[p-1])&&!isN(row[p-1]))p--;while(q<nD-1&&work(row[q+1])&&!isN(row[q+1]))q++;out.push("주간 블록 "+(q-p+1)+"일("+(p+1)+"~"+(q+1)+"일) — 3~4일이 기준(H6-1).");var r=0,m=0;for(var k2=0;k2<nD;k2++){r=work(row[k2])?r+1:0;if(k2===d)m=r}out.push("연속근무 "+m+"일째.")}
+ else{var pn=d>=1&&(isN(row[d-1])||(d>=2&&isN(row[d-2])&&!work(row[d-1])));out.push(pn?"밤 블록 뒤의 휴식(H2-5).":"쉬는 날.")}
+ if(work(v)&&D.days[d].weekend){var w=0;for(var k3=0;k3<=d;k3++)if(work(row[k3])&&D.days[k3].weekend)w++;out.push("주말·공휴일 근무 "+w+"번째.")}return out}
+function drawJour(now){var r=fit(jc,.5,420),x=r[0],w=r[1],h=r[2],row=G[who];if(jplay&&now-jlast>1500){jlast=now;jday=(jday+1)%nD}jpos+=(jday-jpos)*.1;
+ var colW=Math.min(170,w*.3),cx=w*.42,k=Math.max(0,Math.min(nD-1,Math.round(jpos))),s=sky(row[k]),g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,s[0]);g.addColorStop(1,s[1]);x.fillStyle=g;x.fillRect(0,0,w,h);
+ var night=isN(row[k]);for(var i=0;i<60;i++){x.fillStyle="rgba(255,255,255,"+((night?.8:.08)*(.3+.7*rnd(i+9)))+")";x.fillRect(((rnd(i)*w*2-jpos*30)%w+w)%w,rnd(i+1)*h*.5,1.5,1.5)}
+ var ground=h*.72;function hill(px){var t=(px-cx)/colW+jpos;return ground+Math.sin(t*1.7)*10+Math.sin(t*.6)*16}
+ x.fillStyle="rgba(10,14,24,.85)";x.beginPath();x.moveTo(0,h);for(var px=0;px<=w;px+=8)x.lineTo(px,hill(px));x.lineTo(w,h);x.closePath();x.fill();x.textAlign="center";
+ for(var d=0;d<nD;d++){var xx=cx+(d-jpos)*colW;if(xx<-colW||xx>w+colW)continue;var v=row[d],near=Math.max(0,1-Math.abs(d-jpos)),yg=hill(xx),yy=h*.22;
+  if(v==="D"){x.fillStyle="#fde68a";x.shadowBlur=30;x.shadowColor="#fde68a";x.beginPath();x.arc(xx,yy,20,0,7);x.fill();x.shadowBlur=0}
+  else if(v==="E"){x.fillStyle="#fb923c";x.shadowBlur=30;x.shadowColor="#fb923c";x.beginPath();x.arc(xx,yy+48,20,Math.PI,0);x.fill();x.shadowBlur=0}
+  else if(isN(v)){x.fillStyle="#e5e7eb";x.shadowBlur=24;x.shadowColor="#c7d2fe";x.beginPath();x.arc(xx,yy,17,0,7);x.fill();x.fillStyle=sky(v)[0];x.beginPath();x.arc(xx+7,yy-3,15,0,7);x.fill();x.shadowBlur=0}
+  else if(work(v)){x.fillStyle="#fef3c7";x.shadowBlur=16;x.shadowColor="#fde68a";x.beginPath();x.arc(xx,yy+8,14,0,7);x.fill();x.shadowBlur=0}
+  else{x.fillStyle="rgba(255,255,255,.75)";for(var q=0;q<3;q++){x.beginPath();x.arc(xx-14+q*14,yy+6-(q%2)*8,12,0,7);x.fill()}}
+  x.strokeStyle="rgba(255,255,255,"+(.25+.5*near)+")";x.lineWidth=2;x.beginPath();x.moveTo(xx,yg);x.lineTo(xx,yg-32-24*near);x.stroke();
+  x.fillStyle="rgba(255,255,255,"+(.5+.5*near)+")";x.font="300 "+(14+14*near)+"px Georgia,serif";x.fillText(String(d+1),xx,yg-40-24*near);
+  x.fillStyle=col(v);x.font="600 "+(11+3*near)+"px system-ui,sans-serif";x.fillText(NAME[v]||v||"",xx,yg+18);if(D.days[d].weekend){x.fillStyle="rgba(252,165,165,.9)";x.font="10px system-ui";x.fillText("주말",xx,yg+32)}}
+ var gy=hill(cx);x.fillStyle="#fff";x.beginPath();x.arc(cx,gy-22+Math.sin(now/250)*2,6,0,7);x.fill();x.strokeStyle="#fff";x.lineWidth=3;x.beginPath();x.moveTo(cx,gy-16);x.lineTo(cx,gy+1);x.moveTo(cx,gy+1);x.lineTo(cx-6+Math.sin(now/250)*5,gy+13);x.moveTo(cx,gy+1);x.lineTo(cx+6-Math.sin(now/250)*5,gy+13);x.stroke();
+ if(cardDay!==jday){cardDay=jday;var v2=row[jday],ni=row.filter(isN).length,wk=row.filter(function(z,i2){return work(z)&&D.days[i2].weekend}).length,of=row.filter(function(z){return z==="OFF"}).length;
+  document.getElementById("vzCard").innerHTML='<div class="d">'+(jday+1)+'일 <span style="color:'+col(v2)+'">'+(NAME[v2]||v2||"—")+'</span></div><div>'+why(row,jday).join("<br>")+'</div><div class="m">'+P[who].id+' · 이달 밤 '+ni+'회 · 주말 '+wk+'일 · 쉼 '+of+'일</div>'}}
+// --- 2 비 · 바람
+var rc=document.getElementById("vzRain"),sub="rain",wind=null,t0=performance.now();
+document.querySelectorAll(".viz-sub").forEach(function(b){b.onclick=function(){sub=b.dataset.sub;document.querySelectorAll(".viz-sub").forEach(function(t){t.classList.toggle("on",t===b)});wind=null;t0=performance.now()}});
+function noise(a,b,t){return Math.sin(a*1.7+t)*Math.cos(b*1.3-t*.7)+.5*Math.sin(a*3.1-b*2.2+t*1.3)}
+function drawRain(now){var r=fit(rc,.78,720),x=r[0],w=r[1],h=r[2];
+ if(sub==="wind"){if(!wind){wind=[];for(var k=0;k<700;k++)wind.push({x:Math.random()*w,y:Math.random()*h,i:k%nS});x.fillStyle="#05070c";x.fillRect(0,0,w,h)}
+  x.fillStyle="rgba(5,7,12,.06)";x.fillRect(0,0,w,h);var day=Math.floor(now/2200)%nD,t=now/3000;x.lineWidth=1.9;x.lineCap="round";
+  wind.forEach(function(p){var a=noise(p.x/w*4,p.y/h*4,t)*Math.PI*1.5,px=p.x,py=p.y;p.x+=Math.cos(a)*1.6;p.y+=Math.sin(a)*1.6;if(p.x<0||p.x>w||p.y<0||p.y>h){p.x=Math.random()*w;p.y=Math.random()*h;return}var v=G[p.i][day];x.strokeStyle=v?col(v):"rgba(100,116,139,.3)";x.globalAlpha=v==="OFF"?.3:.95;x.beginPath();x.moveTo(px,py);x.lineTo(p.x,p.y);x.stroke();x.globalAlpha=1});
+  x.fillStyle="rgba(255,255,255,.7)";x.font="200 36px Georgia,serif";x.textAlign="right";x.fillText(D.month+"월 "+(day+1)+"일",w-16,h-16);return}
+ x.fillStyle="rgba(5,7,12,.35)";x.fillRect(0,0,w,h);var pad=14,cs=Math.min((w-pad*2)/nD,(h-pad*2)/nS),ox=(w-cs*nD)/2,oy=(h-cs*nS)/2;x.font="700 "+(cs*.72)+"px 'JetBrains Mono',monospace";x.textAlign="center";x.textBaseline="middle";
+ var el=(now-t0)/1000,reveal=Math.min(nD,el*1.6),loopAt=nD/1.6+6;if(el>loopAt)t0=now;var chars="DEN/pDEN";
+ for(var d=0;d<nD;d++){var speed=60+50*rnd(d),head=((now/1000)*speed+rnd(d+50)*600)%(h+300)-150;if(d<reveal-1)continue;for(var k2=0;k2<10;k2++){var y=oy+head-k2*cs;if(y<oy||y>oy+cs*nS)continue;x.fillStyle="rgba(74,222,128,"+(k2?.22-k2*.02:.6)+")";x.fillText(chars[Math.floor(rnd(d*31+k2+Math.floor(now/90))*8)],ox+d*cs+cs/2,y+cs/2)}}
+ for(var i=0;i<nS;i++)for(var d2=0;d2<nD;d2++){var v=G[i][d2];if(!v||d2>reveal)continue;var s=Math.min(1,Math.max(0,(reveal-d2)));var yy=oy+i*cs+cs/2-(1-s)*cs*1.5;x.fillStyle=s<1?"#fff":col(v);x.globalAlpha=v==="OFF"?.3:1;x.shadowBlur=v==="OFF"?0:6;x.shadowColor=col(v);x.fillText(v==="NK"?"K":v==="OFF"?"/":v==="prn"?"p":v[0],ox+d2*cs+cs/2,yy);x.shadowBlur=0;x.globalAlpha=1}
+ x.textBaseline="alphabetic"}
+// --- 3 한 달의 궤도 (지피티 01-04에서 옮겨 옴)
+var oc=document.getElementById("vzOrb");
+function drawOrb(now){var r=fit(oc,.9,620),x=r[0],w=r[1],h=r[2];x.fillStyle="#121629";x.fillRect(0,0,w,h);var cx=w/2,cy=h/2,R=Math.min(w,h)*.43,r0=R*.19,dr=(R-r0)/nS,day=Math.floor(now/900)%nD;
+ for(var i=0;i<nS;i++){var rr=r0+(i+.5)*dr;x.strokeStyle="#666886";x.lineWidth=.5;x.globalAlpha=.2;x.beginPath();x.arc(cx,cy,rr,0,Math.PI*2);x.stroke();x.globalAlpha=1;
+  for(var d=0;d<nD;d++){var v=G[i][d];if(!v)continue;var a=d/nD*Math.PI*2-Math.PI/2+.01,b=(d+1)/nD*Math.PI*2-Math.PI/2-.01;x.strokeStyle=col(v);x.globalAlpha=v==="OFF"?.3:(d<=day?.95:.45);x.lineWidth=dr*.68;x.beginPath();x.arc(cx,cy,rr,a,b);x.stroke();x.globalAlpha=1}}
+ x.fillStyle="#ada9c4";x.font=(w<600?"11px":"12px")+" system-ui";x.textAlign="center";x.textBaseline="middle";for(var d2=0;d2<nD;d2+=(w<600?5:3)){var a2=(d2+.5)/nD*Math.PI*2-Math.PI/2;x.fillText(String(d2+1).padStart(2,"0"),cx+Math.cos(a2)*(R+18),cy+Math.sin(a2)*(R+18))}
+ var ah=(day+.5)/nD*Math.PI*2-Math.PI/2;x.strokeStyle="#eee4c5";x.globalAlpha=.6;x.lineWidth=.9;x.beginPath();x.moveTo(cx+Math.cos(ah)*r0,cy+Math.sin(ah)*r0);x.lineTo(cx+Math.cos(ah)*(R+8),cy+Math.sin(ah)*(R+8));x.stroke();x.globalAlpha=1;
+ x.fillStyle="#eae5f3";x.font="300 "+(w<600?26:30)+"px Georgia,serif";x.fillText(String(day+1),cx,cy-4);x.fillStyle="#ada9c4";x.font="11px system-ui";x.fillText(D.year+"년 "+D.month+"월",cx,cy+18);x.textBaseline="alphabetic"}
+function frame(now){if(active==="jour")drawJour(now);else if(active==="rain")drawRain(now);else drawOrb(now);raf=requestAnimationFrame(frame)}
+requestAnimationFrame(frame);
+})();`;
 }
 function downloadMagazine() {
   if (!ST) return;

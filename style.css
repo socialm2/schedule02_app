@@ -670,10 +670,57 @@ button.big { font-size: 15px; padding: 11px 26px; }
   align-items: center; justify-content: center; padding: 20px;
 }
 .modal-backdrop.show { display: flex; }
-/* 그날 병동(디오라마) — 날짜 머리칸을 누르면 뜬다. 표보다 넓게. */
-.modal.dio-modal { max-width: 940px; }
-.dio-nav { display: flex; gap: 6px; } .dio-nav button { min-width: 36px; }
-.dio-body canvas { display: block; max-width: 100%; border-radius: 8px; }
+/* 그날 병동(디오라마) — 날짜 머리칸을 누르면 뜬다. DOM으로 그려 화면 폭에 맞춰 접힌다. */
+.modal.dio-modal, .modal.jour-modal { max-width: min(96vw, 1040px); }
+.dio-nav { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.dio-nav button { min-width: 36px; font-size: 14px; }
+.dio-body { padding: 14px 16px; }
+.dio-rooms { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.dio-room { border-radius: 14px; padding: 10px 10px 12px; border: 1px solid var(--line); min-width: 0;
+  --tint: var(--code-bg); background: var(--tint); }
+.dio-room.dio-home { --tint: color-mix(in srgb, #9ca3af 14%, var(--card)); }
+.dio-room.dio-D { --tint: color-mix(in srgb, #3b82f6 13%, var(--card)); }
+.dio-room.dio-E { --tint: color-mix(in srgb, #f97316 13%, var(--card)); }
+.dio-room.dio-N { --tint: color-mix(in srgb, #7c3aed 13%, var(--card)); }
+.dio-room.short { outline: 2px solid var(--hard); outline-offset: -2px; }
+.dio-room header { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; font-size: 13px; }
+.dio-room header b { font-size: 13.5px; }
+.dio-icon { font-size: 15px; }
+.dio-sub { color: var(--sub); font-size: 11px; }
+.dio-count { margin-left: auto; font-weight: 700; font-size: 15px; font-family: "JetBrains Mono", monospace; }
+.dio-count small { font-size: 11px; color: var(--sub); font-weight: 500; }
+.dio-count.bad { color: var(--hard); } .dio-count.over { color: var(--warn); }
+.dio-people { display: flex; flex-wrap: wrap; gap: 6px 4px; align-items: flex-end; }
+.dio-person { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 58px;
+  padding: 4px 2px 3px; border: 1px solid transparent; border-radius: 10px; background: transparent; cursor: pointer; color: var(--ink); }
+.dio-person:hover, .dio-person:focus-visible { border-color: var(--accent); background: var(--card); outline: none; }
+.dio-fig { position: relative; display: flex; flex-direction: column; align-items: center; height: 46px; justify-content: flex-end; }
+.dio-head { width: 12px; height: 12px; border-radius: 50%; background: #fde0c8; margin-bottom: 1px; }
+.dio-torso { width: 16px; height: var(--h, 24px); border-radius: 5px; background: var(--c, #9ca3af); }
+.dio-star { position: absolute; top: -2px; right: -10px; font-style: normal; font-size: 11px; color: #f59e0b; line-height: 1; }
+.dio-name { font-size: 11px; font-weight: 600; max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2; }
+.dio-code { font-size: 9.5px; color: var(--sub); line-height: 1.1; }
+.dio-empty { color: var(--sub); font-size: 12px; padding: 6px 2px; }
+.dio-hint { margin: 10px 0 0; }
+@media (max-width: 480px) {
+  .dio-rooms { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .dio-person { width: 50px; } .dio-name { max-width: 48px; font-size: 10.5px; }
+  .modal-backdrop { padding: 10px; }
+}
+/* 여정 — 한 사람의 한 달 */
+.jour-body { padding: 12px 14px; }
+.jour-stage { position: relative; border-radius: 10px; overflow: hidden; background: #0b1020; }
+.jour-stage canvas { display: block; width: 100%; }
+.jour-card { position: absolute; right: 12px; top: 12px; width: min(300px, 46%); background: rgba(10,13,22,.72);
+  backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 10px 12px;
+  color: #eef2f7; font-size: 12px; line-height: 1.55; }
+.jour-day { font-family: Georgia, "Noto Serif KR", serif; font-weight: 300; font-size: 22px; }
+.jour-day small { font-size: 11px; color: #fca5a5; font-family: system-ui, sans-serif; margin-left: 4px; }
+.jour-why { margin-top: 6px; }
+.jour-sum { margin-top: 8px; color: #9aa3b2; font-size: 11px; }
+@media (max-width: 560px) {
+  .jour-card { position: static; width: auto; margin-top: 8px; border-radius: 8px; }
+}
 table.grid th.day-head { cursor: pointer; }
 table.grid th.day-head:hover, table.grid th.day-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .modal {
