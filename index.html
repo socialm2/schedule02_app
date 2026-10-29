@@ -48,7 +48,7 @@
   <!-- .build-time 값은 배포할 때 GitHub Actions가 실제 배포 시각(KST)으로
        바꿔 넣는다(.github/workflows/deploy.yml). 손으로 고칠 필요 없다. -->
   <header>
-    <h1>SMC Fair Shift <span class="version-badge">v0.86</span><span class="build-time">2026-10-29 12:06:09 KST</span></h1>
+    <h1>SMC Fair Shift <span class="version-badge">v0.86</span><span class="build-time">2026-10-29 20:35:01 KST</span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
@@ -99,6 +99,8 @@
                   <select id="f_month"></select>
                 </span>
               </label>
+              <!-- 입력① 파일의 연월과 화면 연월이 다를 때만 보인다 — 만드는 달은 화면 연월이다 -->
+              <div class="wide ym-notice" id="ymNotice" style="display:none"></div>
               <label>월 최대야간 <input type="number" id="f_maxnights" min="0" placeholder="0" style="width:60px"></label>
               <label>연속근무제한 <input type="number" id="f_maxconsecutive" min="3" placeholder="0" style="width:60px"></label>
               <label>야간목표하한 <input type="number" id="f_nightquota_low" min="0" placeholder="0" style="width:60px"></label>

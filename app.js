@@ -247,6 +247,11 @@ let wantedTransferInDates = {};
 let wantedActiveTag = "";
 // 마지막으로 성공한 입력①의 연월 — 화면 연월과 다르면 신청이 전부 다른 달 날짜가 된다.
 let wantedYM = null;     // {year, month} 또는 null
+// 입력①에서 읽은 신청·전입일을 파일의 연월 그대로 둔 원본. 실제로 쓰는 formRequests·
+// wantedTransferInDates는 화면 연월에 맞춰 날짜를 다시 매긴 것이다(아래 rebaseWantedToScreen).
+let wantedRequestsRaw = [];
+let wantedTransferInDatesRaw = {};
+let wantedDropped = [];   // 화면 달에 없는 날짜(예: 31일)라 뺀 신청 ["홍길동 31일 OFF", ...]
 let formRequests = [];   // [{staff_id, date, type, priority}]
 let formCarryover = [];  // [{staff_id, last_shift_type, consecutive_work_days, night_block_remaining_off, trailing_night_count}]
 let formHolidays = [];      // ["YYYY-MM-DD", ...] 공휴일
@@ -620,11 +625,13 @@ function populateYearMonthSelects() {
 populateYearMonthSelects();
 
 function noteYearMonthEdit() {
+  if (wantedYM) rebaseWantedToScreen();
   renderSourceBadges();
   const y = $("#f_year").value, m = $("#f_month").value;
   if (ymMismatch()) {
-    showToast(`연월을 ${y}년 ${m}월로 바꿨습니다 — 입력①은 ${wantedYM.year}년 ${wantedYM.month}월 파일이라 ` +
-              `신청 ${formRequests.length}건이 전부 다른 달 날짜가 됩니다. 이대로는 생성하지 않습니다.`, true);
+    showToast(`연월 → ${y}년 ${m}월: 화면 연월로 만듭니다 — 입력① 파일(${wantedYM.year}년 ${wantedYM.month}월)의 ` +
+              `신청 ${formRequests.length}건은 날짜의 '일'만 보고 ${m}월에 적용합니다` +
+              (wantedDropped.length ? ` (${m}월에 없는 날짜 ${wantedDropped.length}건은 뺌)` : ""));
   } else {
     showToast(`연월 → ${y}년 ${m}월: 화면에서 고른 값이 쓰입니다`);
   }
@@ -974,9 +981,58 @@ function fieldLabel(el) {
   const col = (MIN_STAFF_COLS.find(([c]) => c === m[2]) || [])[1] || m[2];
   return `근무인력 ${col}${m[3] !== undefined ? ` ${DOW_SHORT[Number(m[3])]}요일` : ""} ${m[1]}`;
 }
+function screenYM() {
+  return { year: parseInt($("#f_year").value, 10), month: parseInt($("#f_month").value, 10) };
+}
 function ymMismatch() {
   if (!wantedYM) return false;
-  return wantedYM.year !== parseInt($("#f_year").value, 10) || wantedYM.month !== parseInt($("#f_month").value, 10);
+  const s = screenYM();
+  return wantedYM.year !== s.year || wantedYM.month !== s.month;
+}
+// 입력①의 신청·전입일을 화면 연월에 맞춰 다시 매긴다 — 날짜의 '일'만 살리고 연·월은 화면 것.
+// 화면 달에 없는 날(30일 달의 31일)은 빼고 wantedDropped에 적어 화면이 말하게 한다.
+function rebaseWantedToScreen() {
+  const s = screenYM();
+  const nd = new Date(s.year, s.month, 0).getDate();
+  const ym = `${s.year}-${String(s.month).padStart(2, "0")}`;
+  wantedDropped = [];
+  formRequests = [];
+  for (const r of wantedRequestsRaw) {
+    const day = parseInt(String(r.date).slice(8, 10), 10);
+    if (!(day >= 1 && day <= nd)) { wantedDropped.push(`${r.staff_id} ${day}일 ${shiftText(r.type, true)}`); continue; }
+    formRequests.push({ ...r, date: `${ym}-${String(day).padStart(2, "0")}` });
+  }
+  wantedTransferInDates = {};
+  for (const [sid, ds] of Object.entries(wantedTransferInDatesRaw)) {
+    const day = parseInt(String(ds).slice(8, 10), 10);
+    if (day >= 1 && day <= nd) wantedTransferInDates[sid] = `${ym}-${String(day).padStart(2, "0")}`;
+  }
+}
+function renderYmNotice() {
+  const box = $("#ymNotice");
+  if (!box) return;
+  if (!wantedYM || !ymMismatch()) { box.style.display = "none"; box.innerHTML = ""; return; }
+  const s = screenYM();
+  const dropped = wantedDropped.length
+    ? `<p class="ym-notice-sub">⚠ ${s.month}월에 없는 날짜라 뺀 신청 ${wantedDropped.length}건: ${esc(wantedDropped.slice(0, 6).join(", "))}${wantedDropped.length > 6 ? " 외 " + (wantedDropped.length - 6) + "건" : ""}</p>`
+    : "";
+  box.style.display = "";
+  box.innerHTML =
+    `<div class="ym-notice-head">파일과 화면의 연월이 다릅니다</div>` +
+    `<div class="ym-notice-flow">` +
+      `<span class="ym-chip file">📄 입력① 파일 <b>${wantedYM.year}년 ${wantedYM.month}월</b></span>` +
+      `<span class="ym-arrow">→</span>` +
+      `<span class="ym-chip screen">🖥 화면 연월 <b>${s.year}년 ${s.month}월</b></span>` +
+    `</div>` +
+    `<p class="ym-notice-sub">근무표는 <b>화면 연월 ${s.year}년 ${s.month}월</b>로 만듭니다. 파일의 신청 ${formRequests.length}건은 날짜의 '일'만 보고 ${s.month}월에 적용합니다.</p>` +
+    dropped +
+    `<button type="button" class="small" id="ymAdoptFileBtn">화면 연월을 파일에 맞추기 (${wantedYM.year}년 ${wantedYM.month}월)</button>`;
+  $("#ymAdoptFileBtn").onclick = () => {
+    setFormYearMonth(wantedYM.year, wantedYM.month);
+    rebaseWantedToScreen();
+    renderSourceBadges();
+    showToast(`화면 연월을 입력①과 같은 ${wantedYM.year}년 ${wantedYM.month}월로 맞췄습니다`);
+  };
 }
 function renderSourceBadges() {
   const ym = $("#ymSource");
@@ -984,9 +1040,10 @@ function renderSourceBadges() {
     if (!wantedYM) { ym.className = "src-badge"; ym.textContent = ""; }
     else if (ymMismatch()) {
       ym.className = "src-badge warn show";
-      ym.textContent = `⚠ 화면에서 바꿈 — 입력①은 ${wantedYM.year}년 ${wantedYM.month}월`;
-    } else { ym.className = "src-badge show"; ym.textContent = `입력①(${wantedYM.year}년 ${wantedYM.month}월)에서 반영`; }
+      ym.textContent = `화면 연월로 만듭니다 — 입력① 파일은 ${wantedYM.year}년 ${wantedYM.month}월`;
+    } else { ym.className = "src-badge show"; ym.textContent = `입력①과 같은 달(${wantedYM.year}년 ${wantedYM.month}월)`; }
   }
+  renderYmNotice();
   const head = "이 값들은 파일에서 오지 않습니다 — ";
   const text = {
     sample: head + "지금은 샘플 병동 기본값입니다. 우리 병동 값으로 고쳐 쓰세요.",
@@ -1256,21 +1313,19 @@ $("#wantedInput").onchange = async () => {
   const statusEl = $("#wantedStatus");
   try {
     const data = await apiUpload("/api/upload_wanted", f);
-    // 이 파일의 연월이 곧 '생성할 달'이다 — 파트장이 OCS에서 그 달 날짜를 복붙해
-    // 만들기 때문. 예전엔 화면 설정과 다르면 반려했는데, 그러면 파일을 올리기 전에
-    // 화면 연월부터 맞춰야 해서 순서를 틀리기 쉬웠다. 이제 화면을 파일에 맞춘다.
-    // (일수가 다른 달이면 서버가 먼저 반려한다 — 신청 날짜가 어긋나기 때문.)
-    const selY = parseInt($("#f_year").value, 10);
-    const selM = parseInt($("#f_month").value, 10);
-    const monthChanged = (data.year !== selY || data.month !== selM);
-    if (monthChanged) setFormYearMonth(data.year, data.month);
-    formRequests = data.requests.map(r => ({ ...r, priority: 1 }));  // 이전 신청 목록을 통째로 대체
+    // 만드는 달은 **화면 연월**이다(사용자 결정, 2026-10-29). 파일 제목의 연월은 참고일 뿐이고,
+    // 다르면 화면이 그 사실을 또렷이 알리고 파일의 신청은 날짜(일)만 보고 화면 달에 적용한다.
+    // 예전엔 반대로 화면을 파일에 맞췄는데, 파일 제목이 지난달 것인 채로 복붙한 원티드표가
+    // 올라오면 화면 연월이 소리 없이 지난달로 돌아가 한 달 어긋난 근무표가 나올 수 있었다.
+    wantedRequestsRaw = data.requests.map(r => ({ ...r, priority: 1 }));  // 이전 신청 목록을 통째로 대체
     // 이 파일에 인원 정보(직급·숙련도·가능근무·비고)가 있으면 항상 우선해서 덮어쓴다 —
     // 입력①은 '이번 달 명단(미래)'이라 명단의 최종 기준이다(병동인력표·연간근무표보다 항상 우선).
     // 전입·전입일은 입력①에서만 받을 수도 있다(입력②가 OCS 지난달 근무표면 그 파일에
     // 전입 칸이 아예 없다). 생성할 때 서버로 같이 넘긴다.
     wantedTransferredIn = data.transferred_in || [];
-    wantedTransferInDates = data.transfer_in_dates || {};
+    wantedTransferInDatesRaw = data.transfer_in_dates || {};
+    wantedYM = { year: data.year, month: data.month };
+    rebaseWantedToScreen();
     const staffUpdated = (data.staff || []).length > 0;
     if (staffUpdated) {
       staffOfWanted = data.staff.map(s => ({
@@ -1290,10 +1345,8 @@ $("#wantedInput").onchange = async () => {
       `${data.year}년 ${data.month}월 표에서 신청 ${formRequests.length}건` +
       (staffUpdated ? `, 인원 ${data.staff.length}명 인식` : " 인식") +
       (teamB.length ? `, B팀 ${teamB.length}명 인식` : "") +
-      (unk ? ` (인식 못 한 표시 ${unk}개: ${data.unknown_marks.join(", ")})` : "") +
-      (monthChanged ? ` — 화면의 연월을 ${data.year}년 ${data.month}월로 맞췄습니다.` : "");
+      (unk ? ` (인식 못 한 표시 ${unk}개: ${data.unknown_marks.join(", ")})` : "");
     wantedActiveTag = `${data.year}년 ${data.month}월`;
-    wantedYM = { year: data.year, month: data.month };
     renderSourceBadges();
     $("#wantedClearBtn").style.display = "";
     // 관대하게 읽어준 값이 있으면 무엇을 무엇으로 읽었는지 칸 아래에 남긴다. 토스트는
@@ -1341,11 +1394,14 @@ $("#wantedClearBtn").onclick = () => {
   // 계속 근무표가 만들어진다 — 신청·명단·B팀을 함께 되돌리고, 입력②(없으면 병동인력표)이
   // 준 명단으로 복원한다.
   formRequests = [];
+  wantedRequestsRaw = [];
+  wantedDropped = [];
   staffOfWanted = [];
   wantedActiveTag = "";
   wantedYM = null;
   wantedTransferredIn = [];
   wantedTransferInDates = {};
+  wantedTransferInDatesRaw = {};
   recomputeStaff();
   $("#f_team_b").value = "";
   updateTeamBCount();
@@ -1584,16 +1640,6 @@ async function runGenerate(btn, statusEl) {
   if (unresolved.length) {
     const msg = `${unresolved.join(", ")}에 아직 해결되지 않은 업로드 오류가 있습니다 — 오류 문구를 ` +
       `지우거나(반영 해제) 파일을 고쳐 다시 올린 뒤 생성하세요`;
-    showToast(msg, true);
-    showGenError(statusEl, msg);
-    return;
-  }
-  // 입력①의 달과 화면 연월이 다르면 신청이 전부 다른 달 날짜가 돼 통째로 반려된다 — 뜻이 둘로
-  // 갈리는 입력이라 고쳐 읽지 않고 멈춘다(파일 기준으로 되돌리거나 그 달 파일을 올리거나).
-  if (ymMismatch()) {
-    const msg = `입력①은 ${wantedYM.year}년 ${wantedYM.month}월 파일인데 화면 연월은 ` +
-      `${$("#f_year").value}년 ${$("#f_month").value}월입니다 — 신청 ${formRequests.length}건이 전부 다른 달 날짜가 됩니다. ` +
-      `연월을 ${wantedYM.month}월로 되돌리거나, ${$("#f_month").value}월 입력①을 다시 올리세요.`;
     showToast(msg, true);
     showGenError(statusEl, msg);
     return;

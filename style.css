@@ -571,6 +571,20 @@ details.form-sec > *:not(summary) { padding: 14px; }
 .src-badge.warn { background: var(--warn-soft); color: var(--warn); }
 .src-badge.show { display: inline-block; }
 .src-line { margin: 0 0 10px !important; }
+/* 파일과 화면의 연월이 다를 때 — 만드는 달은 화면 연월이라는 것을 한 장으로 */
+.ym-notice { grid-column: 1 / -1; padding: 12px 14px; border-radius: 10px;
+  background: var(--warn-soft); border: 1px solid rgba(154, 107, 18, .25); border-left: 4px solid var(--warn);
+  font-size: 12.5px; line-height: 1.55; }
+.ym-notice-head { font-weight: 700; color: var(--warn); margin-bottom: 8px; }
+.ym-notice-flow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.ym-chip { display: inline-flex; gap: 6px; align-items: center; padding: 5px 11px; border-radius: 999px;
+  background: var(--paper); border: 1px solid var(--line); color: var(--sub); font-weight: 600; }
+.ym-chip b { color: var(--ink); }
+.ym-chip.screen { border-color: var(--accent); color: var(--accent); }
+.ym-chip.screen b { color: var(--accent); }
+.ym-arrow { color: var(--sub); font-weight: 700; }
+.ym-notice-sub { margin: 0 0 8px; color: var(--ink); }
+.ym-notice button.small { margin-top: 2px; }
 .src-line.screen { color: var(--accent); font-weight: 600; }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px 16px; }
 .form-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--sub); font-weight: 600; }
