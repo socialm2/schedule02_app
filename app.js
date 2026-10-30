@@ -1583,6 +1583,15 @@ let genProgressBudget = GEN_TIME_BUDGET_SEC;
 // 시도 수는 platform.js가 body의 attempts로 읽어 시드 큐로 돌리고, 시도 하나가 끝날 때마다 onProgress로
 // 알려 준다. 재생성·편집 적용도 같은 옵션을 쓴다 — 켜 둔 사람은 그 표를 다시 짤 때도 꼼꼼히를 원한다.
 const THOROUGH_ATTEMPTS = 9;
+// 점수표의 시드 옆 전략 글자 설명 — 정의는 엔진(generator.py _STRATEGY_MIX)에 있고 여기는 사람 말로만.
+const STRATEGY_HELP = {
+  W: "주말 몫 우선 — 주말·공휴일 칸을 채울 때 주말 근무가 적은 사람을 블록 이어가기보다 먼저",
+  S: "고연차 먼저 — 주간 칸을 채울 때 그 조에 숙련도 4 이상이 없으면 고연차를 숙련도·주말·형평성보다 먼저",
+  SW: "고연차 먼저 + 주말 몫 우선",
+  SB: "고연차 먼저 + 블록 이어가기 먼저(1~2일째 주간 블록을 모든 날에서 먼저 이어 짧은 블록을 줄임)",
+  BW: "블록 이어가기 먼저 + 주말 몫 우선",
+  B: "블록 이어가기 먼저 — 1~2일째 주간 블록을 모든 날에서 먼저 이어 짧은 블록을 줄임",
+};
 const GEN_SUB_THOROUGH = `같은 규칙으로 ${THOROUGH_ATTEMPTS}번 만들어 가장 좋은 표를 고릅니다. 보통의 약 3배가 걸리고, ` +
   "인원이 빠듯한 달은 몇 분이 걸릴 수 있습니다. 창을 닫지 말고 기다려주세요.";
 let genDriven = null;   // 꼼꼼히 찾기 진척 {done,total,at,avg} — 게이지를 시간 추정 대신 시도 수로 그린다
@@ -3497,7 +3506,7 @@ function renderSide() {
   let html = "";
   html += `<div class="side-sec"><h3>검증 요약</h3>`;
   if (r.timed_out) {
-    // 시도는 시드 0·1·2로 고정이라 같은 입력이면 같은 결과다. 예전 문구는 "무작위 재시도라
+    // 시도는 시드 0·1·2(전략 -,W,S)로 고정이라 같은 입력이면 같은 결과다. 예전 문구는 "무작위 재시도라
     // 다시 누르면 달라질 수 있다"였는데 사실이 아니어서, 같은 버튼을 계속 누르게 만들었다.
     // 시간 제한에 걸리는 건 기기가 느릴 때라, 빠른 기기에서는 끝까지 시도한다.
     html += `<p class="status-banner warn">⏱ 시간 제한(30초)으로 시도를 다 마치지 못하고
@@ -3664,12 +3673,13 @@ function renderSide() {
         const mark = (a.chosen ? " ✓" : "") + (cur ? " ◀" : "");
         const v = k => (a[k] === undefined ? "–" : a[k]);
         return `<tr class="${cls}" data-seed="${a.seed}" role="button" tabindex="0" ` +
-          `title="${escAttr(cur ? "지금 보는 표" : `시드 ${a.seed}의 표로 바꿔 보기`)}"><td>${a.seed}${mark}</td><td>${a.blocking}</td><td>${a.h15}</td><td>${a.hard}</td>` +
+          `title="${escAttr(cur ? "지금 보는 표" : `시드 ${a.seed}의 표로 바꿔 보기`)}"><td>${a.seed}${a.strategy && a.strategy !== "-" ? `<small class="strat" title="${escAttr(STRATEGY_HELP[a.strategy] || a.strategy)}">${a.strategy}</small>` : ""}${mark}</td><td>${a.blocking}</td><td>${a.h15}</td><td>${a.hard}</td>` +
           `<td>${v("count")}</td><td>${v("weekend")}</td><td>${v("mix")}</td><td>${v("sole")}</td><td>${v("wanted")}</td><td><b>${a.fairness}</b></td></tr>`;
       }).join("") +
       '</table>' +
       (folded ? `<p class="side-note"><button class="linklike attempt-more" data-n="${folded}">${attemptTableExpanded ? "점수 상위 3줄만 보기" : `나머지 ${folded}개 시드 보기`}</button></p>` : "") +
       `<p class="side-note">앞 열부터 견줘 다르면 뒤 열은 보지 않습니다. 공평성 = 2×횟수 + 주말 + 조구성 + 단독 + 미반영(단위: 사람·일, 낮을수록 좋음). ` +
+      `시드 옆 글자는 그 시도의 탐색 전략(W 주말 몫 우선 · S 고연차 먼저 · B 블록 이어가기 먼저 — 글자에 마우스를 올리면 설명). ` +
       `✓ = 점수가 가장 좋은 시드(기본값), ◀ = 지금 보는 표. <b>줄을 누르면 그 시드의 표로 바뀝니다</b>(다운로드도 그 표). ` +
       `${thoroughRun ? `🔍 꼼꼼히 찾기로 시드 ${rows.length}개를 봤습니다${rows.length < THOROUGH_ATTEMPTS ? "(중간에 멈춤)" : ""}. ` : ""}` +
       `${(window.__genMode || "").startsWith("parallel") ? `시드 ${rows.length}개를 여러 코어로 동시에 계산했습니다.` : ""}</p></div>`;

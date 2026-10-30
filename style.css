@@ -778,6 +778,7 @@ details.side-sec[open] summary h3::before { content: "▾ "; }
 .attempt-table tr[data-seed] { cursor: pointer; }
 .attempt-table tr[data-seed]:hover td { background: var(--line); }
 .attempt-table tr.chosen td { font-weight: 600; }
+.attempt-table small.strat { font-size: 10px; color: var(--accent); margin-left: 3px; font-weight: 600; cursor: help; }
 .attempt-table tr.current td { background: var(--ok-soft, #e6f4ea); }
 .side-note { font-size: 11px; color: var(--sub); margin: 6px 0 0; }
 /* 실험 기능 줄 — 패널 맨 아래, 글자 링크처럼 작게 */
