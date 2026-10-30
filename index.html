@@ -44,7 +44,7 @@
     <p id="genOverlayMsg">근무표를 계산하는 중입니다…</p>
     <div class="gen-progress"><div class="gen-progress-fill" id="genProgressFill"></div></div>
     <p class="loading-sub" id="genOverlaySub">보통 몇 초면 끝납니다. 창을 닫지 말고 잠시만 기다려주세요.</p>
-    <!-- 꼼꼼히 찾기(시도 9회)일 때만 보인다 — 몇 번째 시도인지·지금까지 최선·남은 시간. -->
+    <!-- 꼼꼼히 만들기(시도 9회)일 때만 보인다 — 몇 번째 시도인지·지금까지 최선·남은 시간. -->
     <p class="gen-step" id="genOverlayStep" style="display:none"></p>
     <button id="genStopBtn" class="small" style="display:none" title="돌고 있는 시도가 끝나면 그때까지의 점수표로 고릅니다">여기까지 결과로 멈추기</button>
   </div>
@@ -53,7 +53,7 @@
   <!-- .build-time 값은 배포할 때 GitHub Actions가 실제 배포 시각(KST)으로
        바꿔 넣는다(.github/workflows/deploy.yml). 손으로 고칠 필요 없다. -->
   <header>
-    <h1>SMC Fair Shift <span class="version-badge">v0.87</span><span class="build-time">2026-10-30 19:51:46 KST</span></h1>
+    <h1>SMC Fair Shift <span class="version-badge">v0.87</span><span class="build-time">2026-10-30 20:35:23 KST</span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
@@ -200,12 +200,12 @@
               <button id="generateBtn" class="primary big">근무표 생성</button>
               <span id="genStatus" class="hint"></span>
             </div>
-            <!-- 꼼꼼히 찾기 — 같은 규칙으로 3회 대신 9회 찾아 점수표로 고른다. 기준선 201개 달 실측에서
+            <!-- 꼼꼼히 만들기 — 같은 규칙으로 3회 대신 9회 찾아 점수표로 고른다. 기준선 201개 달 실측에서
                  4곳 중 3곳이 더 좋은 표를 얻었고, 시간은 약 3배다. 재생성·편집 적용에도 같이 적용된다. -->
-            <label class="thorough-opt" title="같은 규칙으로 3회 대신 9회 만들어 점수표로 고릅니다. 운영 필수·숙련도 위반이 더 줄어드는 달이 많지만 시간이 약 3배 걸립니다(인원이 빠듯한 달은 몇 분). 재생성·편집 적용에도 같이 적용됩니다.">
+            <label class="thorough-opt" title="평소에는 근무표를 3개 만들어 가장 좋은 것을 고릅니다. 켜면 9개를 만들어 고릅니다 — 위반이 더 줄어드는 달이 많지만 시간이 약 3배 걸립니다(인원이 빠듯한 달은 몇 분). 재생성·편집 적용에도 같이 적용됩니다.">
               <input type="checkbox" id="thoroughChk">
-              <span>🔍 꼼꼼히 찾기</span>
-              <span class="hint">— 9회 시도, 시간 약 3배. 위반이 남는 달에 켜 보세요</span>
+              <span>🔍 꼼꼼히 만들기</span>
+              <span class="hint">— 평소 3개 만들어 고르는 것을 9개로. 시간 약 3배, 위반이 남는 달에 켜 보세요</span>
             </label>
           </div>
         </div>

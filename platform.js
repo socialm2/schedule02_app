@@ -270,8 +270,8 @@ async function generateParallel(path, opts) {
   return callWorker("/api/generate_seed", { body: JSON.stringify({ seed: pick.seed }) }).then(r => r.raw);
 }
 
-// ================================================================ 꼼꼼히 찾기 (시도 N회)
-// 화면의 '꼼꼼히 찾기'는 시도 수(attempts)를 9로 보낸다. 기준선 201개 실측(docs/report_v0.86/bench/
+// ================================================================ 꼼꼼히 만들기 (시도 N회)
+// 화면의 '꼼꼼히 만들기'는 시도 수(attempts)를 9로 보낸다. 기준선 201개 실측(docs/report_v0.86/bench/
 // baseline_seeds12_261030.json): 12개 중 최선은 3개 중 최선보다 154개 달에서 더 좋았고(운영 필수↓ 9,
 // 숙련도↓ 62, 전체↓ 80), 그 개선의 대부분이 6~9개째에서 나온다. 대신 시간이 3배라, 기본은 3 그대로다.
 //
@@ -363,7 +363,7 @@ async function api(path, opts) {
         raw = await generateDriven(path, attempts, onProgress);
       } catch (e) {
         // 도우미 중단 등 — 주 Worker 혼자 N회를 차례로 돈다(같은 시드 집합이라 같은 표, 느릴 뿐).
-        console.warn("꼼꼼히 찾기(분산) 실패 — 주 Worker에서 차례로 다시 계산합니다", e);
+        console.warn("꼼꼼히 만들기(분산) 실패 — 주 Worker에서 차례로 다시 계산합니다", e);
         window.__genMode = `sequential:thorough${attempts}:fallback`;
         const body = JSON.stringify({ attempts });
         raw = (await callWorker(e && e.stateMade ? "/api/generate_seed" : path, { body })).raw;

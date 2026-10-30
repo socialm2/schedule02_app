@@ -519,7 +519,7 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 나머지를 다시 배정) 두 갈래가 뜹니다.</li>
 <li><b>시도 점수표</b> — 같은 입력을 시드 셋(찾는 규칙이 조금씩 다름: 시드 옆 글자 W 주말 몫 우선·S 고연차 먼저)으로
 돌려 운영 필수 → 숙련도 → 공평성 → 전체 위반 순으로 견줘 가장 좋은 표를 보여줍니다. 점수표 줄을 누르면 그 시드의 표로
-바뀝니다(다운로드도 그 표). <b>🔍 꼼꼼히 찾기</b>를 켜고 생성하면 3회 대신 9회를 찾아 고릅니다 — 위반이 남는 달에
+바뀝니다(다운로드도 그 표). <b>🔍 꼼꼼히 만들기</b>를 켜고 생성하면 평소 3개 만들어 고르던 것을 9개 만들어 고릅니다 — 위반이 남는 달에
 켜 보세요(시간 약 3배, 진행 중 '여기까지 결과로 멈추기' 가능).</li>
 <li><b>검증 요약의 항목을 누르면</b> 그 칸(사람이 없는 항목은 그날 열)으로 이동해 잠깐 깜빡입니다. 수정 대기 칸이 있는
 동안 요약 숫자는 <b>확정표 기준</b>이고, '재생성 적용' 뒤 다시 계산됩니다.</li>
@@ -1584,7 +1584,7 @@ let genProgressTimer = null;
 let genProgressT0 = 0;
 let genProgressBudget = GEN_TIME_BUDGET_SEC;
 
-// ---------------------------------------------------------------- 꼼꼼히 찾기 (시도 9회)
+// ---------------------------------------------------------------- 꼼꼼히 만들기 (시도 9회)
 // 같은 규칙으로 3회 대신 9회 만들어 점수표로 고른다. 기준선 201개 달 실측(docs/report_v0.86/bench/
 // baseline_seeds12_261030.json): 12회 중 최선이 3회 중 최선보다 154개 달에서 좋았고, 그 개선의 대부분이
 // 6~9회째에서 나와 9로 정했다(12회는 83→82로 거의 평평한데 시간은 1/3 더). 기본 3회는 그대로다 —
@@ -1601,9 +1601,9 @@ const STRATEGY_HELP = {
   BW: "블록 이어가기 먼저 + 주말 몫 우선",
   B: "블록 이어가기 먼저 — 1~2일째 주간 블록을 모든 날에서 먼저 이어 짧은 블록을 줄임",
 };
-const GEN_SUB_THOROUGH = `같은 규칙으로 ${THOROUGH_ATTEMPTS}번 만들어 가장 좋은 표를 고릅니다. 보통의 약 3배가 걸리고, ` +
+const GEN_SUB_THOROUGH = `평소에는 근무표 3개를 만들어 고르는데, 지금은 ${THOROUGH_ATTEMPTS}개를 만들어 고릅니다. 보통의 약 3배가 걸리고, ` +
   "인원이 빠듯한 달은 몇 분이 걸릴 수 있습니다. 창을 닫지 말고 기다려주세요.";
-let genDriven = null;   // 꼼꼼히 찾기 진척 {done,total,at,avg} — 게이지를 시간 추정 대신 시도 수로 그린다
+let genDriven = null;   // 꼼꼼히 만들기 진척 {done,total,at,avg} — 게이지를 시간 추정 대신 시도 수로 그린다
 let genThorough = false;
 function thoroughOn() { const c = $("#thoroughChk"); return !!(c && c.checked); }
 function genOpts() {
@@ -1627,9 +1627,9 @@ function onGenProgress(p) {
   if (!step) return;
   genDriven = { done: p.done, total: p.total, at: Date.now(), avg: p.done ? p.elapsed / p.done : null };
   const best = p.stats.length ? p.stats.reduce((a, b) => (attemptBetter(b, a) ? b : a)) : null;
-  let txt = `시도 ${p.done}/${p.total}`;
+  let txt = `근무표 ${p.done}/${p.total}개`;
   if (p.workers > 1) txt += ` (${p.workers}개 동시)`;
-  if (!p.done) txt += " — 첫 시도 계산 중…";
+  if (!p.done) txt += " — 첫 근무표 만드는 중…";
   if (best) txt += ` · 지금까지 최선: 운영 필수 ${best.blocking} · 숙련도 ${best.h15} · 전체 ${best.hard}`;
   if (p.stopping) txt += " · 돌고 있는 시도가 끝나면 멈춥니다";
   else if (p.done && p.done < p.total) txt += ` · 약 ${fmtSec((p.total - p.done) * (p.elapsed / p.done))} 남음`;
@@ -1715,7 +1715,7 @@ function stopGenRain() {
   genRainRAF = genRainTimer = null;
 }
 
-// thorough: 생성·재생성·편집 적용에서 꼼꼼히 찾기가 켜져 있을 때 — 진척 줄과 멈추기 단추를 보인다.
+// thorough: 생성·재생성·편집 적용에서 꼼꼼히 만들기가 켜져 있을 때 — 진척 줄과 멈추기 단추를 보인다.
 // 다른 오버레이(시드 바꾸기·보고서)는 넘기지 않으므로 숨긴다.
 function showGenOverlay(msg, thorough, rain) {
   $("#genOverlayMsg").textContent = msg;
@@ -1726,7 +1726,7 @@ function showGenOverlay(msg, thorough, rain) {
   genThorough = !!thorough;
   genDriven = null;
   const step = $("#genOverlayStep"), stopBtn = $("#genStopBtn");
-  if (step) { step.style.display = thorough ? "" : "none"; step.textContent = thorough ? `시도 0/${THOROUGH_ATTEMPTS} — 준비 중…` : ""; }
+  if (step) { step.style.display = thorough ? "" : "none"; step.textContent = thorough ? `근무표 0/${THOROUGH_ATTEMPTS}개 — 준비 중…` : ""; }
   if (stopBtn) { stopBtn.style.display = thorough ? "" : "none"; stopBtn.disabled = false; stopBtn.textContent = "여기까지 결과로 멈추기"; }
   $("#genOverlay").style.display = "";
   const fill = $("#genProgressFill");
@@ -3817,7 +3817,7 @@ function renderSide() {
   // (운영 필수 → 숙련도 → 공평성 → 전체 하드, 2026-10-30 결정). 공평성은 주말·야간·D/E·원티드 미반영의 합(사람·일 수).
   if (ST.attempt_table && ST.attempt_table.length > 0) {
     const rows = ST.attempt_table;
-    // 꼼꼼히 찾기(9회)면 줄이 아홉이라 옆 칸이 길어진다 — 점수 상위 3줄(+지금 보는 표)만 펴고 나머지는 접는다.
+    // 꼼꼼히 만들기(9회)면 줄이 아홉이라 옆 칸이 길어진다 — 점수 상위 3줄(+지금 보는 표)만 펴고 나머지는 접는다.
     const ranked = [...rows].sort((a, b) => (attemptBetter(a, b) ? -1 : attemptBetter(b, a) ? 1 : 0));
     const shown = new Set(ranked.slice(0, 3).map(a => a.seed));
     shown.add(ST.current_seed);
@@ -3846,7 +3846,7 @@ function renderSide() {
       `<p class="side-note">앞 열부터 견줘 다르면 뒤 열은 보지 않습니다 — 운영 필수 → 숙련도 → 공평성 → 전체(노랑 포함). 공평성 = 2×횟수 + 주말 + 조구성 + 단독 + 미반영(단위: 사람·일, 낮을수록 좋음), 뒤 다섯 열이 그 구성. ` +
       `시드 옆 글자는 그 시도의 탐색 전략(W 주말 몫 우선 · S 고연차 먼저 · B 블록 이어가기 먼저 — 글자에 마우스를 올리면 설명). ` +
       `✓ = 점수가 가장 좋은 시드(기본값), ◀ = 지금 보는 표. <b>줄을 누르면 그 시드의 표로 바뀝니다</b>(다운로드도 그 표). ` +
-      `${thoroughRun ? `🔍 꼼꼼히 찾기로 시드 ${rows.length}개를 봤습니다${rows.length < THOROUGH_ATTEMPTS ? "(중간에 멈춤)" : ""}. ` : ""}` +
+      `${thoroughRun ? `🔍 꼼꼼히 만들기로 근무표 ${rows.length}개를 만들어 골랐습니다${rows.length < THOROUGH_ATTEMPTS ? "(중간에 멈춤)" : ""}. ` : ""}` +
       `${(window.__genMode || "").startsWith("parallel") ? `시드 ${rows.length}개를 여러 코어로 동시에 계산했습니다.` : ""}</p></div>`;
   }
 
