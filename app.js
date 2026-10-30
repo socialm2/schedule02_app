@@ -518,7 +518,7 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 올린 직후에만 <b>① 즉시 다운로드</b>(고친 그대로)와 <b>② 재생성 후 다운로드</b>(고친 칸은 두고
 나머지를 다시 배정) 두 갈래가 뜹니다.</li>
 <li><b>시도 점수표</b> — 같은 입력을 시드 셋(찾는 규칙이 조금씩 다름: 시드 옆 글자 W 주말 몫 우선·S 고연차 먼저)으로
-돌려 운영 필수 → 숙련도 → 전체 위반 → 공평성 순으로 견줘 가장 좋은 표를 보여줍니다. 점수표 줄을 누르면 그 시드의 표로
+돌려 운영 필수 → 숙련도 → 공평성 → 전체 위반 순으로 견줘 가장 좋은 표를 보여줍니다. 점수표 줄을 누르면 그 시드의 표로
 바뀝니다(다운로드도 그 표). <b>🔍 꼼꼼히 찾기</b>를 켜고 생성하면 3회 대신 9회를 찾아 고릅니다 — 위반이 남는 달에
 켜 보세요(시간 약 3배, 진행 중 '여기까지 결과로 멈추기' 가능).</li>
 <li><b>검증 요약의 항목을 누르면</b> 그 칸(사람이 없는 항목은 그날 열)으로 이동해 잠깐 깜빡입니다. 수정 대기 칸이 있는
@@ -1610,10 +1610,10 @@ function genOpts() {
   if (!thoroughOn()) return { method: "POST" };
   return { method: "POST", body: JSON.stringify({ attempts: THOROUGH_ATTEMPTS }), onProgress: onGenProgress };
 }
-// attempt_key와 같은 순서(운영 필수 → 숙련도 → 전체 → 공평성 → 앞 시드). 화면 표시(지금까지 최선·점수표
+// attempt_key와 같은 순서(운영 필수 → 숙련도 → 공평성 → 전체 → 앞 시드, 2026-10-30). 화면 표시(지금까지 최선·점수표
 // 접기)에만 쓴다 — 최종 선택은 엔진(choose_attempt) 한 벌이다.
 function attemptBetter(a, b) {
-  const key = x => [x.blocking, x.h15, x.hard, Math.round((x.fairness || 0) * 100), x.seed];
+  const key = x => [x.blocking, x.h15, Math.round((x.fairness || 0) * 100), x.hard, x.seed];
   const ka = key(a), kb = key(b);
   for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return ka[i] < kb[i];
   return false;
@@ -3172,7 +3172,7 @@ function magazineHtml(trace) {
   const endN = people.filter(s => row(s)[nd - 1] === "N" || row(s)[nd - 1] === "NK").map(s => { let k = nd - 1; while (k > 0 && (row(s)[k - 1] === "N" || row(s)[k - 1] === "NK")) k--; return `${esc(s.id)}(${nd - k}일째)`; });
   const sec8 = `<h2>8. 야간</h2><ul><li>블록 길이 분포: ${hist(r.night_block_hist, "일")}</li><li>블록 간격 분포: ${hist(r.night_gap_hist, "일")} (기준 7일)</li><li>월말 밤으로 끝나는 사람(다음 달 1일로 이어짐): ${endN.length ? endN.join(", ") : "없음"}</li><li>야간전담: ${people.filter(s => s.is_nk).map(s => `${esc(s.id)} ${stats.find(x => x.s === s).b.nights}회`).join(", ") || "없음"}</li></ul>`;
   // --- 9 시도 점수표
-  const sec9 = att.length ? `<h2>9. 시도 점수표</h2><table class="t small"><tr><th>시드</th><th>운영필수</th><th>숙련도</th><th>전체 하드</th><th>횟수</th><th>주말</th><th>조구성</th><th>단독</th><th>미반영</th><th>공평성</th></tr>${att.map(a => `<tr${a.chosen ? ' class="chosen"' : ""}>${td(`${a.seed}${a.chosen ? " ✓" : ""}`)}${td(a.blocking)}${td(a.h15)}${td(a.hard)}${td(a.count ?? "–")}${td(a.weekend ?? "–")}${td(a.mix ?? "–")}${td(a.sole ?? "–")}${td(a.wanted ?? "–")}${td(`<b>${a.fairness}</b>`)}</tr>`).join("")}</table><p class="sub">앞 열부터 견줘 다르면 뒤 열은 보지 않는다. 공평성 = 2×횟수 + 주말 + 조구성 + 단독 + 미반영(낮을수록 고름).</p>` : "";
+  const sec9 = att.length ? `<h2>9. 시도 점수표</h2><table class="t small"><tr><th>시드</th><th>운영필수</th><th>숙련도</th><th>공평성</th><th>전체 하드</th><th>횟수</th><th>주말</th><th>조구성</th><th>단독</th><th>미반영</th></tr>${att.map(a => `<tr${a.chosen ? ' class="chosen"' : ""}>${td(`${a.seed}${a.chosen ? " ✓" : ""}`)}${td(a.blocking)}${td(a.h15)}${td(`<b>${a.fairness}</b>`)}${td(a.hard)}${td(a.count ?? "–")}${td(a.weekend ?? "–")}${td(a.mix ?? "–")}${td(a.sole ?? "–")}${td(a.wanted ?? "–")}</tr>`).join("")}</table><p class="sub">앞 열부터 견줘 다르면 뒤 열은 보지 않는다(운영 필수 → 숙련도 → 공평성 → 전체 하드). 공평성 = 2×횟수 + 주말 + 조구성 + 단독 + 미반영(낮을수록 고름) — 뒤 다섯 열이 그 구성이다.</p>` : "";
   // --- 10 처리 기록
   const logs = (r.logs || []).filter(l => /\[수리\]|\[균등\]|\[보완\]|\[H2-9\]|\[H5-2\]|\[H1-1\]|\[전입\]/.test(l)).slice(0, 25);
   const sec10 = `<h2>10. 처리 기록(발췌)</h2>${logs.length ? `<pre class="log">${logs.map(esc).join("\n")}</pre>` : "<p>수리·균등 기록 없음.</p>"}<p class="sub">전체 ${(r.logs || []).length}건은 화면 결과창 '처리 로그'에.</p>`;
@@ -3814,7 +3814,7 @@ function renderSide() {
   html += renderBurdenSummary();
 
   // 시도 점수표 — 시드마다 어떤 숫자로 견줘 어느 것을 골랐는지. 앞 열이 다르면 뒤 열은 보지 않는다
-  // (운영 필수 → 숙련도 → 전체 하드 → 공평성). 공평성은 주말·야간·D/E·원티드 미반영의 합(사람·일 수).
+  // (운영 필수 → 숙련도 → 공평성 → 전체 하드, 2026-10-30 결정). 공평성은 주말·야간·D/E·원티드 미반영의 합(사람·일 수).
   if (ST.attempt_table && ST.attempt_table.length > 0) {
     const rows = ST.attempt_table;
     // 꼼꼼히 찾기(9회)면 줄이 아홉이라 옆 칸이 길어진다 — 점수 상위 3줄(+지금 보는 표)만 펴고 나머지는 접는다.
@@ -3826,24 +3826,24 @@ function renderSide() {
     html += `<div class="side-sec"><h3>시도 점수표 <span class="count-badge">시드 ${rows.length}개</span>` +
       `<span class="tap-hint">줄을 누르면 그 시드의 표로 바뀝니다(다운로드도 그 표)</span></h3>` +
       `<table class="mini-table attempt-table${attemptTableExpanded ? " expanded" : ""}"><tr><th>시드</th><th title="최소인력·지정·연속근무 등 그날 병동이 못 돌아가는 필수 위반">운영필수</th>` +
-      '<th title="조에 숙련도 4 이상이 없는 횟수(H1-5)">숙련도</th><th title="최선노력 규칙까지 포함한 전체 하드 위반">전체</th>' +
+      '<th title="조에 숙련도 4 이상이 없는 횟수(H1-5)">숙련도</th><th title="2×횟수+주말+조구성+단독+미반영 — 전체 하드보다 먼저 본다">공평성</th><th title="최선노력 규칙까지 포함한 전체 하드 위반">전체</th>' +
       '<th title="같은 조건끼리 D·E·N 횟수가 가능일 비례 목표에서 벗어난 날수의 합(×2로 가장 무겁게)">횟수</th>' +
       '<th title="같은 조건끼리 주말 근무가 평균에서 벗어난 날수">주말</th>' +
       '<th title="날짜·조마다 레벨 띠(1-2·3·4-5) 구성이 병동 비율에서 벗어난 사람 수의 합">조구성</th>' +
       '<th title="혼자 Lv4+인 조에 선 횟수가 고연차 평균에서 벗어난 횟수의 합">단독</th>' +
-      '<th title="반려된 원티드 신청 건수">미반영</th><th title="2×횟수+주말+조구성+단독+미반영">공평성</th></tr>' +
+      '<th title="반려된 원티드 신청 건수">미반영</th></tr>' +
       rows.map(a => {
         const cur = a.seed === ST.current_seed;
         const cls = (a.chosen ? "chosen " : "") + (cur ? "current " : "") + (shown.has(a.seed) ? "" : "attempt-fold");
         const mark = (a.chosen ? " ✓" : "") + (cur ? " ◀" : "");
         const v = k => (a[k] === undefined ? "–" : a[k]);
         return `<tr class="${cls}" data-seed="${a.seed}" role="button" tabindex="0" ` +
-          `title="${escAttr(cur ? "지금 보는 표" : `시드 ${a.seed}의 표로 바꿔 보기`)}"><td>${a.seed}${a.strategy && a.strategy !== "-" ? `<small class="strat" title="${escAttr(STRATEGY_HELP[a.strategy] || a.strategy)}">${a.strategy}</small>` : ""}${mark}</td><td>${a.blocking}</td><td>${a.h15}</td><td>${a.hard}</td>` +
-          `<td>${v("count")}</td><td>${v("weekend")}</td><td>${v("mix")}</td><td>${v("sole")}</td><td>${v("wanted")}</td><td><b>${a.fairness}</b></td></tr>`;
+          `title="${escAttr(cur ? "지금 보는 표" : `시드 ${a.seed}의 표로 바꿔 보기`)}"><td>${a.seed}${a.strategy && a.strategy !== "-" ? `<small class="strat" title="${escAttr(STRATEGY_HELP[a.strategy] || a.strategy)}">${a.strategy}</small>` : ""}${mark}</td><td>${a.blocking}</td><td>${a.h15}</td><td><b>${a.fairness}</b></td><td>${a.hard}</td>` +
+          `<td>${v("count")}</td><td>${v("weekend")}</td><td>${v("mix")}</td><td>${v("sole")}</td><td>${v("wanted")}</td></tr>`;
       }).join("") +
       '</table>' +
       (folded ? `<p class="side-note"><button class="linklike attempt-more" data-n="${folded}">${attemptTableExpanded ? "점수 상위 3줄만 보기" : `나머지 ${folded}개 시드 보기`}</button></p>` : "") +
-      `<p class="side-note">앞 열부터 견줘 다르면 뒤 열은 보지 않습니다. 공평성 = 2×횟수 + 주말 + 조구성 + 단독 + 미반영(단위: 사람·일, 낮을수록 좋음). ` +
+      `<p class="side-note">앞 열부터 견줘 다르면 뒤 열은 보지 않습니다 — 운영 필수 → 숙련도 → 공평성 → 전체(노랑 포함). 공평성 = 2×횟수 + 주말 + 조구성 + 단독 + 미반영(단위: 사람·일, 낮을수록 좋음), 뒤 다섯 열이 그 구성. ` +
       `시드 옆 글자는 그 시도의 탐색 전략(W 주말 몫 우선 · S 고연차 먼저 · B 블록 이어가기 먼저 — 글자에 마우스를 올리면 설명). ` +
       `✓ = 점수가 가장 좋은 시드(기본값), ◀ = 지금 보는 표. <b>줄을 누르면 그 시드의 표로 바뀝니다</b>(다운로드도 그 표). ` +
       `${thoroughRun ? `🔍 꼼꼼히 찾기로 시드 ${rows.length}개를 봤습니다${rows.length < THOROUGH_ATTEMPTS ? "(중간에 멈춤)" : ""}. ` : ""}` +
