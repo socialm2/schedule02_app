@@ -663,10 +663,12 @@ button.small { font-size: 12px; padding: 5px 11px; margin-top: 6px; }
    끝까지 꽉 차게 한다(비어 있어도 gap 12px이 남아 오른쪽이 비어 보였다). */
 .generate-row > .hint:empty { display: none; }
 /* 꼼꼼히 찾기 토글 — 생성 버튼 바로 아래, 한 줄. 폰에서는 설명이 다음 줄로 내려간다. */
-.thorough-opt { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 8px; font-size: 13px; cursor: pointer; }
-.thorough-opt input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
-.thorough-opt .hint { font-size: 12px; }
-.thorough-opt:has(input:checked) > span:first-of-type { color: var(--accent); font-weight: 600; }
+/* 체크박스·제목 한 줄, 설명은 제목 아래 같은 들여쓰기 — 가로 모드에서 설명이 제목 옆에 붙어 줄이 어긋나던 것 */
+.thorough-opt { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; row-gap: 2px; align-items: center; margin-top: 10px; font-size: 13px; cursor: pointer; }
+.thorough-opt input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); grid-row: 1; }
+.thorough-opt .thorough-title { grid-column: 2; grid-row: 1; }
+.thorough-opt .thorough-hint { grid-column: 2; grid-row: 2; font-size: 12px; line-height: 1.45; }
+.thorough-opt:has(input:checked) .thorough-title { color: var(--accent); font-weight: 600; }
 /* 생성 중 비 캔버스 — 상자 폭에 맞추고, 깜빡임을 끄는 사람에게는 정지 화면만 */
 .gen-rain { display: block; width: 100%; height: 160px; border-radius: 10px; background: #0b0f19; margin: 0 0 12px; }
 #genOverlay .loading-box { max-width: 380px; width: calc(100vw - 32px); }
