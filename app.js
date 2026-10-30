@@ -517,6 +517,15 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 행을 지우거나 더하지 말고 <b>근무 칸만</b> 고쳐주세요 — 다른 달·다른 명단 파일은 반려됩니다.
 올린 직후에만 <b>① 즉시 다운로드</b>(고친 그대로)와 <b>② 재생성 후 다운로드</b>(고친 칸은 두고
 나머지를 다시 배정) 두 갈래가 뜹니다.</li>
+<li><b>시도 점수표</b> — 같은 입력을 시드 셋(찾는 규칙이 조금씩 다름: 시드 옆 글자 W 주말 몫 우선·S 고연차 먼저)으로
+돌려 운영 필수 → 숙련도 → 전체 위반 → 공평성 순으로 견줘 가장 좋은 표를 보여줍니다. 점수표 줄을 누르면 그 시드의 표로
+바뀝니다(다운로드도 그 표). <b>🔍 꼼꼼히 찾기</b>를 켜고 생성하면 3회 대신 9회를 찾아 고릅니다 — 위반이 남는 달에
+켜 보세요(시간 약 3배, 진행 중 '여기까지 결과로 멈추기' 가능).</li>
+<li><b>검증 요약의 항목을 누르면</b> 그 칸(사람이 없는 항목은 그날 열)으로 이동해 잠깐 깜빡입니다. 수정 대기 칸이 있는
+동안 요약 숫자는 <b>확정표 기준</b>이고, '재생성 적용' 뒤 다시 계산됩니다.</li>
+<li><b>날짜 머리칸을 누르면</b> 그날 병동(누가 어디서 일하는지)이 뜨고, 거기서 이름을 누르면 그 사람의 한 달 여정이 뜹니다.
+패널 맨 아래 <b>월간 근무 보고(HTML) 받기</b>는 첫 장 요약(확인할 항목·부담 분포)과 검증·일별 인원·원티드·점수표·시각화를
+한 파일로 묶어 줍니다 — 열어서 인쇄하면 PDF.</li>
 <li><b>D·E 배분</b> — D와 E는 사람마다 비슷한 비율로 나뉩니다(한 사람은 D만, 다른 사람은 E만 서지
 않게). 생성 마지막에 같은 날 D인 사람과 E인 사람을 맞바꿔 맞추므로 그날 인원·근무일·휴무는 그대로입니다.
 <b>원티드로 신청한 칸과 직접 고친(고정) 칸은 건드리지 않아</b>, D나 E를 많이 신청한 분은 그만큼 치우칠 수 있습니다.</li>
@@ -3194,7 +3203,12 @@ function magazineHtml(trace) {
     .replace(/<h2>(\d+)\. /g, '<h2 id="s$1">$1. ');
   const tocItems = [...body.matchAll(/<h2 id="s(\d+)">\d+\. ([^<]+)/g)].map(m => `<a href="#s${m[1]}"><b>${m[1]}</b> ${m[2].trim()}</a>`);
   tocItems.push(`<a href="#viz-jour" class="vz"><b>▶</b> 여정</a>`, `<a href="#viz-rain" class="vz"><b>▶</b> 비</a>`, `<a href="#viz-orb" class="vz"><b>▶</b> 궤도</a>`);
-  const toc = `<nav class="toc">${tocItems.join("")}</nav>`;
+  // 목차는 sticky로 고정한다. sticky를 못 하는 브라우저(일부 인앱 브라우저)를 위해 스크롤로 자리를
+  // 지나면 fixed로 바꾸는 보강을 둔다 — 자리표시자가 높이를 지켜 본문이 튀지 않는다.
+  const toc = `<div class="toc-ph" id="tocPh"></div><nav class="toc" id="toc">${tocItems.join("")}</nav>
+<script>(function(){var t=document.getElementById("toc"),ph=document.getElementById("tocPh");if(!t)return;var top0=null;
+function chk(){var r=ph.getBoundingClientRect();if(top0===null){top0=t.offsetTop}var st=window.pageYOffset||document.documentElement.scrollTop;var on=st>top0;if(on&&!t.classList.contains("pinned")){ph.style.height=t.offsetHeight+"px";ph.classList.add("on");t.classList.add("pinned")}else if(!on&&t.classList.contains("pinned")){t.classList.remove("pinned");ph.classList.remove("on")}}
+var sup=(window.CSS&&CSS.supports&&(CSS.supports("position","sticky")||CSS.supports("position","-webkit-sticky")));if(!sup){window.addEventListener("scroll",chk,{passive:true});chk()}})();</script>`;
   // --- 표 한눈에(모자이크)
   return `<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${wardLabel}${ST.year}년 ${ST.month}월 월간 근무 보고</title>
@@ -3214,7 +3228,7 @@ ul{margin:6px 0;padding-left:18px}li{margin:3px 0}pre.log{font-size:11px;backgro
 .brief .dist{font-size:12px}.brief .dist .row{display:grid;grid-template-columns:34px 1fr 40px;gap:6px;align-items:center;margin:3px 0}.brief .dist .bar{height:12px;background:#e5e7eb;border-radius:999px;overflow:hidden}.brief .dist .bar i{display:block;height:100%;background:#0f6e6b;border-radius:999px}.brief .dist .lab{color:#374151}.brief .dist .n{text-align:right;color:#374151}
 .brief .one{margin:10px 0 0;padding:10px 12px;background:#ecfdf5;border-radius:8px;font-size:13px}.brief .one .sub{display:block;margin-top:4px}
 @media (max-width:640px){.pg{padding:16px 14px;margin:0}.nums,.brief .kp{grid-template-columns:repeat(2,1fr)}.brief .two{grid-template-columns:1fr}h1{font-size:26px}table.t.tiny{font-size:10px}}
-.toc{position:sticky;top:0;z-index:5;background:#fff;display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;white-space:nowrap;padding:8px 0;margin:8px 0 6px;border-bottom:1px solid #e5e7eb;scrollbar-width:thin}.toc a{flex:0 0 auto;text-decoration:none;color:#111827;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:999px;padding:4px 11px;font-size:12px}.toc a b{color:#0f6e6b;margin-right:3px}.toc a:hover{border-color:#0f6e6b;color:#0f6e6b}.toc a.vz{background:#0b1020;color:#fff;border-color:#0b1020}.toc a.vz b{color:#4ade80}h2,.vizb{scroll-margin-top:56px}
+.toc{position:-webkit-sticky;position:sticky;top:0;z-index:5;background:#fff;display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;white-space:nowrap;padding:8px 0;margin:8px 0 6px;border-bottom:1px solid #e5e7eb;scrollbar-width:thin}.toc a{flex:0 0 auto;text-decoration:none;color:#111827;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:999px;padding:4px 11px;font-size:12px}.toc a b{color:#0f6e6b;margin-right:3px}.toc a:hover{border-color:#0f6e6b;color:#0f6e6b}.toc.pinned{position:fixed;left:0;right:0;padding-left:16px;padding-right:16px;box-shadow:0 2px 8px rgba(0,0,0,.08)}.toc-ph{display:none}.toc-ph.on{display:block}.toc a.vz{background:#0b1020;color:#fff;border-color:#0b1020}.toc a.vz b{color:#4ade80}h2,.vizb{scroll-margin-top:56px}
 .viz-open{margin-left:auto;background:#fff!important;color:#000!important;font-weight:700}
 .vizb{margin:0 0 18px;padding-top:4px}.vizb h3{margin:0 0 8px;font-family:Georgia,"Noto Serif KR",serif;font-weight:300;font-size:20px;letter-spacing:.04em;color:#fff}
 .viz-tr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 8px;font-size:12px}.viz-tr button.big{background:#fff;color:#000;font-weight:700}.viz-tr label{color:#9aa3b2;display:flex;gap:6px;align-items:center}.viz-tr input[type=range]{width:110px;accent-color:#fff}.viz-stage{color:#fff;font-family:Georgia,serif;font-size:14px}.viz-kpi{color:#9aa3b2;font-size:11px;letter-spacing:.06em}.viz-bar{flex-basis:100%;height:3px;background:rgba(255,255,255,.12);position:relative;cursor:pointer}.viz-bar i{position:absolute;left:0;top:0;bottom:0;background:#fff;width:0}.viz-bar b{position:absolute;top:-2px;width:1px;height:7px;background:rgba(255,255,255,.35)}
