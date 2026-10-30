@@ -270,14 +270,105 @@ async function generateParallel(path, opts) {
   return callWorker("/api/generate_seed", { body: JSON.stringify({ seed: pick.seed }) }).then(r => r.raw);
 }
 
+// ================================================================ 꼼꼼히 찾기 (시도 N회)
+// 화면의 '꼼꼼히 찾기'는 시도 수(attempts)를 9로 보낸다. 기준선 201개 실측(docs/report_v0.86/bench/
+// baseline_seeds12_261030.json): 12개 중 최선은 3개 중 최선보다 154개 달에서 더 좋았고(운영 필수↓ 9,
+// 숙련도↓ 62, 전체↓ 80), 그 개선의 대부분이 6~9개째에서 나온다. 대신 시간이 3배라, 기본은 3 그대로다.
+//
+// 3회는 위의 generateParallel/순차 길을 그대로 쓴다(바이트 하나 안 바뀜). 3회를 넘으면 이 길이다:
+// 시드를 큐에 넣고 주 Worker(+도우미)가 하나씩 꺼내 돈다. 시드마다 걸리는 시간이 들쭉날쭉해서(같은
+// 달 안에서도 2~10배) 시드를 미리 나누면 가장 느린 Worker를 기다리게 되고, 큐에서 꺼내면 빠른
+// Worker가 더 가져간다. 시도 하나가 끝날 때마다 화면에 진척(onProgress)을 알리고, 사용자가 '여기까지
+// 결과로 멈추기'를 누르면 새 시드를 꺼내지 않는다(돌고 있는 것은 끝까지 — Pyodide는 중간에 못 끊는다).
+//
+// 결정성은 그대로다: 고르는 규칙은 엔진 한 벌(choose_attempt)이고 시드 집합이 같으면 같은 표다. 멈추기를
+// 눌렀을 때만 시드 집합이 그때까지 끝난 것으로 줄어들고, 점수표에 몇 개를 봤는지 남는다.
+const DEFAULT_ATTEMPTS = 3;
+const GEN = { stop: null };
+
+function genAttemptsOf(opts) {
+  try {
+    const a = opts && opts.body ? JSON.parse(opts.body).attempts : null;
+    return a ? Math.max(1, Number(a)) : DEFAULT_ATTEMPTS;
+  } catch (e) { return DEFAULT_ATTEMPTS; }
+}
+
+// 화면의 '여기까지 결과로 멈추기'. 돌고 있는 시도가 끝나면 그때까지의 점수표로 고른다.
+function requestGenStop() { if (GEN.stop) GEN.stop.requested = true; return !!GEN.stop; }
+
+async function generateDriven(path, attempts, onProgress) {
+  const mode = path === "/api/generate" ? "generate" : path === "/api/apply" ? "apply" : "regenerate";
+  const plan = JSON.parse(await callWorker("/api/generate_plan", { body: JSON.stringify({ mode, attempts }) }).then(r => r.raw));
+  if (plan.error) return JSON.stringify(plan);          // 입력 오류 — 호출부가 그대로 보여준다
+  const seeds = plan.seeds, queue = seeds.slice(1), stats = [], t0 = Date.now();
+  const stop = { requested: false, stateMade: false };
+  GEN.stop = stop;
+  const workers = 1 + PAR.helpers.length;
+  const report = () => {
+    if (typeof onProgress !== "function") return;
+    try { onProgress({ done: stats.length, total: seeds.length, stats: stats.slice(), workers, stopping: stop.requested, elapsed: (Date.now() - t0) / 1000 }); }
+    catch (e) { console.warn("진척 표시 실패", e); }
+  };
+  const drain = async (call) => {
+    while (queue.length && !stop.requested) {
+      const seed = queue.shift();
+      const st = JSON.parse(await call(JSON.stringify({ cfg: plan.cfg, fixed: plan.fixed, seed })));
+      if (st.error) throw new Error(st.error);
+      stats.push(st); report();
+    }
+  };
+  let mainRaw = null;
+  const mainRun = async () => {
+    // 주 Worker: 시드 0은 상태를 만드는 길(generate/apply/regenerate)로, 그 뒤는 상태 없는 generate_attempt로
+    mainRaw = await callWorker(path, { body: JSON.stringify({ seed: seeds[0] }) }).then(r => r.raw);
+    const main = JSON.parse(mainRaw);
+    if (main.error || !main.attempt) throw Object.assign(new Error(main.error || "시도 통계 없음"), { mainRaw });
+    stop.stateMade = true;
+    stats.push(main.attempt); report();
+    await drain(body => callWorker("/api/generate_attempt", { body }).then(r => r.raw));
+  };
+  PAR.busy++;
+  try {
+    report();
+    await Promise.all([mainRun(), ...PAR.helpers.map(w => drain(body => rpc(w, "/api/generate_attempt", { body })))]);
+  } catch (e) {
+    if (e && e.mainRaw && !stop.stateMade) return e.mainRaw;   // 주 Worker의 입력 오류 — 호출부가 보여준다
+    e.stateMade = stop.stateMade;
+    throw e;
+  } finally {
+    PAR.busy--;
+    GEN.stop = null;
+  }
+  const pick = JSON.parse(await callWorker("/api/pick_attempt",
+    { body: JSON.stringify({ stats, h15_floor: plan.h15_floor }) }).then(r => r.raw));
+  if (pick.error) throw new Error(pick.error);
+  window.__genMode = `${PAR.helpers.length ? "parallel" : "sequential"}:thorough${stats.length}:seed${pick.seed}`;
+  if (pick.seed === seeds[0]) return callWorker("/api/state", {}).then(r => r.raw);
+  return callWorker("/api/generate_seed", { body: JSON.stringify({ seed: pick.seed }) }).then(r => r.raw);
+}
+
 async function api(path, opts) {
   let raw, binary;
+  const attempts = PARALLEL_PATHS.has(path) ? genAttemptsOf(opts) : DEFAULT_ATTEMPTS;
+  // onProgress는 함수라 Worker에 보낼 수 없다(postMessage가 복제 못 함) — 여기서 떼어 둔다.
+  const onProgress = opts && opts.onProgress;
+  if (onProgress) { opts = Object.assign({}, opts); delete opts.onProgress; }
   try {
     if (PARALLEL_PATHS.has(path) && parallelAllowed()) {
       // 도우미가 아직 뜨는 중이면 기다린다(부팅 몇 초) — 그래야 PC에서는 언제 눌러도 세 시드다.
       if (PAR.booting && !PAR.helpers.length) { try { await PAR.booting; } catch (e) { /* 아래서 순차 */ } }
     }
-    if (PARALLEL_PATHS.has(path) && PAR.helpers.length && !PAR.busy) {
+    if (PARALLEL_PATHS.has(path) && attempts > DEFAULT_ATTEMPTS) {
+      try {
+        raw = await generateDriven(path, attempts, onProgress);
+      } catch (e) {
+        // 도우미 중단 등 — 주 Worker 혼자 N회를 차례로 돈다(같은 시드 집합이라 같은 표, 느릴 뿐).
+        console.warn("꼼꼼히 찾기(분산) 실패 — 주 Worker에서 차례로 다시 계산합니다", e);
+        window.__genMode = `sequential:thorough${attempts}:fallback`;
+        const body = JSON.stringify({ attempts });
+        raw = (await callWorker(e && e.stateMade ? "/api/generate_seed" : path, { body })).raw;
+      }
+    } else if (PARALLEL_PATHS.has(path) && PAR.helpers.length && !PAR.busy) {
       try {
         raw = await generateParallel(path, opts);
       } catch (e) {

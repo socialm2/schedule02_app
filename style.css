@@ -662,6 +662,17 @@ button.small { font-size: 12px; padding: 5px 11px; margin-top: 6px; }
 /* 생성 상태 문구가 비어 있을 때는 flex 아이템에서 아예 빼서, 버튼이 카드 오른쪽
    끝까지 꽉 차게 한다(비어 있어도 gap 12px이 남아 오른쪽이 비어 보였다). */
 .generate-row > .hint:empty { display: none; }
+/* 꼼꼼히 찾기 토글 — 생성 버튼 바로 아래, 한 줄. 폰에서는 설명이 다음 줄로 내려간다. */
+.thorough-opt { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 8px; font-size: 13px; cursor: pointer; }
+.thorough-opt input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.thorough-opt .hint { font-size: 12px; }
+.thorough-opt:has(input:checked) > span:first-of-type { color: var(--accent); font-weight: 600; }
+/* 오버레이의 시도 진척 줄 + 멈추기 */
+.loading-box .gen-step { font-size: 12.5px; font-weight: 600; color: var(--accent); margin: 6px 0 4px; }
+#genStopBtn { margin-top: 8px; }
+/* 점수표 접기 — 시도가 많으면 상위 3줄(+지금 보는 표)만 보이고 나머지는 토글 */
+.attempt-table tr.attempt-fold { display: none; }
+.attempt-table.expanded tr.attempt-fold { display: table-row; }
 button.big { font-size: 15px; padding: 11px 26px; }
 
 /* ---------------------------------------------------------------- 정보 모달 */

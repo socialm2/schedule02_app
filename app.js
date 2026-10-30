@@ -207,6 +207,7 @@ function seedHolidaysForYear(year) {
 }
 
 let ST = null;       // 생성 후 서버 상태 캐시
+let attemptTableExpanded = false;   // 점수표 '나머지 시드 보기' 상태 — 다시 그려도 유지
 let lastConfigWarning = null;  // set_config가 돌려준 경고(예: 연간근무표 이월 불일치) — 출력화면에 계속 보여줌
 // set_config가 돌려준 인력 압박 진단(엔진의 staffing_pressure). 생성 대기화면과
 // 출력화면에 함께 쓴다. 안내 문구는 엔진이 만든 것을 그대로 쓴다 — 화면이 두 벌이라
@@ -698,13 +699,13 @@ window.downloadBothOutputs = async function () {
 };
 
 window.regenerateThenDownload = async function () {
-  showGenOverlay("고친 칸은 두고 나머지를 다시 짜는 중입니다…");
+  showGenOverlay("고친 칸은 두고 나머지를 다시 짜는 중입니다…", thoroughOn());
   if (lastStaffing && lastStaffing.level && lastStaffing.level !== "ok") {
     markGenOverlaySlow("인원이 빠듯해 평소보다 오래 걸립니다 — 다시 계산 중입니다…");
   }
   const before = (ST && ST.grid) || {};
   try {
-    ST = await api("/api/regenerate", { method: "POST" });
+    ST = await api("/api/regenerate", genOpts());
     let moved = 0;
     for (const sid in ST.grid) {
       const a = before[sid];
@@ -1573,10 +1574,65 @@ const GEN_SUB_TIGHT = "인원이 빠듯한 달은 맞는 배치를 찾기 어려
 let genProgressTimer = null;
 let genProgressT0 = 0;
 let genProgressBudget = GEN_TIME_BUDGET_SEC;
-function showGenOverlay(msg) {
+
+// ---------------------------------------------------------------- 꼼꼼히 찾기 (시도 9회)
+// 같은 규칙으로 3회 대신 9회 만들어 점수표로 고른다. 기준선 201개 달 실측(docs/report_v0.86/bench/
+// baseline_seeds12_261030.json): 12회 중 최선이 3회 중 최선보다 154개 달에서 좋았고, 그 개선의 대부분이
+// 6~9회째에서 나와 9로 정했다(12회는 83→82로 거의 평평한데 시간은 1/3 더). 기본 3회는 그대로다 —
+// 시간이 3배라 매번 켜 두면 폰에서 몇 분이 걸린다. 체크 상태는 저장하지 않는다(새로 열면 꺼짐).
+// 시도 수는 platform.js가 body의 attempts로 읽어 시드 큐로 돌리고, 시도 하나가 끝날 때마다 onProgress로
+// 알려 준다. 재생성·편집 적용도 같은 옵션을 쓴다 — 켜 둔 사람은 그 표를 다시 짤 때도 꼼꼼히를 원한다.
+const THOROUGH_ATTEMPTS = 9;
+const GEN_SUB_THOROUGH = `같은 규칙으로 ${THOROUGH_ATTEMPTS}번 만들어 가장 좋은 표를 고릅니다. 보통의 약 3배가 걸리고, ` +
+  "인원이 빠듯한 달은 몇 분이 걸릴 수 있습니다. 창을 닫지 말고 기다려주세요.";
+let genDriven = null;   // 꼼꼼히 찾기 진척 {done,total,at,avg} — 게이지를 시간 추정 대신 시도 수로 그린다
+let genThorough = false;
+function thoroughOn() { const c = $("#thoroughChk"); return !!(c && c.checked); }
+function genOpts() {
+  if (!thoroughOn()) return { method: "POST" };
+  return { method: "POST", body: JSON.stringify({ attempts: THOROUGH_ATTEMPTS }), onProgress: onGenProgress };
+}
+// attempt_key와 같은 순서(운영 필수 → 숙련도 → 전체 → 공평성 → 앞 시드). 화면 표시(지금까지 최선·점수표
+// 접기)에만 쓴다 — 최종 선택은 엔진(choose_attempt) 한 벌이다.
+function attemptBetter(a, b) {
+  const key = x => [x.blocking, x.h15, x.hard, Math.round((x.fairness || 0) * 100), x.seed];
+  const ka = key(a), kb = key(b);
+  for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return ka[i] < kb[i];
+  return false;
+}
+function fmtSec(s) {
+  s = Math.max(1, Math.round(s));
+  return s < 60 ? `${s}초` : `${Math.floor(s / 60)}분 ${s % 60}초`;
+}
+function onGenProgress(p) {
+  const step = $("#genOverlayStep");
+  if (!step) return;
+  genDriven = { done: p.done, total: p.total, at: Date.now(), avg: p.done ? p.elapsed / p.done : null };
+  const best = p.stats.length ? p.stats.reduce((a, b) => (attemptBetter(b, a) ? b : a)) : null;
+  let txt = `시도 ${p.done}/${p.total}`;
+  if (p.workers > 1) txt += ` (${p.workers}개 동시)`;
+  if (!p.done) txt += " — 첫 시도 계산 중…";
+  if (best) txt += ` · 지금까지 최선: 운영 필수 ${best.blocking} · 숙련도 ${best.h15} · 전체 ${best.hard}`;
+  if (p.stopping) txt += " · 돌고 있는 시도가 끝나면 멈춥니다";
+  else if (p.done && p.done < p.total) txt += ` · 약 ${fmtSec((p.total - p.done) * (p.elapsed / p.done))} 남음`;
+  step.textContent = txt;
+}
+$("#genStopBtn").onclick = () => {
+  const btn = $("#genStopBtn");
+  if (requestGenStop()) { btn.disabled = true; btn.textContent = "돌고 있는 시도가 끝나면 멈춥니다…"; }
+};
+
+// thorough: 생성·재생성·편집 적용에서 꼼꼼히 찾기가 켜져 있을 때 — 진척 줄과 멈추기 단추를 보인다.
+// 다른 오버레이(시드 바꾸기·보고서)는 넘기지 않으므로 숨긴다.
+function showGenOverlay(msg, thorough) {
   $("#genOverlayMsg").textContent = msg;
   const sub = $("#genOverlaySub");
-  if (sub) sub.textContent = GEN_SUB_DEFAULT;   // 지난번 '느림' 문구가 남아있지 않게
+  if (sub) sub.textContent = thorough ? GEN_SUB_THOROUGH : GEN_SUB_DEFAULT;   // 지난번 '느림' 문구가 남아있지 않게
+  genThorough = !!thorough;
+  genDriven = null;
+  const step = $("#genOverlayStep"), stopBtn = $("#genStopBtn");
+  if (step) { step.style.display = thorough ? "" : "none"; step.textContent = thorough ? `시도 0/${THOROUGH_ATTEMPTS} — 준비 중…` : ""; }
+  if (stopBtn) { stopBtn.style.display = thorough ? "" : "none"; stopBtn.disabled = false; stopBtn.textContent = "여기까지 결과로 멈추기"; }
   $("#genOverlay").style.display = "";
   const fill = $("#genProgressFill");
   fill.style.width = "0%";
@@ -1586,9 +1642,17 @@ function showGenOverlay(msg) {
   genProgressTimer = setInterval(() => {
     const elapsed = (Date.now() - genProgressT0) / 1000;
     const budget = genProgressBudget;
-    const pct = elapsed <= budget
-      ? (elapsed / budget) * 92
-      : 92 + Math.min(6, (elapsed - budget) * 0.5);
+    let pct;
+    if (genDriven && genDriven.total) {
+      // 시도 수로 그린다. 끝난 시도 사이는 지난 시도의 평균 시간만큼 천천히 채운다(멈춘 게 아니라는 표시).
+      const since = (Date.now() - genDriven.at) / 1000;
+      const partial = genDriven.done < genDriven.total ? Math.min(0.9, since / (genDriven.avg || budget)) : 0;
+      pct = Math.min(98, ((genDriven.done + partial) / genDriven.total) * 98);
+    } else {
+      pct = elapsed <= budget
+        ? (elapsed / budget) * 92
+        : 92 + Math.min(6, (elapsed - budget) * 0.5);
+    }
     fill.style.width = pct.toFixed(1) + "%";
   }, 200);
 }
@@ -1599,7 +1663,7 @@ function markGenOverlaySlow(msg) {
   const el = $("#genOverlayMsg");
   if (el) el.textContent = msg;
   const sub = $("#genOverlaySub");
-  if (sub) sub.textContent = GEN_SUB_TIGHT;
+  if (sub) sub.textContent = genThorough ? GEN_SUB_THOROUGH + " 인원이 빠듯해 더 오래 걸립니다." : GEN_SUB_TIGHT;
   genProgressBudget = GEN_TIME_BUDGET_TIGHT_SEC;
 }
 function hideGenOverlay() {
@@ -1660,7 +1724,7 @@ async function runGenerate(btn, statusEl) {
   const btns = [$("#generateBtn"), $("#generateBtnMid")].filter(Boolean);
   btns.forEach(b => b.disabled = true);
   if (statusEl) statusEl.textContent = "생성 중...";
-  showGenOverlay("근무표를 생성하는 중입니다…");
+  showGenOverlay("근무표를 생성하는 중입니다…", thoroughOn());
   try {
     const cfg = preCfg;
     const cfgResult = await api("/api/set_config", {
@@ -1675,7 +1739,7 @@ async function runGenerate(btn, statusEl) {
     if (lastStaffing && lastStaffing.designated && lastStaffing.designated.message) {
       showToast(lastStaffing.designated.message, true);
     }
-    ST = await api("/api/generate", { method: "POST" });
+    ST = await api("/api/generate", genOpts());
     SWAP = null;
     render();
     showToast(lastConfigWarning || "근무표 생성 완료", !!lastConfigWarning);
@@ -2623,6 +2687,13 @@ delegateClick(document.getElementById("sidePane"), "table.attempt-table tr[data-
   } finally {
     hideGenOverlay();
   }
+});
+// 점수표 접기/펴기 — 다시 그리지 않고 표의 class만 바꾼다(스크롤 위치가 튀지 않게).
+delegateClick(document.getElementById("sidePane"), "button.attempt-more", (btn) => {
+  const tbl = btn.closest(".side-sec").querySelector("table.attempt-table");
+  attemptTableExpanded = !attemptTableExpanded;
+  tbl.classList.toggle("expanded", attemptTableExpanded);
+  btn.textContent = attemptTableExpanded ? "점수 상위 3줄만 보기" : `나머지 ${btn.dataset.n}개 시드 보기`;
 });
 document.getElementById("sidePane").addEventListener("keydown", (ev) => {
   if (ev.key !== "Enter" && ev.key !== " ") return;
@@ -3572,9 +3643,15 @@ function renderSide() {
   // (운영 필수 → 숙련도 → 전체 하드 → 공평성). 공평성은 주말·야간·D/E·원티드 미반영의 합(사람·일 수).
   if (ST.attempt_table && ST.attempt_table.length > 0) {
     const rows = ST.attempt_table;
+    // 꼼꼼히 찾기(9회)면 줄이 아홉이라 옆 칸이 길어진다 — 점수 상위 3줄(+지금 보는 표)만 펴고 나머지는 접는다.
+    const ranked = [...rows].sort((a, b) => (attemptBetter(a, b) ? -1 : attemptBetter(b, a) ? 1 : 0));
+    const shown = new Set(ranked.slice(0, 3).map(a => a.seed));
+    shown.add(ST.current_seed);
+    const folded = rows.filter(a => !shown.has(a.seed)).length;
+    const thoroughRun = (window.__genMode || "").includes("thorough");
     html += `<div class="side-sec"><h3>시도 점수표 <span class="count-badge">시드 ${rows.length}개</span>` +
       `<span class="tap-hint">줄을 누르면 그 시드의 표로 바뀝니다(다운로드도 그 표)</span></h3>` +
-      '<table class="mini-table attempt-table"><tr><th>시드</th><th title="최소인력·지정·연속근무 등 그날 병동이 못 돌아가는 필수 위반">운영필수</th>' +
+      `<table class="mini-table attempt-table${attemptTableExpanded ? " expanded" : ""}"><tr><th>시드</th><th title="최소인력·지정·연속근무 등 그날 병동이 못 돌아가는 필수 위반">운영필수</th>` +
       '<th title="조에 숙련도 4 이상이 없는 횟수(H1-5)">숙련도</th><th title="최선노력 규칙까지 포함한 전체 하드 위반">전체</th>' +
       '<th title="같은 조건끼리 D·E·N 횟수가 가능일 비례 목표에서 벗어난 날수의 합(×2로 가장 무겁게)">횟수</th>' +
       '<th title="같은 조건끼리 주말 근무가 평균에서 벗어난 날수">주말</th>' +
@@ -3583,7 +3660,7 @@ function renderSide() {
       '<th title="반려된 원티드 신청 건수">미반영</th><th title="2×횟수+주말+조구성+단독+미반영">공평성</th></tr>' +
       rows.map(a => {
         const cur = a.seed === ST.current_seed;
-        const cls = (a.chosen ? "chosen " : "") + (cur ? "current" : "");
+        const cls = (a.chosen ? "chosen " : "") + (cur ? "current " : "") + (shown.has(a.seed) ? "" : "attempt-fold");
         const mark = (a.chosen ? " ✓" : "") + (cur ? " ◀" : "");
         const v = k => (a[k] === undefined ? "–" : a[k]);
         return `<tr class="${cls}" data-seed="${a.seed}" role="button" tabindex="0" ` +
@@ -3591,9 +3668,11 @@ function renderSide() {
           `<td>${v("count")}</td><td>${v("weekend")}</td><td>${v("mix")}</td><td>${v("sole")}</td><td>${v("wanted")}</td><td><b>${a.fairness}</b></td></tr>`;
       }).join("") +
       '</table>' +
+      (folded ? `<p class="side-note"><button class="linklike attempt-more" data-n="${folded}">${attemptTableExpanded ? "점수 상위 3줄만 보기" : `나머지 ${folded}개 시드 보기`}</button></p>` : "") +
       `<p class="side-note">앞 열부터 견줘 다르면 뒤 열은 보지 않습니다. 공평성 = 2×횟수 + 주말 + 조구성 + 단독 + 미반영(단위: 사람·일, 낮을수록 좋음). ` +
       `✓ = 점수가 가장 좋은 시드(기본값), ◀ = 지금 보는 표. <b>줄을 누르면 그 시드의 표로 바뀝니다</b>(다운로드도 그 표). ` +
-      `${(window.__genMode || "").startsWith("parallel") ? "세 시드를 동시에 계산했습니다." : ""}</p></div>`;
+      `${thoroughRun ? `🔍 꼼꼼히 찾기로 시드 ${rows.length}개를 봤습니다${rows.length < THOROUGH_ATTEMPTS ? "(중간에 멈춤)" : ""}. ` : ""}` +
+      `${(window.__genMode || "").startsWith("parallel") ? `시드 ${rows.length}개를 여러 코어로 동시에 계산했습니다.` : ""}</p></div>`;
   }
 
   // 처리 로그
@@ -3767,7 +3846,7 @@ window.discardAll = async function () {
 };
 
 window.applyEdits = async function () {
-  showGenOverlay("수정 사항을 반영해 다시 계산하는 중입니다…");
+  showGenOverlay("수정 사항을 반영해 다시 계산하는 중입니다…", thoroughOn());
   // 재생성도 같은 엔진을 같은 입력으로 돌리므로 빠듯하면 똑같이 오래 걸린다.
   if (lastStaffing && lastStaffing.level && lastStaffing.level !== "ok") {
     markGenOverlaySlow("인원이 빠듯해 평소보다 오래 걸립니다 — 다시 계산 중입니다…");
@@ -3776,7 +3855,7 @@ window.applyEdits = async function () {
   // 눌러본 직후에 깨는 것이 사후에 표를 대조하는 것보다 훨씬 싸다.
   const before = ST.grid || {};
   try {
-    ST = await api("/api/apply", { method: "POST" });
+    ST = await api("/api/apply", genOpts());
     SWAP = null;
     refreshFragile();
     let moved = 0;
