@@ -699,7 +699,7 @@ window.downloadBothOutputs = async function () {
 };
 
 window.regenerateThenDownload = async function () {
-  showGenOverlay("고친 칸은 두고 나머지를 다시 짜는 중입니다…", thoroughOn());
+  showGenOverlay("고친 칸은 두고 나머지를 다시 짜는 중입니다…", thoroughOn(), true);
   if (lastStaffing && lastStaffing.level && lastStaffing.level !== "ok") {
     markGenOverlaySlow("인원이 빠듯해 평소보다 오래 걸립니다 — 다시 계산 중입니다…");
   }
@@ -1631,10 +1631,87 @@ $("#genStopBtn").onclick = () => {
   if (requestGenStop()) { btn.disabled = true; btn.textContent = "돌고 있는 시도가 끝나면 멈춥니다…"; }
 };
 
+// ---------------------------------------------------------------- 생성 중 비 (오버레이 애니메이션)
+// 보고서 11장 '비'의 축소판 — 근무 글자가 위에서 떨어져 제자리에 앉는다. 어느 칸이 앉았는지는 진행
+// 게이지(#genProgressFill)의 비율을 그대로 따른다: 게이지가 40%면 칸의 40%가 앉아 있다. 실제 엔진의
+// 칸 배치 순서를 받는 게 아니라(Worker가 돌고 있는 동안은 알 수 없다) 날짜 순서로 앉히는 연출이다.
+// 명단 수·달의 날수는 입력 화면 값을 쓴다. 깜빡임을 끈 사람(prefers-reduced-motion)에게는 비 없이
+// 앉은 칸만 그린다. 캔버스는 이 파일(화면 로직)에서만 그리고 Worker·전송과는 무관하다.
+let genRainRAF = null, genRainTimer = null;
+const RAIN_COL = { D: "#BDD7EE", E: "#F8CBAD", N: "#3B5BA5", "/": "rgba(255,255,255,.28)" };
+function rainRnd(i) { const x = Math.sin(i * 9301 + 49297) * 233280; return x - Math.floor(x); }
+function startGenRain() {
+  const cv = $("#genRain");
+  if (!cv) return;
+  stopGenRain();
+  const reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  // 명단이 길면 앞 14명만 — 40명을 160px에 넣으면 글자가 점이 된다(연출이지 표가 아니다)
+  const nS = Math.min(14, Math.max(6, (typeof formStaff !== "undefined" && formStaff.length) || 14));
+  const y = Number($("#f_year")?.value), m = Number($("#f_month")?.value);
+  const nD = (y && m) ? new Date(y, m, 0).getDate() : 30;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = cv.clientWidth || 300, h = cv.clientHeight || 118;
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  const x = cv.getContext("2d");
+  x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const pad = 6, cs = Math.min((w - pad * 2) / nD, (h - pad * 2) / nS), ox = (w - cs * nD) / 2, oy = (h - cs * nS) / 2;
+  // 칸마다 글자(D·E·N·OFF 비율 3:3:1.5:2.5)와 앉는 순서(날짜 순, 같은 날 안에서는 섞어서)
+  const letter = (i, d) => { const r = rainRnd(i * 31 + d); return r < .3 ? "D" : r < .6 ? "E" : r < .75 ? "N" : "/"; };
+  const order = [];
+  for (let d = 0; d < nD; d++) {
+    const rows = Array.from({ length: nS }, (_, i) => i).sort((a, b) => rainRnd(a * 7 + d) - rainRnd(b * 7 + d));
+    for (const i of rows) order.push(i * nD + d);
+  }
+  const born = new Map();
+  let settled = 0;
+  const chars = "DEN/";
+  const draw = (now) => {
+    const pct = parseFloat(($("#genProgressFill") || {}).style?.width || "0") || 0;
+    const target = Math.min(order.length, Math.floor(order.length * pct / 100));
+    while (settled < target) { born.set(order[settled], now); settled++; }
+    x.fillStyle = reduce ? "#0b0f19" : "rgba(11,15,25,.45)";
+    x.fillRect(0, 0, w, h);
+    x.font = `700 ${Math.max(5, cs * .78)}px ui-monospace, Menlo, monospace`;
+    x.textAlign = "center"; x.textBaseline = "middle";
+    if (!reduce) {
+      for (let d = 0; d < nD; d++) {
+        const speed = 55 + 45 * rainRnd(d), head = ((now / 1000) * speed + rainRnd(d + 50) * 400) % (h + 160) - 80;
+        for (let k = 0; k < 7; k++) {
+          const yy = oy + head - k * cs;
+          if (yy < oy || yy > oy + cs * nS) continue;
+          const i = Math.floor((yy - oy) / cs);
+          if (born.has(i * nD + d)) continue;
+          x.fillStyle = `rgba(74,222,128,${k ? .2 - k * .02 : .55})`;
+          x.fillText(chars[Math.floor(rainRnd(d * 31 + k + Math.floor(now / 90)) * 4)], ox + d * cs + cs / 2, yy + cs / 2);
+        }
+      }
+    }
+    for (const [key, t0] of born) {
+      const i = Math.floor(key / nD), d = key % nD, v = letter(i, d);
+      const a = reduce ? 1 : Math.min(1, (now - t0) / 450), e = 1 - Math.pow(1 - a, 3);
+      const yy = oy + i * cs + cs / 2 - (1 - e) * cs * 1.5;
+      x.fillStyle = a < 1 ? "#fff" : RAIN_COL[v];
+      x.globalAlpha = v === "/" ? .5 : 1;
+      x.fillText(v, ox + d * cs + cs / 2, yy);
+      x.globalAlpha = 1;
+    }
+  };
+  if (reduce) { draw(performance.now()); genRainTimer = setInterval(() => draw(performance.now()), 500); return; }
+  const frame = (now) => { draw(now); genRainRAF = requestAnimationFrame(frame); };
+  genRainRAF = requestAnimationFrame(frame);
+}
+function stopGenRain() {
+  if (genRainRAF) cancelAnimationFrame(genRainRAF);
+  if (genRainTimer) clearInterval(genRainTimer);
+  genRainRAF = genRainTimer = null;
+}
+
 // thorough: 생성·재생성·편집 적용에서 꼼꼼히 찾기가 켜져 있을 때 — 진척 줄과 멈추기 단추를 보인다.
 // 다른 오버레이(시드 바꾸기·보고서)는 넘기지 않으므로 숨긴다.
-function showGenOverlay(msg, thorough) {
+function showGenOverlay(msg, thorough, rain) {
   $("#genOverlayMsg").textContent = msg;
+  const rc = $("#genRain");
+  if (rc) rc.style.display = rain ? "" : "none";
   const sub = $("#genOverlaySub");
   if (sub) sub.textContent = thorough ? GEN_SUB_THOROUGH : GEN_SUB_DEFAULT;   // 지난번 '느림' 문구가 남아있지 않게
   genThorough = !!thorough;
@@ -1645,6 +1722,7 @@ function showGenOverlay(msg, thorough) {
   $("#genOverlay").style.display = "";
   const fill = $("#genProgressFill");
   fill.style.width = "0%";
+  if (rain) startGenRain();
   genProgressT0 = Date.now();
   genProgressBudget = GEN_TIME_BUDGET_SEC;
   clearInterval(genProgressTimer);
@@ -1677,6 +1755,7 @@ function markGenOverlaySlow(msg) {
 }
 function hideGenOverlay() {
   $("#genOverlay").style.display = "none";
+  stopGenRain();
   clearInterval(genProgressTimer);
   genProgressTimer = null;
 }
@@ -1733,7 +1812,7 @@ async function runGenerate(btn, statusEl) {
   const btns = [$("#generateBtn"), $("#generateBtnMid")].filter(Boolean);
   btns.forEach(b => b.disabled = true);
   if (statusEl) statusEl.textContent = "생성 중...";
-  showGenOverlay("근무표를 생성하는 중입니다…", thoroughOn());
+  showGenOverlay("근무표를 생성하는 중입니다…", thoroughOn(), true);
   try {
     const cfg = preCfg;
     const cfgResult = await api("/api/set_config", {
@@ -3856,7 +3935,7 @@ window.discardAll = async function () {
 };
 
 window.applyEdits = async function () {
-  showGenOverlay("수정 사항을 반영해 다시 계산하는 중입니다…", thoroughOn());
+  showGenOverlay("수정 사항을 반영해 다시 계산하는 중입니다…", thoroughOn(), true);
   // 재생성도 같은 엔진을 같은 입력으로 돌리므로 빠듯하면 똑같이 오래 걸린다.
   if (lastStaffing && lastStaffing.level && lastStaffing.level !== "ok") {
     markGenOverlaySlow("인원이 빠듯해 평소보다 오래 걸립니다 — 다시 계산 중입니다…");

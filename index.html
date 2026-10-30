@@ -38,6 +38,8 @@
 </div>
 <div id="genOverlay" style="display:none">
   <div class="loading-box">
+    <!-- 생성 중 비 — 근무 글자가 내려와 제자리에 앉는다(보고서 11장 '비'의 축소판, 앞 14명만). 진행 게이지와 같은 비율로 채워진다. -->
+    <canvas id="genRain" class="gen-rain" aria-hidden="true"></canvas>
     <div class="spinner"></div>
     <p id="genOverlayMsg">근무표를 계산하는 중입니다…</p>
     <div class="gen-progress"><div class="gen-progress-fill" id="genProgressFill"></div></div>
@@ -51,7 +53,7 @@
   <!-- .build-time 값은 배포할 때 GitHub Actions가 실제 배포 시각(KST)으로
        바꿔 넣는다(.github/workflows/deploy.yml). 손으로 고칠 필요 없다. -->
   <header>
-    <h1>SMC Fair Shift <span class="version-badge">v0.86</span><span class="build-time">2026-10-30 14:53:04 KST</span></h1>
+    <h1>SMC Fair Shift <span class="version-badge">v0.86</span><span class="build-time">2026-10-30 15:57:53 KST</span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
