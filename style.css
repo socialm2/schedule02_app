@@ -674,6 +674,11 @@ button.small { font-size: 12px; padding: 5px 11px; margin-top: 6px; }
 /* 오버레이의 시도 진척 줄 + 멈추기 */
 .loading-box .gen-step { font-size: 12.5px; font-weight: 600; color: var(--accent); margin: 6px 0 4px; }
 #genStopBtn { margin-top: 8px; }
+/* 검증 요약: 확정표 기준 안내 + 위반 항목 클릭(그 칸으로) */
+.scope-note { background: var(--warn-soft, #fff8e6); border-radius: 8px; padding: 6px 8px; margin: 0 0 6px; }
+ul.issue-list li[data-day] { cursor: pointer; }
+ul.issue-list li[data-day]:hover { outline: 1px solid var(--accent); outline-offset: -1px; }
+th.day-head.flash-change { animation: flash-change 1s ease-in-out 3; }
 /* 점수표 접기 — 시도가 많으면 상위 3줄(+지금 보는 표)만 보이고 나머지는 토글 */
 .attempt-table tr.attempt-fold { display: none; }
 .attempt-table.expanded tr.attempt-fold { display: table-row; }

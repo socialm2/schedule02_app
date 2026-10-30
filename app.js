@@ -2776,6 +2776,20 @@ delegateClick(document.getElementById("sidePane"), "table.attempt-table tr[data-
     hideGenOverlay();
   }
 });
+// 검증 요약의 위반 항목 → 그 칸으로. 사람이 있으면 그 사람의 그날 칸, 없으면 그날의 머리칸을 가운데로
+// 끌어와 잠깐 깜빡인다(기존 flash-change 애니메이션 재사용).
+function jumpToCell(sid, day) {
+  const sel = sid ? `td[data-sid="${CSS.escape(sid)}"][data-day="${day}"]` : `th.day-head[data-day="${day}"]`;
+  const el = document.querySelector(sel);
+  if (!el) return false;
+  el.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
+  el.classList.remove("flash-change"); void el.offsetWidth; el.classList.add("flash-change");
+  setTimeout(() => el.classList.remove("flash-change"), 3200);
+  return true;
+}
+delegateClick(document.getElementById("sidePane"), "ul.issue-list li[data-day]", (li) => {
+  jumpToCell(li.dataset.sid || "", Number(li.dataset.day));
+});
 // 점수표 접기/펴기 — 다시 그리지 않고 표의 class만 바꾼다(스크롤 위치가 튀지 않게).
 delegateClick(document.getElementById("sidePane"), "button.attempt-more", (btn) => {
   const tbl = btn.closest(".side-sec").querySelector("table.attempt-table");
@@ -3027,8 +3041,8 @@ function magazineHtml(trace) {
   // --- 머리
   const wardLabel = ST.ward_id ? `${esc(ST.ward_id)} ` : "";
   const head = `<div class="kicker">${wardLabel}월간 근무 보고 · 파트장용</div><h1>${ST.year}년 ${ST.month}월</h1>
-    <p class="lead">전체 ${ST.staff.length}명 — 일반 ${generals.length}·야간전담 ${people.length - generals.length}·파트장 ${ST.staff.length - people.length}${(ST.team_b || []).length ? `·신입(B팀) ${ST.team_b.length}` : ""}. ${ST.round ? `${ST.round}회차` : "첫 생성"}${chosen ? `, 시드 ${chosen.seed} 선택(세 시드 중)` : ""}. 생성 ${new Date().toLocaleString("ko-KR")}.</p>
-    <div class="nums">
+    <p class="lead">전체 ${ST.staff.length}명 — 일반 ${generals.length}·야간전담 ${people.length - generals.length}·파트장 ${ST.staff.length - people.length}${(ST.team_b || []).length ? `·신입(B팀) ${ST.team_b.length}` : ""}. ${ST.round ? `${ST.round}회차` : "첫 생성"}${chosen ? `, 시드 ${chosen.seed}${chosen.strategy && chosen.strategy !== "-" ? `(${chosen.strategy})` : ""} 선택(${att.length}개 시드 중)` : ""}. 보고서 작성 ${new Date().toLocaleString("ko-KR")} — 근무표를 만든 시각이 아니라 이 문서를 받은 시각.</p>`;
+  const numsHtml = `<h3 class="nums-h">운영 지표</h3><div class="nums">
       <div class="num ${strict.length ? "bad" : "good"}"><b>${strict.length}</b><span>필수 위반</span></div>
       <div class="num ${bestEffort.length ? "warn" : ""}"><b>${bestEffort.length}</b><span>추가 검토(최선노력)</span></div>
       <div class="num ${r.bad_days_count ? "bad" : "good"}"><b>${r.bad_days_count || 0}</b><span>최소인력 미달 날</span></div>
@@ -3038,11 +3052,52 @@ function magazineHtml(trace) {
       <div class="num"><b>${wkMean.toFixed(1)}</b><span>1인 평균 주말·공휴일</span></div>
       <div class="num"><b>${mean(stats.filter(x => !x.s.is_nk), x => x.offCnt).toFixed(1)}</b><span>1인 평균 OFF (허용 ${r.off_range ? `${r.off_range.lower}~${r.off_range.upper}` : "–"})</span></div>
     </div>`;
+  const colors = { D: "#93c5fd", E: "#fdba74", N: "#c4b5fd", NK: "#f9a8d4", OFF: "#eeeeee", prn: "#86efac", "8A": "#d1d5db", "S/": "#99f6e4" };
+  const cs = 1000 / nd, rh = Math.max(4, Math.min(8, 240 / ST.staff.length));
+  const svg = `<svg viewBox="0 0 1000 ${(rh * ST.staff.length).toFixed(0)}" width="100%" style="display:block;margin:8px 0 2px">` + ST.staff.map((s, i) => row(s).map((v, d) => v ? `<rect x="${(d * cs + .5).toFixed(1)}" y="${(i * rh).toFixed(1)}" width="${(cs - 1).toFixed(1)}" height="${(rh - 1).toFixed(1)}" fill="${colors[v] || (isWorkCode(v) ? "#a3a3a3" : "#f5f5f4")}"/>` : "").join("")).join("") + "</svg>";
+  // --- 0 이번 달 요약 — 첫 장에서 "지금 검토해야 하는가 → 어디를 보나 → 다음 행동"이 끝나게(10/30 GPT 검토 M01·M02).
+  // 숫자의 출처는 1절(위반 목록)·2절(일별 인원)·6절(원티드)·5절(부담)과 같은 r·stats다 — 따로 세지 않는다.
+  const strictDays = [...new Set(strict.filter(v => v.day).map(v => v.day))].sort((a, b) => a - b);
+  const shortDays = (r.daily || []).filter(x => x.ok === false).map(x => x.day).filter(Boolean);
+  const reqTot = (r.requests && r.requests.total) || 0, reqAcc = (r.requests && r.requests.accepted) || 0;
+  const ACTION = { "H1-1": "최소인력 미달 — 2절 일별 인원에서 그날 그 근무의 칸을 채우거나 기준을 확인", "H1-5": "조에 숙련도 4 이상이 없음 — 그날 Lv4+(밤은 야간리더)를 배치하거나 생성 전 하한 안내 확인",
+    "H1-6": "지정 가능자 부족 — 그날 지정 가능자가 근무하도록 조정", "H2-4": "하루짜리 야간 — 블록(2~3일)으로 묶기", "H2-5": "야간 뒤 휴식 부족 — 블록 뒤 이틀을 비우기", "H3-1": "연속근무 초과 — 블록 사이 OFF", "H3-2": "E 다음날 D — 이음새 바꾸기", "H6-3": "E→OFF→D — 이음새 바꾸기" };
+  const ruleLabel = rule => ACTION[rule] || "1절의 내용대로 그 칸을 확인";
+  const grouped = [];
+  for (const v of strict) {
+    const k = `${v.day}|${v.rule}`; let g = grouped.find(x => x.k === k);
+    if (!g) grouped.push(g = { k, day: v.day, rule: v.rule, n: 0, who: [] });
+    g.n++; if (v.staff_id && !g.who.includes(v.staff_id)) g.who.push(v.staff_id);
+  }
+  grouped.sort((a, b) => (a.day || 0) - (b.day || 0) || a.rule.localeCompare(b.rule));
+  const actRows = grouped.slice(0, 8).map(g => `<tr><td class="w">${g.day ? `${g.day}일` : "월 전체"} · ${esc(g.rule)}${g.n > 1 ? ` ×${g.n}` : ""}</td><td class="a">${esc(ruleLabel(g.rule))}${g.who.length ? ` <span class="sub">(${g.who.slice(0, 3).map(esc).join(", ")}${g.who.length > 3 ? ` 외 ${g.who.length - 3}` : ""})</span>` : ""}</td></tr>`).join("");
+  const histBars = (vals, label) => { const c = {}; for (const v of vals) c[v] = (c[v] || 0) + 1; const keys = Object.keys(c).map(Number).sort((a, b) => a - b); const mx = Math.max(1, ...keys.map(k => c[k]));
+    return keys.length ? `<div class="dist"><b>${label}</b> <span class="sub">(${vals.length}명)</span>${keys.map(k => `<div class="row"><span class="lab">${k}회</span><div class="bar"><i style="width:${(c[k] / mx * 100).toFixed(0)}%"></i></div><span class="n">${c[k]}명</span></div>`).join("")}</div>` : ""; };
+  const nightVals = nightPool.map(s => stats.find(x => x.s === s).b.nights), wkVals = generals.map(s => stats.find(x => x.s === s).b.weekend);
+  const statusCls = strict.length ? "bad" : bestEffort.length ? "warn" : "ok";
+  const statusTag = strict.length ? "확인 필요" : bestEffort.length ? "추가 검토" : "이상 없음";
+  const statusTitle = strict.length ? `확정 전, ${strictDays.length ? `${strictDays.length}일 ` : ""}${strict.length}건을 먼저 확인하세요.`
+    : bestEffort.length ? `필수 위반은 없고 추가 검토 ${bestEffort.length}건만 남았습니다.` : "검사 범위 안에서 위반이 없습니다.";
+  const statusSub = strict.length ? grouped.slice(0, 3).map(g => `${g.day ? `${g.day}일 ` : ""}${g.rule}${g.n > 1 ? `×${g.n}` : ""}`).join(" · ") + (grouped.length > 3 ? ` 외 ${grouped.length - 3}` : "")
+    : "'이상 없음'은 이 앱에 설정된 규칙 검사의 결과이고, 최종 검토는 파트장이 합니다.";
+  const sec0 = `<h2 id="s0">0. 이번 달 요약</h2><div class="brief">
+    <div class="status ${statusCls}"><span class="tag">${statusTag}</span><div><b class="t">${statusTitle}</b><span class="sub">${esc(statusSub)}</span></div></div>
+    <div class="kp">
+      <div><b class="${strict.length ? "bad" : "good"}">${strict.length}<span> 건</span></b><span>필수 검토</span><small>${strictDays.length ? `영향 날짜 ${strictDays.length}일` : "영향 날짜 없음"}</small></div>
+      <div><b class="${shortDays.length ? "bad" : "good"}">${shortDays.length}<span> 일</span></b><span>최소인력 미달</span><small>${shortDays.length ? shortDays.slice(0, 4).map(d => `${d}일`).join("·") + (shortDays.length > 4 ? " 외" : "") : "모든 날 충족"}</small></div>
+      <div><b>${reqTot ? Math.round(reqAcc / reqTot * 100) : "–"}<span>${reqTot ? " %" : ""}</span></b><span>원티드 반영</span><small>${reqTot ? `${reqAcc} / ${reqTot}건 · 미반영 ${reqTot - reqAcc}건` : "신청 없음"}</small></div>
+      <div><b class="${bestEffort.length ? "warn" : "good"}">${bestEffort.length}<span> 건</span></b><span>추가 검토</span><small>${bestEffort.length ? [...new Set(bestEffort.map(v => v.rule))].slice(0, 3).join("·") : "없음"}</small></div>
+    </div>
+    <div class="two"><div><h3>지금 확인할 항목</h3>${actRows ? `<table class="act">${actRows}</table>${grouped.length > 8 ? `<p class="sub">외 ${grouped.length - 8}건 — 1절 전체 목록</p>` : ""}` : `<p class="sub">필수 항목 없음.${bestEffort.length ? " 추가 검토는 1절 노란 표." : ""}</p>`}<p class="sub">판정은 현재 규칙 검사 결과입니다. 최종 검토는 파트장이 합니다.</p></div>
+    <div><h3>부담 분포</h3>${histBars(nightVals, "야간 횟수")}${histBars(wkVals, "주말·공휴일 근무")}<p class="sub">파트장·야간전담 제외. 가능근무·전입 조건이 다른 사람은 5절에서 집단별로.</p></div></div>
+    <div class="one">원티드 ${reqTot ? `${reqTot}건 중 ${reqAcc}건을 반영했습니다` : "신청이 없었습니다"}. ${strict.length ? `필수 ${strict.length}건(${strictDays.length}일)을 확인한 뒤 결과를 다시 보세요.` : bestEffort.length ? `필수 위반 없이 추가 검토 ${bestEffort.length}건만 남았습니다.` : "필수·추가 검토 모두 없습니다."}
+      <span class="sub">전월 비교: ${(ST.prev_burden && Object.keys(ST.prev_burden).length) ? "입력② 이력 기준(5절)" : "자료 없음"} · 검토자: 미기록 · 기준: 화면 연월·근무인력 설정, ${ST.round ? `${ST.round}회차` : "첫 생성"}</span></div>
+  </div>${numsHtml}${svg}<p class="sub">표 한눈에 — 파랑 D, 주황 E, 보라 N, 분홍 NK, 초록 prn, 흰 OFF. 위에서부터 명단 순.</p>`;
   // --- 1 확인할 것
   const vRow = v => `<tr>${td(v.day ? `${v.day}일` : "")}${td(esc(v.rule))}${td(esc(v.staff_id || ""))}${td(esc(v.message))}</tr>`;
   const sec1 = `<h2>1. 확인할 것</h2>
     ${strict.length ? `<p class="bad">필수 위반 ${strict.length}건 — 이대로 확정하면 그날 병동이 규칙대로 돌아가지 않는다.</p><table class="t"><tr><th>날</th><th>규칙</th><th>사람</th><th>내용</th></tr>${strict.map(vRow).join("")}</table>` : `<p class="good">필수 위반 없음.</p>`}
-    ${bestEffort.length ? `<p>추가 검토 ${bestEffort.length}건 — 최선노력 규칙(Lv4+ 배치·월 OFF 하한·주간 블록·야간 목표·수면오프). 원칙이지만 인원 사정상 못 맞출 수 있는 항목.</p><table class="t small"><tr><th>날</th><th>규칙</th><th>사람</th><th>내용</th></tr>${bestEffort.map(vRow).join("")}</table>` : ""}
+    ${bestEffort.length ? `<p>추가 검토 ${bestEffort.length}건 — 최선노력 규칙(${BEST_EFFORT_NAMES}). 원칙이지만 인원 사정상 못 맞출 수 있는 항목. 조의 숙련도(H1-5)는 여기 아니라 위 필수에 든다.</p><table class="t small"><tr><th>날</th><th>규칙</th><th>사람</th><th>내용</th></tr>${bestEffort.map(vRow).join("")}</table>` : ""}
     ${(r.soft || []).length ? `<p class="sub">권장 사항 ${r.soft.length}건은 생략(화면 결과창 참고).</p>` : ""}`;
   // --- 2 일별 인원 — 화면 맨 아래 '날짜별 인원' 줄과 같은 구성(dailyDutyRowSpecs)·같은 판정(dutyNeedState).
   // 예전엔 D·E·N·prn 합계 넷에 Lv4+를 "1·3·2"처럼 한 칸에 붙여 적어서, 근무 코드별 인원이 아니라
@@ -3125,7 +3180,7 @@ function magazineHtml(trace) {
     trace: trace && trace.events ? { staff: trace.staff, events: trace.events, stages: trace.stages, final: trace.final, seed: trace.seed } : null,
   }).replace(/<\//g, "<\\/");
   const transport = `<div class="viz-tr"><button data-tr="first" title="처음">⏮</button><button data-tr="prev" title="이전 단계">◀</button><button class="big" data-tr="play">▶ 재생</button><button data-tr="next" title="다음 단계">▶</button><label>속도 <input type="range" data-tr="speed" min="1" max="60" value="14"></label><span class="viz-stage"></span><span class="viz-kpi"></span><div class="viz-bar"><i></i></div></div>`;
-  const sec11 = `<h2>11. 시각화 <span class="sub">(화면용 — 인쇄에는 안 나옴${trace && trace.events ? `. 시드 ${trace.seed}의 생성 과정 ${trace.events.length}단계 쓰기를 재생` : ". 생성 기록을 못 받아 완성표만 그림"})</span></h2>
+  const sec11 = `<h2 class="viz-h">11. 시각화 <span class="sub">(화면용 — 인쇄에는 안 나옴${trace && trace.events ? `. 시드 ${trace.seed}의 생성 과정 ${trace.events.length}단계 쓰기를 재생` : ". 생성 기록을 못 받아 완성표만 그림"})</span></h2>
     <div class="viz" id="viz">
     <section class="vizb" id="viz-jour"><h3>여정 — 한 사람의 한 달</h3><div class="viz-ctl"><label>사람 <select id="vzWho"></select></label><button id="vzPrev">◀</button><button id="vzPlay">▶ 걷기</button><button id="vzNext">▶</button><button class="viz-open" data-open="viz-jour">↗ 새 창에서 크게</button><span class="sub">←→·휠로 날짜. 해는 낮, 노을은 저녁, 달은 밤. 카드에 그 칸이 어느 단계에서 왜 놓였는지.</span></div><canvas id="vzJour"></canvas><div class="viz-card" id="vzCard"></div></section>
     <section class="vizb" id="viz-rain"><h3>비 — 근무 글자가 떨어져 제자리에</h3><div class="viz-ctl"><button class="viz-open" data-open="viz-rain">↗ 새 창에서 크게</button><span class="sub">위에서부터 명단 순, 왼쪽부터 1일. 엔진이 칸을 놓는 순서대로 글자가 내려앉고, 아직 빈 칸 위로는 글자 비가 내린다.</span></div>${transport}<canvas id="vzRain"></canvas></section>
@@ -3135,18 +3190,15 @@ function magazineHtml(trace) {
     <script id="vizSrc" type="text/plain">${magazineVizScript()}</script>
     <script>new Function(document.getElementById("vizSrc").textContent)();</script>`;
   // --- 목차 — 맨 위에서 절로 바로 가는 링크. 절 제목(<h2>N. …)에 id를 붙이고, 같은 제목으로 목차를 만든다.
-  const body = [sec1, sec2, sec3, sec4, sec5, sec6, sec7, sec8, sec9, sec10, sec11].join("")
+  const body = [sec0, sec1, sec2, sec3, sec4, sec5, sec6, sec7, sec8, sec9, sec10, sec11].join("")
     .replace(/<h2>(\d+)\. /g, '<h2 id="s$1">$1. ');
   const tocItems = [...body.matchAll(/<h2 id="s(\d+)">\d+\. ([^<]+)/g)].map(m => `<a href="#s${m[1]}"><b>${m[1]}</b> ${m[2].trim()}</a>`);
   tocItems.push(`<a href="#viz-jour" class="vz"><b>▶</b> 여정</a>`, `<a href="#viz-rain" class="vz"><b>▶</b> 비</a>`, `<a href="#viz-orb" class="vz"><b>▶</b> 궤도</a>`);
   const toc = `<nav class="toc">${tocItems.join("")}</nav>`;
   // --- 표 한눈에(모자이크)
-  const colors = { D: "#93c5fd", E: "#fdba74", N: "#c4b5fd", NK: "#f9a8d4", OFF: "#eeeeee", prn: "#86efac", "8A": "#d1d5db", "S/": "#99f6e4" };
-  const cs = 1000 / nd, rh = Math.max(4, Math.min(8, 240 / ST.staff.length));
-  const svg = `<svg viewBox="0 0 1000 ${(rh * ST.staff.length).toFixed(0)}" width="100%" style="display:block;margin:8px 0 2px">` + ST.staff.map((s, i) => row(s).map((v, d) => v ? `<rect x="${(d * cs + .5).toFixed(1)}" y="${(i * rh).toFixed(1)}" width="${(cs - 1).toFixed(1)}" height="${(rh - 1).toFixed(1)}" fill="${colors[v] || (isWorkCode(v) ? "#a3a3a3" : "#f5f5f4")}"/>` : "").join("")).join("") + "</svg>";
   return `<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${wardLabel}${ST.year}년 ${ST.month}월 월간 근무 보고</title>
-<style>body{margin:0;background:#f3f4f6;color:#111827;font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;font-size:13px;line-height:1.55}
+<style>body{margin:0;background:#f3f4f6;color:#111827;font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;font-size:14px;line-height:1.55}
 .pg{max-width:1040px;margin:24px auto 60px;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.12);padding:36px 44px}
 .kicker{letter-spacing:.2em;font-size:11px;color:#6b7280}h1{font-size:34px;margin:2px 0 6px}h2{font-size:16px;margin:28px 0 8px;padding-top:8px;border-top:2px solid #111827}.lead{margin:0 0 10px;color:#374151}
 .nums{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.num{border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px}.num b{display:block;font-size:24px}.num span{font-size:11px;color:#6b7280}.num.bad b{color:#dc2626}.num.good b{color:#16a34a}.num.warn b{color:#ca8a04}
@@ -3155,15 +3207,21 @@ td.bad{background:#fee2e2;color:#991b1b;font-weight:700}td.warn{background:#fef9
 tr.sep th,tr.sep td{border-top:2px dashed #9ca3af}tr.tot th,tr.tot td{border-top:1.5px solid #6b7280}tr.other th{color:#6b7280;font-weight:500}tr.lv th{color:#5b21b6}tr.lv1 th,tr.lv1 td{border-top:2px solid #111827}td.we,th.we{background:#fff1f2}td.we.bad{background:#fee2e2}td.we.over{background:#fef3c7}td.we.warn{background:#fef9c3}tr.nk td{color:#6b21a8}tr.chosen td{background:#ecfdf5}
 .bad{color:#dc2626;font-weight:600}.good{color:#16a34a}.sub{color:#6b7280;font-size:11px}.small{font-size:12px}i{font-style:normal;font-size:10px;color:#7c3aed;border:1px solid #c4b5fd;border-radius:3px;padding:0 3px}
 ul{margin:6px 0;padding-left:18px}li{margin:3px 0}pre.log{font-size:11px;background:#f9fafb;border:1px solid #e5e7eb;padding:8px;white-space:pre-wrap;line-height:1.5}
-.foot{margin-top:28px;font-size:11px;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:8px}
+.foot{margin-top:28px;font-size:11px;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:8px}.nums-h{margin:14px 0 4px;font-size:13px;color:#374151}
+.brief{border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;margin:10px 0 6px;background:#fafafa}.brief .status{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}.brief .status .tag{flex:0 0 auto;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700}.brief .status.bad .tag{background:#fee2e2;color:#991b1b}.brief .status.ok .tag{background:#dcfce7;color:#166534}.brief .status.warn .tag{background:#fef9c3;color:#854d0e}.brief .status b.t{display:block;font-size:17px}.brief .status .sub{display:block;margin-top:2px}
+.brief .kp{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0}.brief .kp div{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px}.brief .kp b{display:block;font-size:22px}.brief .kp b.bad{color:#dc2626}.brief .kp b.good{color:#16a34a}.brief .kp b.warn{color:#ca8a04}.brief .kp span{font-size:11px;color:#6b7280}.brief .kp small{display:block;font-size:11px;color:#374151;margin-top:2px}
+.brief .two{display:grid;grid-template-columns:3fr 2fr;gap:12px;margin-top:6px}.brief h3{margin:4px 0 6px;font-size:14px}.brief table.act{width:100%;border-collapse:collapse}.brief table.act td{padding:5px 6px;border-top:1px solid #eee;vertical-align:top;font-size:12.5px}.brief table.act td.w{white-space:nowrap;color:#991b1b;font-weight:600}.brief table.act td.a{color:#374151}
+.brief .dist{font-size:12px}.brief .dist .row{display:grid;grid-template-columns:34px 1fr 40px;gap:6px;align-items:center;margin:3px 0}.brief .dist .bar{height:12px;background:#e5e7eb;border-radius:999px;overflow:hidden}.brief .dist .bar i{display:block;height:100%;background:#0f6e6b;border-radius:999px}.brief .dist .lab{color:#374151}.brief .dist .n{text-align:right;color:#374151}
+.brief .one{margin:10px 0 0;padding:10px 12px;background:#ecfdf5;border-radius:8px;font-size:13px}.brief .one .sub{display:block;margin-top:4px}
+@media (max-width:640px){.pg{padding:16px 14px;margin:0}.nums,.brief .kp{grid-template-columns:repeat(2,1fr)}.brief .two{grid-template-columns:1fr}h1{font-size:26px}table.t.tiny{font-size:10px}}
 .toc{position:sticky;top:0;z-index:5;background:#fff;display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;white-space:nowrap;padding:8px 0;margin:8px 0 6px;border-bottom:1px solid #e5e7eb;scrollbar-width:thin}.toc a{flex:0 0 auto;text-decoration:none;color:#111827;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:999px;padding:4px 11px;font-size:12px}.toc a b{color:#0f6e6b;margin-right:3px}.toc a:hover{border-color:#0f6e6b;color:#0f6e6b}.toc a.vz{background:#0b1020;color:#fff;border-color:#0b1020}.toc a.vz b{color:#4ade80}h2,.vizb{scroll-margin-top:56px}
 .viz-open{margin-left:auto;background:#fff!important;color:#000!important;font-weight:700}
 .vizb{margin:0 0 18px;padding-top:4px}.vizb h3{margin:0 0 8px;font-family:Georgia,"Noto Serif KR",serif;font-weight:300;font-size:20px;letter-spacing:.04em;color:#fff}
 .viz-tr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 8px;font-size:12px}.viz-tr button.big{background:#fff;color:#000;font-weight:700}.viz-tr label{color:#9aa3b2;display:flex;gap:6px;align-items:center}.viz-tr input[type=range]{width:110px;accent-color:#fff}.viz-stage{color:#fff;font-family:Georgia,serif;font-size:14px}.viz-kpi{color:#9aa3b2;font-size:11px;letter-spacing:.06em}.viz-bar{flex-basis:100%;height:3px;background:rgba(255,255,255,.12);position:relative;cursor:pointer}.viz-bar i{position:absolute;left:0;top:0;bottom:0;background:#fff;width:0}.viz-bar b{position:absolute;top:-2px;width:1px;height:7px;background:rgba(255,255,255,.35)}
 body.full{background:#05070c}body.full .pg{max-width:none;margin:0;padding:10px;box-shadow:none;background:#05070c;min-height:100vh}body.full .viz{padding:8px}body.full .vizb:not(.full-on){display:none}body.full .viz-card{max-width:720px}
 .viz{background:#0b1020;border-radius:12px;padding:12px;color:#eef2f7}.viz-tab,.viz-sub,.viz-ctl button,.viz-tr button{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#e5e7eb;border-radius:999px;padding:6px 13px;font-size:12.5px;cursor:pointer}.viz-tab.on,.viz-sub.on{background:#fff;color:#000;font-weight:700}.viz-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;font-size:12px}.viz-ctl .sub{color:#9aa3b2}.viz select{background:#111827;color:#fff;border:1px solid #374151;border-radius:8px;padding:4px 8px;font-size:12px}.viz canvas{display:block;width:100%;border-radius:8px;background:#05070c}.viz-card{margin-top:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.55}.viz-card .d{font-family:Georgia,serif;font-weight:300;font-size:22px}.viz-card .m{color:#9aa3b2;font-size:11px;margin-top:6px}
-@media print{body{background:#fff}.pg{box-shadow:none;margin:0;max-width:none;padding:0}h2{break-after:avoid}table{break-inside:auto}tr{break-inside:avoid}.viz,h2.viz-h{display:none}}</style></head><body><div class="pg">
-${head}${toc}${svg}<p class="sub">표 한눈에 — 파랑 D, 주황 E, 보라 N, 분홍 NK, 초록 prn, 흰 OFF. 위에서부터 명단 순.</p>
+@media print{body{background:#fff}.pg{box-shadow:none;margin:0;max-width:none;padding:0}h2{break-after:avoid}table{break-inside:auto}tr{break-inside:avoid}.viz,h2.viz-h,.toc,.brief-print-hide{display:none}}</style></head><body><div class="pg">
+${head}${toc}
 ${body}
 <div class="foot">SMC Fair Shift · 화면과 같은 계산 · 실험 기능 — 인쇄하면 PDF로 저장할 수 있다</div></div></body></html>`;
 }
@@ -3542,13 +3600,18 @@ window.undoEdit = undoEdit;
 //   hard_count === 0 && 잔여 > 0 → 필수는 다 지켰고 추가 검토 항목만 남음
 //   전부 0                     → 완벽 배정
 //
-// "안전 규칙은 모두 지켰습니다"라고 쓰지 않는다. 노란색으로 남는 항목에는 레벨4+ 배치
-// (H1-5), 월 OFF 하한(H4-1), 야간 6회 이상일 때의 수면오프(H7-1)처럼 사람의 안전과
-// 직결되는 것들이 섞여 있다. '안전'이라고 뭉뚱그리면 상세 규칙을 모르는 사람이 노란
+// "안전 규칙은 모두 지켰습니다"라고 쓰지 않는다. 노란색으로 남는 항목에는 월 OFF 하한(H4-1),
+// 야간 6회 이상일 때의 수면오프(H7-1)처럼 사람의 안전과 직결되는 것들이 섞여 있다. (조의
+// 숙련도 H1-5는 v0.85부터 필수(빨강)다 — 문구에 Lv4+를 노랑 예시로 적지 말 것. 10/30 GPT 검토 M06.) '안전'이라고 뭉뚱그리면 상세 규칙을 모르는 사람이 노란
 // 목록을 안 읽고 승인한다 — 사실만 적는다: 무엇이 몇 건 남았는지.
 // 필수 위반이 남은 근무표를 그대로 내려받아 확정하는 것을 막는다. 빨간 경고가 화면에
 // 떠 있어도 다운로드 버튼은 그대로 눌렸고, 파일로 나가는 순간 그 근무표가 확정본이 된다.
 // 무엇이 몇 건 남았는지 다시 한 번 보여주고 사람이 명시적으로 승인하게 한다.
+// 최선노력(노랑) 규칙의 이름 — 엔진 _BEST_EFFORT_RULES {H6-1, H6-4, H4-1, H1-4, H4-2, H7-1}와 짝.
+// 분류는 엔진이 report.hard[].best_effort로 보내므로 여기는 사람 말 설명만 둔다. 엔진 목록이 바뀌면
+// tests/test_pyodide_sync.py가 잡게 이 상수 이름을 그대로 둘 것.
+const BEST_EFFORT_NAMES = "주간 블록 길이(H6-1)·야간 목표 횟수(H6-4)·월 OFF 하한(H4-1)·최소인력 상한(H1-4)·긴 연속 휴무(H4-2)·수면오프(H7-1)";
+
 function confirmDownloadWithViolations() {
   const r = ST && ST.report;
   if (!r || !r.hard_count) return true;
@@ -3571,8 +3634,8 @@ function feasibilityBanner(r) {
   }
   if (total > 0) {
     return `<p class="status-banner warn">필수 규칙(최소인력·야간 블록·연속근무 등)은 모두
-      지켰습니다. 다만 <b>추가 검토 ${total}건</b>이 남았습니다 — 레벨4+ 배치, 월 OFF 하한,
-      수면오프처럼 지키는 게 원칙이지만 인원 사정상 못 맞출 수 있는 항목입니다. 아래 노란
+      지켰습니다. 다만 <b>추가 검토 ${total}건</b>이 남았습니다 — ${BEST_EFFORT_NAMES}처럼
+      지키는 게 원칙이지만 인원 사정상 못 맞출 수 있는 항목입니다. 아래 노란
       목록을 확인한 뒤 확정해 주세요.</p>`;
   }
   return "";
@@ -3584,6 +3647,12 @@ function renderSide() {
 
   let html = "";
   html += `<div class="side-sec"><h3>검증 요약</h3>`;
+  if (ST.pending && ST.pending.length) {
+    // 표에는 수정 대기 칸이 보이지만 아래 숫자는 확정표(마지막 생성·적용) 기준이다 — 둘의 기준이 다른
+    // 것을 적어 두지 않으면 "고쳤는데 왜 위반이 그대로냐"가 된다(10/30 GPT 검토 U06, 재현됨).
+    html += `<p class="hint scope-note">📌 아래는 <b>확정표 기준</b> 검사입니다 — 수정 대기 ${ST.pending.length}칸은 아직 반영되지 않았습니다.
+      칸별 영향은 '편집 중' 목록의 관련 규칙으로, 전체는 '재생성 적용' 뒤 다시 계산됩니다.</p>`;
+  }
   if (r.timed_out) {
     // 시도는 시드 0·1·2(전략 -,W,S)로 고정이라 같은 입력이면 같은 결과다. 예전 문구는 "무작위 재시도라
     // 다시 누르면 달라질 수 있다"였는데 사실이 아니어서, 같은 버튼을 계속 누르게 만들었다.
@@ -3604,8 +3673,11 @@ function renderSide() {
     // 예전엔 slice(0,8)로 앞 8건만 보여줘서, 위반이 많은 달엔 뒤쪽(특히 날짜순 정렬상
     // 뒤로 밀리는 H6-1 등)이 아무 표시 없이 통째로 안 보였다 — 파트장이 "이건 위반이
     // 아닌가 보다"로 오해할 수 있어, 전부 보여주되 스크롤로 감당한다.
+    // 항목을 누르면 그 칸(사람·날)으로, 사람이 없는 항목(최소인력·숙련도·지정)은 그날 열로 간다 — 목록과 표를
+    // 오가며 찾던 것을 없앤다(10/30 GPT 검토 U04). 값은 data-*에만 두고 클릭은 sidePane에서 위임받는다.
     html += '<ul class="issue-list issue-list-scroll">' + r.hard.map(v =>
-      `<li class="${v.best_effort ? "soft" : "hard"}"><span class="rule">${esc(v.rule)}</span>${esc(v.message)}</li>`).join("") + "</ul>";
+      `<li class="${v.best_effort ? "soft" : "hard"}"${v.day ? ` data-day="${v.day - 1}"` : ""}${v.staff_id ? ` data-sid="${escAttr(v.staff_id)}"` : ""}` +
+      `${v.day ? ' role="button" tabindex="0" title="누르면 그 칸으로 이동"' : ""}><span class="rule">${esc(v.rule)}</span>${esc(v.message)}</li>`).join("") + "</ul>";
   }
   html += "</div>";
 
