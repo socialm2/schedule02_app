@@ -29,20 +29,20 @@
       https 주소로 접속하거나 관리자에게 문의하세요.</p>
   </div>
 </div>
-<div id="loadingOverlay">
+<div id="loadingOverlay" role="status" aria-live="polite">
   <div class="loading-box">
     <div class="spinner"></div>
     <p id="loadingMsg">파이썬 실행 환경을 불러오는 중입니다…</p>
     <p class="loading-sub">처음 열 때만 몇 초~수십 초 걸릴 수 있어요. 이후엔 브라우저에 저장돼 더 빨리 열립니다.</p>
   </div>
 </div>
-<div id="genOverlay" style="display:none">
+<div id="genOverlay" style="display:none" role="status" aria-live="polite">
   <div class="loading-box">
     <!-- 생성 중 비 — 근무 글자가 내려와 제자리에 앉는다(보고서 11장 '비'의 축소판, 앞 14명만). 진행 게이지와 같은 비율로 채워진다. -->
     <canvas id="genRain" class="gen-rain" aria-hidden="true"></canvas>
     <div class="spinner"></div>
     <p id="genOverlayMsg">근무표를 계산하는 중입니다…</p>
-    <div class="gen-progress"><div class="gen-progress-fill" id="genProgressFill"></div></div>
+    <div class="gen-progress" role="progressbar" aria-label="생성 진행률" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="gen-progress-fill" id="genProgressFill"></div></div>
     <p class="loading-sub" id="genOverlaySub">보통 몇 초면 끝납니다. 창을 닫지 말고 잠시만 기다려주세요.</p>
     <!-- 꼼꼼히 만들기(시도 9회)일 때만 보인다 — 몇 번째 시도인지·지금까지 최선·남은 시간. -->
     <p class="gen-step" id="genOverlayStep" style="display:none"></p>
@@ -53,15 +53,17 @@
   <!-- .build-time 값은 배포할 때 GitHub Actions가 "Updated 실제 배포 시각(서울 기준)"으로
        바꿔 넣는다(.github/workflows/deploy.yml). 손으로 고칠 필요 없다. -->
   <header>
-    <h1>SMC Fair Shift <span class="version-badge">v0.87</span><span class="build-time">Updated 2026-10-31 23:16:05</span></h1>
+    <!-- 배지·빌드시각은 스크린리더가 제목으로 읽지 않게 감싼다(aria-hidden). .build-time span 자체는
+         CI(deploy.yml)가 정규식으로 찾아 바꾸므로 그 태그에는 속성을 더하지 말 것. -->
+    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.87</span><span class="build-time">Updated 2026-10-31 23:22:23</span></span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
   </header>
-  <p class="security-note">🔒 입력 데이터는 <b>서버로 전송되지 않고 현재 브라우저에서 처리</b>됩니다.
+  <p class="security-note"><span aria-hidden="true">🔒</span> 입력 데이터는 <b>서버로 전송되지 않고 현재 브라우저에서 처리</b>됩니다.
   공용 기기, 브라우저 저장 데이터, 화면 공유 및 다운로드 파일의 개인정보 보호에 주의해 주세요.</p>
 
-  <div id="main">
+  <div id="main" role="main">
     <div id="gridPane">
       <!-- 입력 화면: 업로드 + 직접입력 폼 (샘플 기본값으로 미리 채워짐) -->
       <div id="intake">
@@ -180,8 +182,8 @@
               <span id="staffSummary" class="hint"></span>
               <div class="upload-row">
                 <input type="file" id="wantedInput" accept=".xlsx" class="file-input-hidden" tabindex="-1">
-                <button type="button" class="upload-btn" data-target="wantedInput">업로드</button>
-                <button type="button" class="upload-btn format-btn" onclick="downloadWantedTemplate()">양식(다운로드)</button>
+                <button type="button" class="upload-btn" data-target="wantedInput" aria-label="입력① 원티드표 업로드">업로드</button>
+                <button type="button" class="upload-btn format-btn" onclick="downloadWantedTemplate()" aria-label="입력① 원티드표 양식 다운로드">양식(다운로드)</button>
               </div>
               <p class="hint" id="wantedFormatHint">올릴 파일은 <b>양식(다운로드)</b>으로 받은 파일을 쓰세요 — 화면 연월·현재 명단으로 만들어집니다.</p>
               <button id="wantedClearBtn" class="small" style="display:none">반영 해제</button>
@@ -195,8 +197,8 @@
               <p class="hint" id="staffTableActive" style="display:none"></p>
               <div class="upload-row">
                 <input type="file" id="staffTableInput" accept=".xlsx" class="file-input-hidden" tabindex="-1">
-                <button type="button" class="upload-btn" data-target="staffTableInput">업로드</button>
-                <button type="button" class="upload-btn format-btn" data-href="templates/입력2_연간근무표_2026-08.xlsx" data-download="입력2_연간근무표_2026-08.xlsx">양식(다운로드)</button>
+                <button type="button" class="upload-btn" data-target="staffTableInput" aria-label="입력② 연간근무표 업로드">업로드</button>
+                <button type="button" class="upload-btn format-btn" data-href="templates/입력2_연간근무표_2026-08.xlsx" data-download="입력2_연간근무표_2026-08.xlsx" aria-label="입력② 연간근무표 양식 다운로드">양식(다운로드)</button>
               </div>
               <button id="staffTableClearBtn" class="small" style="display:none">반영 해제</button>
               <button id="staffTableClearAllBtn" class="small" style="display:none">이전 파일도 해제</button>
@@ -217,7 +219,7 @@
                  4곳 중 3곳이 더 좋은 표를 얻었고, 시간은 약 3배다. 재생성·편집 적용에도 같이 적용된다. -->
             <label class="thorough-opt" title="근무표를 평소 3개 대신 9개 만들어 가장 좋은 것을 고릅니다. 소요 시간은 일반 생성(40명대 약 10초) 대비 약 3배인 30초이며, 인원이 빠듯한 달은 몇 분이 걸릴 수 있습니다. 재생성과 편집 적용에도 같이 적용됩니다.">
               <input type="checkbox" id="thoroughChk">
-              <span class="thorough-title">🔍 꼼꼼히 만들기</span>
+              <span class="thorough-title"><span aria-hidden="true">🔍</span> 꼼꼼히 만들기</span>
               <span class="hint thorough-hint">근무표를 평소 3개 대신 9개 만들어 가장 좋은 것을 고릅니다. 소요 시간은 일반 생성(40명대 약 10초) 대비 약 3배인 30초이며, 인원이 빠듯한 달은 몇 분이 걸릴 수 있습니다. 필수 위반이 남는 달에 권장합니다.</span>
             </label>
           </div>
@@ -234,8 +236,8 @@
 </div>
 
 <div class="modal-backdrop" id="infoModalBackdrop">
-  <div class="modal">
-    <div class="modal-head"><h2 id="infoModalTitle">프로그램 정보 · 사용법</h2><button id="closeInfoBtn">✕</button></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="infoModalTitle">
+    <div class="modal-head"><h2 id="infoModalTitle">프로그램 정보 · 사용법</h2><button id="closeInfoBtn" aria-label="설명서 닫기">✕</button></div>
     <div class="modal-body" id="infoBody"></div>
   </div>
 </div>
@@ -243,10 +245,12 @@
 <!-- 출력 화면의 "월간근무표 올리기" — 숨은 파일 칸. 접었다 폈다 하는 영역 안에
      두면 그 영역이 닫혀 있을 때 브라우저가 클릭을 무시할 수 있어 바깥에 둔다. -->
 <input type="file" id="monthInput" accept=".xlsx" class="file-input-hidden" tabindex="-1">
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <!-- platform.js가 먼저다 — app.js가 시작하자마자 부르는 api()·bootPlatform()이
      여기 들어 있다(Worker로 요청 보내기·파일 올리고 받기·Pyodide 부팅). -->
 <script src="platform.js"></script>
 <script src="app.js"></script>
+<!-- 접근성 보강(모달 포커스 가둠·복귀, 숫자 칸 이름) — app.js 뒤에, DOM만 보고 붙는다. -->
+<script src="a11y.js"></script>
 </body>
 </html>

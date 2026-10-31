@@ -5,9 +5,16 @@
      특히 <button>(네이티브 폼 컨트롤)에서 더 잘 발생하고, <a> 링크는 영향을 덜 받는다. */
   color-scheme: light dark;
   --paper: #F7F8F6; --ink: #1C2523; --sub: #5A6763; --accent: #0F6E6B;
-  --accent-soft: #E3EEEC; --hard: #B5472E; --hard-soft: #F6E8E3;
-  --ok: #2E7D4F; --ok-soft: #E4F0E8; --warn: #9A6B12; --warn-soft: #FBF1DC;
+  /* --hard·--ok·--warn은 '-soft' 배경 위 글자색으로 쓰인다 — WCAG AA 4.5:1을 넘겨야 한다.
+     예전 값(#B5472E·#2E7D4F·#9A6B12)은 4.499·4.31·4.17이라 필수 위반 항목·추가 검토 항목 전부·
+     보안 띠·KPI 초록이 미달이었다(2026-10-31 검토 C 2-1 실측). 바꾸면 다크 쪽은 그대로 두고 라이트만 재측정. */
+  --accent-soft: #E3EEEC; --hard: #AD432B; --hard-soft: #F6E8E3;
+  --ok: #246A42; --ok-soft: #E4F0E8; --warn: #7F5708; --warn-soft: #FBF1DC;
   --line: #D8DEDB; --card: #FFFFFF; --code-bg: #EDF1EF; --we: #FCE4EC;
+  /* 강조색(--accent)·오류색(--hard)을 배경으로 깔았을 때의 글자색. 라이트는 흰 글자가
+     6:1이지만 다크의 --accent #4FB3AE는 밝은 민트라 흰 글자가 2.5:1밖에 안 된다 —
+     '근무표 생성' 버튼이 다크에서 WCAG 미달이었다. 배경 위 글자는 늘 이 토큰을 쓸 것. */
+  --on-accent: #FFFFFF; --on-hard: #FFFFFF;
   /* "업로드"·"양식(다운로드)" 버튼 채움색 — 아주 살짝 파란기 도는 슬레이트 톤
      (완전 무채색 회색보다 옅게 채도를 넣음 — "꾸미지 않은 기본 회색"처럼 보이지
      않게 해서, 강제 다크모드 브라우저가 재배색 대상으로 오판할 여지를 줄임). */
@@ -24,14 +31,22 @@
   --accent-soft: #1C2E2C; --hard: #E07B5F; --hard-soft: #2E211C;
   --ok: #6FBF8E; --ok-soft: #1D2B22; --warn: #E0B84C; --warn-soft: #332B14;
   --line: #2C3634; --card: #1B2321; --code-bg: #222C2A; --we: #3A2A30;
-  --btn-fill: #33465C; } }
+  --btn-fill: #33465C;
+  /* 다크의 강조색·오류색은 밝은 편이라 그 위 글자는 어둡게(각 6.8:1·7:1) */
+  --on-accent: #0B1F1E; --on-hard: #1C0F0A; } }
 
 * { box-sizing: border-box; }
+/* 글꼴은 px가 아니라 rem — 브라우저(특히 안드로이드 '글자 크기')의 글꼴 설정이
+   그대로 반영되게. px로 박으면 사용자가 글자를 키워도 이 앱만 그대로다. 아래 모든
+   font-size도 같은 이유로 rem이다(16px 기준: 14.5px = .906rem).
+   ⚠ html에는 100%만, 본문 크기는 body에만 — html에 rem을 주면 rem의 기준(html) 자체가
+   줄어 모든 글자가 한 번 더 작아진다(처음에 'html, body'에 같이 줬다가 전부 9% 줄었다). */
+html { font-size: 100%; }
+body { font-size: .90625rem; }
 html, body {
   margin: 0; height: 100%; background: var(--paper); color: var(--ink);
   font-family: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo",
     "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
-  font-size: 14.5px;
   /* 안전장치: 넓은 표(근무표 그리드 등)가 실수로 페이지 자체를 옆으로 밀면
      모바일에서 position:fixed 팝업(사용법 모달 등) 위치가 틀어진다 — 항상 막아둔다. */
   overflow-x: hidden;
@@ -50,7 +65,7 @@ html, body {
 }
 #authForm { display: flex; gap: 8px; margin-top: 14px; justify-content: center; }
 #authForm input {
-  font-family: inherit; font-size: 14px; border: 1.5px solid var(--line);
+  font-family: inherit; font-size: .875rem; border: 1.5px solid var(--line);
   border-radius: 7px; padding: 6px 10px; width: 160px; background: var(--card); color: var(--ink);
 }
 
@@ -66,8 +81,8 @@ html, body {
   animation: spin 0.9s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.loading-box p { margin: 6px 0; font-size: 13.5px; color: var(--ink); }
-.loading-box .loading-sub { font-size: 12px; color: var(--sub); }
+.loading-box p { margin: 6px 0; font-size: .84375rem; color: var(--ink); }
+.loading-box .loading-sub { font-size: .75rem; color: var(--sub); }
 .loading-box.err .spinner { display: none; }
 
 /* ---------------------------------------------------------------- 생성/재생성 중 오버레이 */
@@ -95,9 +110,9 @@ header {
   display: flex; align-items: center; gap: 7px 14px; padding: 10px 18px;
   border-bottom: 2px solid var(--accent); background: var(--card); flex-wrap: wrap;
 }
-header h1 { font-size: 20px; margin: 0; font-weight: 800; letter-spacing: -.01em; }
+header h1 { font-size: 1.25rem; margin: 0; font-weight: 800; letter-spacing: -.01em; }
 header .version-badge {
-  font-family: "JetBrains Mono", monospace; font-size: 10.5px; font-weight: 700;
+  font-family: "JetBrains Mono", monospace; font-size: .6875rem; font-weight: 700;
   color: var(--sub); background: var(--code-bg); padding: 1px 7px; border-radius: 999px;
   vertical-align: middle; margin-left: 4px;
 }
@@ -106,22 +121,28 @@ header .version-badge {
    기준으로 갱신한다 — 이 저장소 작업 환경은 UTC라 `TZ='Asia/Seoul' date '+%Y-%m-%d %H:%M:%S'`
    로 뽑아써야 한다(그냥 date는 UTC가 나와 9시간 어긋난다). */
 header .build-time {
-  font-family: "JetBrains Mono", monospace; font-size: 9.5px; font-weight: 500;
-  color: var(--sub); opacity: .5; vertical-align: middle; margin-left: 6px;
+  font-family: "JetBrains Mono", monospace; font-size: .6875rem; font-weight: 500;
+  /* 옅게(opacity .5·9.5px) 죽였더니 대비 2.13:1 — 배포 확인용이라도 읽혀야 한다. 색은
+     --sub(5.9:1), 작기는 하되 11px 아래로는 내리지 않는다. */
+  color: var(--sub); vertical-align: middle; margin-left: 6px;
 }
-header .ward-info { font-size: 12.5px; color: var(--sub); }
+header .ward-info { font-size: .78125rem; color: var(--sub); }
 header .spacer { flex: 1; }
 /* 앱 이름(제목)보다 절대 커 보이면 안 됨 — 제목은 16px/굵게인데 기본 button 스타일(13px)도
    패딩·테두리가 있는 알약 모양이라 한 줄 전체를 차지하면 오히려 더 커 보였다. 글자 크기와
    패딩을 줄이고 테두리 없는 옅은 톤으로 낮춰서 제목보다 확실히 작고 보조적으로 보이게 함. */
 header #infoBtn {
-  font-size: 11.5px; font-weight: 700; padding: 3px 10px;
+  font-size: .71875rem; font-weight: 700; padding: 3px 10px;
   border-color: transparent; background: var(--accent-soft); color: var(--accent);
 }
+/* 손가락 대상 — 26px은 작았다(검토 C 1-9, 폰 권장 36 이상). 높이를 숫자로 고정하는 규칙
+   (파일 끝 'header #infoBtn, header .sign-out')보다 위에 있어도 이기게 button 태그로 특이성을 올렸다. */
+header button#infoBtn, header button.sign-out { height: 32px; }
+@media (max-width: 680px) { header button#infoBtn, header button.sign-out { height: 36px; } }
 /* 앱 이름(헤더) 바로 아래, 전체 폭 띠 — 여러 줄로 자연스럽게 줄바꿈되는 일반 문단.
    (이전엔 inline-flex + 알약 모양이었는데, 여러 줄 문단엔 안 맞아 줄바꿈이 이상하게 깨졌음) */
 .security-note {
-  display: block; font-size: 12px; font-weight: 600; line-height: 1.6;
+  display: block; font-size: .75rem; font-weight: 600; line-height: 1.6;
   color: var(--ok); background: var(--ok-soft); padding: 8px 18px; margin: 0;
   border-bottom: 1px solid var(--line);
 }
@@ -132,24 +153,28 @@ header #infoBtn {
    폰(≤680px, #app height:auto)에서는 문서 맨 끝에 온다. */
 .footer-note {
   display: block; text-align: center; margin: 0;
-  font-size: 11px; font-weight: 500; letter-spacing: .02em; line-height: 1.6;
-  color: var(--sub); opacity: .75; background: var(--card);
+  font-size: .6875rem; font-weight: 500; letter-spacing: .02em; line-height: 1.6;
+  color: var(--sub); background: var(--card);   /* opacity .75는 대비 3.42 — 뺐다 */
   padding: 9px 18px; border-top: 1px solid var(--line);
 }
 
 button {
   appearance: none; -webkit-appearance: none;
-  font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: inherit; font-size: .8125rem; font-weight: 600; cursor: pointer;
   border: 1.5px solid var(--line); background: var(--card); color: var(--ink);
   border-radius: 7px; padding: 6px 13px; transition: background .1s, border-color .1s;
 }
 button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 button:disabled { opacity: .4; cursor: not-allowed; }
-button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-button.primary:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
+button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+button.primary:hover:not(:disabled) { filter: brightness(1.08); color: var(--on-accent); }
+/* 키보드 포커스 — 브라우저 기본 고리는 칸 색 위·다크에서 잘 안 보인다. 표 칸은 이웃 칸에
+   가려지므로 안쪽으로 그린다(th.day-head·.dio-person은 자기 규칙이 있다). */
+:where(button, input, select, textarea, summary, a, [tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+table.grid td:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 button.danger { border-color: var(--hard); color: var(--hard); }
 button.danger:hover:not(:disabled) { background: var(--hard-soft); }
-input[type=file] { font-size: 12.5px; max-width: 220px; }
+input[type=file] { font-size: .78125rem; max-width: 220px; }
 
 #main { display: flex; flex: 1; min-height: 0; }
 /* contain: paint — 이 칸 밖으로 넘치는 내용이 '페이지 전체의 스크롤 범위'에까지
@@ -164,6 +189,14 @@ input[type=file] { font-size: 12.5px; max-width: 220px; }
    표를 통째로 빼는 것이 확실하다. */
 #gridContent { overflow-anchor: none; }
 #gridPane { flex: 1; overflow: auto; padding: 14px; contain: paint; overflow-anchor: none; }
+/* 날짜 머리칸(th{position:sticky;top:0})이 붙으려면 **세로 스크롤이 일어나는 상자**가 th의
+   가장 가까운 스크롤 조상이어야 한다. 예전엔 .grid-scroll{overflow-x:auto}가 (overflow-y도
+   auto로 계산돼) 스크롤 상자가 되는데 세로 스크롤은 그 바깥(#gridPane)에서 일어나, 내려가면
+   날짜 줄이 그대로 사라졌다 — 40명 표의 17행 아래는 며칠인지 알 수 없었다(검토 C 1-2).
+   데스크톱: #gridPane 하나가 가로·세로 스크롤을 다 맡고 .grid-scroll은 스크롤 상자가 아니다.
+   (제목·범례가 가로 스크롤에 따라 옆으로 밀리는 건 감수 — 머리칸·이름 열은 붙어 있다.)
+   폰(≤680)은 #gridPane이 스크롤하지 않으므로 .grid-scroll이 높이 상한을 갖고 스스로 스크롤한다.
+   (규칙 자체는 아래 .grid-scroll 바로 뒤에 — 같은 특이성이라 앞에 두면 overflow-x:auto에 진다.) */
 #sidePane {
   width: 340px; flex: none; border-left: 1px solid var(--line); background: var(--card);
   overflow-y: auto; padding: 14px 16px;
@@ -173,16 +206,20 @@ input[type=file] { font-size: 12.5px; max-width: 220px; }
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   height: 100%; color: var(--sub); gap: 10px; text-align: center; padding: 40px;
 }
-.empty-state .big { font-size: 15px; font-weight: 700; color: var(--ink); }
+.empty-state .big { font-size: .9375rem; font-weight: 700; color: var(--ink); }
 
 .grid-scroll { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch;
   overflow-anchor: none; }
-table.grid { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+@media (min-width: 681px) { .grid-scroll { overflow: visible; max-width: none; } }   /* #gridPane 주석 참고 */
+table.grid { border-collapse: collapse; font-size: .75rem; font-variant-numeric: tabular-nums; }
 table.grid th {
   position: sticky; top: 0; background: var(--card); padding: 3px 4px; text-align: center;
   border-bottom: 1px solid var(--line); font-weight: 600; z-index: 2;
 }
 table.grid th.we { background: var(--we); }
+/* 왼쪽 위 '이름' 머리칸은 위·왼쪽 둘 다 붙어야 한다 — 왼쪽이 안 붙어 가로로 밀면 날짜 머리칸이
+   이름 열 위를 지나갔다. 두 방향 sticky가 겹치는 자리라 맨 위에 둔다. */
+table.grid th.nm { left: 0; z-index: 3; }
 table.grid td {
   padding: 0; text-align: center; border: 1px solid var(--line); min-width: 30px;
   height: 26px; cursor: pointer; position: relative; user-select: none;
@@ -192,18 +229,30 @@ table.grid td.nm {
   position: sticky; left: 0; background: var(--card); cursor: default; z-index: 1;
   border-right: 2px solid var(--line);
 }
-table.grid td.nm .role { color: var(--sub); font-weight: 400; font-size: 10.5px; margin-left: 4px; }
+@media (min-width: 681px) {
+  /* sticky의 0은 스크롤 상자의 padding 안쪽이라 #gridPane padding(14px)만큼 떠서 붙고, 그 틈으로
+     밑의 행·열이 비쳐 보였다 — padding만큼 당겨 상자 가장자리에 붙인다(#gridPane padding과 짝).
+     위의 top:0·left:0 규칙보다 뒤에 있어야 한다(같은 특이성). */
+  table.grid th { top: -14px; }
+  table.grid td.nm, table.grid th.nm { left: -14px; }
+}
+table.grid td.nm .role { color: var(--sub); font-weight: 400; font-size: .6875rem; margin-left: 4px; }
 /* 지정 가능자 표시 — 이름 옆 작은 배지. .role과 달리 폰에서도 숨기지 않는다(아래
    미디어쿼리에 없다): 하단 '지정 인원' 행이 빨개졌을 때 누구를 넣으면 되는지 찾을
    단서가 이것뿐이다. */
 table.grid td.nm .desig-mark {
   display: inline-block; margin-left: 4px; padding: 0 3px;
-  font-size: 10px; font-weight: 700; line-height: 1.4;
+  font-size: .6875rem; font-weight: 700; line-height: 1.4;
   border-radius: 3px; background: #E7D9F5; color: #5B2E8C;
 }
 /* 야간리더('밤') — '지'와 같은 모양이되 색으로 구분한다. 한 사람이 둘 다일 수
    있어서(지정이면서 야간리더) 같은 색이면 두 표가 한 덩어리로 보인다. */
 table.grid td.nm .nl-mark { background: #D6E4F7; color: #1F4E79; }
+/* 엑셀 색을 따르는 근무 칸과 달리 이 배지는 화면 전용이라 다크에서는 어두운 변형(각 8:1). */
+@media (prefers-color-scheme: dark) {
+  table.grid td.nm .desig-mark { background: #3B2560; color: #D9C6F2; }
+  table.grid td.nm .nl-mark { background: #1E3550; color: #BFD6F5; }
+}
 table.grid td.cell span { display: block; width: 100%; height: 100%; line-height: 26px; }
 table.grid th.stat-col, table.grid td.stat-col {
   background: var(--code-bg); color: var(--sub); font-weight: 600; cursor: default; min-width: 34px;
@@ -291,19 +340,36 @@ td.wanted span {
 /* 위반 목록에만 있고 그리드엔 아무 표시가 없어 칸을 일일이 세어 찾아야 했던 문제 —
    locked(테두리)·wanted(전체 틴트)와 안 겹치게 모서리 삼각형 배지로 표시한다.
    필수위반(빨강)과 최선노력위반(주황)을 구분한다. 툴팁(title)에 규칙·메시지가 뜬다. */
+/* 필수위반은 모서리 삼각형, 최선노력위반은 둥근 점 — 예전엔 둘이 같은 삼각형에 색만
+   달랐다(빨강/노랑 상호 대비 1.15:1). 적록·청황 색약은 구분이 안 되고, N·NK 같은 어두운 칸
+   위에서는 삼각형 자체가 안 보였다(1.49:1). 모양을 가르고, 칸 색과 무관하게 보이도록
+   카드색 테두리를 한 겹 두른다(검토 C 2-2). */
 td.viol-hard, td.viol-soft { position: relative; }
-td.viol-hard::after, td.viol-soft::after {
+td.viol-hard::after {
   content: ""; position: absolute; top: 0; right: 0;
-  border-style: solid; border-width: 0 9px 9px 0;
+  border-style: solid; border-width: 0 11px 11px 0;
   border-color: transparent currentColor transparent transparent;
+  filter: drop-shadow(-1px 1px 0 var(--card));
+}
+td.viol-soft::after {
+  content: ""; position: absolute; top: 2px; right: 2px; width: 7px; height: 7px;
+  border-radius: 50%; background: currentColor; box-shadow: 0 0 0 1.5px var(--card);
 }
 td.viol-hard::after { color: var(--hard); }
 td.viol-soft::after { color: var(--warn); }
+/* 윈도우 고대비(forced-colors)는 테두리·배경색을 시스템 색으로 덮어 삼각형·점이 사라진다 — 표시만은 살린다 */
+@media (forced-colors: active) {
+  td.viol-hard::after, td.viol-soft::after, .viol-swatch::after { forced-color-adjust: none; }
+}
 .viol-swatch { width: 13px; height: 13px; display: inline-block; position: relative; }
-.viol-swatch::after {
+.viol-hard-swatch::after {
   content: ""; position: absolute; top: 0; right: 0;
-  border-style: solid; border-width: 0 9px 9px 0;
+  border-style: solid; border-width: 0 11px 11px 0;
   border-color: transparent currentColor transparent transparent;
+}
+.viol-soft-swatch::after {
+  content: ""; position: absolute; top: 2px; right: 2px; width: 7px; height: 7px;
+  border-radius: 50%; background: currentColor; box-shadow: 0 0 0 1.5px var(--card);
 }
 .viol-hard-swatch { color: var(--hard); }
 .viol-soft-swatch { color: var(--warn); }
@@ -321,24 +387,24 @@ td.cell.picking {
 }
 td.disabled { cursor: default; opacity: .55; }
 
-.legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11.5px; margin: 8px 0 14px; color: var(--sub); }
+.legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: .71875rem; margin: 8px 0 14px; color: var(--sub); }
 .legend .sw { display: inline-flex; align-items: center; gap: 4px; }
 .legend .box { width: 13px; height: 13px; border-radius: 3px; display: inline-block; }
 
 .side-sec { margin-bottom: 20px; }
 .side-sec h3 {
-  font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--sub);
+  font-size: .71875rem; text-transform: uppercase; letter-spacing: .05em; color: var(--sub);
   font-weight: 700; margin: 0 0 8px;
 }
 .kpi-row { display: flex; gap: 8px; margin-bottom: 8px; }
 .kpi {
   flex: 1; background: var(--code-bg); border-radius: 7px; padding: 8px 10px; text-align: center;
 }
-.kpi .v { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.kpi .v { font-size: 1.125rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .kpi .v.ok { color: var(--ok); } .kpi .v.bad { color: var(--hard); }
-.kpi .l { font-size: 10.5px; color: var(--sub); }
+.kpi .l { font-size: .6875rem; color: var(--sub); }
 
-.issue-list { list-style: none; margin: 0; padding: 0; font-size: 12.5px; }
+.issue-list { list-style: none; margin: 0; padding: 0; font-size: .78125rem; }
 .issue-list-scroll { max-height: 260px; overflow-y: auto; }
 .issue-list li {
   padding: 6px 8px; border-radius: 6px; margin-bottom: 5px; line-height: 1.4;
@@ -348,16 +414,16 @@ td.disabled { cursor: default; opacity: .55; }
 .issue-list .rule { font-family: "JetBrains Mono", monospace; font-weight: 700; margin-right: 4px; }
 .issue-list .none { color: var(--ok); background: var(--ok-soft); }
 
-.edit-list { list-style: none; margin: 0 0 10px; padding: 0; font-size: 12px; }
+.edit-list { list-style: none; margin: 0 0 10px; padding: 0; font-size: .75rem; }
 .edit-list li {
   display: flex; justify-content: space-between; align-items: center;
   padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; margin-bottom: 4px;
 }
-.edit-list li button { padding: 2px 7px; font-size: 11px; border-radius: 5px; }
+.edit-list li button { padding: 2px 7px; font-size: .6875rem; border-radius: 5px; }
 
 .apply-warn {
   margin: 8px 0 0; padding: 7px 9px; border-radius: 6px; line-height: 1.45;
-  font-size: 12px; color: var(--warn); background: var(--warn-soft);
+  font-size: .75rem; color: var(--warn); background: var(--warn-soft);
 }
 .apply-warn b { font-weight: 800; }
 
@@ -366,7 +432,7 @@ td.disabled { cursor: default; opacity: .55; }
   background: var(--ok-soft); border: 1px solid var(--line);
 }
 .upload-branch .branch-title {
-  margin: 0 0 8px; font-size: 12.5px; font-weight: 700; color: var(--ink);
+  margin: 0 0 8px; font-size: .78125rem; font-weight: 700; color: var(--ink);
 }
 .upload-branch button { margin-top: 2px; }
 .upload-branch .hint { margin: 4px 0 9px; }
@@ -377,7 +443,7 @@ button.wide { width: 100%; }
 .action-row { display: flex; gap: 8px; margin-top: 8px; }
 .action-row button { flex: 1; }
 
-.person-table { width: 100%; font-size: 11.5px; border-collapse: collapse; }
+.person-table { width: 100%; font-size: .71875rem; border-collapse: collapse; }
 .person-table th, .person-table td { padding: 3px 5px; text-align: right; border-bottom: 1px solid var(--line); }
 .person-table th:first-child, .person-table td:first-child { text-align: left; }
 .person-table .warn-row { color: var(--hard); font-weight: 700; }
@@ -386,7 +452,7 @@ button.wide { width: 100%; }
 /* 다운로드 버튼 앞의 출력①·출력② 표식 — 업로드 쪽 "입력① 원티드표"와 짝을 이루게.
    받는 파일 이름이 "출력1_월간근무표…"라 화면에도 같은 번호가 있어야 되짚지 않는다. */
 .io-tag {
-  font-size: 10.5px; font-weight: 800; color: var(--accent); background: var(--accent-soft);
+  font-size: .6875rem; font-weight: 800; color: var(--accent); background: var(--accent-soft);
   border-radius: 999px; padding: 1px 6px; margin-right: 6px; vertical-align: 1px;
 }
 
@@ -403,7 +469,7 @@ button.wide { width: 100%; }
 .picker .picker-sep { flex-basis: 100%; font-size: 10.5px; color: var(--sub); margin: 4px 2px 0; border-top: 1px dashed var(--line); padding-top: 4px; }
 .picker button.swap { border-style: dashed; color: var(--accent); }
 /* 이 칸은 왜 — 선택기 아래 한 문단. 관련 칸은 표에서 거리순으로 번지며 테두리가 켜진다(파문). */
-.picker .picker-why { flex-basis: 100%; font-size: 10.5px; line-height: 1.5; color: var(--text); margin: 4px 2px 0; border-top: 1px dashed var(--line); padding-top: 4px; }
+.picker .picker-why { flex-basis: 100%; font-size: 10.5px; line-height: 1.5; color: var(--ink); margin: 4px 2px 0; border-top: 1px dashed var(--line); padding-top: 4px; }
 .picker .picker-why .dim { color: var(--sub); }
 table.grid td.rip { animation: rip-in .5s ease-out both; animation-delay: var(--rd, 0ms); outline: 2px solid var(--accent); outline-offset: -2px; }
 table.grid td.rip.rip-team { outline-color: #d97706; }
@@ -413,14 +479,18 @@ table.grid td.rip.rip-rest { outline-color: #38bdf8; }
    빗금, 맞교환으로만 바꿀 수 있는 칸(그날 인원 규칙이 막음)은 옅은 빗금. */
 td.fragile-row span { background-image: repeating-linear-gradient(135deg, rgba(0,0,0,.28) 0 2px, transparent 2px 7px); }
 td.fragile-day span { background-image: repeating-linear-gradient(135deg, rgba(0,0,0,.11) 0 1px, transparent 1px 8px); }
+/* 어두운 근무색(N #1F3864·NK #7030A0·조 #808080) 위에서는 검은 빗금이 안 보인다 — 밝은 빗금으로.
+   테마가 아니라 칸 색을 기준으로 가른다(다크에서도 D/E/prn 칸은 밝은 엑셀 색 그대로다). */
+td.sn.fragile-row span, td.sk.fragile-row span, td.sjo.fragile-row span { background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.38) 0 2px, transparent 2px 7px); }
+td.sn.fragile-day span, td.sk.fragile-day span, td.sjo.fragile-day span { background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.2) 0 1px, transparent 1px 8px); }
 .fragile-row-swatch { background: repeating-linear-gradient(135deg, rgba(0,0,0,.35) 0 2px, #e8e8e8 2px 7px); }
 .fragile-day-swatch { background: repeating-linear-gradient(135deg, rgba(0,0,0,.15) 0 1px, #e8e8e8 1px 8px); }
-.fragile-note { color: var(--sub); font-size: 12px; margin: 4px 0 6px; }
+.fragile-note { color: var(--sub); font-size: .75rem; margin: 4px 0 6px; }
 .warn-text { color: var(--warn); font-weight: 600; }
 .swap-list { list-style: none; padding: 0; margin: 4px 0; }
-.swap-list li { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+.swap-list li { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--line); font-size: .75rem; }
 .swap-list button.swap-pick { min-width: 72px; font-weight: 700; }
-.swap-list .lv { font-weight: 400; color: var(--sub); font-size: 11px; }
+.swap-list .lv { font-weight: 400; color: var(--sub); font-size: .6875rem; }
 .swap-list .swap-meta { color: var(--sub); }
 
 .toast {
@@ -438,16 +508,16 @@ td.fragile-day span { background-image: repeating-linear-gradient(135deg, rgba(0
    '근무표 생성' 버튼 밑이 허전하게 넓어 보이던 원인이라 마지막 것만 지운다. */
 .intake-box > *:last-child { margin-bottom: 0; }
 .intake-box { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 26px; }
-.intake-box h2 { font-size: 17px; margin: 0 0 6px; }
-.output-title { font-size: 17px; margin: 0 0 2px; }
-.output-subtitle { font-size: 12.5px; color: var(--sub); margin: 0 0 12px; font-weight: 600; }
-.carry-warning { font-size: 13px; color: var(--hard); background: var(--hard-soft);
+.intake-box h2 { font-size: 1.0625rem; margin: 0 0 6px; }
+.output-title { font-size: 1.0625rem; margin: 0 0 2px; }
+.output-subtitle { font-size: .78125rem; color: var(--sub); margin: 0 0 12px; font-weight: 600; }
+.carry-warning { font-size: .8125rem; color: var(--hard); background: var(--hard-soft);
   border-radius: 8px; padding: 8px 12px; margin: 0 0 12px; font-weight: 600; }
-.status-banner { font-size: 12.5px; border-radius: 8px; padding: 8px 12px;
+.status-banner { font-size: .78125rem; border-radius: 8px; padding: 8px 12px;
   margin: 0 0 10px; font-weight: 600; line-height: 1.5; }
 /* 전입·전출 대조 결과 — 인원이 조용히 바뀌는 걸 막는 게 목적이라 눈에 띄어야 한다.
    변동이 없을 때(.same)는 확인만 시켜주면 되므로 차분한 톤으로 낮춘다. */
-.roster-diff { font-size: 12.5px; line-height: 1.6; font-weight: 600;
+.roster-diff { font-size: .78125rem; line-height: 1.6; font-weight: 600;
   color: var(--warn); background: var(--warn-soft); border-radius: 8px;
   padding: 8px 12px; margin: 10px 0 0; }
 .roster-diff div + div { margin-top: 4px; }
@@ -456,7 +526,7 @@ td.fragile-day span { background-image: repeating-linear-gradient(135deg, rgba(0
 .status-banner.ok { color: var(--ok); background: var(--ok-soft); }
 .status-banner.warn { color: var(--warn); background: var(--warn-soft); }
 .status-banner.bad { color: var(--hard); background: var(--hard-soft); }
-.intake-box .hint { color: var(--sub); font-size: 12.5px; margin: 0 0 14px; }
+.intake-box .hint { color: var(--sub); font-size: .78125rem; margin: 0 0 14px; }
 .hint.upload-error {
   color: var(--hard); font-weight: 600; white-space: pre-line; display: block;
   margin-top: 4px;
@@ -467,11 +537,11 @@ td.fragile-day span { background-image: repeating-linear-gradient(135deg, rgba(0
   background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px;
   padding: 16px 18px; margin-bottom: 20px;
 }
-.upload-section h3 { font-size: 13.5px; margin: 0 0 12px; }
+.upload-section h3 { font-size: .84375rem; margin: 0 0 12px; }
 .upload-section h3 .hint { display: block; font-weight: 400; margin: 3px 0 0; }
 .upload-item { margin-bottom: 14px; }
 .upload-item:last-child { margin-bottom: 0; }
-.upload-item-label { font-weight: 700; font-size: 12.5px; margin-bottom: 6px; }
+.upload-item-label { font-weight: 700; font-size: .78125rem; margin-bottom: 6px; }
 .upload-item-label .hint { font-weight: 400; margin-left: 6px; }
 /* 파일선택 input은 화면에서 숨기고, upload-btn(<button>)이 대신 클릭을 받아 input.click()으로 연다 */
 .file-input-hidden {
@@ -486,10 +556,12 @@ td.fragile-day span { background-image: repeating-linear-gradient(135deg, rgba(0
    업로드·양식 둘 다 같은 회색빛 채움색(--btn-fill)을 써서 통일. */
 .upload-btn {
   flex: 1 1 0; min-width: 0; box-sizing: border-box; text-align: center;
-  font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: inherit; font-size: .8125rem; font-weight: 600; cursor: pointer;
   border: 1.5px solid var(--btn-fill); background: var(--btn-fill); color: var(--ink);
   border-radius: 7px; padding: 8px 10px; transition: filter .1s, background .1s, border-color .1s;
-  text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  /* 좁으면 줄을 바꾼다 — nowrap+ellipsis로 "양식(다운…"이 되던 것(검토 C 1-5). 두 버튼은
+     flex 아이템이라 한쪽이 두 줄이 되면 다른 쪽도 같은 높이로 늘어난다. */
+  text-decoration: none; white-space: normal; overflow: visible; text-overflow: clip;
 }
 .upload-btn:hover { filter: brightness(.95); }
 .upload-btn.format-btn { font-weight: 500; }
@@ -521,13 +593,13 @@ details.form-sec {
 /* 설정 안의 공휴일 캘린더처럼 details 안에 중첩된 details — 바깥보다 한 단계
    옅게, 마진 없이 */
 details.form-sec .sub-sec { margin-bottom: 0; background: var(--paper); }
-details.form-sec .sub-sec summary { background: var(--paper); font-size: 12.5px; }
+details.form-sec .sub-sec summary { background: var(--paper); font-size: .78125rem; }
 details.form-sec summary {
-  cursor: pointer; padding: 10px 14px; font-weight: 700; font-size: 13.5px;
+  cursor: pointer; padding: 10px 14px; font-weight: 700; font-size: .84375rem;
   background: var(--code-bg); list-style: none; display: flex; align-items: center; gap: 8px;
 }
 details.form-sec summary::-webkit-details-marker { display: none; }
-details.form-sec summary::before { content: "▸"; color: var(--accent); font-size: 11px; }
+details.form-sec summary::before { content: "▸"; color: var(--accent); font-size: .6875rem; }
 details.form-sec[open] summary::before { content: "▾"; }
 details.form-sec > *:not(summary) { padding: 14px; }
 /* 근무정보 맨 위의 버튼(예전엔 '마지막 설정값 저장' 켜기/끄기도 있었다 — 10/31 걷어냄, '저장한 설정 지우기') —
@@ -542,8 +614,8 @@ details.form-sec > *:not(summary) { padding: 14px; }
 .pushbtn {
   /* 폭은 가장 긴 이름('＋ 평일을 요일별로 나누기')이 한 줄에 들어가는 값으로 셋 다
      똑같이 고정한다 — 줄바꿈이 생기면 그 버튼만 키가 커져 한 세트로 안 보인다. */
-  flex: none; width: 200px; padding: 8px 10px; white-space: nowrap;
-  font-size: 12.5px; font-weight: 700; text-align: center;
+  flex: none; width: 200px; max-width: 100%; padding: 8px 10px; white-space: normal;
+  font-size: .78125rem; font-weight: 700; text-align: center;
   background: var(--card); color: var(--sub); border: 1px solid var(--line);
 }
 .pushbtn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
@@ -561,12 +633,12 @@ details.form-sec > *:not(summary) { padding: 14px; }
   .pushbtn { width: 100%; }
 }
 .count-badge {
-  background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 700;
+  background: var(--accent-soft); color: var(--accent); font-size: .6875rem; font-weight: 700;
   padding: 1px 8px; border-radius: 999px; font-family: "JetBrains Mono", monospace;
 }
 
 /* 값의 출처 — 초록 = 파일에서 반영, 노랑 = 화면에서 바꿔 파일과 다름 */
-.src-badge { display: none; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px;
+.src-badge { display: none; font-size: .6875rem; font-weight: 700; padding: 1px 8px; border-radius: 999px;
   margin-left: 6px; background: var(--ok-soft); color: var(--ok); vertical-align: middle; }
 .src-badge.warn { background: var(--warn-soft); color: var(--warn); }
 .src-badge.show { display: inline-block; }
@@ -574,7 +646,7 @@ details.form-sec > *:not(summary) { padding: 14px; }
 /* 파일과 화면의 연월이 다를 때 — 만드는 달은 화면 연월이라는 것을 한 장으로 */
 .ym-notice { grid-column: 1 / -1; padding: 12px 14px; border-radius: 10px;
   background: var(--warn-soft); border: 1px solid rgba(154, 107, 18, .25); border-left: 4px solid var(--warn);
-  font-size: 12.5px; line-height: 1.55; }
+  font-size: .78125rem; line-height: 1.55; }
 .ym-notice-head { font-weight: 700; color: var(--warn); margin-bottom: 8px; }
 .ym-notice-flow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 .ym-chip { display: inline-flex; gap: 6px; align-items: center; padding: 5px 11px; border-radius: 999px;
@@ -587,24 +659,24 @@ details.form-sec > *:not(summary) { padding: 14px; }
 .ym-notice button.small { margin-top: 2px; }
 .src-line.screen { color: var(--accent); font-weight: 600; }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px 16px; }
-.form-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--sub); font-weight: 600; }
+.form-grid label { display: flex; flex-direction: column; gap: 3px; font-size: .75rem; color: var(--sub); font-weight: 600; }
 .form-grid label.wide { grid-column: 1 / -1; }
 /* 입력칸 배경은 주변 박스(--paper)보다 한 단계 밝은 --card로 — "여기가 입력하는
    자리다"가 눈에 띄도록 (이전엔 배경색이 같아서 테두리 1px 말고는 구분이 안 됐음) */
 .form-grid input[type=text], .form-grid input[type=number], .form-grid select {
-  font-family: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid var(--line);
+  font-family: inherit; font-size: .8125rem; padding: 5px 8px; border: 1px solid var(--line);
   border-radius: 6px; background: var(--card); color: var(--ink);
 }
 .form-grid label:has(input[type=checkbox]) { flex-direction: row; align-items: center; font-weight: 600; }
 
 #f_team_b, #f_advanced_track {
-  font-family: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--line);
+  font-family: inherit; font-size: .8125rem; padding: 6px 8px; border: 1px solid var(--line);
   border-radius: 6px; background: var(--card); color: var(--ink); width: 100%;
   box-sizing: border-box; resize: vertical;
 }
 
 .ym-picker { display: flex; gap: 6px; }
-.ym-picker select { flex: 1; font-weight: 700; cursor: pointer; }
+.ym-picker select { flex: 1; min-width: 0; font-weight: 700; cursor: pointer; }   /* min-width:0 — 확대 200%에서 월 칸이 카드 밖으로 넘쳤다 */
 
 /* ---------------------------------------------------------------- 공휴일 캘린더 */
 .holiday-cal-wrap { margin-top: 14px; }
@@ -613,7 +685,7 @@ details.form-sec > *:not(summary) { padding: 14px; }
   flex-wrap: wrap; margin-bottom: 8px;
 }
 .holiday-cal-head .hint { margin: 0; flex: 1; min-width: 220px; }
-.cal-legend { display: flex; gap: 10px; font-size: 11.5px; color: var(--sub); flex: none; }
+.cal-legend { display: flex; gap: 10px; font-size: .71875rem; color: var(--sub); flex: none; }
 .cal-legend .cal-sw { display: inline-flex; align-items: center; gap: 4px; }
 .cal-legend .box { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
 .cal-legend .box.hol { background: var(--hard-soft); border: 1.5px solid var(--hard); }
@@ -621,10 +693,10 @@ details.form-sec > *:not(summary) { padding: 14px; }
 
 table.cal-table { width: 100%; border-collapse: collapse; table-layout: fixed; max-width: 380px; }
 table.cal-table th {
-  padding: 4px 0; font-size: 11px; color: var(--sub); font-weight: 700; text-align: center;
+  padding: 4px 0; font-size: .6875rem; color: var(--sub); font-weight: 700; text-align: center;
 }
 table.cal-table td {
-  text-align: center; padding: 7px 0; font-size: 12.5px; border-radius: 6px; cursor: pointer;
+  text-align: center; padding: 7px 0; font-size: .78125rem; border-radius: 6px; cursor: pointer;
   font-variant-numeric: tabular-nums; user-select: none; transition: background .1s;
 }
 table.cal-table td.cal-empty { cursor: default; }
@@ -637,37 +709,47 @@ table.cal-table td.cal-sub { background: var(--warn-soft); color: var(--warn); f
 table.cal-table td.cal-sub:hover { filter: brightness(.96); }
 table.cal-table td.cal-today { box-shadow: inset 0 0 0 1.5px var(--accent); }
 
-table.form-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.form-table { width: 100%; border-collapse: collapse; font-size: .78125rem; }
 table.form-table th {
-  background: var(--code-bg); text-align: left; padding: 5px 7px; font-size: 11px;
+  background: var(--code-bg); text-align: left; padding: 5px 7px; font-size: .6875rem;
   color: var(--sub); text-transform: uppercase; letter-spacing: .03em; white-space: nowrap;
   border-bottom: 1px solid var(--line);
 }
 table.form-table th:first-child, table.form-table td:first-child { white-space: nowrap; min-width: 40px; }
 table.form-table td { padding: 3px 5px; vertical-align: middle; }
 table.form-table input[type=text], table.form-table input[type=number], table.form-table select {
-  font-family: inherit; font-size: 12.5px; padding: 4px 6px; border: 1px solid var(--line);
+  font-family: inherit; font-size: .78125rem; padding: 4px 6px; border: 1px solid var(--line);
   border-radius: 5px; background: var(--card); color: var(--ink); width: 100%; box-sizing: border-box;
+  min-height: 32px;   /* 손가락 대상 — 25px은 작았다 */
 }
+/* 320px·확대 150%+에서 '평일' 칸이 27px까지 눌려 값이 있는데 빈칸처럼 보였다(검토 C 1-4) —
+   "저장이 안 됐다"고 오해해 다시 치는, 조용히 틀리기 부류. 칸 폭 하한을 두고 스피너(값을
+   가리는 주범)를 뺀다. 칸 하한이 곧 표의 하한이라 표 자체 min-width는 두지 않는다(300px을 두었더니
+   320px 폰에서 남는 폭이 마지막 칸으로 몰려 멀쩡히 들어가는 표가 가로 스크롤됐다). 그래도 넘치면
+   .tablebox가 가로로 스크롤한다. */
+table.form-table input[type=number] { min-width: 48px; padding: 4px 4px; -moz-appearance: textfield; appearance: textfield; }
+table.form-table input[type=number]::-webkit-inner-spin-button,
+table.form-table input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.tablebox { overflow-x: auto; }
 /* 근무인력 표 아래 "평일을 요일별로 나누기" 버튼 줄 — 기능이 있다는 걸 처음 쓰는
    사람도 알 수 있게 표 밖으로 꺼내 버튼+설명으로 보여준다. */
 /* 요일별 나누기 줄은 근무정보 맨 위 두 버튼(.setting-row)과 같은 모양을 쓴다 —
    같은 성격의 '버튼 + 무엇을 하는지 한 줄' 이라 생김새가 달라야 할 이유가 없다. */
 .setting-actions + .form-grid, .setting-row + .form-grid { margin-top: 0; }
 .chk-group { display: flex; gap: 6px; flex-wrap: wrap; }
-.chk-group label { display: flex; align-items: center; gap: 2px; font-size: 11.5px; font-weight: 600; cursor: pointer; }
-.row-del { color: var(--hard); border-color: var(--hard); padding: 2px 8px; font-size: 11px; }
-button.small { font-size: 12px; padding: 5px 11px; margin-top: 6px; }
+.chk-group label { display: flex; align-items: center; gap: 2px; font-size: .71875rem; font-weight: 600; cursor: pointer; }
+.row-del { color: var(--hard); border-color: var(--hard); padding: 2px 8px; font-size: .6875rem; }
+button.small { font-size: .75rem; padding: 5px 11px; margin-top: 6px; }
 .generate-row { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
 /* 생성 상태 문구가 비어 있을 때는 flex 아이템에서 아예 빼서, 버튼이 카드 오른쪽
    끝까지 꽉 차게 한다(비어 있어도 gap 12px이 남아 오른쪽이 비어 보였다). */
 .generate-row > .hint:empty { display: none; }
 /* 꼼꼼히 찾기 토글 — 생성 버튼 바로 아래, 한 줄. 폰에서는 설명이 다음 줄로 내려간다. */
 /* 체크박스·제목 한 줄, 설명은 제목 아래 같은 들여쓰기 — 가로 모드에서 설명이 제목 옆에 붙어 줄이 어긋나던 것 */
-.thorough-opt { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; row-gap: 2px; align-items: center; margin-top: 10px; font-size: 13px; cursor: pointer; }
+.thorough-opt { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; row-gap: 2px; align-items: center; margin-top: 10px; font-size: .8125rem; cursor: pointer; }
 .thorough-opt input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); grid-row: 1; }
 .thorough-opt .thorough-title { grid-column: 2; grid-row: 1; }
-.thorough-opt .thorough-hint { grid-column: 2; grid-row: 2; font-size: 12px; line-height: 1.45; }
+.thorough-opt .thorough-hint { grid-column: 2; grid-row: 2; font-size: .75rem; line-height: 1.45; }
 .thorough-opt:has(input:checked) .thorough-title { color: var(--accent); font-weight: 600; }
 /* 생성 중 비 캔버스 — 상자 폭에 맞추고, 깜빡임을 끄는 사람에게는 정지 화면만 */
 .gen-rain { display: block; width: 100%; height: 160px; border-radius: 10px; background: #0b0f19; margin: 0 0 12px; }
@@ -676,17 +758,17 @@ button.small { font-size: 12px; padding: 5px 11px; margin-top: 6px; }
 #genOverlay .loading-box { max-width: 380px; width: calc(100vw - 32px); }
 #genOverlay .spinner { width: 22px; height: 22px; border-width: 3px; margin-bottom: 10px; }
 /* 오버레이의 시도 진척 줄 + 멈추기 */
-.loading-box .gen-step { font-size: 12.5px; font-weight: 600; color: var(--accent); margin: 6px 0 4px; }
+.loading-box .gen-step { font-size: .78125rem; font-weight: 600; color: var(--accent); margin: 6px 0 4px; }
 #genStopBtn { margin-top: 8px; }
 /* 검증 요약: 확정표 기준 안내 + 위반 항목 클릭(그 칸으로) */
 .scope-note { background: var(--warn-soft, #fff8e6); border-radius: 8px; padding: 6px 8px; margin: 0 0 6px; }
-ul.issue-list li[data-day] { cursor: pointer; }
+ul.issue-list li[data-day] { cursor: pointer; padding: 8px 8px; }
 ul.issue-list li[data-day]:hover { outline: 1px solid var(--accent); outline-offset: -1px; }
 th.day-head.flash-change { animation: flash-change 1s ease-in-out 3; }
 /* 점수표 접기 — 시도가 많으면 상위 3줄(+지금 보는 표)만 보이고 나머지는 토글 */
 .attempt-table tr.attempt-fold { display: none; }
 .attempt-table.expanded tr.attempt-fold { display: table-row; }
-button.big { font-size: 15px; padding: 11px 26px; }
+button.big { font-size: .9375rem; padding: 11px 26px; }
 
 /* ---------------------------------------------------------------- 정보 모달 */
 .modal-backdrop {
@@ -697,7 +779,7 @@ button.big { font-size: 15px; padding: 11px 26px; }
 /* 그날 병동(디오라마) — 날짜 머리칸을 누르면 뜬다. DOM으로 그려 화면 폭에 맞춰 접힌다. */
 .modal.dio-modal, .modal.jour-modal { max-width: min(96vw, 1040px); }
 .dio-nav { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-.dio-nav button { min-width: 36px; font-size: 14px; }
+.dio-nav button { min-width: 44px; font-size: .875rem; }
 .dio-body { padding: 14px 16px; }
 .dio-rooms { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
 .dio-room { border-radius: 14px; padding: 10px 10px 12px; border: 1px solid var(--line); min-width: 0;
@@ -707,12 +789,12 @@ button.big { font-size: 15px; padding: 11px 26px; }
 .dio-room.dio-E { --tint: color-mix(in srgb, #f97316 13%, var(--card)); }
 .dio-room.dio-N { --tint: color-mix(in srgb, #7c3aed 13%, var(--card)); }
 .dio-room.short { outline: 2px solid var(--hard); outline-offset: -2px; }
-.dio-room header { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; font-size: 13px; }
-.dio-room header b { font-size: 13.5px; }
-.dio-icon { font-size: 15px; }
-.dio-sub { color: var(--sub); font-size: 11px; }
-.dio-count { margin-left: auto; font-weight: 700; font-size: 15px; font-family: "JetBrains Mono", monospace; }
-.dio-count small { font-size: 11px; color: var(--sub); font-weight: 500; }
+.dio-room header { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; font-size: .8125rem; }
+.dio-room header b { font-size: .84375rem; }
+.dio-icon { font-size: .9375rem; }
+.dio-sub { color: var(--sub); font-size: .6875rem; }
+.dio-count { margin-left: auto; font-weight: 700; font-size: .9375rem; font-family: "JetBrains Mono", monospace; }
+.dio-count small { font-size: .6875rem; color: var(--sub); font-weight: 500; }
 .dio-count.bad { color: var(--hard); } .dio-count.over { color: var(--warn); }
 .dio-people { display: flex; flex-wrap: wrap; gap: 6px 4px; align-items: flex-end; }
 .dio-person { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 58px;
@@ -721,14 +803,14 @@ button.big { font-size: 15px; padding: 11px 26px; }
 .dio-fig { position: relative; display: flex; flex-direction: column; align-items: center; height: 46px; justify-content: flex-end; }
 .dio-head { width: 12px; height: 12px; border-radius: 50%; background: #fde0c8; margin-bottom: 1px; }
 .dio-torso { width: 16px; height: var(--h, 24px); border-radius: 5px; background: var(--c, #9ca3af); }
-.dio-star { position: absolute; top: -2px; right: -10px; font-style: normal; font-size: 11px; color: #f59e0b; line-height: 1; }
-.dio-name { font-size: 11px; font-weight: 600; max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2; }
-.dio-code { font-size: 9.5px; color: var(--sub); line-height: 1.1; }
-.dio-empty { color: var(--sub); font-size: 12px; padding: 6px 2px; }
+.dio-star { position: absolute; top: -2px; right: -10px; font-style: normal; font-size: .6875rem; color: #f59e0b; line-height: 1; }
+.dio-name { font-size: .6875rem; font-weight: 600; max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2; }
+.dio-code { font-size: .6875rem; color: var(--sub); line-height: 1.1; }
+.dio-empty { color: var(--sub); font-size: .75rem; padding: 6px 2px; }
 .dio-hint { margin: 10px 0 0; }
 @media (max-width: 480px) {
   .dio-rooms { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .dio-person { width: 50px; } .dio-name { max-width: 48px; font-size: 10.5px; }
+  .dio-person { width: 50px; } .dio-name { max-width: 48px; font-size: .6875rem; }
   .modal-backdrop { padding: 10px; }
 }
 /* 여정 — 한 사람의 한 달 */
@@ -737,11 +819,11 @@ button.big { font-size: 15px; padding: 11px 26px; }
 .jour-stage canvas { display: block; width: 100%; }
 .jour-card { position: absolute; right: 12px; top: 12px; width: min(300px, 46%); background: rgba(10,13,22,.72);
   backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 10px 12px;
-  color: #eef2f7; font-size: 12px; line-height: 1.55; }
-.jour-day { font-family: Georgia, "Noto Serif KR", serif; font-weight: 300; font-size: 22px; }
-.jour-day small { font-size: 11px; color: #fca5a5; font-family: system-ui, sans-serif; margin-left: 4px; }
+  color: #eef2f7; font-size: .75rem; line-height: 1.55; }
+.jour-day { font-family: Georgia, "Noto Serif KR", serif; font-weight: 300; font-size: 1.375rem; }
+.jour-day small { font-size: .6875rem; color: #fca5a5; font-family: system-ui, sans-serif; margin-left: 4px; }
 .jour-why { margin-top: 6px; }
-.jour-sum { margin-top: 8px; color: #9aa3b2; font-size: 11px; }
+.jour-sum { margin-top: 8px; color: #9aa3b2; font-size: .6875rem; }
 @media (max-width: 560px) {
   .jour-card { position: static; width: auto; margin-top: 8px; border-radius: 8px; }
 }
@@ -753,56 +835,62 @@ table.grid th.day-head:hover, table.grid th.day-head:focus-visible { outline: 2p
   display: flex; flex-direction: column; box-shadow: 0 12px 40px rgba(0,0,0,.25);
 }
 .modal-head {
-  display: flex; justify-content: space-between; align-items: center; padding: 16px 20px;
+  display: flex; justify-content: space-between; align-items: center; padding: 8px 10px 8px 20px;
   border-bottom: 1px solid var(--line);
 }
-.modal-head h2 { font-size: 16px; margin: 0; }
-.modal-head button { border: none; background: none; font-size: 18px; cursor: pointer; color: var(--sub); padding: 0 4px; }
-.modal-body { padding: 16px 20px; overflow-y: auto; font-size: 13px; line-height: 1.65; }
-.modal-body h3 { font-size: 13.5px; margin: 18px 0 6px; color: var(--accent); }
+.modal-head h2 { font-size: 1rem; margin: 0; }
+.modal-head button {
+  border: none; background: none; font-size: 1.125rem; cursor: pointer; color: var(--sub); padding: 0 6px;
+  /* ✕가 26×21이었다 — 손가락 대상 44×44. 디오라마·여정의 ◀ ▶ ✕도 이 규칙을 받는다. */
+  min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px;
+}
+.modal-head button:hover { background: var(--code-bg); color: var(--ink); }
+.modal-body { padding: 16px 20px; overflow-y: auto; font-size: .8125rem; line-height: 1.65; }
+.modal-body h3 { font-size: .84375rem; margin: 18px 0 6px; color: var(--accent); }
 .modal-body h3:first-child { margin-top: 0; }
 .modal-body ul { margin: 4px 0; padding-left: 20px; }
 .modal-body li { margin: 3px 0; }
 .modal-body .kbd {
   font-family: "JetBrains Mono", monospace; background: var(--code-bg); padding: 1px 6px;
-  border-radius: 4px; font-size: 11.5px;
+  border-radius: 4px; font-size: .71875rem;
 }
 
 
 /* ---------------------------------------------------------------- 생성 후 정보 확장 */
-.mini-table { width: 100%; font-size: 11px; border-collapse: collapse; }
+.mini-table { width: 100%; font-size: .6875rem; border-collapse: collapse; }
 .mini-table th, .mini-table td { padding: 2px 5px; border-bottom: 1px solid var(--line); }
 .mini-table th { text-align: left; color: var(--sub); }
 .attempt-table td { text-align: right; }
 .attempt-table td:first-child { text-align: left; }
 /* 사람별 부담 열 — 다른 계산열과 구분되게 옅은 바탕. 연속근무 초과는 빨강, 야간 목표 불일치는 노랑 */
-th.burden, td.burden { background: var(--soft, #f6f8fa); }
+th.burden, td.burden { background: var(--code-bg); }   /* 예전 var(--soft)는 정의가 없어 라이트 색 고정이었다 */
 td.burden.stat-short { background: #ffc7ce; color: #8a2020; font-weight: 600; }
 td.burden.stat-warn { background: var(--warn-soft); color: var(--warn); font-weight: 600; }
-.burden-list { font-size: 12px; margin: 4px 0 0; padding-left: 0; list-style: none; }
-details.side-sec summary { cursor: pointer; list-style: none; }
+.burden-list { font-size: .75rem; margin: 4px 0 0; padding-left: 0; list-style: none; }
+details.side-sec summary { cursor: pointer; list-style: none; padding: 9px 0 1px; min-height: 36px; box-sizing: border-box; }  /* 358×18이었다 */
 details.side-sec summary::-webkit-details-marker { display: none; }
 details.side-sec summary h3::before { content: "▸ "; color: var(--sub); }
 details.side-sec[open] summary h3::before { content: "▾ "; }
-.weekend-roster td small { display: block; color: var(--sub); font-size: 10px; white-space: normal; }
+.weekend-roster td small { display: block; color: var(--sub); font-size: .6875rem; white-space: normal; }
 .weekend-roster td.badge-bad small { color: inherit; }
 .burden-list li { margin: 2px 0; }
 .burden-list .who { font-weight: 600; }
 .attempt-table tr[data-seed] { cursor: pointer; }
+.attempt-table tr[data-seed] td { height: 36px; }   /* 줄을 누르면 표가 바뀌는 큰 동작인데 19px이었다 */
 .attempt-table tr[data-seed]:hover td { background: var(--line); }
 .attempt-table tr.chosen td { font-weight: 600; }
-.attempt-table small.strat { font-size: 10px; color: var(--accent); margin-left: 3px; font-weight: 600; cursor: help; }
+.attempt-table small.strat { font-size: .6875rem; color: var(--accent); margin-left: 3px; font-weight: 600; cursor: help; }
 .attempt-table tr.current td { background: var(--ok-soft, #e6f4ea); }
-.side-note { font-size: 11px; color: var(--sub); margin: 6px 0 0; }
+.side-note { font-size: .6875rem; color: var(--sub); margin: 6px 0 0; }
 /* 실험 기능 줄 — 패널 맨 아래, 글자 링크처럼 작게 */
 .side-exp { border-top: 1px dashed var(--line); margin-top: 10px; padding-top: 6px; }
-button.linklike { background: none; border: 0; padding: 0; font-size: 11px; color: var(--accent); text-decoration: underline; cursor: pointer; }
+button.linklike { background: none; border: 0; padding: 8px 0; min-height: 36px; font-size: .6875rem; color: var(--accent); text-decoration: underline; cursor: pointer; }  /* 136×15였다 */
 button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: default; }
-.tap-hint { display: inline-block; font-size: 11px; font-weight: 600; color: var(--accent); margin-left: 8px; }
+.tap-hint { display: inline-block; font-size: .6875rem; font-weight: 600; color: var(--accent); margin-left: 8px; }
 .badge-ok { color: var(--ok); font-weight: 700; }
 .badge-bad { color: var(--hard); font-weight: 700; }
 .log-box {
-  background: var(--code-bg); border-radius: 6px; padding: 8px 10px; font-size: 10.5px;
+  background: var(--code-bg); border-radius: 6px; padding: 8px 10px; font-size: .6875rem;
   font-family: "JetBrains Mono", monospace; max-height: 160px; overflow-y: auto; line-height: 1.6;
   white-space: pre-wrap; word-break: break-all;
 }
@@ -814,6 +902,41 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
   td.sy1 span, td.sy2 span, td.sy3 span, td.sy4 span { color: #1C2523; }
 }
 
+/* ---------------------------------------------------------------- 인쇄 (Ctrl+P) */
+/* 인쇄 CSS가 하나도 없어서 Ctrl+P는 화면 그대로였다 — #app이 뷰포트 높이, #gridPane이 스크롤
+   상자라 A4 가로 **1장에 20일×16명**만 찍히고 나머지는 잘렸다(검토 C 7-1). 파트장이 "화면을
+   인쇄해 붙여 두자"고 할 가능성이 높은 화면이다. 패널·버튼·띠·오버레이는 빼고 표만 여러 쪽에
+   걸쳐 나오게 한다(날짜 줄은 쪽마다 반복, 행은 쪽 사이에서 잘리지 않게). 48열이 A4 가로
+   277mm에 들어가려면 칸 ≈ 5.7mm — 7.5pt면 들어간다. */
+@media print {
+  @page { size: A4 landscape; margin: 8mm; }
+  html, body, #app, #main, #gridPane { height: auto !important; min-height: 0 !important; overflow: visible !important; }
+  html, body { background: #fff !important; color: #000; }   /* html의 --paper가 마지막 쪽 빈 곳을 회색으로 칠했다 */
+  #authGate, #loadingOverlay, #genOverlay, .toast, .picker, .modal-backdrop,
+  header button, header .spacer, .security-note, .footer-note, #sidePane, #backToInputBtn,
+  .carry-warning, .tap-hint, #monthInput { display: none !important; }
+  header { border-bottom: 1px solid #000; padding: 0 0 4px; background: none; }
+  #main { display: block; }
+  #gridPane { padding: 0; contain: none; }
+  .grid-scroll { overflow: visible !important; max-height: none !important; max-width: none; }
+  table.grid { font-size: 7.5pt; }
+  table.grid th, table.grid td { position: static !important; }   /* sticky는 쪽마다 겹쳐 찍힌다 */
+  /* 화면용 min-width(칸 30·통계열 34·이름 58)가 그대로면 48열이 1,690px — 7.5pt로 줄여도 폭이 안 준다 */
+  table.grid th, table.grid td, table.grid th.stat-col, table.grid td.stat-col, table.grid td.nm { min-width: 0 !important; }
+  table.grid td { height: auto; padding: 1px 2px; }
+  table.grid th { padding: 1px 2px; }
+  table.grid td.cell span { line-height: 1.5; }
+  table.grid td.nm { padding: 1px 4px; border-right: 1px solid #000; }
+  table.grid td.nm .role { display: none; }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; page-break-inside: avoid; }
+  td span, th.we, td.stat-col, .level-foot-row .stat-col, td.viol-hard::after, td.viol-soft::after {
+    -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* 빗금은 편집 보조 표시라 종이에선 소음이다 */
+  td.fragile-row span, td.fragile-day span { background-image: none !important; }
+  td.cell:hover, td.cell:active { filter: none; }
+}
+
 /* ---------------------------------------------------------------- 반응형 (좁은 화면 · 폰) */
 @media (max-width: 680px) {
   html, body { height: auto; }
@@ -821,6 +944,9 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
   #main { flex-direction: column; }
   /* 폰에서는 이 칸이 스크롤하지 않고 페이지째 늘어난다 — 가두면 내용이 잘린다 */
   #gridPane { overflow: visible; padding: 10px; contain: none; }
+  /* 표는 한 화면 높이 안에서 스스로 스크롤한다 — 그래야 날짜 머리칸이 붙는다(위 #gridPane 주석).
+     56px은 헤더 한 줄 몫. 표 끝에 닿으면 페이지 스크롤로 이어진다. */
+  .grid-scroll { max-height: calc(100dvh - 56px); overflow: auto; }
   #sidePane { width: auto; border-left: none; border-top: 2px solid var(--accent); }
 
   header { padding: 8px 12px; }
@@ -828,7 +954,7 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
      (Log-out은 platform.js가 설명서 버튼 바로 뒤에 붙이므로 순서는 저절로 맞다).
      제목이 한 줄을 다 쓰지 않으면 버튼이 제목 줄 끝에 끼었다가 폭에 따라 하나씩 다음
      줄로 떨어진다 — Log-out 버튼만 혼자 왼쪽 아래로 툭 튀어나온 게 그 모양이었다. */
-  header h1 { font-size: 18px; flex-basis: 100%; }
+  header h1 { font-size: 1.125rem; flex-basis: 100%; }
   header .spacer { display: none; }
   header #infoBtn { margin-left: auto; }
   .intake-box { padding: 14px 16px; }
@@ -841,11 +967,27 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
      좁으면 .tablebox가 가로 스크롤을 대신 떠맡는다 */
   .tablebox { overflow-x: auto; }
 
-  table.grid { font-size: 10.5px; }
-  table.grid td { min-width: 24px; height: 22px; }
-  table.grid td.nm { min-width: 58px; padding: 3px 6px; font-size: 10.5px; }
+  table.grid { font-size: .6875rem; }
+  table.grid td { min-width: 24px; height: 28px; }   /* 22px은 31열 표의 숙명이라도 손가락엔 너무 작았다 */
+  table.grid td.cell span { line-height: 28px; }
+  table.grid td.nm { min-width: 58px; padding: 3px 6px; font-size: .6875rem; }
   table.grid td.nm .role { display: none; }
 
+}
+/* 320px·확대 200%(유효 폭 ~200px): 2열 폼은 라벨이 잘리고 빌드시각이 제목 안에서 두 줄로 꺾인다 */
+@media (max-width: 360px) {
+  /* 1fr은 칸 안 입력칸의 고유 폭(≈220px)까지만 줄어 확대 200%(유효 195px)에서 카드 밖으로 넘쳤다 —
+     minmax(0,1fr)로 칸을 끝까지 줄이고 입력칸은 칸 폭을 따른다. */
+  .form-grid { grid-template-columns: minmax(0, 1fr); }
+  .form-grid input[type=text], .form-grid input[type=number], .form-grid select { min-width: 0; max-width: 100%; }
+  /* 연·월 두 칸이 한 줄에 안 들어가면 값("2026년")이 잘려 빈칸처럼 보인다 — 그때는 두 줄로 */
+  .ym-picker { flex-wrap: wrap; }
+  .ym-picker select { flex: 1 1 88px; }
+  header .build-time { display: block; margin: 2px 0 0; }
+  .upload-item .upload-row { flex-wrap: wrap; }
+  .upload-item .upload-row .upload-btn { flex: 1 1 100px; }   /* basis 0이면 줄을 안 바꾸고 33px 기둥이 됐다 */
+  /* 근무인력 머리칸('일요일·공휴일')이 한 줄을 고집하면 320px에서 표가 몇 px 넘쳐 가로 스크롤이 생긴다 */
+  table.form-table th { white-space: normal; }
 }
 
 /* 관대하게 읽어준 값 안내 — 오류(빨강)도 경고(주황)도 아닌 '이렇게 읽었다'는 알림이라
@@ -853,9 +995,9 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
 .upload-notice {
   margin: 6px 0 0;
   padding: 7px 10px;
-  border-radius: 6px;
-  background: rgba(43, 122, 82, 0.10);
-  border-left: 3px solid #2b7a52;
+  border-radius: 8px;
+  background: var(--ok-soft);
+  border-left: 3px solid var(--ok);
   line-height: 1.55;
   word-break: keep-all;
 }
@@ -866,9 +1008,9 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
 .upload-unclear {
   margin: 6px 0 0;
   padding: 7px 10px;
-  border-radius: 6px;
-  background: rgba(176, 122, 20, 0.12);
-  border-left: 3px solid #b07a14;
+  border-radius: 8px;
+  background: var(--warn-soft);
+  border-left: 3px solid var(--warn);
   line-height: 1.55;
   word-break: keep-all;
 }
@@ -880,9 +1022,9 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
   flex-basis: 100%;
   margin: 4px 0 0;
   padding: 8px 11px;
-  border-radius: 6px;
-  background: rgba(176, 32, 32, 0.10);
-  border-left: 3px solid #b02020;
+  border-radius: 8px;
+  background: var(--hard-soft);
+  border-left: 3px solid var(--hard);
   color: var(--ink);
   line-height: 1.55;
   word-break: keep-all;
@@ -896,7 +1038,7 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
    색만 다르게 두어(설명서는 연한 파랑 채움, 이쪽은 흰 바탕 테두리) 누르면 비밀번호를
    다시 물어야 하는 버튼임을 구분한다. */
 button.sign-out {
-  margin-left: 0; padding: 0 10px; font-size: 11.5px; font-weight: 700;
+  margin-left: 0; padding: 0 10px; font-size: .71875rem; font-weight: 700;
 }
 header #infoBtn, header .sign-out {
   height: 26px; padding-top: 0; padding-bottom: 0; line-height: 1;
@@ -996,6 +1138,10 @@ header #infoBtn, header .sign-out {
   border-radius: 3px; background: #E7D9F5; color: #5B2E8C;
 }
 .legend .desig-mark.nl-mark { background: #D9E8F5; color: #1F4E8C; }
+@media (prefers-color-scheme: dark) {
+  .legend .desig-mark { background: #3B2560; color: #D9C6F2; }
+  .legend .desig-mark.nl-mark { background: #1E3550; color: #BFD6F5; }
+}
 
 /* 규칙 번호는 문장 뒤에 작게(A-12) — 앞에 굵게 오던 .issue-list .rule을 덧씌운다 */
 .issue-list li small.rule { font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 10px; opacity: .7; margin: 0 0 0 6px; }
