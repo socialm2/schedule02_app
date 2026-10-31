@@ -270,13 +270,31 @@ const sidePane = $("#sidePane");
 const toast = $("#toast");
 
 let _toastHideTimer = null;
+// 여러 줄짜리 긴 메시지는 토스트에서 요약한다 — 폰에서 토스트가 화면 반을 덮어 버튼과
+// 안내문을 가렸다(2026-10-31 검토 P12). 긴 원문은 어차피 업로드 칸 아래·생성 버튼 아래에
+// 그대로 남는다(showUploadError·showGenError). 토스트는 "무슨 일이 있었다"만 알리면 된다.
+function summarizeToast(msg) {
+  const lines = String(msg).split("\n").map(s => s.trim()).filter(Boolean);
+  if (lines.length > 2) return lines.slice(0, 2).join("\n") + `\n… 외 ${lines.length - 2}줄 — 자세한 내용은 화면 안내`;
+  const text = lines.join("\n");
+  return text.length > 220 ? text.slice(0, 200) + "… (자세한 내용은 화면 안내)" : text;
+}
 function showToast(msg, isErr) {
-  toast.textContent = msg;
+  toast.textContent = summarizeToast(msg);
   toast.className = "toast show" + (isErr ? " err" : "");
   clearTimeout(_toastHideTimer);
   // 오류 메시지는 어느 시트/행/칸이 문제인지까지 구체적으로 적혀 있어 길어질 수
   // 있어서, 일반 안내(2.8초)보다 오래(7초) 붙잡아둔다.
-  _toastHideTimer = setTimeout(() => { toast.className = "toast"; }, isErr ? 7000 : 2800);
+  _toastHideTimer = setTimeout(hideToast, isErr ? 7000 : 2800);
+}
+function hideToast() { toast.className = "toast"; clearTimeout(_toastHideTimer); }
+// 탭(클릭)하면 바로 닫힌다 — 폰에서는 7초가 길어서 가려진 버튼을 기다려야 했다.
+toast.addEventListener("click", hideToast);
+// 안내문(gen-error 등)이 이미 화면 안에 보이면 같은 말을 토스트로 또 띄우지 않는다.
+function isInViewport(el) {
+  if (!el) return false;
+  const r = el.getBoundingClientRect();
+  return r.bottom > 0 && r.top < window.innerHeight && r.height > 0;
 }
 
 // 업로드 실패는 토스트(7초, 자동으로 사라짐)만으로는 부족할 수 있다 — 어느 시트/행/
@@ -323,22 +341,24 @@ const INFO_SHIFT_LEGEND = `
 `;
 
 const INFO_RULES = `
-<h3>지켜지는 핵심 규칙 (하드 제약 — 절대 위반 없음)</h3>
+<h3>지켜지는 핵심 규칙 (필수 규칙 — 못 지키면 결과 화면에 빨갛게 남습니다)</h3>
 <ul>
 <li>일별 최소 인력(D/E/N/prn) 충족</li>
+<li><b>D·E·N 조마다 숙련도 4 이상이 한 명은 있어야 함</b> — 밤(N)은 입력①의 '야간리더' 칸에 O를 적은
+사람이 서 있어도 채운 것으로 봅니다</li>
 <li>야간은 <b>연속 2일 블록이 기본</b>(가능근무에 3N을 적었거나 야간목표가 홀수인 달에는 3일까지),
 야간 후 반드시 휴식 2일</li>
-<li>연속근무 5일 이하, 저녁(E) 다음날 주간/정규 근무 금지</li>
+<li>연속근무는 설정의 <b>'연속근무제한'</b>(보통 5일) 이하, 저녁(E) 다음날 주간/정규 근무 금지</li>
 <li>월 최소 휴무일수 확보, NK 전담자는 월 15일(2월 14일) 야간 고정</li>
 <li>쉬는 날이 <b>연속 14일을 넘지 않음</b> — 원티드표에 15일 넘게 이어 적으면
 15일째부터 반려됩니다(앞의 14일은 반영)</li>
 <li>임부·야간불가 인력 야간 배정 금지</li>
 </ul>
 
-<h3>소프트 제약 (권장 — 위반돼도 기록만 하고 진행)</h3>
+<h3>권장 규칙 (지키려 애쓰지만 인원 사정상 못 맞추면 노란 '추가 검토'로 남습니다)</h3>
 <ul>
 <li>야간 횟수·휴무·근무일수 균등 분배, 주말 휴무 공평 분배</li>
-<li>근무별 숙련도 3레벨 이상 최소 1명, 신청 휴무 전날 야간 배제 등</li>
+<li>주간 블록 3~4일, 긴 연속 휴무 피하기, 야간 6회 이상이면 수면오프, 신청 휴무 전날 야간 배제 등</li>
 </ul>
 `;
 
@@ -358,25 +378,38 @@ const INFO_MORE = `
 <li><a href="guide/one-pager.html" target="_blank" rel="noopener">한 장 요약</a> — 인쇄해서 옆에 두고 보는 요약본</li>
 <li><a href="guide/security.html" target="_blank" rel="noopener">보안 · 개인정보</a> — 업로드한 파일이 어디까지 가는지</li>
 </ul>
+<h3>폰에서 앱처럼 열기</h3>
+<p>📱 브라우저 메뉴의 <b>'홈 화면에 추가'</b>를 누르면 아이콘이 생겨 매번 주소를 치지 않아도 됩니다 —
+iPhone(Safari)은 공유 버튼 → 홈 화면에 추가, Android(Chrome)는 ⋮ 메뉴 → 홈 화면에 추가.</p>
 `;
 
 const INFO_HTML_INPUT = `
+<h3>처음이면 이 세 줄만</h3>
+<ol class="first-three">
+<li><b>그대로 [근무표 생성]을 눌러 보세요</b> — 샘플 병동(40명) 값이 채워져 있어 바로 결과 화면을 볼 수 있습니다.</li>
+<li><b>입력① 양식(다운로드)을 받아 우리 명단을 넣고 올리세요</b> — 직급·숙련도·가능근무·신청(원티드)은 이 파일에서만 받습니다.</li>
+<li><b>근무정보·근무인력을 우리 병동 값으로 고치세요</b> — 한 번 고치면 이 브라우저에 저장돼 다음 달에도 그대로 뜹니다.</li>
+</ol>
+
 <h3>이 프로그램은 무엇을 하나요</h3>
 <p>병동의 인원·직급·숙련도·근무 가능 유형과 일별 최소 인력 기준을 입력하면,
-법정·안전 규칙(하드 제약)을 반드시 지키면서 한 달치 근무표를 자동으로 만들어 줍니다.
-야간(N) 연속 근무 제한, 연속근무 5일 제한, 월 최소 휴무일수, 신청(원티드) 반영 등을 알아서 계산합니다.</p>
+법정·안전 규칙(필수 규칙)을 반드시 지키면서 한 달치 근무표를 자동으로 만들어 줍니다.
+야간(N) 연속 근무 제한, 연속근무제한(보통 5일), 월 최소 휴무일수, 신청(원티드) 반영 등을 알아서 계산합니다.</p>
 
 <h3>기본 사항 — 설정 · 근무인력</h3>
 <p>화면에서 직접 입력합니다. 한 번 고쳐두면 <b>이 브라우저에 저장</b>돼 다음에 열 때 그대로
 뜹니다(처음에는 샘플 병동 값이 채워져 있어 그대로 <b>바로 생성</b>을 눌러볼 수도 있습니다).
-공용 PC처럼 남기면 안 되는 자리에서는 다 쓰신 뒤 <b>근무정보</b> 맨 위의 <b>저장한 설정 지우기</b>를 누르면
-기억해둔 값을 지우고 모든 칸을 비웁니다.</p>
+공용 PC처럼 남기면 안 되는 자리에서는 다 쓰신 뒤 <b>근무정보</b> 묶음 맨 아래의 <b>저장한 설정 지우기</b>를 누르면
+한 번 확인한 뒤 기억해둔 값을 지우고 모든 칸을 비웁니다. 샘플 값으로 돌아가려면 바로 아래 <b>샘플 값으로 되돌리기</b>.</p>
 <p>저장하는 것은 <b>근무정보와 근무인력</b>뿐입니다 — 인원 명단·원티드 신청·전입은 저장하지
 않습니다. 지난달 것이 남아 있으면 오류 하나 없이 틀린 근무표가 나오기 때문입니다.</p>
+<p>방금 만든 근무표와 올린 입력①·②는 <b>그 탭 안에만</b> 잠시 남습니다(새로고침해도 입력 화면 맨 위의
+<b>직전 근무표 복원</b>으로 되살릴 수 있음). 탭이나 브라우저를 닫으면 사라집니다.</p>
 <ul>
 <li><b>병동명 / 연월</b> — 이번에 만들 근무표의 병동과 연·월입니다.</li>
 <li><b>월 최대야간</b> — 한 사람이 한 달에 설 수 있는 야간(N) 최대 횟수입니다.</li>
-<li><b>연속근무제한</b> — 며칠까지 연속 근무를 허용할지입니다(법정 상한 5일 이하로 설정).</li>
+<li><b>연속근무제한</b> — 며칠까지 연속 근무를 허용할지입니다(법정 상한 5일 이하로 설정).
+<b>3 미만은 반려합니다</b> — 2 이하면 주간 블록 3~4일을 지킬 수 없어 모든 근무가 2일씩 끊기기 때문입니다.</li>
 <li><b>야간목표하한 / 야간목표상한</b> — 사람마다 이번 달 야간을 몇 회~몇 회 사이로 맞출지 목표
 범위입니다. 실제 배정은 이 범위 안에서 인원 간 형평성을 최대한 맞춥니다.</li>
 <li><b>근무인력</b> — 평일·토요일·일요일/공휴일별로 D/E/N 등 근무유형마다 최소 몇 명이 있어야
@@ -426,11 +459,13 @@ const INFO_HTML_INPUT = `
 "양식(다운로드)"으로 현재 인원 기준 빈 양식을 내려받아, 이번 달 휴무·근무 신청(원티드)을
 채워 다시 올리세요.</p>
 <p>날짜 칸은 <b>OCS 화면에서 그대로 복사해 붙여넣어도 됩니다</b> — 말일 칸 오른쪽에 딸려온
-D/E/N·®·ⓡ·금월·T연·R연·부서 칸은 읽지 않습니다. 표기는 <b>X = 원티드 오프</b>,
+D/E/N·®·ⓡ·금월·T연·R연·부서 칸은 읽지 않습니다. 표기는 <b>X = 원티드오프</b>,
 <b>근무코드 뒤의 * = 원티드 근무</b>(예: D*, E*, 연*)이고, 반영된 칸은 화면과 다운로드
 파일에서 <b>노란색</b>으로 표시됩니다.</p>
-<p>이 파일의 <b>연·월이 곧 만들 달</b>입니다 — 올리면 화면의 연월이 파일에 맞춰집니다.
-(일수가 다른 달이면 신청 날짜가 어긋나므로 반려합니다.)</p>
+<p>만드는 달은 <b>화면의 연월</b>입니다. 파일 제목의 연월이 다르면 연월 칸 아래에 <b>'파일과 화면의
+연월이 다릅니다'</b> 카드가 뜨고, 파일의 신청은 날짜의 '일'만 보고 화면 달에 적용합니다(화면 달에 없는
+날짜는 빼고 알려드립니다). 파일 쪽이 맞으면 카드의 <b>'화면 연월을 파일에 맞추기'</b>를 누르세요.
+저장소에 든 샘플 파일은 지난달 것일 수 있으니, 올릴 파일은 <b>양식(다운로드)으로 받은 파일</b>을 쓰세요.</p>
 <p><b>같은 날에 신청이 몰리면 누구부터 받나.</b> 자리(그날 최소인력)보다 신청이 많으면
 <b>명단 순서가 아니라</b> 아래 순서로 받습니다. 예전에는 파일에 적힌 행 순서대로여서
 명단 위쪽 사람이 매달 이겼습니다.</p>
@@ -516,12 +551,12 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 행을 지우거나 더하지 말고 <b>근무 칸만</b> 고쳐주세요 — 다른 달·다른 명단 파일은 반려됩니다.
 올린 직후에만 <b>① 즉시 다운로드</b>(고친 그대로)와 <b>② 재생성 후 다운로드</b>(고친 칸은 두고
 나머지를 다시 배정) 두 갈래가 뜹니다.</li>
-<li><b>시도 점수표</b> — 같은 입력을 시드 셋(찾는 규칙이 조금씩 다름: 시드 옆 글자 W 주말 몫 우선·S 고연차 먼저)으로
+<li><b>시도 점수표</b> — 같은 입력을 시드 여러 개(찾는 규칙이 조금씩 다름: 시드 옆 글자 W 주말 몫 우선·S 고연차 먼저·B 블록 이어가기 먼저, 둘이 붙으면 둘 다)로
 돌려 운영 필수 → 숙련도 → 공평성 → 전체 위반 순으로 견줘 가장 좋은 표를 보여줍니다. 점수표 줄을 누르면 그 시드의 표로
 바뀝니다(다운로드도 그 표). <b>🔍 꼼꼼히 만들기</b>를 켜고 생성하면 평소 3개 만들어 고르던 것을 9개 만들어 고릅니다 — 위반이 남는 달에
 켜 보세요(일반 생성 약 10초 대비 약 3배인 30초, 빠듯한 달은 몇 분. 진행 중 '여기까지 결과로 멈추기' 가능).</li>
 <li><b>검증 요약의 항목을 누르면</b> 그 칸(사람이 없는 항목은 그날 열)으로 이동해 잠깐 깜빡입니다. 수정 대기 칸이 있는
-동안 요약 숫자는 <b>확정표 기준</b>이고, '재생성 적용' 뒤 다시 계산됩니다.</li>
+동안 요약 숫자는 <b>마지막으로 적용한 표 기준</b>이고, '재생성 적용' 뒤 다시 계산됩니다.</li>
 <li><b>날짜 머리칸을 누르면</b> 그날 병동(누가 어디서 일하는지)이 뜨고, 거기서 이름을 누르면 그 사람의 한 달 여정이 뜹니다.
 패널 맨 아래 <b>월간 근무 보고(HTML) 받기</b>는 첫 장 요약(확인할 항목·부담 분포)과 검증·일별 인원·원티드·점수표·시각화를
 한 파일로 묶어 줍니다 — 열어서 인쇄하면 PDF.</li>
@@ -573,7 +608,7 @@ N·NK를 따로 세고 그 아래 <b>N+NK</b> 줄에 N 기준이 걸립니다. 8
 반일이어도 1명입니다 — 그 사람이 그날 병동에 있느냐를 보는 값이라서요.</li>
 <li><b>파트장은 빼고 셉니다</b> — 최소인력 기준 자체가 파트장을 뺀 숫자라서, 같이 세면 파트장의 8A가
 prn으로 잡혀 못 채운 날이 채운 날처럼 보입니다.</li>
-<li><b>빨간 칸 = 그날 최소인력에 못 미침, 노란 칸 = 기준보다 한 명 이상 많음</b>(상한 초과 — 결과창의
+<li><b>빨간 칸 = 그날 최소인력에 못 미침, 노란 칸 = 기준보다 한 명 이상 많음</b>(과배치 — 결과창의
 '추가 검토'에도 같은 날이 뜹니다). 칸에 마우스를 올리면 "3일 N+NK 5명 (기준 6명 — 미달)"처럼
 실제 인원과 기준이 같이 뜹니다. 평일·토요일·일요일·공휴일마다 기준이 다르므로, 같은 숫자라도
 어떤 날은 빨갛고 어떤 날은 아닙니다.</li>
@@ -704,6 +739,8 @@ window.downloadBothOutputs = async function () {
   // 다운로드를 하나로 묶거나 두 번째를 막는다 — 그러면 출력①만 받고 끝난 줄 안다.
   await new Promise(r => setTimeout(r, 400));
   await apiDownload("staff_table");
+  nextMonthCardOn = true;
+  renderNextMonthCard();
 };
 
 window.regenerateThenDownload = async function () {
@@ -724,7 +761,7 @@ window.regenerateThenDownload = async function () {
     uploadedMonthRound = -1;
     SWAP = null;
     render();
-    showToast(`${ST.round}회차로 재생성 완료 — ${moved}칸 바뀜`);
+    showToast(`고정 ${(ST.locked || []).length}칸은 그대로, 다른 칸 ${moved}개 바뀜 — ${ST.round}회차(이 입력으로 ${ST.round}번째 짠 표)`);
     refreshFragile();
     await downloadBothOutputs();
   } catch (e) {
@@ -764,7 +801,8 @@ window.applyUploadedMonth = async function (f) {
 };
 
 window.downloadXlsxOcs = () => apiDownload("xlsx_ocs");
-window.downloadStaffTable = () => apiDownload("staff_table");
+// 출력②를 받으면 '다음 달 준비' 카드를 켠다 — 그 파일이 다음 달 입력②라는 것을 받은 그 자리에서 말한다.
+window.downloadStaffTable = async () => { await apiDownload("staff_table"); nextMonthCardOn = true; renderNextMonthCard(); };
 
 function renderHolidayCalendar() {
   const y = parseInt($("#f_year").value, 10);
@@ -1061,11 +1099,15 @@ function renderSourceBadges() {
     screen: `화면에서 바꾼 값이 쓰입니다 — 마지막 변경: ${lastScreenEdit}` +
             " (이 브라우저에 저장됨)",
   }[settingsSource];
-  for (const sel of ["#settingsSource", "#minStaffSource"]) {
-    const el = $(sel);
-    if (!el) continue;
-    el.textContent = text;
-    el.classList.toggle("screen", settingsSource === "screen");
+  // 같은 문장을 근무정보·근무인력 위에 두 번 적지 않는다(2026-10-31 검토 사소). 근무인력 위에는
+  // 근무인력 칸을 고쳤을 때만 그 변경을 적고, 평소엔 "위와 같음" 한 토막만.
+  const src = $("#settingsSource");
+  if (src) { src.textContent = text; src.classList.toggle("screen", settingsSource === "screen"); }
+  const ms = $("#minStaffSource");
+  if (ms) {
+    const msEdited = settingsSource === "screen" && lastScreenEdit.startsWith("근무인력");
+    ms.textContent = msEdited ? text : "근무인력도 위 근무정보와 같이 화면 값이 쓰입니다(이 브라우저에 저장).";
+    ms.classList.toggle("screen", msEdited);
   }
   renderStaffSummary();
 }
@@ -1108,11 +1150,15 @@ $("#f_advanced_track").oninput = updateAdvancedTrackCount;
 // 낮춰놓고도 "입력 기준을 모두 지켰습니다"라는 결과가 나오는 게 이 앱에서 제일 나쁜 종류의
 // 실패다. 못 읽는 값은 고쳐 읽지 말고 어느 칸이 왜 문제인지 말하고 멈춘다.
 let minStaffErrors = [];
+// 어느 칸(요소 id)이 비었는지도 따로 적는다 — 생성 버튼 아래 안내를 "근무인력 표 15칸·근무정보
+// 4칸이 비어 있습니다" 한 줄로 줄이고 첫 빈 칸으로 포커스를 보내려면 글자가 아니라 칸이 필요하다.
+let minStaffEmptyFields = [];
 function readMinStaffCell(id, label) {
   const el = document.getElementById(id);
   const raw = (el ? el.value : "").trim();
   if (raw === "") {
     minStaffErrors.push(`${label} 칸이 비어 있습니다`);
+    minStaffEmptyFields.push({ id, label });
     return 0;
   }
   const n = Number(raw);
@@ -1151,6 +1197,7 @@ function buildCfgFromForm() {
   const subhol = [...formSubHolidays];
   const minStaff = {};
   minStaffErrors = [];
+  minStaffEmptyFields = [];
   for (const [col, colLabel] of MIN_STAFF_COLS) {
     if (col === "weekday" && minStaffWeekdayExpanded) continue;
     minStaff[col] = {};
@@ -1227,7 +1274,12 @@ document.querySelectorAll(".upload-btn[data-href]").forEach(btn => {
   btn.onclick = () => {
     const a = document.createElement("a");
     a.href = btn.dataset.href;
-    a.download = btn.dataset.download || "";
+    // 입력② 양식은 고정 파일(2026-08)이라 내려받는 이름이 늘 8월이었다 — 11월을 만드는 사람이
+    // "이게 맞나" 한다(2026-10-31 검토 A-15). 파일 내용(빈 양식)은 그대로 두고, 받는 이름만 화면
+    // 연월로 붙인다 — 입력① 양식이 화면 연월로 만들어지는 것과 같은 규칙.
+    const yy = parseInt($("#f_year").value, 10), mm = parseInt($("#f_month").value, 10);
+    const ym = (yy > 0 && mm >= 1 && mm <= 12) ? `${yy}-${String(mm).padStart(2, "0")}` : "양식";
+    a.download = (btn.dataset.download || "").replace(/_\d{4}-\d{2}\.xlsx$/, `_${ym}.xlsx`);
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -1265,6 +1317,16 @@ function renderRosterDiff() {
     box.style.display = "";
     box.className = "roster-diff same";
     box.innerHTML = `✓ 인원 변동 없음 — 입력①·② 명단 ${cur.size}명이 모두 일치합니다.`;
+    return;
+  }
+  // 겹치는 이름이 하나도 없으면 전입·전출 수십 명을 나열하는 대신 그 진단 하나만 말한다 —
+  // 다른 병동의 입력②를 올린 경우가 대부분이고, 이름 목록은 그 사실을 가린다(리뷰 F-11).
+  if (prev.size && cur.size && !formStaff.some(s => prev.has(s.id))) {
+    box.style.display = "";
+    box.className = "roster-diff";
+    box.innerHTML = `<div><b>입력①과 입력②의 명단이 하나도 겹치지 않습니다</b>`
+      + ` (입력① ${cur.size}명 · 입력② ${prev.size}명)`
+      + `<span class="hint"> — 다른 병동의 연간근무표가 아닌지 확인해주세요. 같은 병동이 맞다면 이름 표기(띄어쓰기·(A) 같은 구분)를 두 파일에서 같게 맞춰주세요.</span></div>`;
     return;
   }
   let html = "";
@@ -1319,6 +1381,12 @@ $("#monthInput").onchange = async () => {
 $("#wantedInput").onchange = async () => {
   const f = $("#wantedInput").files[0];
   if (!f) return;
+  try { await handleWantedFile(f); } finally { $("#wantedInput").value = ""; }
+};
+
+// 입력① 파일 하나를 읽어 화면 상태에 반영한다. 파일 칸(onchange)과 '직전 근무표 복원'(세션에
+// 남긴 바이트)이 같은 길을 쓴다 — 둘로 적으면 한쪽만 고쳐지는 것이 이 저장소의 반복 사고다.
+async function handleWantedFile(f) {
   const statusEl = $("#wantedStatus");
   try {
     const data = await apiUpload("/api/upload_wanted", f);
@@ -1357,7 +1425,7 @@ $("#wantedInput").onchange = async () => {
       (unk ? ` (인식 못 한 표시 ${unk}개: ${data.unknown_marks.join(", ")})` : "");
     wantedActiveTag = `${data.year}년 ${data.month}월`;
     renderSourceBadges();
-    $("#wantedClearBtn").style.display = "";
+    updateClearButtons();
     // 관대하게 읽어준 값이 있으면 무엇을 무엇으로 읽었는지 칸 아래에 남긴다. 토스트는
     // 몇 초 뒤 사라져서, 표준 표기를 확인하려고 다시 볼 수가 없다.
     renderUploadMessages(statusEl, data);
@@ -1365,17 +1433,20 @@ $("#wantedInput").onchange = async () => {
       `원티드 ${formRequests.length}건${staffUpdated ? `, 인원 ${data.staff.length}명` : ""}` +
       `${teamB.length ? `, B팀 ${teamB.length}명` : ""}을 자동으로 채웠습니다`,
       !!data.warning);
+    noteFirstUse("wanted");
+    rememberSessionFile("wanted", f);
   } catch (e) {
     // 업로드가 반려돼도(값은 그대로) 화면엔 오류 문구가 계속 남으므로, 지울 방법이
-    // 있어야 한다 — 반영 해제 버튼을 오류 지우기 용도로 그대로 재사용한다.
-    // 반려됐다는 사실만 알려주면 "그럼 지금 뭐가 쓰이지?"에 답이 없다. 직전에 성공한
-    // 입력①이 살아 있으면 그걸 함께 적어준다.
+    // 있어야 한다. 반려됐다는 사실만 알려주면 "그럼 지금 뭐가 쓰이지?"에 답이 없다 —
+    // 직전에 성공한 입력①이 살아 있으면 "이전 파일을 계속 씁니다"를 또렷이 적는다.
+    // 예전엔 '반영 해제' 버튼 하나가 오류 지우기와 진짜 해제를 겸해서, 한 번 누르고
+    // "해제했으니 비었겠지" 하고 생성하면 이전 파일로 만들어졌다(2026-10-31 검토 P4).
     showUploadError(statusEl, e);
     const active = wantedActiveSummary();
-    if (active) statusEl.textContent += "\n" + active;
-    $("#wantedClearBtn").style.display = "";
-  } finally { $("#wantedInput").value = ""; }
-};
+    if (active) statusEl.textContent += "\n⚠ 새 파일은 반영되지 않았습니다 — " + active;
+    updateClearButtons();
+  }
+}
 
 // 지금 실제로 쓰이고 있는 입력① 값을 한 줄로. 빈 문자열이면 활성 입력이 없다는 뜻.
 function wantedActiveSummary() {
@@ -1383,9 +1454,36 @@ function wantedActiveSummary() {
   if (staffOfWanted.length) parts.push(`인원 ${staffOfWanted.length}명`);
   if (formRequests.length) parts.push(`신청 ${formRequests.length}건`);
   if (!parts.length) return "";
-  return `이전에 올린 입력①${wantedActiveTag ? ` (${wantedActiveTag})` : ""}을 계속 쓰는 중 — ` +
+  return `이전에 올린 입력①${wantedActiveTag ? ` (${wantedActiveTag})` : ""}을 계속 씁니다 — ` +
          `${parts.join(", ")}. 이 값으로 근무표가 만들어집니다.`;
 }
+function wantedActive() { return staffOfWanted.length > 0 || formRequests.length > 0 || !!wantedYM; }
+
+// 입력①·② 아래의 해제 버튼 — 상태에 따라 이름이 달라진다. 오류 상태에서 이전 파일이
+// 살아 있으면 "오류 지우기(이전 파일 유지)"와 "이전 파일도 해제" 두 버튼, 오류만 있고
+// 이전 파일이 없으면 "오류 지우기", 정상 반영 상태면 "반영 해제" 하나다. 버튼 이름이
+// 하는 일과 같아야 "해제했으니 비었겠지"가 안 생긴다.
+function updateClearButtons() {
+  const spec = [
+    ["#wantedStatus", "#wantedClearBtn", "#wantedClearAllBtn", wantedActive()],
+    ["#staffTableStatus", "#staffTableClearBtn", "#staffTableClearAllBtn", staffTableLoaded],
+  ];
+  for (const [statusSel, clearSel, allSel, active] of spec) {
+    const statusEl = $(statusSel), clearBtn = $(clearSel), allBtn = $(allSel);
+    if (!statusEl || !clearBtn) continue;
+    const err = statusEl.classList.contains("upload-error");
+    if (err) {
+      clearBtn.textContent = active ? "오류 지우기(이전 파일 유지)" : "오류 지우기";
+      clearBtn.style.display = "";
+      if (allBtn) allBtn.style.display = active ? "" : "none";
+    } else {
+      clearBtn.textContent = "반영 해제";
+      clearBtn.style.display = active ? "" : "none";
+      if (allBtn) allBtn.style.display = "none";
+    }
+  }
+}
+let staffTableLoaded = false;   // 입력②가 Worker에 반영돼 있는가(refreshStaffTableStatus가 갱신)
 
 $("#wantedClearBtn").onclick = () => {
   const statusEl = $("#wantedStatus");
@@ -1394,11 +1492,17 @@ $("#wantedClearBtn").onclick = () => {
     // 읽히는데 실제로는 직전에 성공한 파일이 그대로 살아 있다 — 사용자가 지웠다고 믿는
     // 명단·신청으로 근무표가 만들어진다. 그래서 남아 있는 값을 반드시 적어 보여준다.
     clearUploadError(statusEl);
-    const active = wantedActiveSummary();
-    statusEl.textContent = active;
-    $("#wantedClearBtn").style.display = active ? "" : "none";
+    statusEl.textContent = wantedActiveSummary();
+    updateClearButtons();
     return;
   }
+  clearWanted();
+};
+// 오류 상태에서 "이전 파일도 해제" — 오류 문구와 이전 파일을 한 번에 걷어낸다.
+$("#wantedClearAllBtn").onclick = () => { clearUploadError($("#wantedStatus")); clearWanted(); };
+
+function clearWanted() {
+  const statusEl = $("#wantedStatus");
   // 신청만 지우고 끝내면, 입력①이 채운 '명단'은 그대로 남아 해제했다고 생각한 명단으로
   // 계속 근무표가 만들어진다 — 신청·명단·B팀을 함께 되돌리고, 입력②(없으면 병동인력표)이
   // 준 명단으로 복원한다.
@@ -1417,16 +1521,16 @@ $("#wantedClearBtn").onclick = () => {
   statusEl.textContent = formStaff.length
     ? `반영 해제했습니다 — 명단은 ${staffOfAnnual.length ? "입력②" : "샘플"}(${formStaff.length}명) 기준으로 돌아갔습니다.`
     : "반영 해제했습니다 — 현재 인원 명단이 없습니다.";
-  $("#wantedClearBtn").style.display = "none";
+  updateClearButtons();
   renderSourceBadges();
+  forgetSessionFile("wanted");
   showToast("입력① 반영을 해제했습니다");
-};
+}
 
 async function refreshStaffTableStatus() {
   let s;
   try { s = await api("/api/staff_table_status"); } catch (e) { return; }
   const banner = $("#staffTableActive");
-  const clearBtn = $("#staffTableClearBtn");
   // 예전엔 여기에 "⚠ 연간근무표 반영 중 — N명, YYYY-MM-DD까지…"를 띄웠다. 그런데 바로
   // 아래 '반영 해제' 옆 줄이 같은 내용을 더 자세히("명단은 입력①(40명) 기준 유지, 누적
   // 통계·이월정보만 반영 … 전월잔휴 40명분 확인") 보여줘서, 같은 말이 두 번 나왔다.
@@ -1436,19 +1540,27 @@ async function refreshStaffTableStatus() {
   // 메모리라 새로고침하면 사라지고(그때는 배너도 어차피 안 떴다), 반영 중일 때는 '반영
   // 해제' 버튼이 계속 보여서 그 자체가 상태 표시가 된다.
   banner.style.display = "none";
-  clearBtn.style.display = s.loaded ? "" : "none";
+  // 반영 중이면 '반영 해제' 버튼이 계속 보여서 그 자체가 상태 표시가 된다(updateClearButtons).
+  staffTableLoaded = !!s.loaded;
+  updateClearButtons();
 }
 
 $("#staffTableClearBtn").onclick = async () => {
   const statusEl = $("#staffTableStatus");
   if (statusEl.classList.contains("upload-error")) {
     clearUploadError(statusEl);
-    statusEl.textContent = "";
+    statusEl.textContent = staffTableLoaded ? "이전에 올린 입력②를 계속 씁니다 — 누적 통계·이월정보가 이 값으로 들어갑니다." : "";
     // 서버 쪽에 실제로 반영된 값이 없을 수도 있으니(업로드가 반려됐던 경우),
     // 진짜 상태를 다시 물어봐서 버튼을 그 상태에 맞게 되돌린다.
     await refreshStaffTableStatus();
     return;
   }
+  await clearStaffTable();
+};
+$("#staffTableClearAllBtn").onclick = async () => { clearUploadError($("#staffTableStatus")); await clearStaffTable(); };
+
+async function clearStaffTable() {
+  const statusEl = $("#staffTableStatus");
   try {
     await api("/api/clear_staff_table", { method: "POST" });
     await refreshStaffTableStatus();
@@ -1459,13 +1571,19 @@ $("#staffTableClearBtn").onclick = async () => {
     staffOfAnnual = [];
     recomputeStaff();
     statusEl.textContent = "반영 해제했습니다 — 이번 생성은 처음부터 시작합니다.";
+    forgetSessionFile("annual");
     showToast("연간근무표 반영을 해제했습니다");
   } catch (e) {}
-};
+}
 
 $("#staffTableInput").onchange = async () => {
   const f = $("#staffTableInput").files[0];
   if (!f) return;
+  try { await handleStaffTableFile(f); } finally { $("#staffTableInput").value = ""; }
+};
+
+// 입력② 파일 하나를 읽어 반영한다 — 파일 칸과 '직전 근무표 복원'이 같은 길을 쓴다(입력①과 같은 이유).
+async function handleStaffTableFile(f) {
   const statusEl = $("#staffTableStatus");
   try {
     const data = await apiUpload("/api/upload_staff_table", f);
@@ -1534,6 +1652,7 @@ $("#staffTableInput").onchange = async () => {
       showToast(`전월잔휴가 비어 있는 인원 ${noBal.length}명은 0으로 보고 진행합니다 — 확인해주세요`, true);
     }
     await refreshStaffTableStatus();
+    rememberSessionFile("annual", f);
     showToast(fromPrevMonth
       ? "지난달 근무표에서 전월 이월정보를 불러왔습니다 (누적 통계는 이번 달부터 쌓입니다)"
       : (staffFromWanted
@@ -1541,11 +1660,12 @@ $("#staffTableInput").onchange = async () => {
           : "연간근무표에서 인원 명단·누적 통계·전월 이월정보를 불러왔습니다"));
   } catch (e) {
     // 업로드가 반려돼도(값은 그대로) 화면엔 오류 문구가 계속 남으므로, 지울 방법이
-    // 있어야 한다 — 반영 해제 버튼을 오류 지우기 용도로 그대로 재사용한다.
+    // 있어야 한다 — 입력①과 같은 두 버튼(오류 지우기 / 이전 파일도 해제).
     showUploadError(statusEl, e);
-    $("#staffTableClearBtn").style.display = "";
-  } finally { $("#staffTableInput").value = ""; }
-};
+    if (staffTableLoaded) statusEl.textContent += "\n⚠ 새 파일은 반영되지 않았습니다 — 이전에 올린 입력②를 계속 씁니다.";
+    updateClearButtons();
+  }
+}
 
 // 생성/재생성은 인원이 빠듯한 달에 수십 초까지 걸릴 수 있다. 그동안 화면이 멈춘 것처럼
 // 보이지 않도록 안내 오버레이를 띄운다(브라우저판은 Worker 덕분에 화면 자체는 안 멈춘다).
@@ -1629,7 +1749,7 @@ function onGenProgress(p) {
   let txt = `근무표 ${p.done}/${p.total}개`;
   if (p.workers > 1) txt += ` (${p.workers}개 동시)`;
   if (!p.done) txt += " — 첫 근무표 만드는 중…";
-  if (best) txt += ` · 지금까지 최선: 운영 필수 ${best.blocking} · 숙련도 ${best.h15} · 전체 ${best.hard}`;
+  if (best) txt += ` · 지금까지 최선: 필수 위반 ${best.blocking} · 숙련도 구멍 ${best.h15} · 추가 검토 포함 ${best.hard}`;
   if (p.stopping) txt += " · 돌고 있는 시도가 끝나면 멈춥니다";
   else if (p.done && p.done < p.total) txt += ` · 약 ${fmtSec((p.total - p.done) * (p.elapsed / p.done))} 남음`;
   step.textContent = txt;
@@ -1806,23 +1926,41 @@ async function runGenerate(btn, statusEl) {
   clearGenError(statusEl);
   const unresolved = unresolvedUploadErrors();
   if (unresolved.length) {
-    const msg = `${unresolved.join(", ")}에 아직 해결되지 않은 업로드 오류가 있습니다 — 오류 문구를 ` +
-      `지우거나(반영 해제) 파일을 고쳐 다시 올린 뒤 생성하세요`;
-    showToast(msg, true);
+    const msg = `${unresolved.join(", ")}에 아직 해결되지 않은 업로드 오류가 있습니다 — "오류 지우기"로 ` +
+      `오류 문구를 지우거나(이전 파일이 있으면 그 파일로 만들어집니다) 파일을 고쳐 다시 올린 뒤 생성하세요`;
     showGenError(statusEl, msg);
+    if (!isInViewport(statusEl.parentElement.querySelector(".gen-error"))) showToast(msg, true);
     return;
   }
   // 최소인력 칸을 먼저 읽어본다 — 못 읽는 칸이 있으면 생성하지 않는다. 대충 0으로 채워
   // 만들면 "그 근무가 아무도 없어도 되는 달"이 조용히 만들어진다.
   const preCfg = buildCfgFromForm();
   if (minStaffErrors.length) {
-    const msg = `근무인력·설정 칸을 확인해주세요 — ${minStaffErrors.join(" / ")}`;
-    // 칸이 많이 비어 있으면(설정을 지운 직후 19칸) 토스트가 화면 반을 덮고 생성 버튼까지
-    // 가린다 — 토스트는 몇 칸인지만, 어느 칸인지는 아래 빨간 안내에 그대로 둔다.
-    showToast(minStaffErrors.length > 3
-      ? `근무인력·설정 칸 ${minStaffErrors.length}개가 비어 있거나 잘못됐습니다 — 생성 버튼 아래 빨간 안내에서 어느 칸인지 확인해주세요`
-      : msg, true);
+    // 빈 칸은 "근무인력 표 15칸·근무정보 4칸이 비어 있습니다" 한 줄로 묶고(19개를 슬래시로
+    // 이어 붙인 한 문단은 아무도 안 읽는다, 2026-10-31 검토 A-14), 값이 잘못된 칸은 이유를
+    // 그대로 적는다. 첫 빈 칸으로 포커스를 보내 어디부터 채울지 보여준다.
+    const empties = minStaffEmptyFields;
+    const emptySet = new Set(empties.map(e => `${e.label} 칸이 비어 있습니다`));
+    const others = minStaffErrors.filter(m => !emptySet.has(m));
+    const nMs = empties.filter(e => e.id.startsWith("ms_")).length;
+    const nInfo = empties.length - nMs;
+    const parts = [];
+    if (empties.length) {
+      parts.push([nMs ? `근무인력 표 ${nMs}칸` : "", nInfo ? `근무정보 ${nInfo}칸` : ""].filter(Boolean).join("·") +
+        `이 비어 있습니다 (첫 빈 칸: ${empties[0].label})`);
+    }
+    parts.push(...others);
+    const msg = `근무인력·설정 칸을 확인해주세요 — ${parts.join(" / ")}`;
     showGenError(statusEl, msg);
+    const first = empties.length ? document.getElementById(empties[0].id) : null;
+    if (first) {
+      const sec = first.closest("details");
+      if (sec && !sec.open) sec.open = true;
+      first.scrollIntoView({ block: "center", behavior: "smooth" });
+      try { first.focus({ preventScroll: true }); } catch (e) { first.focus(); }
+    }
+    // 안내문이 화면에 보이면 토스트로 같은 말을 또 하지 않는다 — 폰에서 토스트가 그 안내를 가렸다.
+    if (!isInViewport(statusEl.parentElement.querySelector(".gen-error"))) showToast(msg, true);
     return;
   }
   const btns = [$("#generateBtn"), $("#generateBtnMid")].filter(Boolean);
@@ -1846,8 +1984,9 @@ async function runGenerate(btn, statusEl) {
     ST = await api("/api/generate", genOpts());
     SWAP = null;
     render();
-    showToast(lastConfigWarning || "근무표 생성 완료", !!lastConfigWarning);
+    showToast(lastConfigWarning || "근무표 생성 완료 — 표 위의 상태 띠에서 필수 위반·다운로드로 바로 갈 수 있습니다", !!lastConfigWarning);
     refreshFragile();
+    noteFirstUse("gen");
   } catch (e) {
     if (statusEl) statusEl.textContent = "";
     showGenError(statusEl, (e && e.message) ? e.message : String(e));
@@ -1861,21 +2000,29 @@ async function runGenerate(btn, statusEl) {
   }
 }
 $("#generateBtn").onclick = () => runGenerate($("#generateBtn"), $("#genStatus"));
+// 폰에서 입력 묶음이 길어 생성 버튼까지 2,000px — 첫 줄의 '↓ 생성 버튼으로'가 거기로 보낸다.
+$("#jumpToGenBtn")?.addEventListener("click", () => {
+  const b = $("#generateBtn");
+  if (b) { b.scrollIntoView({ block: "center", behavior: "smooth" }); b.focus({ preventScroll: true }); }
+});
 const generateBtnMid = $("#generateBtnMid");
 if (generateBtnMid) {
   generateBtnMid.onclick = () => runGenerate(generateBtnMid, $("#genStatusMid"));
 }
 
 // 페이지 로드 시: 판별 준비(브라우저판은 Pyodide 부팅) → 샘플 데이터로 폼 기본 채움
+let sampleCfg = null;   // /api/sample 응답 — '샘플 값으로 되돌리기'가 다시 쓴다
 (async function boot() {
   if (!(await bootPlatform())) return;   // 실패 사유는 platform.js가 화면에 띄운다
+  let useSaved = false;
   try {
     const cfg = await api("/api/sample");
+    sampleCfg = cfg;
     // 샘플 기본값 위에 이 브라우저에 저장해둔 설정을 덮어쓴다 — 병동인력표 파일(옛 입력①)이 없어진
     // 뒤로는 이게 "지난번에 맞춰둔 값"을 되찾는 유일한 길이다.
     // 저장을 꺼둔 상태면 남아 있는 값이 있어도 쓰지 않는다(끈 사람에게 옛 값이
     // 되살아나면 안 된다).
-    const useSaved = !!loadSettings();
+    useSaved = !!loadSettings();
     fillForm(useSaved ? withSavedSettings(cfg) : cfg);
     settingsSource = useSaved ? "saved" : "sample";
   } catch (e) {
@@ -1884,6 +2031,11 @@ if (generateBtnMid) {
   settingsReady = true;
   renderSourceBadges();
   refreshStaffTableStatus();
+  // 처음 연 기기(저장된 설정 없음)에는 세 단계 체크리스트를 띄운다 — 배포톡의 "① 그대로 생성 ②
+  // 양식 받아 명단 ③ 우리 값"을 화면 안으로 옮긴 것. 저장된 설정이 있으면 이미 쓰는 사람이다.
+  initFirstUseCard(!useSaved);
+  // 같은 탭에서 새로고침·뒤로가기로 날아간 직전 결과가 있으면 복원 카드를 띄운다.
+  renderRestoreCard();
 })();
 
 
@@ -1983,9 +2135,11 @@ document.querySelector(".info-section")?.addEventListener("change", saveSettings
 // 지우기는 '샘플 값으로 되돌리기'가 아니라 말 그대로 '비우기'다. 샘플 숫자를 다시
 // 채워 넣으면 그게 우리 병동 값인 줄 알고 그대로 만들 수 있다 — 지운 뒤에는 빈 칸이
 // 보여야 무엇을 채워야 하는지 알 수 있다. 병동명처럼 회색 자리표시(0)만 남긴다.
-// 묻지 않고 바로 지운다 — 되돌릴 대상이 '내가 방금 적은 값'뿐이고, 다시 채우는 데
-// 몇 초면 되는 화면이라 확인창이 매번 걸리는 쪽이 더 성가시다.
+// 한 번 묻는다 — 첫 사용자가 근무정보 묶음에서 처음 만나는 버튼이 이것이었고, 눌러보면
+// 확인 없이 모든 칸이 비워져 시작점(샘플 값)을 잃었다(2026-10-31 검토 A-10). 되돌릴 길로
+// '샘플 값으로 되돌리기'를 바로 아래에 두고, 둘 다 근무정보 묶음 맨 아래로 내렸다.
 $("#resetSettingsBtn").onclick = () => {
+  if (!confirm("기억해 둔 값을 지우고 모든 칸을 비웁니다. 계속할까요?\n(샘플 값이 필요하면 바로 아래의 '샘플 값으로 되돌리기'를 누르세요)")) return;
   try { localStorage.removeItem(SETTINGS_KEY); } catch (e) { settingsStorageFailed(e, "clear"); }
   settingsReady = false;
   $("#f_ward").value = "";
@@ -2000,6 +2154,190 @@ $("#resetSettingsBtn").onclick = () => {
   renderSourceBadges();
   showToast("저장한 설정을 지웠습니다 — 우리 병동 값으로 채워 넣어주세요");
 };
+// 샘플 병동 값으로 되돌린다 — 지우기와 반대 방향. 저장된 값도 지워서 '처음 연 상태'와 같게 한다
+// (저장해 두면 다음에 열 때 샘플이 "지난번에 맞춰둔 값"인 양 뜬다).
+$("#restoreSampleBtn").onclick = () => {
+  if (!sampleCfg) { showToast("샘플 값을 아직 받지 못했습니다 — 잠시 뒤 다시 눌러주세요", true); return; }
+  if (!confirm("근무정보·근무인력을 샘플 병동(40명) 값으로 되돌립니다. 지금 적힌 값은 사라집니다. 계속할까요?")) return;
+  try { localStorage.removeItem(SETTINGS_KEY); } catch (e) { settingsStorageFailed(e, "clear"); }
+  settingsReady = false;
+  fillForm(sampleCfg);
+  settingsReady = true;
+  settingsSource = "sample";
+  renderSourceBadges();
+  showToast("샘플 병동 값으로 되돌렸습니다 — 우리 병동 값으로 고쳐 쓰세요");
+};
+
+// ================================================================ 직전 결과 보존 (세션 범위)
+// 새로고침·뒤로가기 한 번에 10초 걸린 표와 올린 입력①②가 통째로 사라졌다(2026-10-31 검토 P13·§3).
+// 마지막 결과의 요점(연월·표·고정 칸·수정 대기)과 올린 입력 파일의 바이트를 **sessionStorage**에 둔다 —
+// 탭을 닫으면 소멸한다. localStorage는 쓰지 않는다: 보안 문서(guide/security.html 1절)가 "기기에 계속 남는 것은
+// 설정뿐, 근무표·입력은 그 탭 안에만"이라 약속하고, 명단·신청이 기기에 남으면 다음 사람이 그대로 연다. 용량을 넘기면 조용히 생략한다.
+//
+// 복원은 '표를 다시 그리기'가 아니라 **입력을 다시 올려 다시 만들기**다. Worker(Python) 상태는 새로고침에
+// 날아가므로 표만 그려 두면 다운로드·편집이 전부 "생성된 근무표가 없다"로 막힌다 — 그게 더 나쁘다. 같은
+// 입력·같은 시드면 같은 표가 나오고(엔진이 결정적), 고정 칸은 편집으로 다시 올려 적용한다. 그래도 다르면
+// 몇 칸이 다른지 그대로 말한다.
+const SESSION_RESULT_KEY = "ns_session_result_v1";
+const SESSION_FILES_KEY = "ns_session_files_v1";
+function sessionGet(key) { try { return JSON.parse(sessionStorage.getItem(key) || "null"); } catch (e) { return null; } }
+function sessionSet(key, val) { try { sessionStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* 용량·정책 — 조용히 생략 */ } }
+function sessionDel(key) { try { sessionStorage.removeItem(key); } catch (e) { /* 없는 것과 같다 */ } }
+
+async function rememberSessionFile(kind, file) {
+  try {
+    const files = sessionGet(SESSION_FILES_KEY) || {};
+    files[kind] = { name: file.name, b64: await fileToBase64(file) };
+    sessionSet(SESSION_FILES_KEY, files);
+  } catch (e) { /* 파일을 못 읽어도 반영 자체는 끝났다 */ }
+}
+function forgetSessionFile(kind) {
+  const files = sessionGet(SESSION_FILES_KEY) || {};
+  delete files[kind];
+  if (Object.keys(files).length) sessionSet(SESSION_FILES_KEY, files); else sessionDel(SESSION_FILES_KEY);
+}
+function saveSessionResult() {
+  if (!ST) return;
+  const val = (sid, d) => (ST.grid[sid] || [])[d];
+  const keyOf = k => { const i = k.lastIndexOf(":"); return [k.slice(0, i), Number(k.slice(i + 1))]; };
+  sessionSet(SESSION_RESULT_KEY, {
+    at: Date.now(), year: ST.year, month: ST.month, ward: ST.ward_id || "", staffCount: ST.staff.length,
+    round: ST.round, thorough: thoroughOn(), grid: ST.grid,
+    locked: (ST.locked || []).map(k => { const [sid, d] = keyOf(k); return { sid, day: d, v: val(sid, d) }; }),
+    pending: (ST.pending || []).map(k => { const [sid, d] = keyOf(k); return { sid, day: d, v: val(sid, d) }; }),
+    teamB: ST.team_b_grid || {},
+  });
+}
+function forgetSessionResult() { sessionDel(SESSION_RESULT_KEY); renderRestoreCard(); }
+
+function renderRestoreCard() {
+  const box = $("#restoreCard");
+  if (!box) return;
+  const saved = sessionGet(SESSION_RESULT_KEY);
+  if (!saved || ST) { box.style.display = "none"; box.innerHTML = ""; return; }
+  const files = sessionGet(SESSION_FILES_KEY) || {};
+  const fileNote = [files.wanted ? "입력①" : "", files.annual ? "입력②" : ""].filter(Boolean).join("·");
+  const edits = saved.locked.length + saved.pending.length;
+  box.style.display = "";
+  box.innerHTML =
+    `<b>직전 근무표가 있습니다</b> — ${saved.year}년 ${saved.month}월 · ${saved.staffCount}명 · ${saved.round}회차` +
+    `${edits ? ` · 손으로 고친 칸 ${edits}개` : ""}${fileNote ? ` · 올렸던 ${fileNote} 포함` : ""}` +
+    `<span class="hint"> 새로고침·뒤로가기로 사라진 표를 다시 만듭니다(같은 입력으로 다시 짜므로 생성 시간이 듭니다). 이 탭을 닫으면 없어집니다.</span>` +
+    `<div class="restore-actions"><button type="button" class="primary small" id="restoreSessionBtn">직전 근무표 복원</button>` +
+    `<button type="button" class="small" id="restoreDismissBtn">지우기</button></div>`;
+  $("#restoreSessionBtn").onclick = restoreSession;
+  $("#restoreDismissBtn").onclick = () => { sessionDel(SESSION_RESULT_KEY); sessionDel(SESSION_FILES_KEY); renderRestoreCard(); showToast("직전 근무표 기록을 지웠습니다"); };
+}
+
+async function restoreSession() {
+  const saved = sessionGet(SESSION_RESULT_KEY);
+  if (!saved) return;
+  const btn = $("#restoreSessionBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "복원하는 중…"; }
+  try {
+    setFormYearMonth(saved.year, saved.month);
+    const files = sessionGet(SESSION_FILES_KEY) || {};
+    if (files.wanted) await handleWantedFile(base64ToFile(files.wanted.b64, files.wanted.name));
+    if (files.annual) await handleStaffTableFile(base64ToFile(files.annual.b64, files.annual.name));
+    const chk = $("#thoroughChk");
+    if (chk) chk.checked = !!saved.thorough;
+    await runGenerate($("#generateBtn"), $("#genStatus"));
+    if (!ST) throw new Error("생성이 끝나지 않았습니다");
+    // 고정 칸(재생성 때 잠근 것·되올린 수정본)은 편집으로 다시 올려 한 번 적용한다.
+    if (saved.locked.length) {
+      showGenOverlay(`고정 칸 ${saved.locked.length}개를 다시 적용하는 중입니다…`);
+      try {
+        for (const c of saved.locked) {
+          if (!ST.grid[c.sid]) continue;
+          ST = await api("/api/edit", { method: "POST", body: JSON.stringify({ staff_id: c.sid, day: c.day, shift: c.v }) });
+        }
+        ST = await api("/api/apply", genOpts());
+        render();
+        refreshFragile();
+      } finally { hideGenOverlay(); }
+    }
+    for (const c of saved.pending) {
+      if (!ST.grid[c.sid]) continue;
+      ST = await api("/api/edit", { method: "POST", body: JSON.stringify({ staff_id: c.sid, day: c.day, shift: c.v }) });
+    }
+    for (const [name, row] of Object.entries(saved.teamB || {})) {
+      for (let d = 0; d < row.length; d++) if (row[d]) ST = await api("/api/edit/team_b", { method: "POST", body: JSON.stringify({ staff_id: name, day: d, shift: row[d] }) });
+    }
+    if (saved.pending.length || Object.keys(saved.teamB || {}).length) { render({ keepScroll: true }); refreshFeedback(); }
+    let diff = 0;
+    for (const sid in saved.grid) { const a = saved.grid[sid], b = ST.grid[sid] || []; for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) diff++; }
+    showToast(diff === 0
+      ? "직전 근무표를 그대로 복원했습니다"
+      : `입력은 그대로 복원했지만 표가 직전과 ${diff}칸 다릅니다 — 내려받아 두신 출력①이 있으면 '수정 엑셀 파일 업로드'로 올리면 그 표가 됩니다`, diff !== 0);
+  } catch (e) {
+    showToast("직전 근무표를 복원하지 못했습니다 — 입력①②를 다시 올리고 생성해주세요", true);
+    renderRestoreCard();
+  }
+}
+
+// 새로고침·뒤로가기·탭 닫기 전에 한 번 묻는다 — 표가 있거나, 손으로 고친 칸이 있거나, 입력①②를 올린
+// 상태면. 폰에서 뒤로가기를 습관적으로 누르는 사람이 10초 걸린 표를 통째로 잃었다(2026-10-31 검토 P13).
+// 새 버전 띠의 '새로 고침'처럼 우리가 시키는 이동은 묻지 않는다(window.__allowUnload).
+function unloadGuardNeeded() {
+  if (window.__allowUnload) return false;
+  return !!ST || wantedActive() || staffTableLoaded;
+}
+window.addEventListener("beforeunload", (e) => {
+  if (!unloadGuardNeeded()) return;
+  e.preventDefault();
+  e.returnValue = "";   // 크롬·사파리는 이 값이 있어야 묻는다(문구는 브라우저 것)
+});
+
+// ================================================================ 첫 사용 체크리스트
+// 처음 연 기기(저장된 설정 없음)에서 생성 버튼 위에 뜨는 세 단계 카드. 각 단계는 실제로 그 일을
+// 하면 자동으로 체크된다(생성했음 / 입력① 올렸음 / 설정 바꿨음). 닫으면 다시 안 뜬다(localStorage).
+// 세 단계가 다 끝나도 다시 안 뜬다 — 그때는 이미 쓰는 사람이다.
+const FIRST_USE_KEY = "ns_firstuse_v1";
+let firstUse = null;   // {show, gen, wanted, settings, closed}
+function loadFirstUse() {
+  try { return JSON.parse(localStorage.getItem(FIRST_USE_KEY) || "null") || {}; } catch (e) { return {}; }
+}
+function saveFirstUse() {
+  try { localStorage.setItem(FIRST_USE_KEY, JSON.stringify(firstUse)); } catch (e) { /* 안 저장돼도 이번 세션엔 뜬다 */ }
+}
+function initFirstUseCard(fresh) {
+  const saved = loadFirstUse();
+  // 저장된 설정이 없는 기기(fresh)이거나, 전에 카드를 보기 시작했는데 아직 끝내지 않은 기기면 보인다.
+  const started = saved.started || fresh;
+  // 세 단계를 다 끝낸 것을 한 번 보여줬으면(doneShown) 다음에 열 때는 닫힌 것으로 본다.
+  firstUse = { started, gen: !!saved.gen, wanted: !!saved.wanted, settings: !!saved.settings,
+               closed: !!saved.closed || !!saved.doneShown, doneShown: !!saved.doneShown };
+  if (started && !saved.started) saveFirstUse();
+  renderFirstUseCard();
+}
+function noteFirstUse(step) {
+  if (!firstUse || !firstUse.started || firstUse[step]) return;
+  firstUse[step] = true;
+  saveFirstUse();
+  renderFirstUseCard();
+}
+function renderFirstUseCard() {
+  const box = $("#firstUseCard");
+  if (!box || !firstUse) return;
+  const done = firstUse.gen && firstUse.wanted && firstUse.settings;
+  if (!firstUse.started || firstUse.closed) { box.style.display = "none"; box.innerHTML = ""; return; }
+  const step = (ok, text) => `<li class="${ok ? "done" : ""}"><span class="chk" aria-hidden="true">${ok ? "✓" : "○"}</span><span class="txt">${text}</span></li>`;
+  box.style.display = "";
+  box.innerHTML =
+    `<div class="first-use-head"><b>처음이면 이 순서로</b> <button type="button" class="linklike" id="firstUseClose">닫기</button></div>` +
+    `<ol class="first-use-steps">` +
+    step(firstUse.gen, "① 그대로 <b>[근무표 생성]</b>을 눌러 결과 화면을 한 번 보기 — 샘플 병동(40명) 값으로 만들어집니다") +
+    step(firstUse.wanted, "② 입력①의 <b>양식(다운로드)</b>을 받아 우리 명단·신청을 넣고 <b>업로드</b>") +
+    step(firstUse.settings, "③ <b>근무정보·근무인력</b>을 우리 병동 값으로 고치기 — 한 번 고치면 이 브라우저에 저장됩니다") +
+    `</ol>` +
+    (done ? `<p class="hint first-use-done">✓ 세 단계를 모두 마쳤습니다 — 다음 달부터는 입력①·②만 올리고 생성하면 됩니다.</p>` : "");
+  $("#firstUseClose").onclick = () => { firstUse.closed = true; saveFirstUse(); renderFirstUseCard(); };
+  if (done && !firstUse.doneShown) { firstUse.doneShown = true; saveFirstUse(); }   // 이번엔 보여주고, 다음에 열면 안 뜬다
+}
+// 설정 칸을 고치면 ③이 체크된다(저장 핸들러와 같은 영역에서 받는다).
+document.querySelector(".info-section")?.addEventListener("change", (ev) => {
+  if (ev.target instanceof HTMLInputElement) noteFirstUse("settings");
+});
 
 // ================================================================ 그리드 렌더 (생성 후)
 
@@ -2043,7 +2381,7 @@ function restoreScroll(pos) {
 async function refreshFragile() {
   if (!ST) return;
   const round = ST.round;
-  FRAGILE = { round, loading: true, done: false, total: 0, cells: {} };
+  FRAGILE = { round, loading: true, done: false, total: 0, cells: {}, t0: Date.now() };
   paintFragile();
   // 사람·반달 단위로 나눠 받는다 — 한 번에 받으면 Worker가 수 초 동안 막혀 그 사이 누른
   // 칸 편집이 기다린다. 조각마다 빗금을 바로 얹어 진행이 보이게 한다.
@@ -2104,15 +2442,26 @@ function paintFragile() {
     td.title = (td.dataset.baseTitle ? td.dataset.baseTitle + "\n" : "") + fragileTitle(info);
   }
   if (box && !FRAGILE.done) {
-    box.innerHTML = '<p class="fragile-note">건드리면 안 되는 칸을 점검하는 중입니다… (수 초, 빗금이 차례로 얹힙니다)</p>';
+    const sec = FRAGILE.t0 ? Math.round((Date.now() - FRAGILE.t0) / 1000) : 0;
+    box.innerHTML = `<p class="fragile-note">건드리면 안 되는 칸을 점검하는 중입니다… (40명 기준 약 10초${sec ? `, ${sec}초 경과` : ""}). ` +
+      `표의 <b>빗금 = 혼자서는 못 바꾸는 칸</b>이 차례로 얹힙니다.</p>`;
   } else if (box) {
     const pct = FRAGILE.total ? Math.round(100 * FRAGILE.fixed / FRAGILE.total) : 0;
     const free = FRAGILE.total - FRAGILE.fixed;
-    const warn = pct >= 60 ? ' <span class="warn-text">— 인원이 빠듯한 달입니다. 손 수정보다 맞교환이나 재생성이 안전합니다.</span>' : "";
+    // 비율 구간별로 말한다 — 필수 위반 0인 샘플 병동도 78%가 나오는데 "인원이 빠듯한 달"이라
+    // 하면 입력이 잘못됐나 의심한다(2026-10-31 검토 A-18). 빗금이 많은 것은 규칙이 촘촘히
+    // 맞물린 표라는 뜻이고, 인원 부족은 필수 위반이 남았을 때만 말한다.
+    const hard = ST && ST.report ? ST.report.hard_count : 0;
+    const warn = pct >= 60
+      ? (hard > 0
+          ? ' <span class="warn-text">— 필수 위반이 남은 데다 혼자 바꿀 칸도 적습니다. 인원이 빠듯한 달이니 손 수정보다 맞교환·재생성이 안전합니다.</span>'
+          : ' <span class="warn-text">— 규칙이 촘촘히 맞물린 표입니다(필수 위반은 없습니다). 혼자 바꿀 수 있는 칸이 적으니 손 수정보다 맞교환이나 재생성이 안전합니다.</span>')
+      : pct >= 40 ? " — 절반 가까운 칸은 맞교환이나 재생성으로 바꾸는 편이 안전합니다."
+      : " — 대부분 칸은 혼자서도 바꿀 수 있습니다.";
     box.innerHTML =
       `<ul class="issue-list" style="font-size:12px">` +
-      `<li class="hard"><span class="rule">고정</span>${FRAGILE.row_fixed}칸 — 어느 근무로 바꿔도 그 사람 행의 규칙이 깨짐(맞교환도 불가)</li>` +
-      `<li class="soft"><span class="rule">교환만</span>${FRAGILE.swap_only}칸 — 혼자 바꾸면 그날 인원·숙련도 규칙이 깨짐(맞교환은 가능할 수 있음)</li>` +
+      `<li class="hard"><span class="rule">고정</span>${FRAGILE.row_fixed}칸 — 어느 근무로 바꿔도 그 사람 행의 규칙이 깨짐(맞교환도 불가, 진한 빗금)</li>` +
+      `<li class="soft"><span class="rule">교환만</span>${FRAGILE.swap_only}칸 — 혼자 바꾸면 그날 인원·숙련도 규칙이 깨짐(맞교환은 가능할 수 있음, 옅은 빗금)</li>` +
       `<li class="none"><span class="rule">자유</span>${free}칸 — 혼자 바꿔도 새 필수 위반 없음</li>` +
       `</ul><p class="fragile-note">전체 ${FRAGILE.total}칸 중 ${pct}%가 혼자서는 못 바꾸는 칸${warn}</p>`;
   }
@@ -2189,10 +2538,13 @@ function render(opts) {
   gridContent.style.display = "block";
   sidePane.style.display = "block";
   updateInfoLabel(true);
+  setResultView(true);
   renderGrid();
   renderSide();
   paintFragile();
   restorePendingFocus();
+  saveSessionResult();   // 새로고침·뒤로가기로 날아가도 같은 탭에서는 되살릴 수 있게
+  renderRestoreCard();   // 표가 있으면 복원 카드는 숨긴다(복원 직후 남아 있었다)
   if (pos) {
     restoreScroll(pos);
     // 표가 커서 레이아웃이 한 박자 늦게 끝나거나(40명 × 31일), 브라우저의 스크롤
@@ -2288,23 +2640,38 @@ function renderGrid() {
   if (lastStaffing && lastStaffing.bounds && lastStaffing.bounds.message) {
     html += `<p class="carry-warning">⚠ ${esc(lastStaffing.bounds.message)}</p>`;
   }
+  // 표 위 상태 띠 — 폰에서는 검증 요약·다운로드가 표 40행 아래(약 1,900px)라 생성 직후 보이는 것이
+  // 표 머리뿐이었다(2026-10-31 검토 A-11). 누르면 그 자리로 간다. PC에서도 같은 자리에 둔다.
+  const rr = ST.report || { hard_count: 0, hard: [] };
+  const soft = rr.hard.length - rr.hard_count;
+  html += `<div class="result-strip" id="resultStrip">` +
+    `<button type="button" class="strip-item ${rr.hard_count ? "bad" : "ok"}" data-strip="sideSummary" title="검증 요약으로">${rr.hard_count ? "🔴" : "🟢"} 필수 위반 ${rr.hard_count}</button>` +
+    `<button type="button" class="strip-item ${soft ? "warn" : ""}" data-strip="sideSummary" title="검증 요약으로">🟡 추가 검토 ${soft}</button>` +
+    `<button type="button" class="strip-item" data-strip="sideDownload" title="다운로드 버튼으로">⬇ 다운로드</button>` +
+    `<button type="button" class="strip-item" data-strip="pendingSec" title="편집 목록으로">✎ 편집${ST.pending && ST.pending.length ? ` ${ST.pending.length}` : ""}</button>` +
+    `</div>`;
+  // 범례는 이달 표에 실제로 나온 코드만 — 20색을 다 늘어놓으면 두 줄을 차지해 표가 17행밖에 안
+  // 보였다(2026-10-31 검토 C 1-7). 이름 옆 '지'·'밤' 배지와, 날짜·이름이 눌린다는 것도 여기 적는다
+  // (툴팁은 폰에서 볼 수 없다, A-17).
   html += '<div class="legend">';
-  const legendItems = [["D","#BDD7EE"],["E","#F8CBAD"],["N","#1F3864"],["NK","#7030A0"],
-                       ["prn","#C6E0B4"],["8A","#D9D9D9"],["9A","#BFBFBF"],["10A","#A6A6A6"],
-                       ["T","#B4C7E7"],["연차","#FFE699"],["연1~4","#FFF2CC"],
-                       ["S/","#9DC3E6"],["TW","#A9D18E"],["군","#C9C9C9"],
-                       ["조","#808080"],["경","#F4B6C2"],["공","#D0CECE"],["병","#F8C9C4"],
-                       ["휴","#BFBFBF"],["승","#DDEBF7"]];
-  for (const [k, c] of legendItems) html += `<span class="sw"><span class="box" style="background:${c}"></span>${k}</span>`;
+  const legendColor = {D:"#BDD7EE", E:"#F8CBAD", N:"#1F3864", NK:"#7030A0", prn:"#C6E0B4", "8A":"#D9D9D9", "9A":"#BFBFBF",
+                       "10A":"#A6A6A6", T:"#B4C7E7", "연차":"#FFE699", "연1":"#FFF2CC", "연2":"#FFF2CC", "연3":"#FFF2CC",
+                       "연4":"#FFF2CC", "S/":"#9DC3E6", TW:"#A9D18E", "군":"#C9C9C9", "조":"#808080", "경":"#F4B6C2",
+                       "공":"#D0CECE", "병":"#F8C9C4", "휴":"#BFBFBF", "승":"#DDEBF7"};
+  const usedCodes = dutyColumns().filter(c => c !== "OFF" && legendColor[c]);
+  for (const k of usedCodes) html += `<span class="sw"><span class="box" style="background:${legendColor[k]}"></span>${esc(k)}</span>`;
   html += `<span class="sw">/ = 오프 · X = 원티드오프</span>`;
   html += `<span class="sw"><span style="outline:2px solid var(--hard);width:13px;height:13px;display:inline-block"></span>확정(고정)</span>`;
   html += `<span class="sw"><span style="outline:2px dashed var(--warn);width:13px;height:13px;display:inline-block"></span>미적용 편집</span>`;
   html += `<span class="sw"><span class="box wanted-swatch"></span>원티드 반영</span>`;
   html += `<span class="sw"><span class="viol-swatch viol-hard-swatch"></span>필수위반</span>`;
-  html += `<span class="sw"><span class="viol-swatch viol-soft-swatch"></span>최선노력위반</span>`;
-  html += `<span class="sw"><span class="box fragile-row-swatch"></span>고정 칸(수정 불가)</span>`;
-  html += `<span class="sw"><span class="box fragile-day-swatch"></span>맞교환으로만</span>`;
+  html += `<span class="sw"><span class="viol-swatch viol-soft-swatch"></span>추가 검토(최선노력)</span>`;
+  html += `<span class="sw"><span class="box fragile-row-swatch"></span>빗금 진함 = 고정 칸(수정 불가)</span>`;
+  html += `<span class="sw"><span class="box fragile-day-swatch"></span>빗금 옅음 = 맞교환으로만</span>`;
+  if (ST.staff.some(s => s.is_designated)) html += `<span class="sw"><span class="desig-mark">지</span>지정 가능자</span>`;
+  if (ST.staff.some(s => s.is_night_leader)) html += `<span class="sw"><span class="desig-mark nl-mark">밤</span>야간리더</span>`;
   html += `<button id="backToInputBtn" class="small" style="margin-left:auto">← 입력으로 돌아가기(새로 만들기)</button>`;
+  html += `<span class="sw legend-tap">날짜를 누르면 그날 병동 · 이름을 누르면 한 달 여정 · 칸을 누르면 근무 바꾸기</span>`;
   html += "</div>";
 
   // OCS 형식과 같은 계산열(잔휴·D/E/N·금월·Lv) — 전부 현재 화면 그리드(미적용 편집 포함)로
@@ -2445,8 +2812,32 @@ function renderGrid() {
     $("#intake").style.display = "block";
     sidePane.style.display = "none";
     updateInfoLabel(false);
+    setResultView(false);
+    nextMonthCardOn = false;
+    forgetSessionResult();   // 스스로 돌아갔으면 복원할 것도 없다(입력 파일은 그대로 남긴다)
   };
 }
+
+// 결과 화면에서는 머리의 보안 띠를 한 줄로 줄인다 — 범례·띠·제목이 표 위 250px를 차지해 표가
+// 17행만 보였다(2026-10-31 검토 C 1-7). 글은 그대로 두고 짧은 요약으로 바꾸며, 돌아가면 복원한다.
+let securityNoteFull = null;
+function setResultView(on) {
+  document.body.classList.toggle("result-view", on);
+  const note = document.querySelector(".security-note");
+  if (!note) return;
+  if (securityNoteFull === null) securityNoteFull = note.innerHTML;
+  note.innerHTML = on ? "🔒 입력 데이터는 서버로 가지 않고 이 브라우저에서만 처리됩니다 — 화면 공유·다운로드 파일의 개인정보에 주의하세요." : securityNoteFull;
+}
+// 상태 띠 — 누르면 오른쪽 패널의 그 자리로(폰에서는 아래로 스크롤). 값은 data-*에, 클릭은 위임으로.
+delegateClick(document.getElementById("gridContent"), ".result-strip button[data-strip]", (b) => {
+  const target = document.getElementById(b.dataset.strip);
+  if (!target) return;
+  const ex = target.closest("details");
+  if (ex && !ex.open) ex.open = true;
+  target.scrollIntoView({ block: "start", behavior: "smooth" });
+  target.classList.remove("flash-change"); void target.offsetWidth; target.classList.add("flash-change");
+  setTimeout(() => target.classList.remove("flash-change"), 3200);
+});
 
 // 날짜별 레벨 통계 — 그 날 실제로 근무(D/E/N(NK 포함)/prn(8A 포함))에 배정된 사람들의
 // 평균 레벨과, 고랩(Lv4-5)·저랩(Lv1-3) 인원수를 화면 그리드(미적용 편집 포함)에서
@@ -2923,7 +3314,9 @@ function openJourney(sid, day) {
     bd = document.createElement("div");
     bd.className = "modal-backdrop"; bd.id = "jourModalBackdrop";
     bd.innerHTML = '<div class="modal jour-modal" role="dialog" aria-modal="true" aria-label="여정">' +
-      '<div class="modal-head"><h2 id="jourTitle"></h2><div class="dio-nav"><button data-jour="prev" title="전날">◀</button><button data-jour="play" title="걷기">▶ 걷기</button><button data-jour="next" title="다음날">▶</button><button data-jour="close" title="닫기">✕</button></div></div>' +
+      // '걷기(자동 재생)'와 '다음날'이 같은 ▶라 구분이 안 됐고 폰에서 두 줄로 꺾였다(2026-10-31 검토 A-16) —
+      // 재생은 ⏵ 글자와 '자동', 날짜 이동은 ◀ 전날 · 다음날 ▶로 적는다. 한 줄 배치는 .jour-modal .dio-nav(CSS).
+      '<div class="modal-head"><h2 id="jourTitle"></h2><div class="dio-nav jour-nav"><button data-jour="prev" title="전날">◀ 전날</button><button data-jour="play" title="자동으로 하루씩 걷기">⏵ 자동</button><button data-jour="next" title="다음날">다음날 ▶</button><button data-jour="close" title="닫기">✕</button></div></div>' +
       '<div class="modal-body jour-body"><div class="jour-stage"><canvas id="jourCanvas"></canvas><div class="jour-card" id="jourCard"></div></div><p class="hint" id="jourHint">◀ ▶·←→·휠로 날짜를 넘깁니다. 해는 낮, 노을은 저녁, 달은 밤. 카드에 그 칸이 왜 거기 놓였는지 적힙니다.</p></div></div>';
     document.body.appendChild(bd);
     bd.addEventListener("click", (e) => { if (e.target === bd) closeJourney(); });
@@ -2931,8 +3324,8 @@ function openJourney(sid, day) {
       if (!JOUR) return;
       const k = b.dataset.jour;
       if (k === "close") closeJourney();
-      else if (k === "play") { JOUR.play = !JOUR.play; b.textContent = JOUR.play ? "⏸ 멈춤" : "▶ 걷기"; }
-      else { JOUR.day = Math.max(0, Math.min(ST.num_days - 1, JOUR.day + (k === "next" ? 1 : -1))); JOUR.play = false; bd.querySelector("button[data-jour='play']").textContent = "▶ 걷기"; }
+      else if (k === "play") { JOUR.play = !JOUR.play; b.textContent = JOUR.play ? "⏸ 멈춤" : "⏵ 자동"; }
+      else { JOUR.day = Math.max(0, Math.min(ST.num_days - 1, JOUR.day + (k === "next" ? 1 : -1))); JOUR.play = false; bd.querySelector("button[data-jour='play']").textContent = "⏵ 자동"; }
     });
     bd.addEventListener("keydown", (e) => {
       if (!JOUR) return;
@@ -2946,7 +3339,7 @@ function openJourney(sid, day) {
     }, { passive: false });
   }
   bd.classList.add("show");
-  bd.querySelector("button[data-jour='play']").textContent = "▶ 걷기";
+  bd.querySelector("button[data-jour='play']").textContent = "⏵ 자동";
   const s = ST.staff.find(x => x.id === sid);
   document.getElementById("jourTitle").textContent = `${sid} · ${s ? `${s.role} Lv${s.level}` : ""} — ${ST.year}년 ${ST.month}월의 여정`;
   const first = bd.querySelector("button[data-jour='next']");
@@ -3130,7 +3523,7 @@ function magazineHtml(trace) {
   // --- 4 사람별 집계
   const sec4 = `<h2>4. 사람별 집계</h2><table class="t small"><tr><th>이름</th><th>직급·Lv</th>${dutyCols.map(c => `<th>${esc(c)}</th>`).join("")}<th>근무</th><th>OFF</th><th>잔휴 전월→이후</th><th>주말</th><th>최장 연속</th><th>야간/목표</th></tr>
     ${stats.map(x => `<tr${x.s.is_nk ? ' class="nk"' : ""}><td>${esc(x.s.id)}${x.s.is_designated ? " <i>지</i>" : ""}${x.s.is_night_leader ? " <i>밤</i>" : ""}</td>${td(`${esc(x.s.role)} Lv${x.s.level}`)}${dutyCols.map(c => td(x.cnt[c] || "")).join("")}${td(x.work)}${td(x.offCnt, x.offOk ? "" : "warn")}${td(`${x.offBefore} → ${x.offAfter}`)}${td(x.b.weekend, Math.abs(x.b.weekend - wkMean) >= 2 && !x.s.is_nk ? "warn" : "")}${td(x.b.maxRun, x.b.maxRun > maxC ? "bad" : "")}${td(x.s.night_target != null ? `${x.b.nights}/${x.s.night_target}` : x.b.nights, x.s.night_target != null && x.b.nights !== x.s.night_target ? "warn" : "")}</tr>`).join("")}</table>
-    <p class="sub">노랑 = 평균과 2일 이상 차이(주말), OFF 허용범위 밖, 야간 목표와 다름. 빨강 = 연속근무 ${maxC}일 초과. 잔휴는 전월 잔휴 + 이달 휴일수 − OFF.</p>`;
+    <p class="sub">노랑 = 평균과 2일 이상 차이(주말), OFF 수가 기준 범위 밖, 야간 목표와 다름. 빨강 = 연속근무 ${maxC}일 초과. 잔휴는 전월 잔휴 + 이달 휴일수 − OFF.</p>`;
   // --- 5 부담 요약
   const wkTop = stats.filter(x => !x.s.is_nk && x.b.weekend - wkMean >= 2).sort((a, b) => b.b.weekend - a.b.weekend);
   const wkLow = stats.filter(x => !x.s.is_nk && wkMean - x.b.weekend >= 2).sort((a, b) => a.b.weekend - b.b.weekend);
@@ -3471,8 +3864,14 @@ window.openPicker = function (ev, sid, day) {
   div.setAttribute("role", "dialog");
   div.setAttribute("aria-modal", "true");
   div.setAttribute("aria-label", `${sid} ${day + 1}일 근무 고르기`);
-  div.style.left = Math.min(rect.left, window.innerWidth - 230) + "px";
-  div.style.top = (rect.bottom + 4) + "px";
+  // 머리에 어느 칸인지 적는다 — 선택기는 칸에서 떨어져 뜨고 칸은 26px이라, 이름·날짜가 없으면
+  // 어느 사람 칸을 고치는지 잃는다(2026-10-31 검토 P8c). ✕는 폰 바텀시트에서 닫는 길.
+  const head = document.createElement("div");
+  head.className = "picker-head";
+  head.innerHTML = `<b>${esc(sid)}</b> · ${day + 1}일 <span class="dim">지금 ${esc(shiftText(cur, (ST.wanted || []).includes(`${sid}:${day}`)) || "빈칸")}</span>` +
+    `<button type="button" class="picker-close" aria-label="닫기">✕</button>`;
+  head.querySelector(".picker-close").onclick = (e) => { e.stopPropagation(); closePicker(); };
+  div.appendChild(head);
   for (const sh of ALL_SHIFTS) {
     if (!allowed.has(sh)) continue;
     const b = document.createElement("button");
@@ -3503,7 +3902,7 @@ window.openPicker = function (ev, sid, day) {
     if (why.lines.length) {
       const box = document.createElement("div");
       box.className = "picker-why";
-      box.innerHTML = `<b>이 칸은</b> ` + why.lines.map(esc).join(" ") + ` <span class="dim">(간단 판정)</span>`;
+      box.innerHTML = `<b>이 칸은</b> ` + why.lines.map(esc).join(" ") + ` <span class="dim">(이 칸만 본 판정 — 전체 검사는 오른쪽 검증 요약)</span>`;
       div.appendChild(box);
       showRipple(why.cells);
     }
@@ -3516,15 +3915,39 @@ window.openPicker = function (ev, sid, day) {
     div.appendChild(b);
   }
   document.body.appendChild(div);
+  // 자리 잡기 — 폰(≤680px)은 화면 아래에 붙는 바텀시트(CSS .picker.sheet). PC는 칸 아래에 띄우되,
+  // 붙인 뒤 높이를 재서 화면 밖으로 나가면 칸 위로 뒤집는다. 예전엔 top = 칸 아래 + 4px만 잡아
+  // 하단 행에서는 선택기가 화면 밖(폰에서는 아예 안 보임)이었다(2026-10-31 검토 P8a).
+  const phone = window.matchMedia && window.matchMedia("(max-width: 680px)").matches;
+  if (phone) {
+    div.classList.add("sheet");
+  } else {
+    const h = div.offsetHeight, w = div.offsetWidth;
+    const below = rect.bottom + 4;
+    const top = below + h > window.innerHeight - 8 ? Math.max(8, rect.top - 4 - h) : below;
+    div.style.top = top + "px";
+    div.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - w - 8)) + "px";
+  }
   trapPickerKeys(div);
-  const first = div.querySelector("button");
-  if (first) first.focus();
+  const first = div.querySelector("button:not(.picker-close)");
+  if (first) first.focus({ preventScroll: true });
   picker = div;
   pickerCell = td;
+  pickerOpenedAt = Date.now();
   td.classList.add("picking");
   ev.stopPropagation();
   setTimeout(() => document.addEventListener("click", closePicker, { once: true }), 0);
 };
+// 스크롤하면 닫는다 — 선택기는 position:fixed라 창·#gridPane·.grid-scroll 어느 것을 밀어도 칸은 떠나고
+// 선택기만 제자리에 남아 다른 사람 행 위에 얹혔다(2026-10-31 검토 P8b). 선택기 안쪽 스크롤(목록이
+// 길어 넘칠 때)과 연 직후의 포커스 이동으로 생기는 스크롤은 닫지 않는다.
+let pickerOpenedAt = 0;
+document.addEventListener("scroll", (ev) => {
+  if (!picker) return;
+  if (ev.target instanceof Node && picker.contains(ev.target)) return;
+  if (Date.now() - pickerOpenedAt < 250) return;
+  closePicker();
+}, true);
 function closePicker() {
   // 포커스를 상자 안에 둔 채로 지우면 body로 튄다 — 그러면 키보드 사용자는 다음 칸으로
   // 갈 수가 없다. 누른 칸으로 되돌리되, **노드가 아니라 좌표로** 되돌린다: 근무를 고르면
@@ -3560,8 +3983,8 @@ function trapPickerKeys(div) {
   div.addEventListener("keydown", (ev) => {
     if (ev.key === "Escape") { ev.preventDefault(); closePicker(); return; }
     if (ev.key !== "Tab") return;
-    // Tab이 상자 밖으로 나가면 배경을 조작하게 된다 — 안에서 돌게 한다.
-    const btns = [...div.querySelectorAll("button")];
+    // Tab이 상자 밖으로 나가면 배경을 조작하게 된다 — 안에서 돌게 한다(✕는 Tab 순서에서 뺀다 — Esc가 있다).
+    const btns = [...div.querySelectorAll("button:not(.picker-close)")];
     if (!btns.length) return;
     const i = btns.indexOf(document.activeElement);
     const next = ev.shiftKey ? (i <= 0 ? btns.length - 1 : i - 1)
@@ -3641,7 +4064,7 @@ function feasibilityBanner(r) {
     return `<p class="status-banner warn">필수 규칙(최소인력·야간 블록·연속근무 등)은 모두
       지켰습니다. 다만 <b>추가 검토 ${total}건</b>이 남았습니다 — ${BEST_EFFORT_NAMES}처럼
       지키는 게 원칙이지만 인원 사정상 못 맞출 수 있는 항목입니다. 아래 노란
-      목록을 확인한 뒤 확정해 주세요.</p>`;
+      목록을 확인한 뒤 다운로드해 쓰세요.</p>`;
   }
   return "";
 }
@@ -3651,11 +4074,11 @@ function renderSide() {
   const hardCls = r.hard_count === 0 ? "ok" : "bad";
 
   let html = "";
-  html += `<div class="side-sec"><h3>검증 요약</h3>`;
+  html += `<div class="side-sec" id="sideSummary"><h3>검증 요약</h3>`;
   if (ST.pending && ST.pending.length) {
-    // 표에는 수정 대기 칸이 보이지만 아래 숫자는 확정표(마지막 생성·적용) 기준이다 — 둘의 기준이 다른
+    // 표에는 수정 대기 칸이 보이지만 아래 숫자는 마지막으로 적용한 표 기준이다 — 둘의 기준이 다른
     // 것을 적어 두지 않으면 "고쳤는데 왜 위반이 그대로냐"가 된다(10/30 GPT 검토 U06, 재현됨).
-    html += `<p class="hint scope-note">📌 아래는 <b>확정표 기준</b> 검사입니다 — 수정 대기 ${ST.pending.length}칸은 아직 반영되지 않았습니다.
+    html += `<p class="hint scope-note">📌 아래는 <b>마지막으로 적용한 표 기준</b> 검사입니다 — 수정 대기 ${ST.pending.length}칸은 아직 반영되지 않았습니다.
       칸별 영향은 '편집 중' 목록의 관련 규칙으로, 전체는 '재생성 적용' 뒤 다시 계산됩니다.</p>`;
   }
   if (r.timed_out) {
@@ -3667,11 +4090,15 @@ function renderSide() {
       같습니다. 더 빠른 기기(PC)에서 열면 끝까지 시도합니다.</p>`;
   }
   html += feasibilityBanner(r);
+  // 잠긴 칸(손으로 고친 칸·되올린 수정본) 때문에 재생성으로 못 푸는 위반이 있으면 그 사실을
+  // 배너 바로 아래에 적는다. 안 적으면 33초짜리 재생성을 몇 번이고 다시 누르게 된다(리뷰 F-20).
+  if (r.locked_note) html += `<p class="hint locked-note">🔒 ${esc(r.locked_note)}</p>`;
   html += `<div class="kpi-row">
     <div class="kpi"><div class="v ${hardCls}">${r.hard_count}</div><div class="l">필수 위반</div></div>
     <div class="kpi"><div class="v">${r.hard.length - r.hard_count}</div><div class="l">추가 검토</div></div>
-    <div class="kpi"><div class="v">${ST.round}</div><div class="l">회차</div></div>
-  </div>`;
+    <div class="kpi" title="이 입력으로 표를 짠 횟수 — 재생성 적용마다 1씩 늘고, 내려받는 파일 이름 끝에 _r2처럼 붙습니다"><div class="v">${ST.round}</div><div class="l">회차(짠 횟수)</div></div>
+  </div>
+  <p class="side-note">회차 = 이 입력으로 표를 짠 횟수. 재생성 적용마다 1씩 늘고, 내려받는 파일 이름 끝의 <code>_r${ST.round}</code>이 이 숫자입니다.</p>`;
   if (r.hard.length > 0) {
     // 정말 못 채운 것(빨강)과 최선노력 규칙만 남은 것(노랑)을 구분해서 보여준다 —
     // 둘 다 같은 class="hard"로만 나가서 구분이 안 되던 것을 고침.
@@ -3680,9 +4107,11 @@ function renderSide() {
     // 아닌가 보다"로 오해할 수 있어, 전부 보여주되 스크롤로 감당한다.
     // 항목을 누르면 그 칸(사람·날)으로, 사람이 없는 항목(최소인력·숙련도·지정)은 그날 열로 간다 — 목록과 표를
     // 오가며 찾던 것을 없앤다(10/30 GPT 검토 U04). 값은 data-*에만 두고 클릭은 sidePane에서 위임받는다.
+    // 규칙 번호(H1-4 …)는 문장 뒤에 작게 — 앞에 굵게 오면 첫 사용자가 가장 먼저 읽는 글자가
+    // 내부 번호가 된다(2026-10-31 검토 A-12). 번호는 설명서·보고서와 맞춰 보는 용도라 남긴다.
     html += '<ul class="issue-list issue-list-scroll">' + r.hard.map(v =>
       `<li class="${v.best_effort ? "soft" : "hard"}"${v.day ? ` data-day="${v.day - 1}"` : ""}${v.staff_id ? ` data-sid="${escAttr(v.staff_id)}"` : ""}` +
-      `${v.day ? ' role="button" tabindex="0" title="누르면 그 칸으로 이동"' : ""}><span class="rule">${esc(v.rule)}</span>${esc(v.message)}</li>`).join("") + "</ul>";
+      `${v.day ? ' role="button" tabindex="0" title="누르면 그 칸으로 이동"' : ""}>${esc(humanizeMsg(v.message))}${ruleTag(v.rule)}</li>`).join("") + "</ul>";
   }
   html += "</div>";
 
@@ -3691,18 +4120,18 @@ function renderSide() {
   const hasPending = ST.pending.length > 0;
   html += renderSwap();
   html += `<div class="side-sec" id="pendingSec"><h3>${hasPending ? "편집 중 (미적용)" : "편집"}</h3><div id="pendingBody"></div></div>`;
-  html += `<div class="side-sec"><h3>수정 전 점검 — 건드리면 안 되는 칸</h3><div id="fragileBox"></div></div>`;
 
   // 파일에도 화면에도 같은 번호를 쓴다 — 받는 파일 이름이 "출력1_월간근무표…"인데
   // 버튼에는 번호가 없어서, 파트장이 "출력②를 입력②로 올리세요"라는 안내를 읽고도
   // 어느 버튼인지 되짚어야 했다. 번호가 곧 다음 달 입력 번호다(출력② → 입력②).
-  html += `<div class="side-sec"><h3>다운로드</h3><div class="download-row">
+  html += `<div class="side-sec" id="sideDownload"><h3>다운로드</h3><div class="download-row">
     <button onclick="if (confirmDownloadWithViolations()) downloadXlsxOcs()" ${hasPending ? "disabled" : ""}><span class="io-tag">출력①</span>월간근무표</button>
     <button onclick="if (confirmDownloadWithViolations()) downloadStaffTable()" ${hasPending ? "disabled" : ""}><span class="io-tag">출력②</span>연간근무표</button>
   </div>
   ${hasPending
     ? '<p class="hint">적용 안 한 편집이 있습니다 — "재생성 적용"을 눌러야 다운로드할 수 있습니다.</p>'
     : '<p class="hint">출력②(연간근무표)를 보관해두면 다음 달에 <b>입력②</b>로 그대로 올려 이월정보를 이어갈 수 있습니다.</p>'}
+  <div id="nextMonthCard"></div>
   </div>`;
 
   // 엑셀에서 고친 월간근무표를 되올리는 자리. 다운로드 바로 아래에 둔다 —
@@ -3725,11 +4154,15 @@ function renderSide() {
   }
   html += "</div>";
 
-  // 입력 요약
+  // 입력 요약 — 공휴일은 **이 달의 달력**(ST.days)에서 센다. 예전엔 params_summary.holidays(1년치
+  // 표)의 길이를 그대로 찍어 11월에 "공휴일 18개"가 나왔다(2026-10-31 검토 P1). 토·일이 아닌데
+  // 휴일인 날 = 공휴일·대체공휴일. 바로 아래 주말·공휴일 합계와 같은 달력이라 서로 어긋나지 않는다.
   const ps = ST.params_summary;
+  const satSun = ST.days.filter(d => d.dow === "토" || d.dow === "일").length;
+  const holOnly = ST.days.filter(d => d.weekend && d.dow !== "토" && d.dow !== "일").length;
   html += `<div class="side-sec"><h3>입력 요약</h3><ul class="issue-list" style="font-size:12px">
-    <li style="background:var(--code-bg)">${ST.year}년 ${ST.month}월 · ${ST.staff.length}명 ·
-    월최대야간 ${ps.max_nights}일 · NK ${ps.nk_count}명 · 공휴일 ${ps.holidays.length}개</li>` +
+    <li style="background:var(--code-bg)" id="inputSummaryLine">${ST.year}년 ${ST.month}월 · ${ST.staff.length}명 ·
+    월최대야간 ${ps.max_nights}일 · NK ${ps.nk_count}명 · 공휴일 ${holOnly}개(주말 ${satSun}일)</li>` +
   `</ul></div>`;
 
   // 개인별 — 공정 배분 참고용으로 "야간편차"(일반 간호사 평균 대비, 파트장·NK 제외)를 같이 보여준다.
@@ -3804,6 +4237,14 @@ function renderSide() {
   // 숫자는 그리드에서 그 자리에서 세므로 칸을 고치면 재생성 전에도 바뀐다.
   html += renderBurdenSummary();
 
+  // ---- 자세히 보기(전문가 모드) — 시도 점수표·처리 로그·수정 전 점검을 한 접힘 안에 둔다. 셋 다 첫
+  // 사용자에게는 소음이고(2026-10-31 검토 §3), 점수표 줄 누르기는 표·다운로드가 바뀌는 큰 동작이다.
+  // 펼친 상태는 기억한다(localStorage ns_expert_open) — 매번 여는 사람은 매번 열려 있어야 한다.
+  html += `<details class="side-sec expert-sec" id="expertSec"${expertOpen() ? " open" : ""}>` +
+    `<summary><h3 style="display:inline">자세히 보기 <span class="count-badge">점수표 · 처리 로그 · 수정 전 점검</span></h3></summary>` +
+    `<p class="side-note">표를 고르거나 손 수정을 많이 할 때 보는 자리입니다. 처음 쓸 때는 접어 두어도 됩니다.</p>`;
+  html += `<div class="side-sec"><h3>수정 전 점검 — 건드리면 안 되는 칸</h3><div id="fragileBox"></div></div>`;
+
   // 시도 점수표 — 시드마다 어떤 숫자로 견줘 어느 것을 골랐는지. 앞 열이 다르면 뒤 열은 보지 않는다
   // (운영 필수 → 숙련도 → 공평성 → 전체 하드, 2026-10-30 결정). 공평성은 주말·야간·D/E·원티드 미반영의 합(사람·일 수).
   if (ST.attempt_table && ST.attempt_table.length > 0) {
@@ -3834,23 +4275,66 @@ function renderSide() {
       }).join("") +
       '</table>' +
       (folded ? `<p class="side-note"><button class="linklike attempt-more" data-n="${folded}">${attemptTableExpanded ? "점수 상위 3줄만 보기" : `나머지 ${folded}개 시드 보기`}</button></p>` : "") +
-      `<p class="side-note">앞 열부터 견줘 다르면 뒤 열은 보지 않습니다 — 운영 필수 → 숙련도 → 공평성 → 전체(노랑 포함). 공평성 = 2×횟수 + 주말 + 조구성 + 단독 + 미반영(단위: 사람·일, 낮을수록 좋음), 뒤 다섯 열이 그 구성. ` +
-      `시드 옆 글자는 그 시도의 탐색 전략(W 주말 몫 우선 · S 고연차 먼저 · B 블록 이어가기 먼저 — 글자에 마우스를 올리면 설명). ` +
+      // 열 제목 설명은 툴팁(마우스 올리기)만으로는 폰에서 볼 수 없다 — 작은 글자로 같은 내용을 둔다.
+      `<p class="side-note attempt-cols"><b>열 뜻</b> — 시드: 같은 입력을 다른 출발점으로 돌린 번호(글자 W 주말 몫 우선 · S 고연차 먼저 · B 블록 이어가기 먼저). ` +
+      `운영필수: 최소인력·지정·연속근무처럼 그날 병동이 못 돌아가는 필수 위반 수. 숙련도: 조에 숙련도 4 이상이 없는 횟수. ` +
+      `공평성: 2×횟수 + 주말 + 조구성 + 단독 + 미반영(사람·일 단위, 낮을수록 고름). 전체: 노란 추가 검토까지 더한 위반 수. ` +
+      `횟수: D·E·N 횟수가 목표에서 벗어난 날수 합. 주말: 주말 근무가 평균에서 벗어난 날수. 조구성: 조의 숙련도 띠 구성이 병동 비율에서 벗어난 사람 수. ` +
+      `단독: 혼자 Lv4+인 조에 선 횟수의 쏠림. 미반영: 반려된 원티드 신청 수.</p>` +
+      `<p class="side-note">앞 열부터 견줘 다르면 뒤 열은 보지 않습니다 — 운영 필수 → 숙련도 → 공평성 → 전체. ` +
       `✓ = 점수가 가장 좋은 시드(기본값), ◀ = 지금 보는 표. <b>줄을 누르면 그 시드의 표로 바뀝니다</b>(다운로드도 그 표). ` +
       `${thoroughRun ? `🔍 꼼꼼히 만들기로 근무표 ${rows.length}개를 만들어 골랐습니다${rows.length < THOROUGH_ATTEMPTS ? "(중간에 멈춤)" : ""}. ` : ""}` +
       `${(window.__genMode || "").startsWith("parallel") ? `시드 ${rows.length}개를 여러 코어로 동시에 계산했습니다.` : ""}</p></div>`;
   }
 
-  // 처리 로그
+  // 처리 로그 — 기본 접기. 같은 줄이 이어지면 "×n"으로 묶는다(맞교환 줄이 수십 번 반복돼 904건으로
+  // 보였다, 2026-10-31 검토 A-13). 내부 기록이라 첫 사용자가 읽을 글이 아니다.
   if (r.logs.length > 0) {
-    html += `<div class="side-sec"><h3>처리 로그 <span class="count-badge">${r.logs.length}건</span></h3>` +
-      `<div class="log-box">${r.logs.map(esc).join("\n")}</div></div>`;
+    const grouped = [];
+    for (const l of r.logs) {
+      const last = grouped[grouped.length - 1];
+      if (last && last.text === l) last.n++; else grouped.push({ text: l, n: 1 });
+    }
+    html += `<details class="side-sec log-sec"><summary><h3 style="display:inline">처리 로그 <span class="count-badge">${r.logs.length}건${grouped.length < r.logs.length ? ` · 묶으면 ${grouped.length}줄` : ""}</span></h3></summary>` +
+      `<p class="side-note">엔진이 배정하면서 남긴 내부 기록(개발자용). 같은 줄이 이어지면 ×n으로 묶었습니다.</p>` +
+      `<div class="log-box">${grouped.map(g => esc(g.text) + (g.n > 1 ? ` <b>×${g.n}</b>` : "")).join("\n")}</div></details>`;
   }
+  html += `</details>`;   // 자세히 보기 끝
 
   // 실험 기능 — 눈에 안 띄는 맨 아래. 월간 근무 보고(HTML 한 장)를 받는다. 다운로드 게이트는 출력①②와 같다.
   html += `<div class="side-sec side-exp"><p class="side-note">실험 기능 · <button class="linklike" onclick="if (confirmDownloadWithViolations()) downloadMagazine()" ${ST.pending.length ? "disabled" : ""} title="검증·일별 인원·주말 명단·사람별 집계·부담·원티드·고정 칸·야간·점수표·처리 기록을 한 파일에 — 열어서 인쇄하면 PDF">월간 근무 보고(HTML) 받기</button>${ST.pending.length ? " — 적용 안 한 편집이 있으면 받을 수 없습니다" : ""}</p></div>`;
   sidePane.innerHTML = html;
   renderPending();
+  renderNextMonthCard();
+  const ex = $("#expertSec");
+  if (ex) ex.addEventListener("toggle", () => { try { localStorage.setItem(EXPERT_KEY, ex.open ? "1" : "0"); } catch (e) { /* 기억만 못 할 뿐 */ } });
+}
+const EXPERT_KEY = "ns_expert_open";
+function expertOpen() { try { return localStorage.getItem(EXPERT_KEY) === "1"; } catch (e) { return false; } }
+
+// 엔진 메시지의 내부 표기를 사람 말로 — 화면에만 적용한다(파일·보고서는 엔진 문구 그대로).
+// 규칙 번호는 ruleTag로 문장 뒤에 작게 붙인다.
+const HUMANIZE = [
+  [/퐁당퐁당\s*\(월경계\)/g, "쉼-근무-쉼 하루짜리 근무(전월과 이어짐)"],
+  [/퐁당퐁당/g, "쉼-근무-쉼 하루짜리 근무"],
+  [/확정표 기준/g, "마지막으로 적용한 표 기준"],
+];
+function humanizeMsg(s) { let t = String(s || ""); for (const [re, to] of HUMANIZE) t = t.replace(re, to); return t; }
+function ruleTag(rule) { return rule ? ` <small class="rule">${esc(rule)}</small>` : ""; }
+
+// 다운로드 뒤에 뜨는 '다음 달 준비' 카드 — 출력②를 다음 달 입력②로 올리는 것이 달 사이의 유일한
+// 이어짐인데, 결과 화면에 안내 한 줄뿐이었다(2026-10-31 검토 §3). 내려받은 뒤에만 보인다.
+let nextMonthCardOn = false;
+function renderNextMonthCard() {
+  const box = $("#nextMonthCard");
+  if (!box) return;
+  if (!nextMonthCardOn || !ST) { box.innerHTML = ""; return; }
+  const ny = ST.month === 12 ? ST.year + 1 : ST.year, nm = ST.month === 12 ? 1 : ST.month + 1;
+  box.innerHTML = `<div class="next-month-card"><b>다음 달 준비</b><ol>` +
+    `<li>연월을 <b>${ny}년 ${nm}월</b>로</li>` +
+    `<li>지금 받은 <b>출력②(연간근무표)</b>를 <b>입력②</b> 칸에</li>` +
+    `<li>새 <b>입력①</b> — 양식(다운로드)을 받아 ${nm}월 신청을 채워 올리기</li></ol>` +
+    `<p class="hint">입력①·②를 올리고 생성하면 잔휴·연속근무·야간블록이 이어집니다.</p></div>`;
 }
 
 
@@ -3964,7 +4448,7 @@ function renderPending() {
   const body = $("#pendingBody");
   if (!body) return;
   if (ST.pending.length === 0) {
-    body.innerHTML = '<p style="color:var(--sub);font-size:12.5px;margin:0 0 8px">아직 스테이징된 편집이 없습니다. 그리드 셀을 클릭해 근무를 바꿔보세요.</p>';
+    body.innerHTML = '<p style="color:var(--sub);font-size:12.5px;margin:0 0 8px">아직 고친 칸이 없습니다. 표의 칸을 누르면 근무를 바꿀 수 있습니다.</p>';
     return;
   }
   let html = '<ul class="edit-list">';
@@ -3999,8 +4483,8 @@ async function refreshFeedback() {
     html = '<ul class="issue-list"><li class="none">관련 이상 없음 — 재생성해도 안전할 가능성이 높습니다.</li></ul>';
   } else {
     html = '<ul class="issue-list">';
-    for (const v of fb.hard) html += `<li class="hard"><span class="rule">${esc(v.rule)}</span>${esc(v.message)}</li>`;
-    for (const v of fb.soft) html += `<li class="soft"><span class="rule">${esc(v.rule)}</span>${esc(v.message)}</li>`;
+    for (const v of fb.hard) html += `<li class="hard">${esc(humanizeMsg(v.message))}${ruleTag(v.rule)}</li>`;
+    for (const v of fb.soft) html += `<li class="soft">${esc(humanizeMsg(v.message))}${ruleTag(v.rule)}</li>`;
     html += "</ul>";
   }
   box.innerHTML = html;
@@ -4019,7 +4503,10 @@ window.applyEdits = async function () {
   }
   // 몇 칸이 실제로 움직였는지 세어 보여준다 — "한 칸 고쳤을 뿐"이라는 오해를
   // 눌러본 직후에 깨는 것이 사후에 표를 대조하는 것보다 훨씬 싸다.
+  // 고친 칸(수정 대기)은 화면 표에 이미 들어가 있어 적용 전후 비교에서 안 잡힌다 — 그래서 예전엔
+  // "0칸 바뀜"이 떠 적용이 안 된 줄 알았다(2026-10-31 검토 A-4). 고친 칸과 그 밖의 칸을 따로 센다.
   const before = ST.grid || {};
+  const edited = new Set(ST.pending || []);
   try {
     ST = await api("/api/apply", genOpts());
     SWAP = null;
@@ -4029,10 +4516,10 @@ window.applyEdits = async function () {
       const a = before[sid];
       if (!a) continue;
       const b = ST.grid[sid];
-      for (let i = 0; i < b.length; i++) if (a[i] !== b[i]) moved++;
+      for (let i = 0; i < b.length; i++) if (a[i] !== b[i] && !edited.has(`${sid}:${i}`)) moved++;
     }
     render({ keepScroll: true });
-    showToast(`${ST.round}회차로 재생성 완료 — ${moved}칸 바뀜`);
+    showToast(`고친 ${edited.size}칸 반영, 다른 칸 ${moved}개 바뀜 — ${ST.round}회차(이 입력으로 ${ST.round}번째 짠 표)`);
   } catch (e) {
   } finally {
     hideGenOverlay();

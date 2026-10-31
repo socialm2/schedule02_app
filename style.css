@@ -902,3 +902,145 @@ header #infoBtn, header .sign-out {
   height: 26px; padding-top: 0; padding-bottom: 0; line-height: 1;
   display: inline-flex; align-items: center;
 }
+
+/* ==== 2026-10-31 화면 흐름(app 작업자) ==== */
+/* 개선 검토(docs/report_v0.87/개선검토_261031.html)에서 app.js가 새로 만든 요소들의 모양. 기존 규칙은
+   건드리지 않고 여기에만 보탠다 — 디자인 작업자와 같은 파일을 나눠 쓰기 때문이다(.picker·.toast는 예외로
+   아래에서 덧씌운다). */
+
+/* 근무 선택기 — 화면 밖으로 안 나가게 높이를 제한하고(넘치면 안에서 스크롤), 폰(≤680px)은 아래에 붙는
+   바텀시트. 머리에는 어느 칸인지(이름 · n일)와 ✕. (2026-10-31 검토 P8) */
+.picker { max-height: calc(100dvh - 16px); overflow: auto; }
+.picker .picker-head {
+  flex-basis: 100%; display: flex; align-items: center; gap: 6px; font-size: 12px;
+  padding: 0 2px 4px; border-bottom: 1px solid var(--line); margin-bottom: 2px;
+}
+.picker .picker-head .dim { color: var(--sub); font-size: 11px; }
+.picker .picker-head .picker-close {
+  margin-left: auto; min-width: 28px; padding: 2px 6px; border: none; background: none; color: var(--sub); font-size: 14px;
+}
+.picker.sheet {
+  left: 0 !important; right: 0; top: auto !important; bottom: 0; max-width: none;
+  border-radius: 12px 12px 0 0; max-height: 70dvh; padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+  box-shadow: 0 -6px 24px rgba(0,0,0,.22);
+}
+.picker.sheet button { min-width: 52px; padding: 8px 10px; font-size: 13px; }
+.picker.sheet .picker-head { font-size: 13.5px; padding-bottom: 6px; }
+
+/* 토스트 — 폰에서는 위쪽(헤더 아래)에 띄운다. 아래에 두면 생성·다운로드 버튼과 빨간 안내문을 7초 동안
+   가렸다(2026-10-31 검토 P12). 누르면 바로 닫히므로 pointer-events를 살린다. */
+.toast.show { pointer-events: auto; cursor: pointer; }
+/* 오류 토스트 글자색 — 다크의 --hard(#E07B5F)는 밝은 주황이라 흰 글자가 2.93:1이었다(2026-10-31 검토 C 2-1).
+   디자인 작업의 --on-hard 토큰이 있으면 그것을, 없으면 같은 값을 직접 쓴다(라이트 흰 글자 5.4 · 다크 짙은 글자 ≈7). */
+.toast.err { color: var(--on-hard, #FFFFFF); }
+@media (prefers-color-scheme: dark) { .toast.err { color: var(--on-hard, #1C0F0A); } }
+@media (max-width: 680px) {
+  .toast { top: calc(env(safe-area-inset-top) + 56px); bottom: auto; max-width: 92vw; }
+}
+
+/* 첫 화면 한 줄 안내 + '↓ 생성 버튼으로'(폰에서만 보인다) */
+.first-line { margin: -2px 0 12px !important; }
+.first-line #jumpToGenBtn { display: none; margin-left: 8px; }
+@media (max-width: 680px) { .first-line #jumpToGenBtn { display: inline; } }
+
+/* 첫 사용 체크리스트 카드 — 생성 버튼 바로 위 */
+.first-use {
+  border: 1px solid var(--accent); background: var(--accent-soft); border-radius: 10px;
+  padding: 10px 14px; margin: 14px 0 0; font-size: 12.5px; line-height: 1.55;
+}
+.first-use .first-use-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.first-use ol.first-use-steps { list-style: none; margin: 0; padding: 0; }
+.first-use ol.first-use-steps li { display: flex; gap: 8px; padding: 3px 0; }
+.first-use ol.first-use-steps li .chk { flex: none; width: 18px; text-align: center; font-weight: 800; color: var(--sub); }
+.first-use ol.first-use-steps li.done { color: var(--sub); text-decoration: line-through; }
+.first-use ol.first-use-steps li.done .chk { color: var(--ok); text-decoration: none; }
+.first-use .first-use-done { margin: 6px 0 0 !important; color: var(--ok); font-weight: 600; }
+
+/* 폰: '근무표 생성' 줄을 화면 아래에 붙인다(sticky) — 입력 묶음이 길어 버튼이 첫 화면에 안 보였다.
+   빨간 안내(.gen-error)도 같은 줄에 들어오므로 너무 길면 안에서 스크롤한다. */
+@media (max-width: 680px) {
+  .generate-row {
+    position: sticky; bottom: 0; z-index: 6; background: var(--card);
+    padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); margin-bottom: -8px;
+    box-shadow: 0 -8px 16px -10px rgba(0,0,0,.25);
+  }
+  .generate-row .gen-error { max-height: 30vh; overflow: auto; }
+}
+
+/* 근무정보 묶음 맨 아래로 내린 지우기·되돌리기 줄 — 위 입력 칸과 점선으로 떼어 놓는다 */
+.setting-actions-bottom { margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--line); }
+/* '저장한 설정 지우기'는 보조 톤 — 첫 사용자가 처음 만나는 버튼이 위험해 보이지 않았다(A-10) */
+#resetSettingsBtn { font-weight: 500; color: var(--sub); }
+
+/* 직전 근무표 복원 카드 — 입력 화면 맨 위 */
+.restore-card {
+  border: 1px solid var(--warn); background: var(--warn-soft); border-radius: 10px; padding: 10px 14px;
+  margin: 0 auto 12px; max-width: 1100px; font-size: 12.5px; line-height: 1.55;
+}
+.restore-card .hint { display: block; margin: 2px 0 0; }
+.restore-card .restore-actions { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.restore-card .restore-actions button { margin-top: 0; }
+
+/* 표 위 상태 띠 — 필수·추가 검토·다운로드·편집으로 바로 가는 단추들 */
+.result-strip { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 8px; }
+.result-strip .strip-item { font-size: 12px; padding: 4px 10px; border-radius: 999px; font-weight: 600; }
+.result-strip .strip-item.ok { border-color: var(--ok); color: var(--ok); background: var(--ok-soft); }
+.result-strip .strip-item.bad { border-color: var(--hard); color: var(--hard); background: var(--hard-soft); }
+.result-strip .strip-item.warn { border-color: var(--warn); color: var(--warn); background: var(--warn-soft); }
+@media (max-width: 680px) {
+  .result-strip { position: sticky; top: 0; z-index: 5; background: var(--paper); padding: 6px 0; margin: 0 0 6px; }
+}
+.legend .legend-tap { flex-basis: 100%; color: var(--sub); }
+.legend .desig-mark {
+  display: inline-block; margin: 0 2px 0 0; padding: 0 3px; font-size: 10px; font-weight: 700; line-height: 1.4;
+  border-radius: 3px; background: #E7D9F5; color: #5B2E8C;
+}
+.legend .desig-mark.nl-mark { background: #D9E8F5; color: #1F4E8C; }
+
+/* 규칙 번호는 문장 뒤에 작게(A-12) — 앞에 굵게 오던 .issue-list .rule을 덧씌운다 */
+.issue-list li small.rule { font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 10px; opacity: .7; margin: 0 0 0 6px; }
+
+/* 자세히 보기(전문가 모드)·처리 로그 접힘 */
+/* 접힘 표시(▸/▾)는 기존 details.side-sec summary h3::before가 그린다 — 여기서 또 그리면 두 개가 된다.
+   다만 그 규칙은 자손 선택자라, 펼친 '자세히 보기' 안의 닫힌 처리 로그에도 ▾가 붙었다 — 닫힌 쪽을 되돌린다. */
+details.expert-sec > summary, details.log-sec > summary { cursor: pointer; list-style: none; }
+details.expert-sec > summary::-webkit-details-marker, details.log-sec > summary::-webkit-details-marker { display: none; }
+details.log-sec:not([open]) > summary h3::before { content: "▸ "; }
+details.expert-sec > summary .count-badge, details.log-sec > summary .count-badge { white-space: nowrap; }
+details.expert-sec[open] > summary { margin-bottom: 8px; }
+details.expert-sec > .side-sec { margin-top: 12px; }
+.attempt-cols { line-height: 1.5; }
+
+/* 다음 달 준비 카드 — 다운로드 뒤 */
+.next-month-card {
+  margin-top: 10px; padding: 9px 12px; border-radius: 8px; background: var(--accent-soft);
+  border: 1px solid var(--accent); font-size: 12.5px; line-height: 1.55;
+}
+.next-month-card ol { margin: 4px 0 2px; padding-left: 20px; }
+.next-month-card .hint { margin: 2px 0 0; }
+
+/* 여정 모달 머리 버튼 — 폰에서도 한 줄(A-16) */
+.jour-nav { flex-wrap: nowrap; }
+.jour-nav button { font-size: 12px; white-space: nowrap; padding: 4px 7px; }
+
+/* 새 버전 띠 — 화면 맨 위 고정 */
+.update-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 120; display: flex; gap: 10px; align-items: center;
+  justify-content: center; flex-wrap: wrap; padding: 8px 14px; font-size: 13px; font-weight: 600;
+  background: var(--ink); color: var(--paper); box-shadow: 0 2px 10px rgba(0,0,0,.25);
+}
+.update-banner button { margin-top: 0; }
+.update-banner button:not(.primary) { color: var(--paper); border-color: var(--paper); background: transparent; }
+
+/* 홈 화면 추가 안내 — 푸터 바로 위 작은 줄 */
+.home-hint { display: none; text-align: center; font-size: 11.5px; color: var(--sub); margin: 8px 12px 0; }
+/* 폰에서만 보인다 — PC 결과 화면은 높이를 꽉 쓰는 배치라 이 줄이 표 아래 한 줄을 먹었다 */
+@media (max-width: 680px) { .home-hint { display: block; } }
+
+/* 부팅 실패 안내의 '새로 고침' 버튼 */
+#bootRetryBtn { margin-top: 8px; }
+.boot-err-detail { display: block; font-size: 11px; opacity: .7; margin-top: 4px; word-break: break-all; }
+
+/* 입력 설명서 '처음이면 이 세 줄만' */
+.modal-body ol.first-three { padding-left: 20px; margin: 4px 0 8px; }
+.modal-body ol.first-three li { margin: 3px 0; }

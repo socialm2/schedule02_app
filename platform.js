@@ -106,9 +106,49 @@ function showSignOut() {
   if (anchor) anchor.after(b); else (header || document.body).appendChild(b);
 }
 
+// ================================================================ 서비스워커 등록 · 새 버전 알림
+// sw.js는 설치되자마자 skipWaiting·clients.claim으로 넘겨받지만, **이 페이지의 app.js는 옛것 그대로**다 —
+// 새로 고치기 전까지는 화면이 옛 코드로 돈다. 그동안 배포톡은 "빌드시각을 확인하세요"로 사용자에게
+// 떠넘겼고, "최신이라 떠 있는데 고친 게 안 보인다" 사고가 실제로 났다(2026-10-31 검토 §3). 새 워커가
+// 설치되면(updatefound → installed, 이미 제어 중인 워커가 있을 때) 또는 제어 워커가 바뀌면
+// (controllerchange) 화면 맨 위에 띠를 하나 띄운다. 첫 설치(제어 워커 없음)에는 띄우지 않는다.
+function showUpdateBanner() {
+  if (document.getElementById("updateBanner")) return;
+  const bar = document.createElement("div");
+  bar.id = "updateBanner";
+  bar.className = "update-banner";
+  bar.setAttribute("role", "status");
+  bar.innerHTML = '<span>새 버전이 있습니다 — 새로 고치면 최신 화면으로 바뀝니다.</span>' +
+    '<button type="button" id="updateReloadBtn" class="small primary">새로 고침</button>' +
+    '<button type="button" id="updateLaterBtn" class="small">나중에</button>';
+  document.body.appendChild(bar);
+  document.getElementById("updateReloadBtn").onclick = () => {
+    // 표가 있으면 app.js가 세션에 남겨 두므로 새로 고친 뒤 '직전 근무표 복원'으로 돌아올 수 있다.
+    window.__allowUnload = true;
+    location.reload();
+  };
+  document.getElementById("updateLaterBtn").onclick = () => bar.remove();
+}
+window.showUpdateBanner = showUpdateBanner;   // 점검 스크립트(tools/ui_smoke.py)가 띠 모양을 확인하는 데 쓴다
+
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
+    navigator.serviceWorker.register("sw.js").then((reg) => {
+      const watchInstalling = (w) => {
+        if (!w) return;
+        w.addEventListener("statechange", () => {
+          if (w.state === "installed" && navigator.serviceWorker.controller) showUpdateBanner();
+        });
+      };
+      watchInstalling(reg.installing);
+      reg.addEventListener("updatefound", () => watchInstalling(reg.installing));
+    }).catch(() => {});
+    // 제어 워커가 바뀌면(새 sw.js가 claim) 그 순간 화면은 옛 app.js — 띠로 알린다.
+    let hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (hadController) showUpdateBanner();
+      hadController = true;
+    });
   });
 }
 
@@ -149,8 +189,11 @@ async function bootPyodide() {
   // 안 온다. 예전엔 onerror가 부팅용 reject만 가리키고 있어서, 생성 중에 죽으면
   // **로딩 화면이 그대로 멈춰 있었다** — 사용자는 앱이 느린 줄 알고 몇 분을 기다린다
   // (v0.84 독립 QA, QA-04). 기다리는 요청을 전부 실패로 끝내고 이유를 알린다.
+  // 원문(e.message)은 "Uncaught RangeError…" 같은 영어라 그것만 뜨면 할 수 있는 일이 없다 —
+  // 한국어 문장을 앞에 두고 원문은 괄호 속 기술 정보로(2026-10-31 검토 §3 실패 화면 점검).
   worker.onerror = (e) => {
-    const why = (e && e.message) || "브라우저에서 계산이 중단됐습니다";
+    const why = "브라우저에서 계산이 중단됐습니다(메모리 부족 등)" +
+      (e && e.message ? ` (기술 정보: ${e.message})` : "");
     for (const [, p] of _pending) p.reject(new Error(why));
     _pending.clear();
     showToast(`${why} — 새로고침한 뒤 다시 시도해 주세요. `
@@ -424,6 +467,21 @@ async function apiUpload(path, file) {
   return api(path, { _fileBytes: bytes });
 }
 
+// 올린 파일을 글자(base64)로, 글자를 다시 파일로 — app.js가 직전 입력①②를 sessionStorage에 남기고
+// 새로고침 뒤 되살리는 데 쓴다(파일 I/O는 여기 platform에만 둔다). 수십 KB짜리 xlsx라 부담이 없다.
+async function fileToBase64(file) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+function base64ToFile(b64, name) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new File([bytes], name || "file.xlsx", { type: XLSX_MIME });
+}
+
 // (triggerDownload는 위에 한 벌만 둔다 — 같은 함수가 두 번 선언돼 있었다. JS는 뒤 선언이
 //  이기므로 동작엔 차이가 없었지만, 한쪽만 고치면 고친 쪽이 조용히 무시되는 자리였다.)
 
@@ -449,15 +507,32 @@ async function apiDownloadWantedTemplate(payload, filename) {
 // 브라우저 안에서 Python을 돌리므로 화면을 열기 전에 Pyodide를 부팅해야 한다.
 // 실패하면 false를 돌려주고 로딩 화면에 이유를 띄운다 — app.js는 그 뒤를 진행하지 않는다.
 async function bootPlatform() {
+  // 느린 네트워크에서는 Pyodide(14MB)를 받는 데 1~2분이 걸린다 — 그동안 "몇 초~수십 초"라는 글만
+  // 보고 있으면 멈춘 줄 안다. 40초가 지나면 아직 받는 중이라고 한 줄 더 적는다.
+  const slowTimer = setTimeout(() => {
+    const sub = document.querySelector("#loadingOverlay .loading-sub");
+    if (sub) sub.textContent = "아직 불러오는 중입니다 — 네트워크가 느리면 1~2분 걸릴 수 있습니다(처음 한 번만 받고 이후엔 기기에 저장됩니다). 창을 닫지 말고 기다려주세요.";
+  }, 40000);
   try {
     await bootPyodide();
   } catch (e) {
+    clearTimeout(slowTimer);
     console.error(e);
+    // 영어 오류 원문("Failed to fetch")만 떠 있으면 할 수 있는 일이 없다(2026-10-31 검토 §3 실패 화면 점검).
+    // 무슨 일인지·무엇을 하면 되는지를 한국어로, 바로 누를 수 있는 '새로 고침'과 함께.
     document.getElementById("loadingMsg").textContent =
-      "불러오기 실패: " + (e && e.message ? e.message : String(e));
+      "실행 환경을 불러오지 못했습니다 — 네트워크가 끊겼거나 차단됐을 수 있습니다.";
+    const sub = document.querySelector("#loadingOverlay .loading-sub");
+    if (sub) {
+      sub.innerHTML = "새로 고침해 다시 시도해주세요. 계속 안 되면 다른 네트워크(또는 크롬)로 열어보세요. " +
+        '<span class="boot-err-detail"></span><br><button type="button" id="bootRetryBtn" class="small primary">새로 고침</button>';
+      sub.querySelector(".boot-err-detail").textContent = "(기술 정보: " + (e && e.message ? e.message : String(e)) + ")";
+      document.getElementById("bootRetryBtn").onclick = () => { window.__allowUnload = true; location.reload(); };
+    }
     document.querySelector(".loading-box").classList.add("err");
     return false;
   }
+  clearTimeout(slowTimer);
   document.getElementById("loadingOverlay").style.display = "none";
   document.getElementById("app").style.display = "";
   bootHelpersInBackground();
