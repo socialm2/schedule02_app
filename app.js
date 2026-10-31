@@ -1960,6 +1960,25 @@ let settingsReady = false;
 document.querySelector(".info-section")?.addEventListener("input", saveSettings);
 document.querySelector(".info-section")?.addEventListener("change", saveSettings);
 
+// 근무정보·근무인력의 숫자 칸은 누르면 값이 통째로 선택된다 — 지우고 다시 적지 않아도 새 숫자를 바로 치면
+// 된다. 근무인력 표는 값이 미리 들어 있어 "0을 지우고 7을 쳐야" 했고(빈 칸은 자리표시자라 바로 쳐졌다),
+// 그 차이가 입력을 불편하게 했다(사용자 요청 10/31). 마우스는 누른 뒤 놓을 때 선택이 풀리므로 그 한 번만 막는다.
+(() => {
+  const sec = document.querySelector(".info-section");
+  if (!sec) return;
+  let justFocused = null;
+  const isNum = el => el instanceof HTMLInputElement && el.type === "number";
+  sec.addEventListener("focusin", (e) => {
+    if (!isNum(e.target)) return;
+    justFocused = e.target;
+    try { e.target.select(); } catch (_) { /* 일부 브라우저는 number에 select가 없다 */ }
+  });
+  sec.addEventListener("mouseup", (e) => {
+    if (justFocused && e.target === justFocused) { e.preventDefault(); justFocused = null; }
+  });
+  sec.addEventListener("focusout", () => { justFocused = null; });
+})();
+
 
 // 지우기는 '샘플 값으로 되돌리기'가 아니라 말 그대로 '비우기'다. 샘플 숫자를 다시
 // 채워 넣으면 그게 우리 병동 값인 줄 알고 그대로 만들 수 있다 — 지운 뒤에는 빈 칸이
