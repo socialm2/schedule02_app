@@ -369,9 +369,8 @@ const INFO_HTML_INPUT = `
 <h3>기본 사항 — 설정 · 근무인력</h3>
 <p>화면에서 직접 입력합니다. 한 번 고쳐두면 <b>이 브라우저에 저장</b>돼 다음에 열 때 그대로
 뜹니다(처음에는 샘플 병동 값이 채워져 있어 그대로 <b>바로 생성</b>을 눌러볼 수도 있습니다).
-<b>근무정보</b> 맨 위의 <b>마지막 설정값 저장</b> 버튼이 켜져 있어야 기억합니다 — 공용 PC처럼 남기면 안 되는
-자리에서는 체크를 끄면 되고, 끄는 순간 이미 저장돼 있던 값도 함께 지웁니다. 값만 처음으로
-되돌리려면 그 아래 <b>저장한 설정 지우기</b>를 누릅니다.</p>
+공용 PC처럼 남기면 안 되는 자리에서는 다 쓰신 뒤 <b>근무정보</b> 맨 위의 <b>저장한 설정 지우기</b>를 누르면
+기억해둔 값을 지우고 모든 칸을 비웁니다.</p>
 <p>저장하는 것은 <b>근무정보와 근무인력</b>뿐입니다 — 인원 명단·원티드 신청·전입은 저장하지
 않습니다. 지난달 것이 남아 있으면 오류 하나 없이 틀린 근무표가 나오기 때문입니다.</p>
 <ul>
@@ -1060,7 +1059,7 @@ function renderSourceBadges() {
     saved: head + "지금은 이 브라우저에 저장해 둔 값(마지막으로 고친 값)입니다.",
     empty: head + "지금은 비어 있습니다. 우리 병동 값을 채워 넣으세요.",
     screen: `화면에서 바꾼 값이 쓰입니다 — 마지막 변경: ${lastScreenEdit}` +
-            (settingsSaveEnabled() ? " (이 브라우저에 저장됨)" : " (저장 꺼짐 — 이번 생성에만)"),
+            " (이 브라우저에 저장됨)",
   }[settingsSource];
   for (const sel of ["#settingsSource", "#minStaffSource"]) {
     const el = $(sel);
@@ -1078,7 +1077,7 @@ function noteScreenEdit(el) {
   settingsSource = "screen";
   renderSourceBadges();
   showToast(`${lastScreenEdit}: 화면에서 바꾼 값이 쓰입니다` +
-            (settingsSaveEnabled() ? " (이 브라우저에 저장됨)" : " (저장 꺼짐 — 이번 생성에만)"));
+            " (이 브라우저에 저장됨)");
 }
 document.querySelector(".info-section")?.addEventListener("change", (ev) => {
   const el = ev.target;
@@ -1876,7 +1875,7 @@ if (generateBtnMid) {
     // 뒤로는 이게 "지난번에 맞춰둔 값"을 되찾는 유일한 길이다.
     // 저장을 꺼둔 상태면 남아 있는 값이 있어도 쓰지 않는다(끈 사람에게 옛 값이
     // 되살아나면 안 된다).
-    const useSaved = restoreSaveToggle() && !!loadSettings();
+    const useSaved = !!loadSettings();
     fillForm(useSaved ? withSavedSettings(cfg) : cfg);
     settingsSource = useSaved ? "saved" : "sample";
   } catch (e) {
@@ -1893,11 +1892,11 @@ if (generateBtnMid) {
 // 없도록 이 브라우저에 저장한다. 저장하는 것은 '달이 바뀌어도 그대로인 것'뿐이다 —
 // 병동명·연월·상한값·근무인력 표. 사람 명단·원티드 신청·전입 같은 '그 달의 내용'은
 // 절대 저장하지 않는다. 지난달 것이 남아 있으면 오류 하나 없이 틀린 근무표가 나온다.
-// 저장을 켤지 끌지는 '마지막 설정값 저장' 버튼이 정한다. 기본은 켜짐이지만, 공용 PC처럼
-// 남기면 안 되는 자리도 있어서 끌 수 있어야 한다. 스위치 상태 자체도 같이 기억한다 —
-// 껐는데 다음에 열면 다시 켜져 있으면 끈 의미가 없다.
+// 저장은 늘 켜져 있다. 예전엔 '마지막 설정값 저장' 단추로 끌 수 있었는데, 당연한 동작에 단추가 있으니
+// 오히려 "이게 뭐지"가 됐다(사용자 요청 2026-10-31). 공용 PC는 '저장한 설정 지우기'로 비운다.
+// 숨긴 단추의 코드는 남기지 않고 걷어냈다(이 저장소 규칙: 숨길 거면 코드도 같이). 옛 끔 상태 키
+// (ns_settings_on)는 더 읽지 않는다 — 꺼 뒀던 기기도 이제 저장한다.
 const SETTINGS_KEY = "ns_settings_v1";
-const SETTINGS_ON_KEY = "ns_settings_on";
 
 // 브라우저 저장소는 사내 정책·시크릿 모드에서 아예 막힐 수 있다(SecurityError). 저장이
 // 안 되는 것보다 나쁜 건 "왜 안 되는지 모르는 것"이라, 실패해도 앱은 계속 돌리되 한
@@ -1912,16 +1911,8 @@ function settingsStorageFailed(e, what) {
     + "(사내 정책·시크릿 모드 등) — 근무표 생성·다운로드는 그대로 됩니다.", true);
 }
 
-// 켜짐/꺼짐은 버튼의 aria-pressed가 유일한 출처다 — 화면에 보이는 눌린 모양과 실제
-// 동작이 갈라지지 않게, 별도 변수를 두지 않고 이 값만 읽고 쓴다.
-function settingsSaveEnabled() {
-  const btn = $("#saveSettingsBtn");
-  return btn ? btn.getAttribute("aria-pressed") === "true" : true;
-}
-
 function saveSettings() {
   if (!settingsReady) return;   // 화면을 채우는 중에 반쪽짜리 값이 저장되는 것을 막는다
-  if (!settingsSaveEnabled()) return;
   try {
     const cfg = buildCfgFromForm();
     // 못 읽는 칸이 있는 상태를 저장하면, 다음에 앱을 열었을 때 그 잘못된 값이 되살아난다.
@@ -1969,33 +1960,6 @@ let settingsReady = false;
 document.querySelector(".info-section")?.addEventListener("input", saveSettings);
 document.querySelector(".info-section")?.addEventListener("change", saveSettings);
 
-// 스위치를 켜면 지금 화면 값을 바로 한 번 저장한다 — 켠 뒤에 아무 칸도 안 건드리면
-// 저장이 안 된 채로 "켜져 있는데 왜 기억을 못 하지"가 되기 때문. 끄면 이미 저장된
-// 값까지 지운다(끄는 사람은 '남기지 마라'는 뜻이지 '이제부터만'이 아니다).
-$("#saveSettingsBtn").onclick = () => {
-  const on = !settingsSaveEnabled();
-  $("#saveSettingsBtn").setAttribute("aria-pressed", on ? "true" : "false");
-  try { localStorage.setItem(SETTINGS_ON_KEY, on ? "1" : "0"); }
-  catch (e) { settingsStorageFailed(e, "toggle"); }
-  if (on) {
-    saveSettings();
-    showToast("마지막 설정값 저장을 켰습니다 — 다음에 열면 지금 값이 그대로 채워집니다");
-  } else {
-    try { localStorage.removeItem(SETTINGS_KEY); }
-    catch (e) { settingsStorageFailed(e, "clear"); }
-    showToast("마지막 설정값 저장을 껐습니다 — 저장돼 있던 값도 지웠습니다");
-  }
-};
-
-// 저장해둔 스위치 상태를 화면에 되살린다(폼을 채우기 전에 불러야 저장 여부가 정해진다).
-function restoreSaveToggle() {
-  let on = true;
-  try { on = localStorage.getItem(SETTINGS_ON_KEY) !== "0"; }
-  catch (e) { settingsStorageFailed(e, "read"); }
-  const btn = $("#saveSettingsBtn");
-  if (btn) btn.setAttribute("aria-pressed", on ? "true" : "false");
-  return on;
-}
 
 // 지우기는 '샘플 값으로 되돌리기'가 아니라 말 그대로 '비우기'다. 샘플 숫자를 다시
 // 채워 넣으면 그게 우리 병동 값인 줄 알고 그대로 만들 수 있다 — 지운 뒤에는 빈 칸이

@@ -530,7 +530,7 @@ details.form-sec summary::-webkit-details-marker { display: none; }
 details.form-sec summary::before { content: "▸"; color: var(--accent); font-size: 11px; }
 details.form-sec[open] summary::before { content: "▾"; }
 details.form-sec > *:not(summary) { padding: 14px; }
-/* 근무정보 맨 위의 두 버튼('마지막 설정값 저장' 켜기/끄기, '저장한 설정 지우기') —
+/* 근무정보 맨 위의 버튼(예전엔 '마지막 설정값 저장' 켜기/끄기도 있었다 — 10/31 걷어냄, '저장한 설정 지우기') —
    둘 다 같은 한 가지(이 화면 값이 브라우저에 저장된다는 것)를 다루는 장치라 같은 모양·
    같은 폭으로 세로로 쌓고, 각자 오른쪽에 무엇을 하는 버튼인지 한 줄로 적는다.
    폭을 고정하는 이유: 글자 수가 달라도 두 버튼의 왼쪽·오른쪽 끝이 맞아야 한 세트로 보인다. */
