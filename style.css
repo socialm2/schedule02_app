@@ -953,11 +953,15 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
   #sidePane { width: auto; border-left: none; border-top: 2px solid var(--accent); }
 
   header { padding: 8px 12px; }
-  /* 세로 폰: 첫 줄은 제목만, 둘째 줄 오른쪽에 [설명서][Log-out]을 한 묶음으로
-     (Log-out은 platform.js가 설명서 버튼 바로 뒤에 붙이므로 순서는 저절로 맞다).
-     제목이 한 줄을 다 쓰지 않으면 버튼이 제목 줄 끝에 끼었다가 폭에 따라 하나씩 다음
-     줄로 떨어진다 — Log-out 버튼만 혼자 왼쪽 아래로 툭 튀어나온 게 그 모양이었다. */
-  header h1 { font-size: 1.125rem; flex-basis: 100%; }
+  /* 세로 폰: 왼쪽에 제목(아래 줄에 빌드시각), 오른쪽에 설명서 버튼 — 한 줄에 같이 선다.
+     예전엔 제목이 한 줄을 다 차지해 버튼이 혼자 다음 줄로 내려가 머리 영역이 세 줄이 됐다(사용자).
+     빌드시각을 제목 아래로 내리면 제목 덩어리가 ~185px라 360px 폰에서도 버튼(~110px)이 옆에 들어간다.
+     더 좁으면 버튼만 다음 줄 오른쪽으로 떨어진다(margin-left:auto). Log-out은 숨김(platform.js)이라
+     버튼 묶음이 갈라질 일은 없고, 병동명 줄(.ward-info)은 있어도 맨 아래 한 줄로 보낸다. */
+  header h1 { font-size: 1.125rem; flex: 0 1 auto; min-width: 0; }
+  header .build-time { display: block; margin: 2px 0 0; }
+  header .ward-info { order: 5; flex-basis: 100%; }
+  header .ward-info:empty { display: none; }
   header .spacer { display: none; }
   header #infoBtn { margin-left: auto; }
   .intake-box { padding: 14px 16px; }
