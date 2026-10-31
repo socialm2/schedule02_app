@@ -55,7 +55,7 @@
   <header>
     <!-- 배지·빌드시각은 스크린리더가 제목으로 읽지 않게 감싼다(aria-hidden). .build-time span 자체는
          CI(deploy.yml)가 정규식으로 찾아 바꾸므로 그 태그에는 속성을 더하지 말 것. -->
-    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.87</span><span class="build-time">Updated 2026-10-31 23:22:23</span></span></h1>
+    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.87</span><span class="build-time">Updated 2026-11-01 06:00:40</span></span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
@@ -72,8 +72,6 @@
         <div class="intake-box">
           <h2>1. 기본 사항 입력</h2>
           <!-- 첫 화면 한 줄 안내 — 무엇부터 해야 하는지(2026-10-31 검토 A-9). 폰에서는 생성 버튼까지 2,000px이라 바로 가는 단추를 붙인다 -->
-          <p class="hint first-line" id="firstLine">처음이면 ① 그대로 <b>[근무표 생성]</b>을 눌러 보세요 → ② 우리 병동 값·입력① 넣기
-            <button type="button" class="linklike" id="jumpToGenBtn">↓ 생성 버튼으로</button></p>
           <p class="hint">근무정보(설정·근무인력)는 화면에서 직접 입력합니다 — 한 번 고쳐두면
           <b>이 브라우저에 저장</b>돼 다음에 열 때 그대로 뜹니다(처음에는 샘플 병동
           값으로 채워져 있습니다). 인원(직급·숙련도·가능근무·비고·전입)과 원티드 신청은
@@ -231,7 +229,6 @@
     <div id="sidePane" style="display:none"></div>
   </div>
   <!-- 홈 화면 추가 안내 — PWA인데 어디에도 적혀 있지 않아 폰 사용자가 매번 주소를 쳤다(2026-10-31 검토 §3) -->
-  <p class="hint home-hint" id="homeHint">📱 폰에서는 브라우저 메뉴의 <b>'홈 화면에 추가'</b>(iPhone: 공유 → 홈 화면에 추가 · Android: ⋮ → 홈 화면에 추가)로 앱처럼 열 수 있습니다.</p>
   <p class="footer-note">SMC Fair Shift</p>
 </div>
 

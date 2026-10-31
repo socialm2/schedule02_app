@@ -658,7 +658,9 @@ details.form-sec > *:not(summary) { padding: 14px; }
 .ym-notice-sub { margin: 0 0 8px; color: var(--ink); }
 .ym-notice button.small { margin-top: 2px; }
 .src-line.screen { color: var(--accent); font-weight: 600; }
-.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px 16px; }
+/* 숫자 칸 넷(월 최대야간·연속근무제한·야간목표하한·상한)은 넓으면 한 줄에 넷, 폰이면 2×2.
+   예전 auto-fill(180px)은 가로 폰·태블릿 폭에서 3+1로 갈라져 마지막 칸 하나만 다음 줄에 떨어졌다. */
+.form-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 16px; }
 .form-grid label { display: flex; flex-direction: column; gap: 3px; font-size: .75rem; color: var(--sub); font-weight: 600; }
 .form-grid label.wide { grid-column: 1 / -1; }
 /* 입력칸 배경은 주변 박스(--paper)보다 한 단계 밝은 --card로 — "여기가 입력하는
@@ -753,7 +755,8 @@ button.small { font-size: .75rem; padding: 5px 11px; margin-top: 6px; }
 .thorough-opt:has(input:checked) .thorough-title { color: var(--accent); font-weight: 600; }
 /* 생성 중 비 캔버스 — 상자 폭에 맞추고, 깜빡임을 끄는 사람에게는 정지 화면만 */
 .gen-rain { display: block; width: 100%; height: 160px; border-radius: 10px; background: #0b0f19; margin: 0 0 12px; }
-/* 라이트 모드에서는 밝은 바탕 — 글자색은 app.js(startGenRain)가 같은 기준(prefers-color-scheme)으로 고른다 */
+/* 라이트 모드에서는 밝은 바탕. 캔버스는 이때 바탕을 칠하지 않으므로, 브라우저가 페이지를 강제로
+   어둡게 하면(삼성 인터넷 다크 모드) 이 바탕도 함께 어두워진다 — 글자는 양쪽에서 읽히는 중간 톤(app.js) */
 @media (prefers-color-scheme: light) { .gen-rain { background: #EEF2F0; border: 1px solid var(--line); } }
 #genOverlay .loading-box { max-width: 380px; width: calc(100vw - 32px); }
 #genOverlay .spinner { width: 22px; height: 22px; border-width: 3px; margin-bottom: 10px; }
@@ -960,7 +963,7 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
   .intake-box { padding: 14px 16px; }
   /* 세로로 하나씩 쌓는 대신 2칸씩 가로로 붙여 공간 절약 — 병동명·연월처럼 폭이
      필요한 칸만 .wide로 한 줄 전체를 차지 */
-  .form-grid { grid-template-columns: repeat(2, 1fr); }
+  .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
   /* 최소인력 표는 폰에서도 카드로 쌓지 않고 엑셀과 같은 가로세로 그대로 —
      근무(D/E/N/prn)가 세로로, 평일/토요일/일요일·공휴일이 가로 열로 유지 —
@@ -978,7 +981,7 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
 @media (max-width: 360px) {
   /* 1fr은 칸 안 입력칸의 고유 폭(≈220px)까지만 줄어 확대 200%(유효 195px)에서 카드 밖으로 넘쳤다 —
      minmax(0,1fr)로 칸을 끝까지 줄이고 입력칸은 칸 폭을 따른다. */
-  .form-grid { grid-template-columns: minmax(0, 1fr); }
+  /* 2×2는 그대로 둔다(1열로 쌓으면 폰에서 칸 넷이 세로로 길게 늘어선다 — 사용자). 칸 폭만 끝까지 줄인다. */
   .form-grid input[type=text], .form-grid input[type=number], .form-grid select { min-width: 0; max-width: 100%; }
   /* 연·월 두 칸이 한 줄에 안 들어가면 값("2026년")이 잘려 빈칸처럼 보인다 — 그때는 두 줄로 */
   .ym-picker { flex-wrap: wrap; }
@@ -1080,10 +1083,6 @@ header #infoBtn, header .sign-out {
   .toast { top: calc(env(safe-area-inset-top) + 56px); bottom: auto; max-width: 92vw; }
 }
 
-/* 첫 화면 한 줄 안내 + '↓ 생성 버튼으로'(폰에서만 보인다) */
-.first-line { margin: -2px 0 12px !important; }
-.first-line #jumpToGenBtn { display: none; margin-left: 8px; }
-@media (max-width: 680px) { .first-line #jumpToGenBtn { display: inline; } }
 
 /* 첫 사용 체크리스트 카드 — 생성 버튼 바로 위 */
 .first-use {
@@ -1178,10 +1177,6 @@ details.expert-sec > .side-sec { margin-top: 12px; }
 .update-banner button { margin-top: 0; }
 .update-banner button:not(.primary) { color: var(--paper); border-color: var(--paper); background: transparent; }
 
-/* 홈 화면 추가 안내 — 푸터 바로 위 작은 줄 */
-.home-hint { display: none; text-align: center; font-size: 11.5px; color: var(--sub); margin: 8px 12px 0; }
-/* 폰에서만 보인다 — PC 결과 화면은 높이를 꽉 쓰는 배치라 이 줄이 표 아래 한 줄을 먹었다 */
-@media (max-width: 680px) { .home-hint { display: block; } }
 
 /* 부팅 실패 안내의 '새로 고침' 버튼 */
 #bootRetryBtn { margin-top: 8px; }

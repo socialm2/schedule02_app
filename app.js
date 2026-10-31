@@ -22,7 +22,7 @@ const PARTJANG_BLOCK = ["D", "E", "N", "NK", "prn"];
 // '지정'을 적은 사람이 그날 D·E·N·prn 중 무엇이든 서면 1명으로 세진다(엔진이 따로 고르지
 // 않는다). 0이면 지정을 쓰지 않는 병동이라 규칙이 통째로 지나간다.
 const MIN_STAFF_ROWS = [["D","D"],["E","E"],["N","N"],["prn","prn"],["지정","지정"]];
-const MIN_STAFF_COLS = [["weekday","평일"],["saturday","토요일"],["sunday_holiday","일요일·공휴일"]];
+const MIN_STAFF_COLS = [["weekday","평일"],["saturday","토요일"],["sunday_holiday","공휴일"]];
 const MIN_STAFF_DOWS = [["0","월"],["1","화"],["2","수"],["3","목"],["4","금"]];
 
 // 한국 공휴일(관공서의 공휴일에 관한 규정 기준) — 확인된 연도만 정확한 음력 명절 포함,
@@ -927,7 +927,7 @@ function renderMinStaffTable() {
   } else {
     headHtml += "<th>평일</th>";
   }
-  headHtml += `<th>토요일</th><th>일요일·공휴일</th></tr>`;
+  headHtml += `<th>토요일</th><th title="일요일도 이 값을 씁니다">공휴일</th></tr>`;
   thead.innerHTML = headHtml;
 
   tbody.innerHTML = MIN_STAFF_ROWS.map(([key, label]) => {
@@ -939,7 +939,7 @@ function renderMinStaffTable() {
       cells += `<td data-label="평일"><input type="number" min="0" step="1" required placeholder="0" id="ms_${key}_weekday" value="0"></td>`;
     }
     cells += `<td data-label="토요일"><input type="number" min="0" step="1" required placeholder="0" id="ms_${key}_saturday" value="0"></td>`;
-    cells += `<td data-label="일요일·공휴일"><input type="number" min="0" step="1" required placeholder="0" id="ms_${key}_sunday_holiday" value="0"></td>`;
+    cells += `<td data-label="공휴일"><input type="number" min="0" step="1" required placeholder="0" id="ms_${key}_sunday_holiday" value="0"></td>`;
     return `<tr><td data-label="근무"><b>${label}</b></td>${cells}</tr>`;
   }).join("");
 
@@ -1770,8 +1770,13 @@ let genRainRAF = null, genRainTimer = null;
 const RAIN_THEME = {
   dark:  { fade: "rgba(11,15,25,.45)", solid: "#0b0f19", drop: "74,222,128", land: "#fff",
            col: { D: "#BDD7EE", E: "#F8CBAD", N: "#3B5BA5", "/": "rgba(255,255,255,.28)" } },
-  light: { fade: "rgba(238,242,240,.5)", solid: "#EEF2F0", drop: "15,110,107", land: "#1C2523",
-           col: { D: "#2563EB", E: "#EA580C", N: "#1F3864", "/": "rgba(28,37,35,.3)" } },
+  // 라이트라고 보고하는 페이지: 캔버스는 바탕을 칠하지 않고(투명) 바탕은 CSS(.gen-rain)에 맡긴다.
+  // 삼성 인터넷 등의 '다크 모드'는 라이트 페이지를 브라우저가 강제로 어둡게 칠하는데, 캔버스 안에
+  // 칠한 픽셀은 건드리지 않아 화면 전체는 어두운데 비 상자만 하얗게 떴다(2026-10-31 사용자 캡처).
+  // CSS 바탕은 그 강제 다크가 같이 어둡게 하므로, 글자색을 밝은·어두운 바탕 양쪽에서 읽히는 중간 톤
+  // (대비 각 3:1 이상)으로 두면 진짜 라이트에서도, 강제 다크에서도 맞는다.
+  light: { clear: true, drop: "20,150,140", land: "#0D9488",
+           col: { D: "#3B82F6", E: "#EA580C", N: "#6366F1", "/": "#8A949A" } },
 };
 function rainRnd(i) { const x = Math.sin(i * 9301 + 49297) * 233280; return x - Math.floor(x); }
 function startGenRain() {
@@ -1805,8 +1810,8 @@ function startGenRain() {
     const pct = parseFloat(($("#genProgressFill") || {}).style?.width || "0") || 0;
     const target = Math.min(order.length, Math.floor(order.length * pct / 100));
     while (settled < target) { born.set(order[settled], now); settled++; }
-    x.fillStyle = reduce ? TH.solid : TH.fade;
-    x.fillRect(0, 0, w, h);
+    if (TH.clear) x.clearRect(0, 0, w, h);
+    else { x.fillStyle = reduce ? TH.solid : TH.fade; x.fillRect(0, 0, w, h); }
     x.font = `700 ${Math.max(5, cs * .78)}px ui-monospace, Menlo, monospace`;
     x.textAlign = "center"; x.textBaseline = "middle";
     if (!reduce) {
@@ -2000,11 +2005,6 @@ async function runGenerate(btn, statusEl) {
   }
 }
 $("#generateBtn").onclick = () => runGenerate($("#generateBtn"), $("#genStatus"));
-// 폰에서 입력 묶음이 길어 생성 버튼까지 2,000px — 첫 줄의 '↓ 생성 버튼으로'가 거기로 보낸다.
-$("#jumpToGenBtn")?.addEventListener("click", () => {
-  const b = $("#generateBtn");
-  if (b) { b.scrollIntoView({ block: "center", behavior: "smooth" }); b.focus({ preventScroll: true }); }
-});
 const generateBtnMid = $("#generateBtnMid");
 if (generateBtnMid) {
   generateBtnMid.onclick = () => runGenerate(generateBtnMid, $("#genStatusMid"));
