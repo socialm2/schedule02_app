@@ -671,6 +671,8 @@ button.small { font-size: 12px; padding: 5px 11px; margin-top: 6px; }
 .thorough-opt:has(input:checked) .thorough-title { color: var(--accent); font-weight: 600; }
 /* 생성 중 비 캔버스 — 상자 폭에 맞추고, 깜빡임을 끄는 사람에게는 정지 화면만 */
 .gen-rain { display: block; width: 100%; height: 160px; border-radius: 10px; background: #0b0f19; margin: 0 0 12px; }
+/* 라이트 모드에서는 밝은 바탕 — 글자색은 app.js(startGenRain)가 같은 기준(prefers-color-scheme)으로 고른다 */
+@media (prefers-color-scheme: light) { .gen-rain { background: #EEF2F0; border: 1px solid var(--line); } }
 #genOverlay .loading-box { max-width: 380px; width: calc(100vw - 32px); }
 #genOverlay .spinner { width: 22px; height: 22px; border-width: 3px; margin-bottom: 10px; }
 /* 오버레이의 시도 진척 줄 + 멈추기 */

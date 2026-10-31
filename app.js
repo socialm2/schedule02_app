@@ -1647,13 +1647,21 @@ $("#genStopBtn").onclick = () => {
 // 명단 수·달의 날수는 입력 화면 값을 쓴다. 깜빡임을 끈 사람(prefers-reduced-motion)에게는 비 없이
 // 앉은 칸만 그린다. 캔버스는 이 파일(화면 로직)에서만 그리고 Worker·전송과는 무관하다.
 let genRainRAF = null, genRainTimer = null;
-const RAIN_COL = { D: "#BDD7EE", E: "#F8CBAD", N: "#3B5BA5", "/": "rgba(255,255,255,.28)" };
+// 다크/라이트 팔레트 — 바탕은 style.css(.gen-rain)가 같은 기준으로 바꾼다. 폰·윈도우 어디서든 OS 설정을 따른다.
+const RAIN_THEME = {
+  dark:  { fade: "rgba(11,15,25,.45)", solid: "#0b0f19", drop: "74,222,128", land: "#fff",
+           col: { D: "#BDD7EE", E: "#F8CBAD", N: "#3B5BA5", "/": "rgba(255,255,255,.28)" } },
+  light: { fade: "rgba(238,242,240,.5)", solid: "#EEF2F0", drop: "15,110,107", land: "#1C2523",
+           col: { D: "#2563EB", E: "#EA580C", N: "#1F3864", "/": "rgba(28,37,35,.3)" } },
+};
 function rainRnd(i) { const x = Math.sin(i * 9301 + 49297) * 233280; return x - Math.floor(x); }
 function startGenRain() {
   const cv = $("#genRain");
   if (!cv) return;
   stopGenRain();
   const reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const dark = !(window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches);
+  const TH = dark ? RAIN_THEME.dark : RAIN_THEME.light;
   // 명단이 길면 앞 14명만 — 40명을 160px에 넣으면 글자가 점이 된다(연출이지 표가 아니다)
   const nS = Math.min(14, Math.max(6, (typeof formStaff !== "undefined" && formStaff.length) || 14));
   const y = Number($("#f_year")?.value), m = Number($("#f_month")?.value);
@@ -1678,7 +1686,7 @@ function startGenRain() {
     const pct = parseFloat(($("#genProgressFill") || {}).style?.width || "0") || 0;
     const target = Math.min(order.length, Math.floor(order.length * pct / 100));
     while (settled < target) { born.set(order[settled], now); settled++; }
-    x.fillStyle = reduce ? "#0b0f19" : "rgba(11,15,25,.45)";
+    x.fillStyle = reduce ? TH.solid : TH.fade;
     x.fillRect(0, 0, w, h);
     x.font = `700 ${Math.max(5, cs * .78)}px ui-monospace, Menlo, monospace`;
     x.textAlign = "center"; x.textBaseline = "middle";
@@ -1690,7 +1698,7 @@ function startGenRain() {
           if (yy < oy || yy > oy + cs * nS) continue;
           const i = Math.floor((yy - oy) / cs);
           if (born.has(i * nD + d)) continue;
-          x.fillStyle = `rgba(74,222,128,${k ? .2 - k * .02 : .55})`;
+          x.fillStyle = `rgba(${TH.drop},${k ? .2 - k * .02 : .55})`;
           x.fillText(chars[Math.floor(rainRnd(d * 31 + k + Math.floor(now / 90)) * 4)], ox + d * cs + cs / 2, yy + cs / 2);
         }
       }
@@ -1699,7 +1707,7 @@ function startGenRain() {
       const i = Math.floor(key / nD), d = key % nD, v = letter(i, d);
       const a = reduce ? 1 : Math.min(1, (now - t0) / 450), e = 1 - Math.pow(1 - a, 3);
       const yy = oy + i * cs + cs / 2 - (1 - e) * cs * 1.5;
-      x.fillStyle = a < 1 ? "#fff" : RAIN_COL[v];
+      x.fillStyle = a < 1 ? TH.land : TH.col[v];
       x.globalAlpha = v === "/" ? .5 : 1;
       x.fillText(v, ox + d * cs + cs / 2, yy);
       x.globalAlpha = 1;
