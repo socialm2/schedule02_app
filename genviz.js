@@ -207,51 +207,60 @@
     },
   };
 
-  // ------------------------------------------------------------ 파문 — 놓인 칸에서 같은 줄·같은 날로 번진다
-  // 원본: 개념1 파문 장면(누른 칸에서 규칙이 번짐). 줄인 것: 누르지 않아도, 방금 놓인 칸에서 0.6초마다
-  // 한 번씩 그 사람의 줄과 그날의 열을 따라 물결이 번진다. 동시에 셋까지.
+  // ------------------------------------------------------------ 파문 — 완성된 표에서 칸 하나를 누르면 묶인 칸이 번진다
+  // 원본: 개념1 파문 장면(완성표의 칸을 누르면 그 칸이 묶인 규칙이 번져 나감). 사용자(11/1): "완성된 표를 넣고
+  // 클릭하면 하얗게 후보들이 나오면서 퍼지는 걸". 그래서 표는 처음부터 완성된 채로 두고, 2.4초마다 칸 하나를
+  // 누른다(손끝 표시). 그 칸과 묶인 칸 — 같은 근무 블록, 이어진 연속근무, 밤 블록 뒤 이틀 쉼, 같은 날 같은 조 —
+  // 이 가까운 것부터 하얀 테두리로 켜지며 퍼진다(원본과 같은 규칙, 거리만큼 늦게). 진행 막대와는 따로 돈다.
   const ripple = {
     key: "ripple", name: "파문",
-    init(S) { S.L.g = gridLayout(S, 8, 6, 14); S.L.rip = []; S.L.last = -1e9; },
+    init(S) { S.L.g = gridLayout(S, 8, 6, 14); S.L.tap = null; S.L.n = -1; },
+    // 원본 analyze()의 줄임 — 칸 하나에 묶인 칸과 거리(퍼지는 순서)
+    related(S, i, d) {
+      const row = S.plan[i], v = row[d], out = [], nD = S.nD;
+      let a = d, b = d; while (a > 0 && row[a - 1] === v) a--; while (b < nD - 1 && row[b + 1] === v) b++;
+      for (let k = a; k <= b; k++) if (k !== d) out.push([i, k, Math.abs(k - d)]);
+      if (v === "N") for (let k = b + 1; k <= Math.min(nD - 1, b + 2); k++) out.push([i, k, k - d]);
+      let s0 = d, e0 = d; while (s0 > 0 && row[s0 - 1] !== "/") s0--; while (e0 < nD - 1 && row[e0 + 1] !== "/") e0++;
+      for (let k = s0; k <= e0; k++) if (row[k] !== v) out.push([i, k, Math.abs(k - d) + 1]);
+      for (let j = 0; j < S.nS; j++) if (j !== i && S.plan[j][d] === v) out.push([j, d, 1 + Math.abs(j - i) * .6]);
+      return out;
+    },
     draw(S) {
-      const { x, P, nS, nD } = S, { cs, ox, oy } = S.L.g;
+      const { x, P, nS, nD } = S, { cs, ox, oy } = S.L.g, white = S.dark ? "#FFFFFF" : P.flash;
       paint(S);
+      // 2.4초마다 다음 칸을 누른다 — 근무 칸만, 매번 다른 자리
+      const n = S.reduce ? 0 : Math.floor((S.t + 2100) / 2400);
+      if (n !== S.L.n) {
+        S.L.n = n;
+        let i, d, k = 0;
+        do { i = Math.floor(rnd(n * 17 + k) * nS); d = 3 + Math.floor(rnd(n * 29 + k + 5) * (nD - 6)); k++; } while (S.plan[i][d] === "/" && k < 40);
+        S.L.tap = { i, d, t0: S.reduce ? -1e9 : S.now, rel: ripple.related(S, i, d) };
+      }
+      const tap = S.L.tap, age = Math.max(0, (S.now - tap.t0) / 1000), lit = new Map();
+      for (const [i, d, dist] of tap.rel) if (age * 7 > dist) lit.set(i * nD + d, dist);
       for (let i = 0; i < nS; i++) for (let d = 0; d < nD; d++) {
-        const key = i * nD + d, cx = ox + d * cs, cy = oy + i * cs;
-        if (S.rank[key] >= S.settled) { x.fillStyle = rgba(P.dim, .16); x.fillRect(cx + cs * .42, cy + cs * .42, cs * .16, cs * .16); continue; }
-        const v = S.plan[i][d], f = fresh(S, key, 500);
-        if (v === "/") { x.fillStyle = rgba(P.dim, .32); x.fillRect(cx + cs * .36, cy + cs * .36, cs * .28, cs * .28); continue; }
-        x.fillStyle = f > .5 ? P.flash : P.col[v];
-        x.fillRect(cx + cs * .12, cy + cs * .12, cs * .76, cs * .76);
-      }
-      const rip = S.L.rip, total = nS * nD;
-      if (!S.reduce && S.settled > 0 && S.settled < total && S.now - S.L.last > 600) {
-        for (let k = S.settled - 1; k >= Math.max(0, S.settled - 30); k--) {
-          const key = S.order[k];
-          if (S.plan[Math.floor(key / nD)][key % nD] !== "/") { rip.push({ key, t0: S.now }); break; }
+        const key = i * nD + d, v = S.plan[i][d], cx = ox + d * cs, cy = oy + i * cs, on = lit.has(key) || (i === tap.i && d === tap.d);
+        const dim = age > .15 && !on ? .38 : 1;
+        if (v === "/") { x.fillStyle = rgba(P.dim, .3 * dim); x.fillRect(cx + cs * .36, cy + cs * .36, cs * .28, cs * .28); }
+        else { x.fillStyle = rgba(P.col[v], dim); x.fillRect(cx + cs * .12, cy + cs * .12, cs * .76, cs * .76); }
+        if (lit.has(key)) {
+          const fl = Math.max(0, 1 - (age * 7 - lit.get(key)) / 4);   // 막 켜진 칸은 더 밝게
+          x.strokeStyle = rgba(white, .65 + .35 * fl); x.lineWidth = 1.2 + fl;
+          x.strokeRect(cx + .6, cy + .6, cs - 1.2, cs - 1.2);
         }
-        S.L.last = S.now;
-        while (rip.length > 3) rip.shift();
       }
-      const span = Math.max(nD, nS) * .8;
-      for (let r = rip.length - 1; r >= 0; r--) {
-        const t = (S.now - rip[r].t0) / 1600;
-        if (t >= 1) { rip.splice(r, 1); continue; }
-        const i0 = Math.floor(rip[r].key / nD), d0 = rip[r].key % nD, R = t * span, fade = 1 - t;
-        x.lineWidth = 1.2;
-        const ring = (i, d) => {
-          const dist = Math.abs(i - i0) + Math.abs(d - d0), a = Math.exp(-((dist - R) ** 2) / 2) * fade;
-          if (a < .05) return;
-          x.strokeStyle = rgba(P.flash, a * .9);
-          x.strokeRect(ox + d * cs + .5, oy + i * cs + .5, cs - 1, cs - 1);
-        };
-        for (let d = 0; d < nD; d++) if (d !== d0) ring(i0, d);
-        for (let i = 0; i < nS; i++) if (i !== i0) ring(i, d0);
-        const ccx = ox + (d0 + .5) * cs, ccy = oy + (i0 + .5) * cs;
-        x.strokeStyle = rgba(P.flash, fade * .35); x.lineWidth = 1;
-        x.beginPath(); x.arc(ccx, ccy, R * cs * .55 + 2, 0, TAU); x.stroke();
-        x.fillStyle = rgba(P.flash, fade * .8); x.fillRect(ox + d0 * cs + cs * .1, oy + i0 * cs + cs * .1, cs * .8, cs * .8);
+      // 누른 칸 — 굵은 테두리와 번지는 동그라미 셋, 손끝 표시
+      const tx = ox + (tap.d + .5) * cs, ty = oy + (tap.i + .5) * cs;
+      x.strokeStyle = white; x.lineWidth = 2.2; x.strokeRect(ox + tap.d * cs - .5, oy + tap.i * cs - .5, cs + 1, cs + 1);
+      if (!S.reduce) for (let k = 0; k < 3; k++) {
+        const r = ((age * 70 + k * 35) % 120); x.strokeStyle = rgba(white, Math.max(0, .55 - r / 120 * .55)); x.lineWidth = 1.4;
+        x.beginPath(); x.arc(tx, ty, r + 2, 0, TAU); x.stroke();
       }
+      const press = age < .25 ? 1 - age / .25 : 0;
+      x.fillStyle = rgba(white, .35 + .4 * press); x.beginPath(); x.arc(tx + cs * .9, ty + cs * .9, 4 + 3 * press, 0, TAU); x.fill();
+      x.textAlign = "right"; x.textBaseline = "alphabetic"; x.font = "10px system-ui, sans-serif"; x.fillStyle = S.P.label;
+      x.fillText("칸을 누르면 묶인 칸이 번집니다", S.w - 7, S.h - 4);
     },
   };
 
@@ -294,47 +303,87 @@
     },
   };
 
-  // ------------------------------------------------------------ 야경 — 칸이 창문, 근무가 놓이면 불이 켜진다
-  // 원본: 갤러리 drawCity. 줄인 것: 한 주가 건물 한 채(지붕 높이만 다르게), 사람은 층. 창마다 그림자
-  // 번짐(shadowBlur)은 폰에서 무거워, 큰 반투명 사각형 하나로 빛을 흉내 낸다.
+  // ------------------------------------------------------------ 야경 — 밤의 도시, 근무가 놓이면 창에 불이 켜진다
+  // 원본: 갤러리 drawCity. 사용자(11/1): "좀 더 야경스럽게 — 건물인지도 몰랐다, 달·별도 뜨고". 그래서 밤하늘
+  // (그라데이션)·초승달·반짝이는 별·가끔 별똥별, 뒤편 먼 건물 실루엣, 앞에 한 주가 한 채인 빌딩(층 = 사람,
+  // 창 = 그날 근무; 지붕·옥상 철탑·깜빡이는 항공등), 아래 물에 비친 불빛. 야경은 '그림'이라 라이트 모드에서도
+  // 밤하늘을 칠한다(캔버스 바탕이 아니라 그림 속 하늘 — 강제 다크에서도 그대로 밤이다).
   const city = {
     key: "city", name: "야경",
     init(S) {
-      if (S.dark) { const g = S.x.createLinearGradient(0, 0, 0, S.h); g.addColorStop(0, "#04060d"); g.addColorStop(1, "#111a33"); S.L.sky = g; }
-      const weeks = Math.ceil(S.nD / 7), gap = 5;
-      const cs = Math.min((S.w - 16 - gap * (weeks - 1)) / S.nD, (S.h - 36) / S.nS);
-      const W = cs * S.nD + gap * (weeks - 1), ground = S.h - 15;
-      S.L.g = { weeks, gap, cs, ox: (S.w - W) / 2, ground, oy: ground - cs * S.nS - 3 };
+      const { x, w, h, nS, nD } = S;
+      const sky = x.createLinearGradient(0, 0, 0, h); sky.addColorStop(0, "#050816"); sky.addColorStop(.62, "#14183a"); sky.addColorStop(1, "#2a2350");
+      const weeks = Math.ceil(nD / 7), gap = 9, water = 16;
+      // 하늘을 위쪽 40% 남짓 남긴다 — 건물이 꽉 차면 달·별이 가려 '밤'으로 안 보였다
+      const cs = Math.min((w - 40 - gap * (weeks - 1)) / nD, (h - water - Math.max(46, h * .36)) / nS);
+      const W = cs * nD + gap * (weeks - 1), ground = h - water;
+      const bld = [];
+      for (let k = 0; k < weeks; k++) {
+        const d0 = k * 7, d1 = Math.min(nD, d0 + 7), extra = 4 + rnd(k + 7) * 18;
+        bld.push({ d0, d1, extra, roof: Math.floor(rnd(k + 31) * 3), mast: rnd(k + 53) > .4 });
+      }
+      const far = []; for (let k = 0, xx = 0; xx < w; k++) { const bw = 10 + rnd(k + 400) * 22, bh = 18 + rnd(k + 500) * 34; far.push([xx, bw, bh]); xx += bw + 1; }
+      S.L.g = { sky, cs, ox: (w - W) / 2, ground, gap, oy: ground - cs * nS - 2, bld, far, water };
     },
     draw(S) {
-      const { x, P, nS, nD } = S, { weeks, gap, cs, ox, ground, oy } = S.L.g;
-      paint(S, S.L.sky);
-      stars(S, 30, oy - 6);
+      const { x, w, h, P, nS, nD } = S, g = S.L.g, { cs, ox, ground, gap, oy } = g;
+      x.fillStyle = g.sky; x.fillRect(0, 0, w, h);
+      // 별 — 반짝임, 가끔 별똥별
+      for (let k = 0; k < 46; k++) {
+        const a = S.reduce ? .5 : .25 + .55 * Math.abs(Math.sin(S.now / (700 + k * 23) + k));
+        x.fillStyle = `rgba(255,255,255,${a * .8})`; const sz = rnd(k + 77) > .85 ? 1.8 : 1.1;
+        x.fillRect(rnd(k + 300) * w, rnd(k + 900) * (oy - 10), sz, sz);
+      }
+      if (!S.reduce) { const c = (S.t % 4200) / 900; if (c < 1) { const sx = w * .2 + c * w * .35, sy = 8 + c * 22;
+        const gr = x.createLinearGradient(sx - 26, sy - 9, sx, sy); gr.addColorStop(0, "rgba(255,255,255,0)"); gr.addColorStop(1, "rgba(255,255,255,.85)");
+        x.strokeStyle = gr; x.lineWidth = 1.3; x.beginPath(); x.moveTo(sx - 26, sy - 9); x.lineTo(sx, sy); x.stroke(); } }
+      // 달 — 은은한 빛무리와 초승달
+      const mx = w - 30, my = 18, glow = x.createRadialGradient(mx, my, 2, mx, my, 34);
+      glow.addColorStop(0, "rgba(255,244,214,.35)"); glow.addColorStop(1, "rgba(255,244,214,0)");
+      x.fillStyle = glow; x.fillRect(mx - 34, my - 34, 68, 68); crescent(x, mx, my, 9, "#FFF4D6");
+      // 먼 건물 실루엣
+      x.fillStyle = "#0e1230"; for (const [fx, fw, fh] of g.far) x.fillRect(fx, ground - fh, fw, fh);
       const dx = (d) => ox + d * cs + Math.floor(d / 7) * gap;
-      for (let k = 0; k < weeks; k++) {
-        const d0 = k * 7, d1 = Math.min(nD, d0 + 7), bx = dx(d0) - 2, bw = (d1 - d0) * cs + 4, by = oy - 3 - rnd(k + 7) * 10;
-        x.fillStyle = S.dark ? "#0d1424" : rgba(P.dim, .07); x.fillRect(bx, by, bw, ground - by);
-        x.strokeStyle = S.dark ? "rgba(255,255,255,.07)" : rgba(P.dim, .4); x.lineWidth = 1; x.strokeRect(bx + .5, by + .5, bw - 1, ground - by);
-        if (rnd(k + 31) > .45) { x.beginPath(); x.moveTo(bx + bw / 2, by); x.lineTo(bx + bw / 2, by - 6); x.stroke(); }
-      }
+      // 빌딩 — 한 주가 한 채
+      g.bld.forEach((b, k) => {
+        const bx = dx(b.d0) - 3, bw = (b.d1 - b.d0) * cs + 6, top = oy - 3 - b.extra;
+        x.fillStyle = "#1a2047"; x.fillRect(bx, top, bw, ground - top);
+        x.fillStyle = "#283066"; x.fillRect(bx, top, 2, ground - top); x.fillRect(bx, top, bw, 1.5);                     // 모서리 빛
+        if (b.roof === 1) { x.fillStyle = "#1a2047"; x.fillRect(bx + bw * .2, top - 5, bw * .6, 5); }
+        if (b.roof === 2) { x.fillStyle = "#1a2047"; x.beginPath(); x.moveTo(bx, top); x.lineTo(bx + bw / 2, top - 8); x.lineTo(bx + bw, top); x.fill(); }
+        if (b.mast) {
+          const mxx = bx + bw * .7, mt = top - (b.roof ? 16 : 12);
+          x.strokeStyle = "#2b3263"; x.lineWidth = 1; x.beginPath(); x.moveTo(mxx, top - (b.roof === 1 ? 5 : 0)); x.lineTo(mxx, mt); x.stroke();
+          const on = S.reduce || Math.floor((S.t + k * 370) / 600) % 2 === 0;
+          if (on) { x.fillStyle = "rgba(255,80,80,.95)"; x.beginPath(); x.arc(mxx, mt, 1.6, 0, TAU); x.fill();
+            x.fillStyle = "rgba(255,80,80,.18)"; x.beginPath(); x.arc(mxx, mt, 4.5, 0, TAU); x.fill(); }
+        }
+      });
+      // 창문 — 층 = 사람, 칸 = 그날. 근무가 놓이면 불이 켜진다(색 = D·E·N), 쉬는 날은 꺼진 창
+      const warm = { D: "#9cc9ff", E: "#ffc27a", N: "#c8b2ff" };
       for (let i = 0; i < nS; i++) for (let d = 0; d < nD; d++) {
-        const key = i * nD + d, wx = dx(d), wy = oy + i * cs;
-        if (S.rank[key] >= S.settled) { x.fillStyle = rgba(P.dim, S.dark ? .1 : .14); x.fillRect(wx + cs * .25, wy + cs * .25, cs * .5, cs * .5); continue; }
-        const v = S.plan[i][d];
-        if (v === "/") { x.fillStyle = rgba(P.dim, S.dark ? .16 : .24); x.fillRect(wx + cs * .25, wy + cs * .25, cs * .5, cs * .5); continue; }
-        const f = fresh(S, key, 700);
-        if (S.dark) { x.fillStyle = rgba(P.col[v], .18 + f * .3); x.fillRect(wx - cs * .05, wy - cs * .05, cs * 1.1, cs * 1.1); }
-        x.fillStyle = f > .45 ? P.flash : P.col[v];
-        x.fillRect(wx + cs * .2, wy + cs * .2, cs * .6, cs * .6);
+        const key = i * nD + d, wx = dx(d), wy = oy + i * cs, v = S.plan[i][d];
+        const placed = S.rank[key] < S.settled;
+        if (!placed || v === "/") { x.fillStyle = "#0a0d22"; x.fillRect(wx + cs * .22, wy + cs * .22, cs * .56, cs * .56); continue; }
+        const f = fresh(S, key, 700), c = warm[v];
+        x.fillStyle = rgba(c, .16 + .3 * f); x.fillRect(wx - cs * .08, wy - cs * .08, cs * 1.16, cs * 1.16);
+        x.fillStyle = f > .45 ? "#ffffff" : c; x.fillRect(wx + cs * .2, wy + cs * .2, cs * .6, cs * .6);
       }
-      x.strokeStyle = rgba(P.dim, .45); x.lineWidth = 1;
-      x.beginPath(); x.moveTo(4, ground + .5); x.lineTo(S.w - 4, ground + .5); x.stroke();
+      // 물가 — 불빛이 흔들리며 비친다
+      x.fillStyle = "#070a1c"; x.fillRect(0, ground, w, h - ground);
+      for (let i = nS - 1; i >= Math.max(0, nS - 6); i--) for (let d = 0; d < nD; d++) {
+        const key = i * nD + d, v = S.plan[i][d];
+        if (v === "/" || S.rank[key] >= S.settled) continue;
+        const ry = ground + (nS - 1 - i) * cs * .55 + 2, wob = S.reduce ? 0 : Math.sin(S.now / 260 + d + i) * 1.2;
+        x.fillStyle = rgba(warm[v], .22 - (nS - 1 - i) * .03); x.fillRect(dx(d) + cs * .2 + wob, ry, cs * .6, 1.4);
+      }
+      x.fillStyle = "rgba(255,255,255,.06)"; x.fillRect(0, ground, w, 1);
     },
   };
 
   // ------------------------------------------------------------ 만다라 — 한 바퀴가 한 달, 동심원이 사람
   // 원본: 갤러리 drawRadial. 줄인 것: 날짜 숫자는 주마다 하나(1·8·15·22·29), 가운데는 달 이름. 주말은
-  // 옅은 부채꼴. 5초에 한 바퀴 돈다(생성이 3초면 끝나도 '돌아가는 달'로 보이게).
+  // 옅은 부채꼴. 날짜는 고정 — 돌리면 어지럽다(사용자, 11/1). 1일이 12시 방향.
   const mandala = {
     key: "mandala", name: "만다라",
     init(S) {
@@ -344,7 +393,7 @@
       const { x, w, h, P, nS, nD } = S;
       paint(S, S.L.bg);
       const cx = w / 2, cy = h / 2, R = h / 2 - 14, r0 = R * .24, rw = (R - r0) / nS;
-      const a0 = -Math.PI / 2 + (S.reduce ? 0 : S.t / 5000 * TAU), da = TAU / nD;
+      const a0 = -Math.PI / 2, da = TAU / nD;   // 돌리지 않는다 — 날짜가 돌면 어지럽다(사용자 11/1). 1일은 늘 12시 방향
       if (S.dow0 !== null) for (let d = 0; d < nD; d++) {
         const wd = (S.dow0 + d) % 7;
         if (wd !== 0 && wd !== 6) continue;
@@ -414,112 +463,116 @@
     },
   };
 
-  // ------------------------------------------------------------ 다공성 질서 — 세 갈래 탐색자가 가운데 출구를 찾는다
-  // 원본: GPT 02-12 자이로이드 + 모음/만들기.py의 GYROID_PATCH. 줄인 것: 3D 점군 대신 자이로이드의 한 단면
-  // (2D 곡선 무늬)을 점으로 찍고, 그 점들을 이웃끼리 이은 통로 위에서 탐색자 셋(시드 셋)이 가운데로 간다.
-  // 막다른 옆길에 들어갔다 되돌아온 길은 붉은 흔적, 셋이 다 닿으면 가장 짧게 닿은 길이 금빛. 경로는 연출이다.
-  // 출구를 두른 금빛 원호가 진행이다.
+  // ------------------------------------------------------------ 다공성 질서 — 원본 3D 자이로이드 속 세 갈래 탐색
+  // 원본: GPT 02-12 자이로이드(돌아가는 3D 점군) + 모음/만들기.py의 GYROID_PATCH(세 갈래 탐색자). 처음엔 2D 단면으로
+  // 줄였다가 "차원이 너무 줄었고 안 예쁘다 — 원래 애니로"(사용자, 11/1)라 원본 3D를 그대로 쓴다. 점군과 이웃
+  // 그래프는 한 번만 만들어 둔다(다음 생성부터는 바로 그린다). 탐색자 셋이 바깥에서 가운데 출구를 찾아가고, 옆길에
+  // 들어갔다 막히면 되돌아온다(붉은 흔적). 셋이 다 닿으면 가장 짧게 닿은 길이 금빛. 한 바퀴 약 5초(사용자: 처음
+  // 몇 초 안에 개념이 보여야). 점군 밝기가 진행을 따른다. 경로는 연출이며 실제 탐색 기록이 아니다.
+  const GY = { pts: null, graph: null };
+  function gyroidPoints() {
+    if (GY.pts) return GY.pts;
+    const pts = [], n = 84;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) for (let k = 0; k < n; k++) {
+      const X = (i / (n - 1) - .5) * 5.7, Y = (j / (n - 1) - .5) * 5.7, Z = (k / (n - 1) - .5) * 5.7;
+      if (X * X + Y * Y + Z * Z > 7.9) continue;
+      const f = Math.sin(X) * Math.cos(Y) + Math.sin(Y) * Math.cos(Z) + Math.sin(Z) * Math.cos(X);
+      if (Math.abs(f) < .066) {
+        const nx = Math.cos(X) * Math.cos(Y) - Math.sin(Z) * Math.sin(X), ny = -Math.sin(X) * Math.sin(Y) + Math.cos(Y) * Math.cos(Z), nz = -Math.sin(Y) * Math.sin(Z) + Math.cos(Z) * Math.cos(X);
+        pts.push([X / 2.4, Y / 2.4, Z / 2.4, nx, ny, nz]);
+      }
+    }
+    return (GY.pts = pts);
+  }
+  function gyroidGraph() {
+    if (GY.graph) return GY.graph;
+    const all = gyroidPoints(), step = Math.max(1, Math.floor(all.length / 5200)), P = [];
+    for (let i = 0; i < all.length; i += step) P.push(all[i]);
+    const R = .085, cell = new Map(), key = (a, b, c) => a + "," + b + "," + c, cx = v => Math.floor(v / R);
+    P.forEach((q, i) => { const k = key(cx(q[0]), cx(q[1]), cx(q[2])); if (!cell.has(k)) cell.set(k, []); cell.get(k).push(i); });
+    const nb = P.map((q, i) => { const out = [], a = cx(q[0]), b = cx(q[1]), c = cx(q[2]);
+      for (let dx = -1; dx < 2; dx++) for (let dy = -1; dy < 2; dy++) for (let dz = -1; dz < 2; dz++) { const l = cell.get(key(a + dx, b + dy, c + dz)); if (!l) continue;
+        for (const j of l) { if (j === i) continue; const o = P[j]; if ((o[0] - q[0]) ** 2 + (o[1] - q[1]) ** 2 + (o[2] - q[2]) ** 2 < R * R) out.push(j); } }
+      return out; });
+    const d0 = q => Math.hypot(q[0], q[1], q[2]); let target = 0;
+    P.forEach((q, i) => { if (nb[i].length > 3 && d0(q) < d0(P[target])) target = i; });
+    const dist = new Array(P.length).fill(-1); dist[target] = 0; const qq = [target];
+    for (let hh = 0; hh < qq.length; hh++) { const u = qq[hh]; for (const v of nb[u]) if (dist[v] < 0) { dist[v] = dist[u] + 1; qq.push(v); } }
+    return (GY.graph = { P, nb, target, dist });
+  }
+  // 바깥 세 곳에서 출구까지 — 출구 쪽으로 끌리되 곧장 가지 않고, 가끔 옆길에 들어갔다 되돌아온다
+  function gyroidPaths(G, seed) {
+    const { P, nb, target, dist } = G, dirs = [[1, 0], [-.5, .87], [-.5, -.87]];
+    return dirs.map((dv, sIdx) => {
+      const r = mulberry(seed * 7919 + sIdx * 104729 + 1);
+      const rot = r() * TAU, cx = Math.cos(rot) * dv[0] - Math.sin(rot) * dv[1], cz = Math.sin(rot) * dv[0] + Math.cos(rot) * dv[1];
+      let start = -1, best = -1e9;
+      P.forEach((q, i) => { if (dist[i] < 0) return; const sc = q[0] * cx + q[2] * cz - Math.abs(q[1]) * .4; if (sc > best) { best = sc; start = i; } });
+      const path = [[start, 0]], seen = new Set([start]), stack = [start]; let guard = 0;
+      while (stack.length && stack[stack.length - 1] !== target && guard++ < 6000) {
+        const cur = stack[stack.length - 1];
+        if (dist[cur] > 5 && r() < .07) {
+          const side = []; let at = cur;
+          for (let k = 0, K = 4 + Math.floor(r() * 6); k < K; k++) { const c = nb[at].filter(j => !seen.has(j) && dist[j] >= dist[at]); if (!c.length) break; at = c[Math.floor(r() * c.length)]; seen.add(at); side.push(at); path.push([at, 0]); }
+          for (let k = side.length - 2; k >= 0; k--) path.push([side[k], 1]);
+          if (side.length) path.push([cur, 1]);
+          continue;
+        }
+        const cand = nb[cur].filter(j => !seen.has(j) && dist[j] >= 0);
+        if (!cand.length) { stack.pop(); if (stack.length) path.push([stack[stack.length - 1], 1]); continue; }
+        let pick; if (r() < .2) pick = cand[Math.floor(r() * cand.length)]; else { let bs = 1e9; for (const j of cand) { const sc = dist[j] + r() * 4; if (sc < bs) { bs = sc; pick = j; } } }
+        seen.add(pick); stack.push(pick); path.push([pick, 0]);
+      }
+      return path;
+    });
+  }
   const porous = {
     key: "porous", name: "다공성 질서",
-    init(S) { porous.build(S); S.L.t0 = 0; S.L.hold = 0; },
-    // 무늬와 세 길을 새로 만든다 — 셋이 다 닿았는데 생성이 아직이면 잠깐 쉬고 새 무늬로 다시 찾는다
-    build(S) {
-      const g = 6, gx = Math.floor((S.w - 8) / g), gy = Math.floor((S.h - 12) / g), ox = (S.w - gx * g) / 2, oy = 4;
-      const rng = mulberry((Math.random() * 1e9) | 0), z0 = rng() * TAU, k = TAU / (12 + rng() * 4);
-      const on = new Uint8Array(gx * gy);
-      for (let j = 0; j < gy; j++) for (let i = 0; i < gx; i++) {
-        const X = i * k, Y = j * k * 1.15;
-        const f = Math.sin(X) * Math.cos(Y) + Math.sin(Y) * Math.cos(z0) + Math.sin(z0) * Math.cos(X);
-        if (Math.abs(f) < .36) on[j * gx + i] = 1;
-      }
-      const nb = (c) => { const i = c % gx, j = (c - i) / gx, out = []; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dx && !dy) continue; const a = i + dx, b = j + dy; if (a >= 0 && b >= 0 && a < gx && b < gy && on[b * gx + a]) out.push(b * gx + a); } return out; };
-      // 가장 큰 덩어리 안에서, 가운데에 가장 가까운 점이 출구
-      const comp = new Int32Array(gx * gy).fill(-1); let bestC = -1, bestN = 0;
-      for (let c = 0, id = 0; c < on.length; c++) {
-        if (!on[c] || comp[c] >= 0) continue;
-        const q = [c]; comp[c] = id;
-        for (let hh = 0; hh < q.length; hh++) for (const v of nb(q[hh])) if (comp[v] < 0) { comp[v] = id; q.push(v); }
-        if (q.length > bestN) { bestN = q.length; bestC = id; }
-        id++;
-      }
-      const pos = (c) => [ox + (c % gx + .5) * g, oy + (Math.floor(c / gx) + .5) * g];
-      let target = -1, bd = 1e9;
-      for (let c = 0; c < on.length; c++) if (comp[c] === bestC) { const [px, py] = pos(c), dd = (px - S.w / 2) ** 2 + (py - S.h / 2) ** 2; if (dd < bd) { bd = dd; target = c; } }
-      const dist = new Int32Array(gx * gy).fill(-1);
-      if (target >= 0) { dist[target] = 0; const q = [target]; for (let hh = 0; hh < q.length; hh++) for (const v of nb(q[hh])) if (dist[v] < 0) { dist[v] = dist[q[hh]] + 1; q.push(v); } }
-      const dirs = [[-1, 0], [.75, -.66], [.75, .66]];
-      const paths = target < 0 ? [] : dirs.map(([ux, uy], s) => {
-        const r = mulberry(7919 * (s + 1) + (z0 * 1000 | 0));
-        let start = -1, best = -1e9;
-        for (let c = 0; c < on.length; c++) { if (dist[c] < 0) continue; const [px, py] = pos(c), sc = (px - S.w / 2) * ux + (py - S.h / 2) * uy * 2.2; if (sc > best) { best = sc; start = c; } }
-        const path = [[start, 0]], seen = new Set([start]), stack = [start];
-        let guard = 0, sided = false;
-        while (stack.length && stack[stack.length - 1] !== target && guard++ < 1500) {
-          const cur = stack[stack.length - 1];
-          // 가끔 출구에서 멀어지는 옆길로 몇 걸음 — 막히면 같은 길로 되돌아온다(붉은 흔적)
-          // 첫 옆길은 열 걸음 안에 한 번 — 생성이 3초면 끝나도 '되돌아옴'이 한 번은 보이게
-          if (dist[cur] > 4 && (r() < .1 || (!sided && path.length > 8))) {
-            sided = true;
-            const side = []; let at = cur;
-            for (let kk = 0, K = 3 + Math.floor(r() * 5); kk < K; kk++) { const c = nb(at).filter(j => !seen.has(j) && dist[j] >= dist[at]); if (!c.length) break; at = c[Math.floor(r() * c.length)]; seen.add(at); side.push(at); path.push([at, 0]); }
-            for (let kk = side.length - 2; kk >= 0; kk--) path.push([side[kk], 1]);
-            if (side.length) path.push([cur, 1]);
-            continue;
-          }
-          const cand = nb(cur).filter(j => !seen.has(j) && dist[j] >= 0);
-          if (!cand.length) { stack.pop(); if (stack.length) path.push([stack[stack.length - 1], 1]); continue; }
-          let pick = cand[0];
-          if (r() < .2) pick = cand[Math.floor(r() * cand.length)];
-          else { let bs = 1e9; for (const j of cand) { const sc = dist[j] + r() * 3; if (sc < bs) { bs = sc; pick = j; } } }
-          seen.add(pick); stack.push(pick); path.push([pick, 0]);
-        }
-        return path.map(([c, back]) => [pos(c), back]);
-      });
-      const lens = paths.map(p => p.length);
-      // 점은 위·가운데·아래 세 띠로 나눠 띠마다 한 색으로 찍는다(fillStyle 전환을 줄인다)
-      S.L.dots = [[], [], []];
-      for (let c = 0; c < on.length; c++) if (on[c]) { const q = pos(c); S.L.dots[Math.min(2, Math.floor(q[1] / (S.h / 3)))].push(q); }
-      S.L.paths = paths; S.L.win = lens.indexOf(Math.min(...lens)); S.L.maxLen = Math.max(1, ...lens); S.L.target = target >= 0 ? pos(target) : [S.w / 2, S.h / 2];
-      if (S.dark) { const gr = S.x.createRadialGradient(S.w / 2, S.h / 2, 0, S.w / 2, S.h / 2, S.w * .55); gr.addColorStop(0, "#14201b"); gr.addColorStop(1, "#070b0a"); S.L.bg = gr; }
+    init(S) {
+      S.L.G = gyroidGraph(); S.L.round = -1;
+      S.L.seekCol = S.dark ? ["#9FD8FF", "#C9B6FF", "#C7F5A8"] : ["#2F7BE6", "#8B6FD6", "#4D9A3A"];
     },
     draw(S) {
-      const { x, P } = S, L = S.L;
-      paint(S, L.bg);
-      for (let c = 0; c < 3; c++) {
-        x.fillStyle = rgba(P.wall[c], S.dark ? .6 : .55);
-        for (const [px, py] of L.dots[c]) x.fillRect(px - 1, py - 1, 2, 2);
+      const { x, w, h, P } = S, G = S.L.G;
+      paint(S, S.dark ? "#0a1111" : null);
+      const rot = (S.reduce ? 0 : S.t / 1000 * .16) + .4, tilt = -.3, ct = Math.cos(tilt), st = Math.sin(tilt), cr = Math.cos(rot), sr = Math.sin(rot);
+      const size = Math.min(w, h) * .43, cxs = w / 2, cys = h * .5 - 2;
+      const proj = (q) => { const xx = q[0] * cr + q[2] * sr, zz0 = -q[0] * sr + q[2] * cr, yy = q[1] * ct - zz0 * st, zz = q[1] * st + zz0 * ct, k = 4.6 / (4.6 + zz); return [cxs + xx * size * k, cys + yy * size * k, zz, k]; };
+      // 점군 — 깊이·법선으로 음영, 밝기는 진행을 따른다
+      const pts = gyroidPoints(), bright = .55 + .45 * S.ps, c1 = S.dark ? [146, 183, 169] : [95, 140, 123], c2 = S.dark ? [228, 189, 131] : [183, 121, 31];
+      const pr = pts.map(q => [proj(q), q]); pr.sort((a, b) => b[0][2] - a[0][2]);
+      for (const [a, q] of pr) {
+        const shade = Math.max(0, Math.min(1, (q[3] * .3 - q[4] * .8 + q[5] * .2 + 1.5) / 3)), depth = Math.max(0, Math.min(1, (1.3 - a[2]) / 2.6));
+        const al = (.16 + .5 * depth) * bright * (S.dark ? 1 : 1.25);
+        x.fillStyle = `rgba(${Math.round(c1[0] + (c2[0] - c1[0]) * shade)},${Math.round(c1[1] + (c2[1] - c1[1]) * shade)},${Math.round(c1[2] + (c2[2] - c1[2]) * shade)},${Math.min(1, al)})`;
+        x.fillRect(a[0], a[1], 1.25 * a[3], 1.25 * a[3]);
       }
-      // 탐색자는 시간으로 걷는다(초당 26걸음, 길 하나가 보통 2~5초) — 생성이 3초면 끝나도 찾아가고
-      // 되돌아오는 게 보이게. 진행은 출구를 두른 금빛 원호가 따르고, 진행이 끝나면 셋 다 닿은 모습.
-      const finished = S.ps > .995;
-      // 새 무늬는 그리기 전에 만든다(그리는 도중 길을 바꾸면 머리 위치가 새 길 밖을 가리킨다)
-      if (L.hold && !finished && S.t - L.hold > 1400) { porous.build(S); L.t0 = S.t; L.hold = 0; }
-      const SPEED = 26, walked = (S.t - L.t0) / 1000 * SPEED, [tx, ty] = L.target;
-      const heads = L.paths.map(path => (finished || S.reduce) ? (finished ? path.length - 1 : Math.min(path.length - 1, S.ps * (L.maxLen - 1))) : Math.min(path.length - 1, walked));
-      const done = finished || (!S.reduce && heads.every((hd, s) => hd >= L.paths[s].length - 1));
-      if (done && !finished && !S.reduce && !L.hold) L.hold = S.t;
-      x.lineCap = "round"; x.lineJoin = "round";
-      L.paths.forEach((path, s) => {
-        const head = heads[s], hi = Math.floor(head), win = done && s === L.win;
-        x.strokeStyle = win ? P.gold : rgba(P.seek[s], done ? .45 : .9); x.lineWidth = win ? 2.2 : 1.5;
-        x.beginPath();
-        for (let i = 1; i <= hi; i++) if (!path[i][1]) { x.moveTo(path[i - 1][0][0], path[i - 1][0][1]); x.lineTo(path[i][0][0], path[i][0][1]); }
-        x.stroke();
-        x.strokeStyle = rgba(P.red, .7); x.lineWidth = 1.1;
-        x.beginPath();
-        for (let i = 1; i <= hi; i++) if (path[i][1]) { x.moveTo(path[i - 1][0][0], path[i - 1][0][1]); x.lineTo(path[i][0][0], path[i][0][1]); }
-        x.stroke();
-        const a = path[hi][0], b = path[Math.min(path.length - 1, hi + 1)][0], f = head - hi, hx = a[0] + (b[0] - a[0]) * f, hy = a[1] + (b[1] - a[1]) * f;
-        if (S.dark) { x.fillStyle = rgba(win ? P.gold : P.seek[s], .25); x.beginPath(); x.arc(hx, hy, 6, 0, TAU); x.fill(); }
-        x.fillStyle = win ? P.gold : P.seek[s]; x.beginPath(); x.arc(hx, hy, 2.4, 0, TAU); x.fill();
-        if (hi < 3) { x.font = "600 9px system-ui, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(String(s + 1), hx, hy - 8); }
+      // 탐색자 — 한 바퀴(경로 + 도착 후 1.2초)마다 새 출발점
+      const P3 = G.P.map(proj);
+      const SPEED = 46;   // 걸음/초 — 한 바퀴 약 4~6초
+      if (!S.L.paths || S.L.round < 0) { S.L.paths = gyroidPaths(G, 1); S.L.round = 0; S.L.rt0 = S.t; }
+      const maxLen = Math.max(...S.L.paths.map(q => q.length)), lap = maxLen / SPEED * 1000 + 1200;
+      if (!S.reduce && S.t - S.L.rt0 > lap) { S.L.round++; S.L.paths = gyroidPaths(G, S.L.round + 1); S.L.rt0 = S.t; }
+      const el = S.reduce ? 1e9 : (S.t - S.L.rt0) / 1000 * SPEED, paths = S.L.paths;
+      const lens = paths.map(q => q.length), win = lens.indexOf(Math.min(...lens)), done = paths.every(q => el >= q.length - 1);
+      x.lineCap = "round";
+      paths.forEach((path, sIdx) => {
+        const head = Math.min(path.length - 1, el), hi = Math.floor(head), col = S.L.seekCol[sIdx], isWin = done && sIdx === win;
+        for (let i = 1; i <= hi; i++) {
+          const A = P3[path[i][0]], B = P3[path[i - 1][0]], back = path[i][1];
+          x.strokeStyle = back ? rgba(P.red, .75) : isWin ? rgba(P.gold, .95) : rgba(col, done ? .35 : .9);
+          x.lineWidth = (back ? 1.1 : isWin ? 2.2 : 1.5) * Math.min(A[3], B[3]);
+          x.beginPath(); x.moveTo(B[0], B[1]); x.lineTo(A[0], A[1]); x.stroke();
+        }
+        const i0 = path[hi][0], i1 = path[Math.min(path.length - 1, hi + 1)][0], f = head - hi, X = P3[i0][0] + (P3[i1][0] - P3[i0][0]) * f, Y = P3[i0][1] + (P3[i1][1] - P3[i0][1]) * f;
+        x.fillStyle = rgba(isWin ? P.gold : col, .3); x.beginPath(); x.arc(X, Y, 6, 0, TAU); x.fill();
+        x.fillStyle = S.dark ? "#fff" : col; x.beginPath(); x.arc(X, Y, 2, 0, TAU); x.fill();
       });
-      const pulse = done && !S.reduce ? 1 + .25 * Math.sin(S.now / 160) : 1;
-      x.strokeStyle = rgba(P.gold, .85); x.lineWidth = 1.3;
-      x.beginPath(); x.arc(tx, ty, 5 * pulse, 0, TAU); x.stroke();
-      x.lineWidth = 2; x.beginPath(); x.arc(tx, ty, 9, -Math.PI / 2, -Math.PI / 2 + S.ps * TAU); x.stroke();
-      if (done && S.dark) { x.fillStyle = rgba(P.gold, .18); x.beginPath(); x.arc(tx, ty, 13 * pulse, 0, TAU); x.fill(); }
-      x.lineCap = "butt"; x.lineJoin = "miter";
+      const T = P3[G.target], pulse = done ? 1 + .25 * Math.sin(S.now / 160) : 1;
+      x.fillStyle = rgba(P.gold, done ? .32 : .16); x.beginPath(); x.arc(T[0], T[1], (done ? 13 : 8) * pulse, 0, TAU); x.fill();
+      x.strokeStyle = rgba(P.gold, .85); x.lineWidth = 1.2; x.beginPath(); x.arc(T[0], T[1], 5 * pulse, 0, TAU); x.stroke();
+      x.textAlign = "right"; x.textBaseline = "alphabetic"; x.font = "10px system-ui, sans-serif"; x.fillStyle = S.P.label;
+      x.fillText(done ? "가장 짧게 닿은 길 = 금빛" : "세 갈래가 출구를 찾는 중 · 붉은 선 = 되돌아온 길", w - 7, h - 4);
     },
   };
 
