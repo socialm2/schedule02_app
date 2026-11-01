@@ -1796,8 +1796,27 @@ function startGenRain() {
   const x = cv.getContext("2d");
   x.setTransform(dpr, 0, 0, dpr, 0, 0);
   const pad = 6, cs = Math.min((w - pad * 2) / nD, (h - pad * 2) / nS), ox = (w - cs * nD) / 2, oy = (h - cs * nS) / 2;
-  // 칸마다 글자(D·E·N·OFF 비율 3:3:1.5:2.5)와 앉는 순서(날짜 순, 같은 날 안에서는 섞어서)
-  const letter = (i, d) => { const r = rainRnd(i * 31 + d); return r < .3 ? "D" : r < .6 ? "E" : r < .75 ? "N" : "/"; };
+  // 앉는 글자는 칸마다 무작위로 뽑으면 N 4연속·E 8연속처럼 실제 근무표에 없는 줄이 나온다(사용자).
+  // 연출이라도 근무표처럼 보이게, 사람마다 블록으로 짠다: 야간은 2~3일 뒤 OFF 2일, 주간·저녁은
+  // 3~5일(D만·E만·D→E) 뒤 OFF 1~2일(E로 끝나면 2일 — E-OFF-D를 피한다). 연속근무는 5일을 넘지 않는다.
+  // 날짜 순서로 앉는 순서(같은 날 안에서는 섞어서)는 그대로다.
+  const rainRow = (i) => {
+    const out = []; let k = 0;
+    const r = () => rainRnd(i * 977 + (k++) * 13 + 5);
+    const push = (v, n) => { for (let j = 0; j < n; j++) out.push(v); };
+    push("/", Math.floor(r() * 3));                    // 줄마다 시작을 어긋나게
+    while (out.length < nD) {
+      const t = r();
+      if (t < .27) { push("N", 2 + Math.floor(r() * 2)); push("/", 2); continue; }
+      const len = 3 + Math.floor(r() * 3);
+      const dLen = t < .58 ? len : t < .8 ? 0 : 1 + Math.floor(r() * (len - 1));
+      for (let j = 0; j < len; j++) out.push(j < dLen ? "D" : "E");
+      push("/", dLen < len ? 2 : 1 + Math.floor(r() * 2));
+    }
+    return out.slice(0, nD);
+  };
+  const plan = Array.from({ length: nS }, (_, i) => rainRow(i));
+  const letter = (i, d) => plan[i][d];
   const order = [];
   for (let d = 0; d < nD; d++) {
     const rows = Array.from({ length: nS }, (_, i) => i).sort((a, b) => rainRnd(a * 7 + d) - rainRnd(b * 7 + d));
