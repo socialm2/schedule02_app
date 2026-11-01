@@ -589,7 +589,10 @@
       const ox = 10, ow = w - 20, top = 7, bottom = 16, pitch = (h - top - bottom) / nS, cw = ow / nD;
       // 적는 자리(W)는 진행을 따르고, 재생선(X)은 시간으로 4초에 한 번 왼쪽→오른쪽을 지나간다 — 생성이
       // 3초 만에 끝나도 '재생선이 악보를 읽고 지나간다'가 보이게. 재생선이 지나가는 음표는 머리가 밝아진다.
-      const W = ox + S.ps * ow, X = S.reduce ? W : ox + ((S.t / 4000) % 1) * ow, off = { D: -.2, E: 0, N: .2 };
+      // 앞 70%는 시간으로 2초 안에 적고 나머지는 진행을 따른다 — 진행만 따르면 게이지가 처음 1~2초 거의
+      // 안 움직여 빈 오선 위로 재생선만 지나가 "처음에 멈칫했다가 시작"했다(사용자, 11/2).
+      const lead = S.reduce ? 0 : .7 * (1 - Math.pow(1 - Math.min(1, S.t / 2000), 3));
+      const W = ox + Math.max(S.ps, lead) * ow, X = S.reduce ? W : ox + ((S.t / 4000) % 1) * ow, off = { D: -.2, E: 0, N: .2 };
       x.strokeStyle = rgba(P.dim, .2); x.lineWidth = 1;
       x.beginPath();
       for (let i = 0; i < nS; i++) { const y = Math.round(top + (i + .5) * pitch) + .5; x.moveTo(ox, y); x.lineTo(ox + ow, y); }
@@ -609,7 +612,7 @@
         }
       }
       x.lineCap = "butt";
-      if (S.ps < .999) { x.strokeStyle = rgba(P.dim, .5); x.lineWidth = 1; x.setLineDash([2, 3]); x.beginPath(); x.moveTo(W, top - 2); x.lineTo(W, h - bottom + 2); x.stroke(); x.setLineDash([]); }
+      if (W < ox + ow - .5) { x.strokeStyle = rgba(P.dim, .5); x.lineWidth = 1; x.setLineDash([2, 3]); x.beginPath(); x.moveTo(W, top - 2); x.lineTo(W, h - bottom + 2); x.stroke(); x.setLineDash([]); }
       if (S.dark) { x.fillStyle = rgba(P.gold, .12); x.fillRect(X - 4, top - 3, 8, h - top - bottom + 6); }
       x.strokeStyle = P.gold; x.lineWidth = 1.4;
       x.beginPath(); x.moveTo(X, top - 3); x.lineTo(X, h - bottom + 3); x.stroke();
