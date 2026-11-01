@@ -6,8 +6,11 @@
 // 줄였고, 뒤의 둘은 근무표와의 연결이 한눈에 보이게 다시 그렸다(사용자: '이해가 잘되게').
 //  - 생성은 보통 3~10초라, 진행과 별개로 시간으로 도는 움직임(걷기·회전·재생선·탐색자·맞교환)을 3~5초 주기로
 //    두어 처음 2~3초 안에 무엇을 보여 주는지 드러나게 했다(사용자). 진행에 묶인 것은 '채워지는' 부분이다.
+//  - 그 밖에 GPT '탐색의 심연'(02)의 01·02·08·09·10·14 여섯이 random: false로 들어 있다 — 모음 페이지
+//    (docs/시각화/모음/생성화면_17가지_261101.html)에서 __genVizForce로만 그리고 앱 생성 무작위에는 안 나온다
+//    (사용자는 HTML 파일만 말했다, 2026-11-01). GenViz.NAMES는 무작위 후보 열하나, EXTRA_NAMES가 이 여섯.
 //
-// 지키는 것 — 열한 가지 모두 같다:
+// 지키는 것 — 열일곱 가지 모두 같다:
 //  - 근무 글자·배치는 rosterRow() 한 곳에서 나온다. 칸마다 무작위로 뽑으면 N 4연속·E 8연속처럼 실제
 //    근무표에 없는 줄이 나온다(사용자). 그래서 사람마다 블록으로 짠다 — 야간 2~3일 뒤 OFF 2일, 주간·저녁
 //    3~5일 뒤 OFF(E로 끝나면 2일, E→D 없음).
@@ -822,8 +825,561 @@
     },
   };
 
-  const VIZ = [rain, journey, ripple, helix, city, mandala, porous, growth, score, orrery, swaps];
-  const NAMES = VIZ.map(v => v.name);
+  // ================================================================ 탐색의 심연 여섯 — 모음 페이지 전용(random: false)
+  // 원본: docs/시각화/gpt_20261023/02_sublime_14/탐색의_심연_14개_풍경.html의 drawManifold(01)·drawFlow(02)·
+  // drawTesseract(08)·drawFlower(09)·drawSphere(10)·drawMembrane(14). 수식·색(PALETTES)·선 굵기·투영(proj: 세로축
+  // 회전, 기울기 -.3, 원근 4.6)을 그대로 옮기고 160px 상자에 맞게 크기와 선 수만 줄였다 — 다공성 질서를 2D로 줄였을
+  // 때 "차원이 너무 줄고 안 예쁘다"(사용자, 11/1)여서 3D 그대로다. 그 위에 근무표와 이어지는 움직임을 한 겹 얹었다
+  // (사용자 11/1: "원본 유지하면서 이해되게 애니로"). 얹은 움직임은 3~5초 주기로 시간에 따라 돈다(처음 몇 초 안에 개념이
+  // 보이게). 앱 생성 중 무작위에는 넣지 않는다 — 사용자는 HTML 파일만 말했다. __genVizForce로만 고른다.
+  // 색: 다크는 원본 바탕을 칠한다. 라이트는 바탕을 칠하지 않으므로(머리말) 원본의 밝은 선색 대신 같은 색상의 중간
+  // 톤(#EEF2F0·#121212 양쪽에 3:1 이상)을 쓴다. 09·14는 원본이 밝은 종이 바탕이라 라이트에서 원본 색 그대로(14의
+  // 구리색만 대비 때문에 조금 어둡게), 다크에서는 어두운 바탕에 같은 색을 밝힌 짝.
+  const ABYSS = {
+    manifold: { dark: ["#070d15", "#88b9df", "#e6b880"], light: ["", "#3E7BB0", "#B7791F"] },
+    flow:     { dark: ["#081513", "#99cebe", "#dfbd84"], light: ["", "#2F8A74", "#B07A2A"] },
+    tess:     { dark: ["#0d0f14", "#879cb9", "#f2ba91"], light: ["", "#56708F", "#C0703F"] },
+    flower:   { dark: ["#0e0f14", "#9AA6C4", "#E3A97F"], light: ["", "#606a81", "#b47c59"] },
+    sphere:   { dark: ["#0a1016", "#7fb1c2", "#ead3a7"], light: ["", "#3A8296", "#A8772C"] },
+    membrane: { dark: ["#0e1013", "#9AA8B3", "#E6B784"], light: ["", "#717f8a", "#AD7A4C"] },
+  };
+  const HEX3 = new Map();
+  function hex3(h) {
+    let c = HEX3.get(h);
+    if (!c) { const n = parseInt(h.slice(1), 16); c = [n >> 16 & 255, n >> 8 & 255, n & 255]; HEX3.set(h, c); }
+    return c;
+  }
+  const cl01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+  // 원본 color(a,b,t,alpha) — 두 색 사이를 t만큼
+  function mixc(a, b, t, al) {
+    const A = hex3(a), B = hex3(b), u = cl01(t);
+    return `rgba(${Math.round(A[0] + (B[0] - A[0]) * u)},${Math.round(A[1] + (B[1] - A[1]) * u)},${Math.round(A[2] + (B[2] - A[2]) * u)},${cl01(al).toFixed(3)})`;
+  }
+  function abyssInit(S, key, boost) {
+    const pal = ABYSS[key][S.dark ? "dark" : "light"];
+    S.L.pal = pal; S.L.ab = S.dark ? 1 : boost || 1.5;   // 라이트는 밝은 바탕 위라 같은 투명도가 더 옅어 보인다
+    if (S.dark) {
+      const g = S.x.createRadialGradient(S.w * .5, S.h * .46, 0, S.w * .5, S.h * .46, Math.max(S.w, S.h) * .65);
+      g.addColorStop(0, pal[1] + "12"); g.addColorStop(1, pal[1] + "00"); S.L.glow = g;
+    }
+  }
+  function abyssBg(S) {
+    paint(S, S.L.pal[0]);
+    if (S.L.glow) { S.x.fillStyle = S.L.glow; S.x.fillRect(0, 0, S.w, S.h); }
+  }
+  // 원본 proj()와 같은 투영 — 세로축으로 rot만큼 돌리고 tilt만큼 숙인 뒤 원근 4.6. out = [x, y, 깊이, 원근배율]
+  function abyssProj(rot, tilt, size, cx, cy) {
+    const c = Math.cos(rot), s = Math.sin(rot), ct = Math.cos(tilt), st = Math.sin(tilt);
+    return (X, Y, Z, out) => {
+      const xx = X * c + Z * s, z0 = -X * s + Z * c, yy = Y * ct - z0 * st, zz = Y * st + z0 * ct, k = 4.6 / (4.6 + zz);
+      out[0] = cx + xx * size * k; out[1] = cy + yy * size * k; out[2] = zz; out[3] = k; return out;
+    };
+  }
+  function glowAt(x, X, Y, r, hex, a) {
+    const g = x.createRadialGradient(X, Y, 0, X, Y, r);
+    g.addColorStop(0, rgba(hex, a)); g.addColorStop(1, rgba(hex, 0));
+    x.fillStyle = g; x.fillRect(X - r, Y - r, r * 2, r * 2);
+  }
+  // 오른쪽 아래 한 줄 — 왼쪽 이름표와 겹치면 짧은 문구로
+  function caption(S, name, long, short) {
+    const x = S.x;
+    x.font = "10px system-ui, sans-serif";
+    const room = S.w - 30 - x.measureText(name).width;
+    x.textAlign = "right"; x.textBaseline = "alphabetic"; x.fillStyle = S.P.label;
+    x.fillText(x.measureText(long).width <= room ? long : short, S.w - 7, S.h - 4);
+  }
+  // 매개변수 곡면의 섬유 nA개(선마다 nB+1점)를 원본처럼 평균 깊이로 뒤에서부터 긋는다. pos(a, b, out)이 점을 낸다.
+  function fibers(S, slot, nA, nB, pos, colorOf, width, sorted) {
+    const n1 = nB + 1, need = nA * n1 * 2, x = S.x, o = [0, 0, 0, 0];
+    let buf = S.L[slot];
+    if (!buf || buf.length !== need) buf = S.L[slot] = new Float32Array(need);
+    const zs = new Float32Array(nA), idx = [];
+    for (let a = 0; a < nA; a++) {
+      let zsum = 0;
+      for (let b = 0; b <= nB; b++) { pos(a, b, o); const q = (a * n1 + b) * 2; buf[q] = o[0]; buf[q + 1] = o[1]; zsum += o[2]; }
+      zs[a] = zsum / n1; idx.push(a);
+    }
+    if (sorted) idx.sort((p, q) => zs[q] - zs[p]);
+    x.lineWidth = width;
+    for (const a of idx) {
+      x.strokeStyle = colorOf(a, zs[a]);
+      x.beginPath();
+      const q0 = a * n1 * 2;
+      x.moveTo(buf[q0], buf[q0 + 1]);
+      for (let b = 1; b <= nB; b++) x.lineTo(buf[q0 + b * 2], buf[q0 + b * 2 + 1]);
+      x.stroke();
+    }
+  }
+
+  // ------------------------------------------------------------ 휘어진 가능성(01) — 접힌 토러스 위 빛줄기 셋
+  // 원본 그대로: 변형 토러스의 섬유(긴 방향 100 → 64줄, 짧은 방향 48줄)와 그 위를 떠도는 금빛 점, 접힘 세기 ← 진행.
+  // 얹은 것: 빛줄기 셋이 섬유를 따라 흐른다(4초에 한 바퀴). 앞길에 붉은 점(조건에 막힌 칸)이 나타나면 옆 섬유로 꺾어
+  // 비켜 간다 — 좁은 통로를 따라 조금씩 고쳐 가는 탐색. 길과 막힌 점은 연출이다(실제 탐색 기록이 아님).
+  const MANI_LANES = 24, MANI_U = 48, MANI_SPEED = 12;   // 섬유 24가닥, 한 바퀴 48칸, 초당 12칸
+  function maniStreaks() {
+    return [[3, 0], [11, 17], [19, 33]].map(([lane0, i0], s) => {
+      const r = mulberry(4241 + s * 977), pts = [[i0, lane0]], blocks = [];
+      let lane = lane0, i = i0, since = 0;
+      for (let k = 0; k < MANI_U * 12; k++) {
+        if (since > 4 && r() < .065) { blocks.push([i + 1, lane, k]); lane += r() < .5 ? 1 : -1; since = 0; } else since++;
+        i++; pts.push([i, lane]);
+      }
+      return { pts, blocks };
+    });
+  }
+  const manifold = {
+    key: "manifold", name: "휘어진 가능성", random: false,
+    // 라이트에서는 빛줄기를 앱의 강조색(청록)으로 — 원본 금빛은 금빛 섬유에 묻혔다
+    init(S) { abyssInit(S, "manifold", 1.1); S.L.st = maniStreaks(); S.L.beam = S.dark ? S.L.pal[2] : S.P.flash; },
+    draw(S) {
+      const { x, w, h } = S, L = S.L, [, p1, p2] = L.pal, ab = L.ab, sec = S.reduce ? 0 : S.t / 1000;
+      abyssBg(S);
+      const fill = S.ps, size = Math.min(w * .3, (h - 12) * .43);
+      const P = abyssProj(.35 + sec * .09, -.3, size, w / 2, h * .47);
+      const pos = (u, v, o) => {
+        const r = .73 + .24 * Math.cos(v * 3 + u * 2) + .09 * Math.sin(u * 5), R = r + .29 * Math.cos(v);
+        return P(R * Math.cos(u), R * Math.sin(u) * .73, .34 * Math.sin(v) + (.15 + .12 * fill) * Math.sin(3 * u), o);
+      };
+      fibers(S, "fa", 64, 110, (a, b, o) => pos(b / 110 * TAU, a / 64 * TAU, o),
+        (a, z) => mixc(p1, p2, (Math.sin(a * 100 / 64 * .06) + 1) / 2, (.25 + .3 * (1 - z)) * ab), .55, true);
+      fibers(S, "fb", 48, 44, (a, b, o) => pos(a / 48 * TAU, b / 44 * TAU, o), () => mixc(p1, p2, 0, .13 * ab), .45, false);
+      // 빛줄기 — 꼬리 1.5초, 막힌 점은 닿기 1.2초 전에 나타나 지나가면 사라진다
+      const o = [0, 0, 0, 0], head = S.reduce ? 30 : sec * MANI_SPEED + 4, TRAIL = 18, lit = S.dark ? "#FFFFFF" : L.beam, beam = L.beam, rb = S.dark ? 1 : 1.4;
+      const at = (pt, f, nx) => pos((pt[0] + (nx[0] - pt[0]) * f) / MANI_U * TAU, (pt[1] + (nx[1] - pt[1]) * f) / MANI_LANES * TAU, o);
+      if (S.dark) x.globalCompositeOperation = "lighter";
+      x.lineCap = "round";
+      for (const st of L.st) {
+        for (const [bi, bl, k] of st.blocks) {
+          const a = cl01((head - (k - 14)) / 4) * cl01((k + 22 - head) / 8);
+          if (a <= 0) continue;
+          pos(bi / MANI_U * TAU, bl / MANI_LANES * TAU, o);
+          const hit = Math.abs(head - k) < 1.2 ? 1 - Math.abs(head - k) / 1.2 : 0;
+          glowAt(x, o[0], o[1], 6 + 4 * hit, S.P.red, .35 * a);
+          x.fillStyle = rgba(S.P.red, .9 * a); x.beginPath(); x.arc(o[0], o[1], (1.7 + hit) * o[3] * rb, 0, TAU); x.fill();
+        }
+        const hi = Math.floor(head), t0 = Math.max(0, head - TRAIL);
+        let px = null, py = null;
+        for (let s = t0; s <= head + 1e-6; s += 1 / 3) {
+          const k = Math.min(st.pts.length - 2, Math.floor(s)), f = s - k;
+          at(st.pts[k], f, st.pts[k + 1]);
+          if (px !== null) {
+            const age = (head - s) / TRAIL, depth = cl01((1.2 - o[2]) / 2.4);
+            x.strokeStyle = rgba(beam, (1 - age) * (.35 + .65 * depth));
+            x.lineWidth = (2.2 - 1.4 * age) * o[3] * rb;
+            x.beginPath(); x.moveTo(px, py); x.lineTo(o[0], o[1]); x.stroke();
+          }
+          px = o[0]; py = o[1];
+        }
+        at(st.pts[Math.min(st.pts.length - 2, hi)], head - hi, st.pts[Math.min(st.pts.length - 1, hi + 1)]);
+        glowAt(x, o[0], o[1], 9, beam, .5);
+        x.fillStyle = lit; x.beginPath(); x.arc(o[0], o[1], 1.9 * o[3], 0, TAU); x.fill();
+      }
+      x.lineCap = "butt";
+      // 원본의 떠도는 금빛 점 38개
+      for (let j = 0; j < 38; j++) {
+        pos((j * .731 + sec * .13) % TAU, j * .628, o);
+        x.fillStyle = p2 + "b0"; x.beginPath(); x.arc(o[0], o[1], 1.1, 0, TAU); x.fill();
+      }
+      x.globalCompositeOperation = "source-over";
+      caption(S, manifold.name, "빛 = 조건을 지키며 가는 길 · 붉은 점에 막히면 옆 섬유로", "붉은 점에 막히면 옆 섬유로");
+    },
+  };
+
+  // ------------------------------------------------------------ 보이지 않는 강(02) — 고정 칸을 비켜 흐르는 유선
+  // 원본 그대로: 회전장 다섯·반발 영역 셋 사이로 유선 720개(같은 씨앗 302 — 원본과 같은 선), 선 위를 흐르는 점.
+  // 얹은 것: 반발 영역 셋이 고정·지정 칸(네모)이다. 4.2초마다 새 배정 한 칸(금빛 네모)이 강에 놓이면 그 둘레의
+  // 유선이 휘어 비켜 가고(놓기 전·후 유선을 미리 계산해 두고 그 사이를 옮겨 간다), 칸이 빠지면 되돌아온다 — 한 배정이
+  // 주변 흐름을 바꾼다. 강을 따라 흐르는 근무 글자(D·E·N)는 진행만큼 늘어난다. 유선은 실제 후보 궤적이 아니다.
+  const FLOW_NEW = [[-1.18, -.42], [.38, .58], [1.2, -.12]];    // 새 배정이 놓이는 자리 — 유선이 지나는 곳
+  const FLOW_FIXED = [[-.6, .23, "N"], [.05, .23 * Math.cos(3), "/"], [.7, .23 * Math.cos(6), "D"]];
+  const FLOW = { sets: null };
+  function flowLines(extra) {
+    const random = mulberry(302), out = [];
+    for (let i = 0; i < 720; i++) {
+      let x = random() * 3.4 - 1.7, y = random() * 2.2 - 1.1;
+      const pts = [];
+      for (let k = 0; k < 92; k++) {
+        pts.push(x, y);
+        let vx = .62, vy = .13 * Math.sin(x * 2);
+        for (let j = 0; j < 5; j++) { const ax = Math.cos(j * 2.399) * .85, ay = Math.sin(j * 2.399) * .67, dx = x - ax, dy = y - ay, den = .055 + dx * dx + dy * dy; vx += (-dy / den) * .34; vy += (dx / den) * .34; }
+        for (let j = 0; j < 3; j++) { const ax = -.6 + j * .65, ay = .23 * Math.cos(j * 3), dx = x - ax, dy = y - ay, den = dx * dx + dy * dy; vx += dx * .021 / (.006 + den * den); vy += dy * .021 / (.006 + den * den); }
+        if (extra) { const dx = x - extra[0], dy = y - extra[1], den = dx * dx + dy * dy; vx += dx * .021 / (.006 + den * den); vy += dy * .021 / (.006 + den * den); }
+        const len = Math.hypot(vx, vy); x += vx / len * .023; y += vy / len * .023;
+        if (Math.abs(x) > 2.1 || Math.abs(y) > 1.4) break;
+      }
+      out.push(new Float32Array(pts));
+    }
+    return out;
+  }
+  // 놓기 전(0)과 새 칸 셋을 놓은 뒤(1~3)의 유선, 그리고 새 칸마다 눈에 띄게(0.5px 넘게) 휘는 유선 표시(moved).
+  // 720줄을 매 프레임 다 그으면 폰에서 무거워서, 유선 그림은 미리 그려 두고(아래 off) 휘는 동안에만 휘는 선을 긋는다.
+  function flowSets() {
+    if (FLOW.sets) return FLOW;
+    const sets = [flowLines(null)].concat(FLOW_NEW.map(flowLines)), A = sets[0];
+    FLOW.moved = sets.slice(1).map(B => Uint8Array.from(A, (a, i) => {
+      const b = B[i];
+      if (a.length !== b.length) return 1;
+      for (let j = 0; j < a.length; j++) if (Math.abs(a[j] - b[j]) > .01) return 1;
+      return 0;
+    }));
+    FLOW.sets = sets;
+    return FLOW;
+  }
+  const flow = {
+    key: "flow", name: "보이지 않는 강", random: false,
+    init(S) { abyssInit(S, "flow", 1.3); const F = flowSets(); S.L.sets = F.sets; S.L.moved = F.moved; S.L.off = {}; },
+    draw(S) {
+      const { x, w, h, P } = S, L = S.L, [, p1, p2] = L.pal, ab = L.ab, sec = S.reduce ? 0 : S.t / 1000;
+      abyssBg(S);
+      const sy = Math.min(w / 3.9, (h - 10) / 2.9), sx = Math.min(w / 4.1, sy * 1.35), cx = w / 2, cy = h * .47;
+      const sp = (X, Y) => [cx + X * sx, cy + Y * sy];
+      // 4.2초 주기: 0.3~1.1초 칸이 놓이며 유선이 휨, 3.3~3.9초 칸이 빠지며 되돌아옴
+      const PER = 4.2, cyc = sec / PER, k = Math.floor(cyc) % 3, ph = (cyc - Math.floor(cyc)) * PER;
+      const ease = (v) => { v = cl01(v); return v * v * (3 - 2 * v); };
+      const m = S.reduce ? 0 : ease((ph - .3) / .8) * (1 - ease((ph - 3.3) / .6));
+      const A = L.sets[0], B = L.sets[1 + k];
+      const lineAt = (i, j) => {   // 유선 i의 j번째 점 — 놓기 전(A)과 후(B) 사이 m
+        const a = A[i], b = B[i], ja = Math.min(j, a.length / 2 - 1) * 2, jb = Math.min(j, b.length / 2 - 1) * 2;
+        return [a[ja] + (b[jb] - a[ja]) * m, a[ja + 1] + (b[jb + 1] - a[ja + 1]) * m];
+      };
+      const nOf = (i) => Math.round((m < .5 ? A[i].length : B[i].length) / 2), moved = L.moved[k];
+      // 원본 색은 (i%17, i%5)로만 갈린다 — 같은 색끼리 한 번에 긋는다. which: 0 = 전부, 1 = 휘는 선만, 2 = 안 휘는 선만
+      const strokeLines = (cx2, which) => {
+        cx2.lineWidth = .65;
+        for (let g = 0; g < 85; g++) {
+          cx2.strokeStyle = mixc(p1, p2, (g % 17) / 17, (.12 + (g % 5) * .045) * ab);
+          cx2.beginPath();
+          for (let i = g; i < 720; i += 85) {
+            if ((which === 1 && !moved[i]) || (which === 2 && moved[i])) continue;
+            const n = nOf(i);
+            for (let j = 0; j < n; j++) { const q = lineAt(i, j), X = cx + q[0] * sx, Y = cy + q[1] * sy; if (j) cx2.lineTo(X, Y); else cx2.moveTo(X, Y); }
+          }
+          cx2.stroke();
+        }
+      };
+      // 미리 그린 그림: 놓기 전 전부(a), 놓은 뒤 전부(b+k), 안 휘는 선만(u+k). 휘는 동안만 휘는 선을 매 프레임 긋는다.
+      const still = m < .001 ? "a" : m > .999 ? "b" + k : null, key = still || "u" + k;
+      if (!L.off[key]) {
+        const dpr = x.getTransform().a || 1, oc = document.createElement("canvas");
+        oc.width = Math.round(w * dpr); oc.height = Math.round(h * dpr);
+        const ox = oc.getContext("2d"); ox.setTransform(dpr, 0, 0, dpr, 0, 0); strokeLines(ox, still ? 0 : 2); L.off[key] = oc;
+      }
+      x.drawImage(L.off[key], 0, 0, w, h);
+      if (!still) strokeLines(x, 1);
+      // 흐르는 점(원본) + 근무 글자(진행만큼)
+      const nLet = Math.round(24 * (.2 + .8 * S.ps));
+      x.font = "700 8px ui-monospace, Menlo, monospace"; x.textAlign = "center"; x.textBaseline = "middle";
+      for (let i = 0; i < 720; i += 6) {
+        const n = nOf(i), q = lineAt(i, Math.floor((sec * 20 + i * 7) % n)), X = cx + q[0] * sx, Y = cy + q[1] * sy;
+        if (i % 30 === 0 && i / 30 < nLet) { const v = "DEN"[(i / 30) % 3]; x.fillStyle = P.col[v]; x.fillText(v, X, Y); continue; }
+        x.fillStyle = p2 + "b0"; x.beginPath(); x.arc(X, Y, .9, 0, TAU); x.fill();
+      }
+      // 고정·지정 칸(반발 영역)과 새 배정 칸
+      const cell = (X, Y, sz, v, edge, al) => {
+        x.fillStyle = S.dark ? rgba(L.pal[0], .85 * al) : `rgba(255,255,255,${.75 * al})`;
+        x.fillRect(X - sz / 2, Y - sz / 2, sz, sz);
+        x.strokeStyle = rgba(edge, al); x.lineWidth = 1.2; x.strokeRect(X - sz / 2 + .5, Y - sz / 2 + .5, sz - 1, sz - 1);
+        x.fillStyle = rgba(v === "/" ? P.dim : P.col[v], al); x.font = `700 ${Math.round(sz * .7)}px ui-monospace, Menlo, monospace`; x.fillText(v, X, Y + .5);
+      };
+      for (const [fx, fy, v] of FLOW_FIXED) { const [X, Y] = sp(fx, fy); cell(X, Y, 10, v, p1, .9); }
+      if (m > .01) {
+        const [X, Y] = sp(FLOW_NEW[k][0], FLOW_NEW[k][1]);
+        if (ph < 1.6) { const r = (ph - .3) * 26; if (r > 0) { x.strokeStyle = rgba(P.gold, Math.max(0, .6 - r / 40)); x.lineWidth = 1.2; x.beginPath(); x.arc(X, Y, r + 5, 0, TAU); x.stroke(); } }
+        cell(X, Y, 6 + 5 * m, "EDN"[k], P.gold, m);
+      }
+      caption(S, flow.name, "네모 = 고정·지정 칸 · 금빛 칸(새 배정)이 놓이면 물길이 휩니다", "새 배정이 놓이면 물길이 휩니다");
+    },
+  };
+
+  // ------------------------------------------------------------ 차원의 접힘(08) — 4차원 테서랙트, 축 넷 = 네 관점
+  // 원본 그대로: 크기가 다른 테서랙트 26겹을 세 평면에서 4차원 회전해 투영, 밝게 드러나는 겹 수 ← 진행(원본은 단계).
+  // 회전은 원본의 약 3배 빠르기 — 몇 초 안에 축이 접혔다 펴지는 것이 보이게. 얹은 것: 4차원의 축 넷에 '횟수·주말·
+  // 숙련도·지정' 이름을 붙이고 오른쪽 막대 넷에 그 축이 화면에 드러난 길이를 보인다. 한 축이 4번째 차원 쪽으로
+  // 돌면 그 축은 가운데로 접혀 막대가 줄고 다른 축이 드러난다 — 한 관점만 보면 다른 관점이 흔들린다. 진행이 차면
+  // 막대 넷이 함께 올라오며 덜 흔들린다(여러 관점을 함께 맞춰 감). 막대는 앱 점수가 아니다.
+  const TESS_AX = ["횟수", "주말", "숙련도", "지정"];
+  function tessRotate(a, t, shell) {
+    for (const [u, v, ang] of [[0, 3, t + shell * .045], [1, 2, t * .43], [2, 3, .5 + t * .3]]) {
+      const X = a[u], Y = a[v], c = Math.cos(ang), s = Math.sin(ang);
+      a[u] = X * c - Y * s; a[v] = X * s + Y * c;
+    }
+    return a;
+  }
+  const tesseract = {
+    key: "tesseract", name: "차원의 접힘", random: false,
+    init(S) {
+      abyssInit(S, "tess");
+      S.L.axCol = S.dark ? ["#9FD8FF", "#C9B6FF", "#C7F5A8", "#FFD678"] : ["#2F7BE6", "#8B6FD6", "#4D9A3A", "#B7791F"];
+    },
+    draw(S) {
+      const { x, w, h } = S, L = S.L, [, p1, p2] = L.pal, ab = L.ab, sec = S.reduce ? 0 : S.t / 1000, t = 1.2 + sec * .3;
+      abyssBg(S);
+      const panel = 118, size = Math.min((h - 10) * .185, (w - panel) * .2), cx = Math.min(w / 2, (w - panel) / 2 + 6), cy = h * .47;
+      const Pj = abyssProj(.4, -.3, size, cx, cy), o = [0, 0, 0, 0], lit = S.ps * 26, pts = [];
+      for (let shell = 25; shell >= 0; shell--) {
+        const sz = .23 + shell * .029;
+        for (let i = 0; i < 16; i++) {
+          const a = tessRotate([0, 1, 2, 3].map(j => ((i >> j) & 1 ? 1 : -1) * sz), t, shell), k = 2.8 / (2.8 - a[3]);
+          Pj(a[0] * k, a[1] * k, a[2] * k, o); pts[i] = [o[0], o[1]];
+        }
+        x.strokeStyle = mixc(p1, p2, shell / 26, (shell < lit ? .27 : .10) * ab); x.lineWidth = .55;
+        x.beginPath();
+        for (let i = 0; i < 16; i++) for (let j = 0; j < 4; j++) { const b = i ^ (1 << j); if (b > i) { x.moveTo(pts[i][0], pts[i][1]); x.lineTo(pts[b][0], pts[b][1]); } }
+        x.stroke();
+        if (shell === 25) { x.fillStyle = p2; for (const q of pts) { x.beginPath(); x.arc(q[0], q[1], 1.5, 0, TAU); x.fill(); } }
+      }
+      glowAt(x, cx, cy, h * .2, p1, .07);
+      // 축 넷 — 바깥 겹과 같이 돈다. 4번째 차원으로 돌아 들어간 축은 가운데로 접힌다
+      const L0 = (.23 + 25 * .029) * 1.35, vis = [], tips = [];
+      for (let i = 0; i < 4; i++) {
+        const e = [0, 0, 0, 0]; e[i] = L0; tessRotate(e, t, 25);
+        const k = 2.8 / (2.8 - e[3]); Pj(e[0] * k, e[1] * k, e[2] * k, o);
+        tips.push([o[0], o[1]]); vis.push(Math.hypot(o[0] - cx, o[1] - cy) / (L0 * size * 1.25));
+      }
+      x.font = "600 9px system-ui, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle";
+      tips.forEach(([X, Y], i) => {
+        const a = .35 + .65 * cl01(vis[i]), col = L.axCol[i];
+        x.strokeStyle = rgba(col, .55 * a); x.lineWidth = 1; x.setLineDash([2, 2]);
+        x.beginPath(); x.moveTo(cx, cy); x.lineTo(X, Y); x.stroke(); x.setLineDash([]);
+        x.fillStyle = col; x.beginPath(); x.arc(X, Y, 2, 0, TAU); x.fill();
+        const dx = X - cx, dy = Y - cy, d = Math.hypot(dx, dy) || 1;
+        x.fillStyle = rgba(col, a); x.fillText(TESS_AX[i], X + dx / d * 13, Y + dy / d * 9);
+      });
+      // 막대 넷 — 그 축이 드러난 길이(돌면 바뀐다) + 진행만큼 함께 올라옴
+      const mean = (vis[0] + vis[1] + vis[2] + vis[3]) / 4, bx = w - panel + 40, bw = panel - 52, by = 14;
+      x.font = "9px system-ui, sans-serif"; x.textAlign = "right";
+      for (let i = 0; i < 4; i++) {
+        const v = cl01(.2 + .6 * S.ps + (vis[i] - mean) * .9 * (1 - .65 * S.ps)), y = by + i * 14;
+        x.fillStyle = rgba(S.P.dim, .2); x.fillRect(bx, y - 3, bw, 6);
+        x.fillStyle = L.axCol[i]; x.fillRect(bx, y - 3, bw * v, 6);
+        x.fillStyle = S.P.sub; x.fillText(TESS_AX[i], bx - 5, y);
+      }
+      caption(S, tesseract.name, "축 넷 = 네 관점 · 한 축이 접히면 다른 축이 드러납니다", "한 축이 접히면 다른 축이 드러남");
+    },
+  };
+
+  // ------------------------------------------------------------ 질서의 꽃(09) — 슈퍼포뮬러 주름 곡면, 꽃잎 = 사람
+  // 원본 그대로: 슈퍼포뮬러(m=7) 곡면의 위도선 105 → 72줄·경도선 70 → 52줄, 위도별 주름(폭 ← 진행), 같은 회전.
+  // 얹은 것: 꽃잎 일곱이 일곱 사람이고 꽃잎 길이가 그 사람의 밤 근무 수다(꽃잎 끝 숫자). 1.7초마다 밤이 가장 많은
+  // 꽃잎에서 가장 적은 꽃잎으로 달 하나가 건너가 길이가 고르게 펴진다(진행이 앞서면 진행만큼). 다 펴져도 꽃잎마다
+  // 주름·기울기는 제각각 — 모두를 같은 모양으로 만들지 않는 균등. 실제 탄성 물리·실제 배정 기록이 아니다.
+  function superR(a, m, n1, n2, n3) { return (Math.abs(Math.cos(m * a / 4)) ** n2 + Math.abs(Math.sin(m * a / 4)) ** n3) ** (-1 / n1); }
+  const flower = {
+    key: "flower", name: "질서의 꽃", random: false,
+    init(S) {
+      abyssInit(S, "flower");
+      // 밤 수가 고르지 않은 일곱 사람 — 많은 사람과 적은 사람을 번갈아 둘러 놓는다
+      const cnt = S.plan.map(r => r.filter(v => v === "N").length), ord = cnt.map((_, i) => i).sort((a, b) => cnt[b] - cnt[a] || a - b);
+      const pick = [ord[0], ord[ord.length - 1], ord[1], ord[ord.length - 2], ord[2], ord[ord.length - 3], ord[Math.floor(ord.length / 2)]];
+      let b = pick.map(i => cnt[i]);
+      if (Math.max(...b) - Math.min(...b) < 4) b = [9, 3, 7, 4, 8, 2, 6];   // 명단이 이미 고르면 연출이 안 보인다
+      const states = [b.slice()], moves = [];
+      for (let g = 0; g < 30; g++) {
+        const hi = b.indexOf(Math.max(...b)), lo = b.indexOf(Math.min(...b));
+        if (b[hi] - b[lo] <= 1) break;
+        b = b.slice(); b[hi]--; b[lo]++; moves.push([hi, lo]); states.push(b);
+      }
+      S.L.who = pick; S.L.states = states; S.L.moves = moves;
+      S.L.mean = states[0].reduce((s, v) => s + v, 0) / 7;
+    },
+    draw(S) {
+      const { x, w, h, P } = S, L = S.L, [, p1, p2] = L.pal, ab = L.ab, sec = S.reduce ? 0 : S.t / 1000;
+      abyssBg(S);
+      // 몇 번째 건너감인지 — 시간(1.7초마다)과 진행 가운데 앞선 쪽
+      const K = L.moves.length, eff = Math.min(K, Math.max(S.reduce ? 0 : Math.max(0, sec - .5) / 1.7, S.ps * K)), n = Math.floor(eff), ph = eff - n;
+      const land = n < K ? cl01((ph - .55) / .3) : 0, cur = L.states[n], nxt = L.states[Math.min(K, n + 1)];
+      const sc = cur.map((v, i) => Math.max(.6, Math.min(1.4, 1 + .1 * ((v + (nxt[i] - v) * land) - L.mean))));
+      const scAt = (u) => { const f = ((u / (TAU / 7)) % 7 + 7) % 7, k0 = Math.floor(f), fr = f - k0, s = fr * fr * (3 - 2 * fr); return sc[k0] * (1 - s) + sc[(k0 + 1) % 7] * s; };
+      const size = Math.min(w * .3, (h - 12) * .45), Pj = abyssProj(.3 + sec * .055, -.3, size, w / 2, h * .47), wav = .04 + .03 * S.ps;
+      // u(둘레)마다 변하지 않는 값(슈퍼포뮬러 반지름 등)은 표로 한 번만 — 점이 만 개 넘어 매번 거듭제곱하면 무거웠다
+      const U = L.utab || (L.utab = new Map()), ut = (u) => {
+        let e = U.get(u);
+        if (!e) { e = [Math.cos(u), Math.sin(u), superR(u, 7, .47, 1.4, 1.4), Math.cos(7 * u), u * 21, 0, -1]; U.set(u, e); }
+        if (e[6] !== S.now) { e[5] = scAt(u); e[6] = S.now; }
+        return e;
+      };
+      const pos = (u, v, o) => {
+        const e = ut(u), r = e[2] * e[5], cv = Math.cos(v), wave = wav * Math.sin(e[4] + v * 9 + sec * .25) * cv * cv;
+        return Pj((r * .75 + wave) * cv * e[0], (r * .75 + wave) * cv * e[1], .65 * Math.sin(v) + .16 * e[3] * cv * cv, o);
+      };
+      fibers(S, "fa", 72, 140, (a, b, o) => pos(b / 140 * TAU, (a / 71 - .5) * Math.PI, o),
+        (a, z) => mixc(p1, p2, a / 72, (.16 + .27 * cl01((1 - z) / 2)) * ab), .65, true);
+      fibers(S, "fb", 52, 52, (a, b, o) => pos(a / 52 * TAU, (b / 52 - .5) * Math.PI, o), () => rgba(p1, .145 * ab), .5, false);
+      // 꽃잎 끝 — 밤 근무 수
+      const o = [0, 0, 0, 0], tips = [], ctr = Pj(0, 0, 0, [0, 0, 0, 0]);
+      for (let k = 0; k < 7; k++) { pos(k * TAU / 7, 0, o); tips.push([o[0], o[1]]); }
+      x.font = "700 9px ui-monospace, Menlo, monospace"; x.textAlign = "center"; x.textBaseline = "middle";
+      const mv = n < K ? L.moves[n] : null;
+      tips.forEach(([X, Y], k) => {
+        const dx = X - ctr[0], dy = Y - ctr[1], d = Math.hypot(dx, dy) || 1, v = land > .5 ? nxt[k] : cur[k];
+        const tx = Math.max(8, Math.min(w - 8, X + dx / d * 9)), ty = Math.max(7, Math.min(h - 19, Y + dy / d * 7)), hot = mv && (mv[0] === k || mv[1] === k) && ph < .9;
+        x.fillStyle = hot ? P.col.N : S.P.sub; x.fillText(String(v), tx, ty);
+      });
+      // 건너가는 달 — 많은 꽃잎에서 적은 꽃잎으로
+      if (mv && !S.reduce && ph < .6) {
+        const f = cl01(ph / .55), e = f * f * (3 - 2 * f), [ax, ay] = tips[mv[0]], [bx, by] = tips[mv[1]];
+        const mx = (ax + bx) / 2, my = (ay + by) / 2, ox = mx - ctr[0], oy = my - ctr[1], od = Math.hypot(ox, oy) || 1, lift = 18;
+        const qx = mx + ox / od * lift, qy = my + oy / od * lift;
+        const X = (1 - e) * (1 - e) * ax + 2 * (1 - e) * e * qx + e * e * bx, Y = (1 - e) * (1 - e) * ay + 2 * (1 - e) * e * qy + e * e * by;
+        x.strokeStyle = rgba(P.col.N, .35); x.lineWidth = 1; x.setLineDash([2, 3]);
+        x.beginPath(); x.moveTo(ax, ay); x.quadraticCurveTo(qx, qy, bx, by); x.stroke(); x.setLineDash([]);
+        crescent(x, X, Y, 4, S.dark ? P.moon : P.col.N);
+      }
+      const done = eff >= K;
+      caption(S, flower.name, done ? "고르게 폈지만 꽃잎마다 모양은 제각각" : "꽃잎 = 한 사람, 길이 = 밤 근무 · 많은 쪽 밤을 적은 쪽으로",
+        done ? "고르게, 그러나 제각각" : "꽃잎 = 사람, 숫자 = 밤 근무");
+    },
+  };
+
+  // ------------------------------------------------------------ 회복의 파동(10) — 구면 위 수리가 이웃으로 번진다
+  // 원본 그대로: 위도선 100 → 80줄의 구면, 두 지점에서 퍼지는 거리 기반 파동 둘(진폭 ← 단계 변경 수 → 여기선 진행이
+  // 찰수록 잦아듦), 같은 회전. 파동 속도만 2.5배 — 몇 초 안에 퍼지는 것이 보이게. 얹은 것: 구면의 점 84개가 근무
+  // 칸이다(진행만큼 근무색으로 켜짐). 3.8초마다 앞쪽 칸 하나를 '수리'(금빛 고리)하면 그 자리에서 둥근 물결이
+  // 구면을 따라 퍼지고, 물결이 닿은 이웃 칸이 흔들렸다 가라앉는다. 앱의 실제 영향 전파를 계산한 것이 아니다.
+  const SPH_N = 84, SPH_A = 80, SPH_B = 120;
+  // 구면 격자 점과 원본 두 파원까지의 거리는 늘 같다 — 한 번만 만든다(점마다 매 프레임 acos 셋은 폰에서 무거웠다)
+  const SPH = { g: null };
+  function sphereGrid() {
+    if (SPH.g) return SPH.g;
+    const n = SPH_A * (SPH_B + 1), g = { X: new Float32Array(n), Y: new Float32Array(n), Z: new Float32Array(n), d1: new Float32Array(n), d2: new Float32Array(n) };
+    const ac = (v) => Math.acos(Math.max(-1, Math.min(1, v)));
+    for (let j = 0; j < SPH_A; j++) for (let i = 0; i <= SPH_B; i++) {
+      const q = j * (SPH_B + 1) + i, phi = (j / (SPH_A - 1) - .5) * Math.PI, u = i / SPH_B * TAU;
+      const X = Math.cos(phi) * Math.cos(u), Y = Math.sin(phi), Z = Math.cos(phi) * Math.sin(u);
+      g.X[q] = X; g.Y[q] = Y; g.Z[q] = Z; g.d1[q] = ac(X * .5 + Y * .7 + Z * .51); g.d2[q] = ac(-X * .7 + Y * .4 - Z * .59);
+    }
+    return (SPH.g = g);
+  }
+  const sphere = {
+    key: "sphere", name: "회복의 파동", random: false,
+    init(S) {
+      abyssInit(S, "sphere");
+      const cells = [], ga = Math.PI * (3 - Math.sqrt(5));
+      for (let c = 0; c < SPH_N; c++) {
+        const y = 1 - (c + .5) / SPH_N * 2, r = Math.sqrt(1 - y * y), a = c * ga;
+        cells.push({ p: [r * Math.cos(a), y, r * Math.sin(a)], key: Math.floor(c * S.nS * S.nD / SPH_N) });
+      }
+      S.L.cells = cells; S.L.pulse = null; S.L.G = sphereGrid();
+    },
+    draw(S) {
+      const { x, w, h, P, nD } = S, L = S.L, [, p1, p2] = L.pal, ab = L.ab, sec = S.reduce ? 0 : S.t / 1000;
+      abyssBg(S);
+      const size = Math.min(w * .3, (h - 12) * .4), rot = 2.2 + sec * .09, Pj = abyssProj(rot, -.3, size, w / 2, h * .47), o = [0, 0, 0, 0];
+      // 수리 — 3.8초마다 앞쪽(보이는 쪽) 칸 하나
+      const PER = 3.8, n = Math.floor(sec / PER), age = S.reduce ? 1.2 : sec - n * PER, W0 = 1.25;
+      if (!L.pulse || L.pulse.n !== n) {
+        const front = L.cells.filter(c => { Pj(c.p[0], c.p[1], c.p[2], o); return o[2] < -.45; });
+        const c = front[Math.floor(rnd(n * 13 + 7) * front.length)] || L.cells[0];
+        const G = L.G, ds = new Float32Array(G.X.length);
+        for (let q = 0; q < ds.length; q++) ds[q] = Math.acos(Math.max(-1, Math.min(1, G.X[q] * c.p[0] + G.Y[q] * c.p[1] + G.Z[q] * c.p[2])));
+        L.pulse = { n, c, ds };
+      }
+      const src = L.pulse.c.p, amp = .55 + .45 * (1 - S.ps), fade = Math.exp(-age * .45);
+      const dist = (X, Y, Z) => Math.acos(Math.max(-1, Math.min(1, X * src[0] + Y * src[1] + Z * src[2])));
+      const G = L.G, ds = L.pulse.ds, front = W0 * age;
+      fibers(S, "fa", SPH_A, SPH_B, (j, i, out) => {
+        const q = j * (SPH_B + 1) + i, dd = (ds[q] - front) / .13;
+        let wv = amp * Math.sin(G.d1[q] * 13 - sec * 1.75) * .042 + Math.sin(G.d2[q] * 17 - sec * 1.25) * .025;
+        if (dd > -3 && dd < 3) wv += .07 * Math.exp(-dd * dd) * fade;
+        const R = 1 + wv;
+        return Pj(G.X[q] * R, G.Y[q] * R, G.Z[q] * R, out);
+      }, (j, z) => mixc(p1, p2, j / SPH_A, (.13 + .43 * cl01((1 - z) / 2)) * ab), .65, true);
+      glowAt(x, w / 2, h * .47, h * .22, p1, .07);
+      // 칸 — 물결이 닿으면 흔들렸다 가라앉는다
+      for (const c of L.cells) {
+        const th = dist(c.p[0], c.p[1], c.p[2]), tau = age - th / W0;
+        const jig = tau > 0 ? Math.exp(-tau * 3) * Math.sin(tau * 16) * .06 * fade : 0, fl = tau > 0 ? Math.exp(-tau * 4) * fade : 0;
+        const R = 1.03 + jig; Pj(c.p[0] * R, c.p[1] * R, c.p[2] * R, o);
+        if (o[2] > .35) continue;                       // 뒤쪽은 숨긴다
+        const depth = cl01((.35 - o[2]) / .9), i = Math.floor(c.key / nD), d = c.key % nD, v = S.plan[i][d], placed = S.rank[c.key] < S.settled;
+        const col = !placed ? S.P.dim : v === "/" ? S.P.dim : P.col[v];
+        x.fillStyle = rgba(col, (placed ? (v === "/" ? .45 : .95) : .25) * depth);
+        x.beginPath(); x.arc(o[0], o[1], (placed && v !== "/" ? 2 : 1.3) * o[3] * (1 + fl * .6), 0, TAU); x.fill();
+        if (fl > .05) { x.strokeStyle = rgba(S.dark ? "#FFFFFF" : P.flash, .8 * fl * depth); x.lineWidth = 1; x.beginPath(); x.arc(o[0], o[1], 3.5 + 2 * fl, 0, TAU); x.stroke(); }
+      }
+      // 수리한 칸
+      Pj(src[0] * 1.03, src[1] * 1.03, src[2] * 1.03, o);
+      const pr = S.reduce ? 0 : Math.max(0, 1 - age / .5);
+      glowAt(x, o[0], o[1], 12 + 6 * pr, P.gold, .45);
+      x.strokeStyle = P.gold; x.lineWidth = 1.6; x.beginPath(); x.arc(o[0], o[1], 4 + 2 * pr, 0, TAU); x.stroke();
+      x.font = "600 9px system-ui, sans-serif"; x.textAlign = "left"; x.textBaseline = "middle"; x.fillStyle = P.gold;
+      x.fillText("수리", o[0] + 8, o[1] - 7);
+      caption(S, sphere.name, "금빛 = 고친 칸 · 물결이 닿은 이웃 칸이 흔들렸다 가라앉음", "고친 칸의 물결이 이웃으로");
+    },
+  };
+
+  // ------------------------------------------------------------ 끝나지 않은 균형(14) — 진동막, 남는 흔들림
+  // 원본 그대로: 원판 진동막(두 정재파 sin8x·sin5y + sin8y·sin5x)의 점 격자, 마디선 근처 점을 밝고 크게, 같은 기울임·
+  // 회전 흔들림. 점 수만 원본 134²에서 상자에 맞춰 55~75²로 — 원본 수를 160px에 넣으면 점이 겹쳐 마디선이 굵은 띠가
+  // 됐다(원본처럼 점 간격이 점 크기의 두 배쯤). 진동 주기만 원본 45초 → 4초(몇 초 안에 떨림이 보이게), 기울기는 -.3 → -.48(떨림이 보이게).
+  // 얹은 것: 막의 떨림이 진행만큼 잦아든다. 고리 여덟 곳은 따로 흔들리는 자리(남은 추가 검토) — 진행이 차며 하나씩
+  // 가라앉지만 세 곳은 끝까지 남는다. 마지막 해는 완벽의 증명이 아니라 계속 관찰할 것이 남은 상태. 최적성 증명이 아니다.
+  const MEM = new Map();
+  function membranePoints(n) {
+    if (MEM.has(n)) return MEM.get(n);
+    const xs = [], r = mulberry(1414);
+    const spots = [];
+    while (spots.length < 8) {
+      const a = r() * TAU, d = .25 + r() * .7, sx = Math.cos(a) * d, sy = Math.sin(a) * d;
+      if (spots.every(s => Math.hypot(s.x - sx, s.y - sy) > .45)) spots.push({ x: sx, y: sy, w: 3.2 + r() * 2.4, ph: r() * TAU });
+    }
+    spots.forEach((s, k) => { s.thr = k < 5 ? .18 + k * .16 : 9; });   // 다섯은 진행 18~82%에서 가라앉고 셋은 남는다
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+      const X = (i / (n - 1) - .5) * 2.4, Y = (j / (n - 1) - .5) * 2.4;
+      if (Math.hypot(X, Y) > 1.2) continue;
+      const m = Math.sin(X * 8) * Math.sin(Y * 5) + Math.sin(Y * 8) * Math.sin(X * 5), v = cl01(1 - Math.abs(m) * .9);
+      const near = [];
+      spots.forEach((s, k) => { const d2 = (X - s.x) ** 2 + (Y - s.y) ** 2; if (d2 < .09) near.push(k, Math.exp(-d2 / .018)); });
+      xs.push({ X, Y, m, v, near });
+    }
+    xs.sort((a, b) => a.v - b.v);   // 밝은(마디) 점이 위에 오게 — 원본은 매 프레임 깊이로 정렬
+    const out = { pts: xs, spots }; MEM.set(n, out); return out;
+  }
+  const membrane = {
+    key: "membrane", name: "끝나지 않은 균형", random: false,
+    init(S) {
+      abyssInit(S, "membrane");
+      const [, p1, p2] = S.L.pal, ab = S.L.ab;
+      S.L.size = Math.min(S.w * .26, (S.h - 12) * .4);
+      S.L.M = membranePoints(Math.max(40, Math.min(110, Math.round(2.4 * S.L.size / 2.5))));
+      S.L.cols = Array.from({ length: 128 }, (_, i) => mixc(p1, p2, i / 127, (.12 + (i / 127) ** 5 * .73) * ab));
+    },
+    draw(S) {
+      const { x, w, h } = S, L = S.L, [, , p2] = L.pal, sec = S.reduce ? 0 : S.t / 1000, M = L.M;
+      abyssBg(S);
+      const size = L.size, rot = .13 + .1 * S.ps + Math.sin(sec * .2) * .13;
+      const Pj = abyssProj(rot, -.48, size, w / 2, h * .47), o = [0, 0, 0, 0];
+      const A = .15 * (1.35 - 1.1 * S.ps), osc = S.reduce ? .7 : Math.cos(sec * 1.6);
+      const alive = M.spots.map(s => cl01((s.thr - S.ps) / .06)), sw = M.spots.map((s, k) => alive[k] * .16 * Math.sin(sec * s.w + s.ph));
+      for (const q of M.pts) {
+        let z = q.m * A * osc;
+        for (let k = 0; k < q.near.length; k += 2) z += sw[q.near[k]] * q.near[k + 1];
+        Pj(q.X, q.Y, z, o);
+        const big = q.v > .83, s = big ? 1.45 : .75;
+        x.fillStyle = L.cols[Math.floor(q.v * 127)]; x.fillRect(o[0], o[1], s, s);
+      }
+      // 남은 흔들림 — 고리
+      let left = 0;
+      M.spots.forEach((s, k) => {
+        if (alive[k] <= 0) return;
+        left++;
+        Pj(s.x, s.y, sw[k], o);
+        const pulse = S.reduce ? 0 : .5 + .5 * Math.sin(sec * s.w + s.ph);
+        x.strokeStyle = rgba(S.P.red, (.45 + .4 * pulse) * alive[k]); x.lineWidth = 1.2;
+        x.beginPath(); x.arc(o[0], o[1], 5 + 2.5 * pulse, 0, TAU); x.stroke();
+        x.fillStyle = rgba(p2, .9 * alive[k]); x.beginPath(); x.arc(o[0], o[1], 1.4, 0, TAU); x.fill();
+      });
+      const done = S.ps >= .999;
+      caption(S, membrane.name, done ? `떨림은 잦아들었고 ${left}곳이 남았습니다 — 계속 지켜봅니다` : `떨림이 잦아드는 중 · 고리 = 아직 흔들리는 곳 ${left}`,
+        done ? `남은 흔들림 ${left}곳 — 계속 관찰` : `고리 = 흔들리는 곳 ${left}`);
+    },
+  };
+
+  // 앞 열하나는 앱 생성 중 무작위 후보, 뒤 여섯(random: false)은 모음 페이지에서 __genVizForce로만 그린다.
+  const VIZ = [rain, journey, ripple, helix, city, mandala, porous, growth, score, orrery, swaps,
+    manifold, flow, tesseract, flower, sphere, membrane];
+  const NAMES = VIZ.filter(v => v.random !== false).map(v => v.name);
+  const EXTRA_NAMES = VIZ.filter(v => v.random === false).map(v => v.name);
   const LAST_KEY = "ns_genviz_last";
   let last = null;
   try { last = localStorage.getItem(LAST_KEY); } catch (e) { /* 저장 막힘 — 이 탭 안에서만 직전 제외 */ }
@@ -835,7 +1391,7 @@
       const f = VIZ.find(v => v.name === force || v.key === force);
       if (f) return f;
     }
-    const pool = VIZ.filter(v => v.key !== last);
+    const pool = VIZ.filter(v => v.random !== false && v.key !== last);
     const v = pool[Math.floor(Math.random() * pool.length)];
     last = v.key;
     try { localStorage.setItem(LAST_KEY, v.key); } catch (e) { /* 위와 같음 */ }
@@ -907,7 +1463,7 @@
   }
 
   const GenViz = window.GenViz = {
-    NAMES, start, stop, rosterRow, validRow, lastError: null,
+    NAMES, EXTRA_NAMES, start, stop, rosterRow, validRow, lastError: null,
     current: () => (run ? run.viz.name : null),
     // 점검용 — 지금 연출의 내부 상태(교환의 성좌가 바꾼 줄이 규칙을 지키는지 등). 화면은 쓰지 않는다.
     debugState: () => (run ? run.S.L : null),
