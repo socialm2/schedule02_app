@@ -735,15 +735,23 @@
   // 두고, 같은 날 두 사람의 E와 D가 선으로 이어진 채 자리를 바꾼다(글자가 위아래로 엇갈려 움직인다). 바꾼 자리는
   // 별로 남아 선이 쌓이면 성좌가 된다. 맞교환은 위 validRow를 깨지 않는 것만 한다(E→D·E-OFF-D가 생기면 안 함).
   // 1.4초마다 하나 — 생성이 3초면 끝나도 두 번은 보인다. 격자 채움은 진행(날짜 순서)을 따른다.
+  // 맞교환은 이미 다 놓인 날짜(그 날의 칸이 모두 채워진 열)에서만 한다 — 예전엔 진행과 무관하게 1~7일에서
+  // 바꿔 "근무표가 나오기 전부터 바뀌고 있다"(사용자, 11/2). 다 놓인 날이 생길 때까지는 기다린다.
   const swaps = {
     key: "swaps", name: "교환의 성좌",
     init(S) {
       S.L.g = gridLayout(S, 22, 5, 16);
       S.L.cur = S.plan.map(r => r.slice());
-      S.L.done = []; S.L.slot = -1; S.L.sw = null;
+      S.L.done = []; S.L.sw = null; S.L.next = 250;
+    },
+    // 그 날의 칸이 모두 놓인 날짜 수(날짜 순서로 놓으므로 앞에서부터 이어진다)
+    fullDays(S) {
+      let n = 0;
+      while (n < S.nD) { let all = true; for (let i = 0; i < S.nS; i++) if (S.rank[i * S.nD + n] >= S.settled) { all = false; break; } if (!all) break; n++; }
+      return n;
     },
     pick(S, slot) {
-      const { nS, nD } = S, cur = S.L.cur, maxD = Math.min(nD - 1, Math.max(6, Math.floor(S.p * nD)));
+      const { nS } = S, cur = S.L.cur, maxD = swaps.fullDays(S) - 1;
       const cand = [];
       for (let d = 0; d <= maxD; d++) for (let a = 0; a < nS; a++) {
         if (cur[a][d] !== "E") continue;
@@ -762,12 +770,16 @@
     draw(S) {
       const { x, w, h, P, nS, nD } = S, L = S.L, { cs, ox, oy } = L.g, cur = L.cur;
       paint(S);
-      const PERIOD = 1400, MOVE = 900, t = S.reduce ? 0 : S.t - 250, slot = Math.floor(t / PERIOD), ph = (t - slot * PERIOD) / MOVE;
-      if (!S.reduce && t >= 0 && slot !== L.slot) {
-        if (L.sw && L.sw.applied) { L.done.push(L.sw); if (L.done.length > 14) L.done.shift(); }
-        L.slot = slot; L.sw = swaps.pick(S, slot);
+      const PERIOD = 1400, MOVE = 900, t = S.reduce ? 0 : S.t;
+      // 다음 맞교환 — 앞 것이 끝나고(1.4초) 바꿀 수 있는 날이 있을 때만. 없으면 매 프레임 다시 본다.
+      if (!S.reduce && t >= L.next) {
+        const nx = swaps.pick(S, Math.floor(t / PERIOD));
+        if (nx) {
+          if (L.sw && L.sw.applied) { L.done.push(L.sw); if (L.done.length > 14) L.done.shift(); }
+          nx.t0 = t; L.sw = nx; L.next = t + PERIOD;
+        }
       }
-      const sw = L.sw, moving = sw && ph < 1;
+      const sw = L.sw, ph = sw ? (t - sw.t0) / MOVE : 1, moving = sw && ph < 1;
       if (sw && !moving && !sw.applied) {
         // 다시 확인하고 바꾼다 — 고른 뒤에 다른 교환이 끼어들 일은 없지만, 규칙을 깨는 줄은 한 프레임도 안 그린다
         const ra = cur[sw.a].slice(), rb = cur[sw.b].slice(); ra[sw.d] = "D"; rb[sw.d] = "E";
@@ -788,7 +800,7 @@
       x.font = `700 ${Math.max(6, cs * .78)}px ui-monospace, Menlo, monospace`; x.textAlign = "center";
       for (let i = 0; i < nS; i++) for (let d = 0; d < nD; d++) {
         const key = i * nD + d, mine = sw && sw.d === d && (sw.a === i || sw.b === i);
-        if (S.rank[key] >= S.settled && !mine) { x.fillStyle = rgba(P.dim, .16); x.fillRect(cx(d) - .8, cy(i) - .8, 1.6, 1.6); continue; }
+        if (S.rank[key] >= S.settled) { x.fillStyle = rgba(P.dim, .16); x.fillRect(cx(d) - .8, cy(i) - .8, 1.6, 1.6); continue; }
         if (mine && moving) continue;
         const v = cur[i][d], star = L.done.some(p => p.d === d && (p.a === i || p.b === i));
         if (star) { x.fillStyle = rgba(P.gold, S.dark ? .22 : .18); x.fillRect(cx(d) - cs / 2 + .5, cy(i) - cs / 2 + .5, cs - 1, cs - 1); }
