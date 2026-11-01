@@ -1759,111 +1759,26 @@ $("#genStopBtn").onclick = () => {
   if (requestGenStop()) { btn.disabled = true; btn.textContent = "돌고 있는 시도가 끝나면 멈춥니다…"; }
 };
 
-// ---------------------------------------------------------------- 생성 중 비 (오버레이 애니메이션)
-// 보고서 11장 '비'의 축소판 — 근무 글자가 위에서 떨어져 제자리에 앉는다. 어느 칸이 앉았는지는 진행
-// 게이지(#genProgressFill)의 비율을 그대로 따른다: 게이지가 40%면 칸의 40%가 앉아 있다. 실제 엔진의
-// 칸 배치 순서를 받는 게 아니라(Worker가 돌고 있는 동안은 알 수 없다) 날짜 순서로 앉히는 연출이다.
-// 명단 수·달의 날수는 입력 화면 값을 쓴다. 깜빡임을 끈 사람(prefers-reduced-motion)에게는 비 없이
-// 앉은 칸만 그린다. 캔버스는 이 파일(화면 로직)에서만 그리고 Worker·전송과는 무관하다.
-let genRainRAF = null, genRainTimer = null;
-// 다크/라이트 팔레트 — 바탕은 style.css(.gen-rain)가 같은 기준으로 바꾼다. 폰·윈도우 어디서든 OS 설정을 따른다.
-const RAIN_THEME = {
-  dark:  { fade: "rgba(11,15,25,.45)", solid: "#0b0f19", drop: "74,222,128", land: "#fff",
-           col: { D: "#BDD7EE", E: "#F8CBAD", N: "#3B5BA5", "/": "rgba(255,255,255,.28)" } },
-  // 라이트라고 보고하는 페이지: 캔버스는 바탕을 칠하지 않고(투명) 바탕은 CSS(.gen-rain)에 맡긴다.
-  // 삼성 인터넷 등의 '다크 모드'는 라이트 페이지를 브라우저가 강제로 어둡게 칠하는데, 캔버스 안에
-  // 칠한 픽셀은 건드리지 않아 화면 전체는 어두운데 비 상자만 하얗게 떴다(2026-10-31 사용자 캡처).
-  // CSS 바탕은 그 강제 다크가 같이 어둡게 하므로, 글자색을 밝은·어두운 바탕 양쪽에서 읽히는 중간 톤
-  // (대비 각 3:1 이상)으로 두면 진짜 라이트에서도, 강제 다크에서도 맞는다.
-  light: { clear: true, drop: "20,150,140", land: "#0D9488",
-           col: { D: "#3B82F6", E: "#EA580C", N: "#6366F1", "/": "#8A949A" } },
-};
-function rainRnd(i) { const x = Math.sin(i * 9301 + 49297) * 233280; return x - Math.floor(x); }
-function startGenRain() {
+// ---------------------------------------------------------------- 생성 중 시각화 (오버레이 애니메이션)
+// 생성할 때마다 열한 가지(비·여정·파문·나선·야경·만다라·다공성 질서·성장하는 해·병동의 악보·한 달의 궤도·
+// 교환의 성좌) 중 하나를 직전 것만 빼고 무작위로 골라 #genRain 캔버스에 그린다. 그리는 코드는
+// genviz.js(GenViz)에 있고, 여기서는 명단 수·달의 날수와 진행 비율만 넘긴다. 진행은 게이지(#genProgressFill)의 비율을 그대로 따른다
+// — 게이지는 끝나기 전 98%에서 멈추므로 98%를 다 찬 것으로 본다. 실제 엔진의 칸 배치 순서가 아니라
+// (Worker가 도는 동안은 알 수 없다) 날짜 순서로 놓는 연출이다. 점검용 고정: window.__genVizForce = '야경'.
+function startGenViz() {
   const cv = $("#genRain");
-  if (!cv) return;
-  stopGenRain();
-  const reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  const dark = !(window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches);
-  const TH = dark ? RAIN_THEME.dark : RAIN_THEME.light;
+  if (!cv || !window.GenViz) return;
   // 명단이 길면 앞 14명만 — 40명을 160px에 넣으면 글자가 점이 된다(연출이지 표가 아니다)
   const nS = Math.min(14, Math.max(6, (typeof formStaff !== "undefined" && formStaff.length) || 14));
   const y = Number($("#f_year")?.value), m = Number($("#f_month")?.value);
   const nD = (y && m) ? new Date(y, m, 0).getDate() : 30;
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  const w = cv.clientWidth || 300, h = cv.clientHeight || 118;
-  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
-  const x = cv.getContext("2d");
-  x.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const pad = 6, cs = Math.min((w - pad * 2) / nD, (h - pad * 2) / nS), ox = (w - cs * nD) / 2, oy = (h - cs * nS) / 2;
-  // 앉는 글자는 칸마다 무작위로 뽑으면 N 4연속·E 8연속처럼 실제 근무표에 없는 줄이 나온다(사용자).
-  // 연출이라도 근무표처럼 보이게, 사람마다 블록으로 짠다: 야간은 2~3일 뒤 OFF 2일, 주간·저녁은
-  // 3~5일(D만·E만·D→E) 뒤 OFF 1~2일(E로 끝나면 2일 — E-OFF-D를 피한다). 연속근무는 5일을 넘지 않는다.
-  // 날짜 순서로 앉는 순서(같은 날 안에서는 섞어서)는 그대로다.
-  const rainRow = (i) => {
-    const out = []; let k = 0;
-    const r = () => rainRnd(i * 977 + (k++) * 13 + 5);
-    const push = (v, n) => { for (let j = 0; j < n; j++) out.push(v); };
-    push("/", Math.floor(r() * 3));                    // 줄마다 시작을 어긋나게
-    while (out.length < nD) {
-      const t = r();
-      if (t < .27) { push("N", 2 + Math.floor(r() * 2)); push("/", 2); continue; }
-      const len = 3 + Math.floor(r() * 3);
-      const dLen = t < .58 ? len : t < .8 ? 0 : 1 + Math.floor(r() * (len - 1));
-      for (let j = 0; j < len; j++) out.push(j < dLen ? "D" : "E");
-      push("/", dLen < len ? 2 : 1 + Math.floor(r() * 2));
-    }
-    return out.slice(0, nD);
-  };
-  const plan = Array.from({ length: nS }, (_, i) => rainRow(i));
-  const letter = (i, d) => plan[i][d];
-  const order = [];
-  for (let d = 0; d < nD; d++) {
-    const rows = Array.from({ length: nS }, (_, i) => i).sort((a, b) => rainRnd(a * 7 + d) - rainRnd(b * 7 + d));
-    for (const i of rows) order.push(i * nD + d);
-  }
-  const born = new Map();
-  let settled = 0;
-  const chars = "DEN/";
-  const draw = (now) => {
-    const pct = parseFloat(($("#genProgressFill") || {}).style?.width || "0") || 0;
-    const target = Math.min(order.length, Math.floor(order.length * pct / 100));
-    while (settled < target) { born.set(order[settled], now); settled++; }
-    if (TH.clear) x.clearRect(0, 0, w, h);
-    else { x.fillStyle = reduce ? TH.solid : TH.fade; x.fillRect(0, 0, w, h); }
-    x.font = `700 ${Math.max(5, cs * .78)}px ui-monospace, Menlo, monospace`;
-    x.textAlign = "center"; x.textBaseline = "middle";
-    if (!reduce) {
-      for (let d = 0; d < nD; d++) {
-        const speed = 55 + 45 * rainRnd(d), head = ((now / 1000) * speed + rainRnd(d + 50) * 400) % (h + 160) - 80;
-        for (let k = 0; k < 7; k++) {
-          const yy = oy + head - k * cs;
-          if (yy < oy || yy > oy + cs * nS) continue;
-          const i = Math.floor((yy - oy) / cs);
-          if (born.has(i * nD + d)) continue;
-          x.fillStyle = `rgba(${TH.drop},${k ? .2 - k * .02 : .55})`;
-          x.fillText(chars[Math.floor(rainRnd(d * 31 + k + Math.floor(now / 90)) * 4)], ox + d * cs + cs / 2, yy + cs / 2);
-        }
-      }
-    }
-    for (const [key, t0] of born) {
-      const i = Math.floor(key / nD), d = key % nD, v = letter(i, d);
-      const a = reduce ? 1 : Math.min(1, (now - t0) / 450), e = 1 - Math.pow(1 - a, 3);
-      const yy = oy + i * cs + cs / 2 - (1 - e) * cs * 1.5;
-      x.fillStyle = a < 1 ? TH.land : TH.col[v];
-      x.globalAlpha = v === "/" ? .5 : 1;
-      x.fillText(v, ox + d * cs + cs / 2, yy);
-      x.globalAlpha = 1;
-    }
-  };
-  if (reduce) { draw(performance.now()); genRainTimer = setInterval(() => draw(performance.now()), 500); return; }
-  const frame = (now) => { draw(now); genRainRAF = requestAnimationFrame(frame); };
-  genRainRAF = requestAnimationFrame(frame);
+  window.GenViz.start(cv, {
+    nS, nD, year: y || null, month: m || null,
+    progress: () => (parseFloat(($("#genProgressFill") || {}).style?.width || "0") || 0) / 98,
+  });
 }
-function stopGenRain() {
-  if (genRainRAF) cancelAnimationFrame(genRainRAF);
-  if (genRainTimer) clearInterval(genRainTimer);
-  genRainRAF = genRainTimer = null;
+function stopGenViz() {
+  if (window.GenViz) window.GenViz.stop();
 }
 
 // thorough: 생성·재생성·편집 적용에서 꼼꼼히 만들기가 켜져 있을 때 — 진척 줄과 멈추기 단추를 보인다.
@@ -1882,7 +1797,7 @@ function showGenOverlay(msg, thorough, rain) {
   $("#genOverlay").style.display = "";
   const fill = $("#genProgressFill");
   fill.style.width = "0%";
-  if (rain) startGenRain();
+  if (rain) startGenViz();
   genProgressT0 = Date.now();
   genProgressBudget = GEN_TIME_BUDGET_SEC;
   clearInterval(genProgressTimer);
@@ -1915,7 +1830,7 @@ function markGenOverlaySlow(msg) {
 }
 function hideGenOverlay() {
   $("#genOverlay").style.display = "none";
-  stopGenRain();
+  stopGenViz();
   clearInterval(genProgressTimer);
   genProgressTimer = null;
 }
