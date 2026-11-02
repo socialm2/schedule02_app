@@ -1,14 +1,14 @@
 // ================================================================ 생성 중 시각화 (genviz.js)
-// 생성 오버레이의 캔버스(#genRain, 높이 160px)에 열세 가지 연출 중 하나를 그린다. 생성할 때마다 무작위로
+// 생성 오버레이의 캔버스(#genRain, 높이 160px)에 열두 가지 연출 중 하나를 그린다. 생성할 때마다 무작위로
 // 고르되 직전 것은 빼고 고른다(같은 그림이 연달아 나오면 '무작위'로 안 보인다). 후보는 원래 있던 '비'(사용자가
 // 남기라고 함) + docs/시각화/모음/시각화_9가지_261101.html에서 고른 것 가운데 여덟 가지(탐색과정은 사용자가
 // 뺐다, 2026-11-01) + GPT 갤러리의 성장하는 해(02-04)·교환의 성좌(01-07). 원본을 160px 상자에서 눈에 보이게
 // 줄였고, 뒤의 둘은 근무표와의 연결이 한눈에 보이게 다시 그렸다(사용자: '이해가 잘되게').
 //  - 생성은 보통 3~10초라, 진행과 별개로 시간으로 도는 움직임(걷기·회전·재생선·탐색자·맞교환)을 3~5초 주기로
 //    두어 처음 2~3초 안에 무엇을 보여 주는지 드러나게 했다(사용자). 진행에 묶인 것은 '채워지는' 부분이다.
-//  - GPT '탐색의 심연'(02)의 08 차원의 접힘·09 질서의 꽃도 무작위 후보다(사용자 2026-11-02, 열셋).
+//  - GPT '탐색의 심연'(02)의 08 차원의 접힘도 무작위 후보다(사용자 2026-11-02). 09 질서의 꽃은 넣었다가 "안 예쁘다"로 뺐다(열둘).
 //
-// 지키는 것 — 열세 가지 모두 같다:
+// 지키는 것 — 열두 가지 모두 같다:
 //  - 근무 글자·배치는 rosterRow() 한 곳에서 나온다. 칸마다 무작위로 뽑으면 N 4연속·E 8연속처럼 실제
 //    근무표에 없는 줄이 나온다(사용자). 그래서 사람마다 블록으로 짠다 — 야간 2~3일 뒤 OFF 2일, 주간·저녁
 //    3~5일 뒤 OFF(E로 끝나면 2일, E→D 없음).
@@ -826,7 +826,7 @@
     },
   };
 
-  // ================================================================ 탐색의 심연 둘 — 차원의 접힘·질서의 꽃
+  // ================================================================ 탐색의 심연 — 차원의 접힘
   // 원본: docs/시각화/gpt_20261023/02_sublime_14/탐색의_심연_14개_풍경.html의 drawManifold(01)·drawFlow(02)·
   // drawTesseract(08)·drawFlower(09)·drawSphere(10)·drawMembrane(14). 수식·색(PALETTES)·선 굵기·투영(proj: 세로축
   // 회전, 기울기 -.3, 원근 4.6)을 그대로 옮기고 160px 상자에 맞게 크기와 선 수만 줄였다 — 다공성 질서를 2D로 줄였을
@@ -839,7 +839,6 @@
   // 구리색만 대비 때문에 조금 어둡게), 다크에서는 어두운 바탕에 같은 색을 밝힌 짝.
   const ABYSS = {
     tess:     { dark: ["#0d0f14", "#879cb9", "#f2ba91"], light: ["", "#56708F", "#C0703F"] },
-    flower:   { dark: ["#0e0f14", "#9AA6C4", "#E3A97F"], light: ["", "#606a81", "#b47c59"] },
   };
   const HEX3 = new Map();
   function hex3(h) {
@@ -887,28 +886,6 @@
     x.fillText(x.measureText(long).width <= room ? long : short, S.w - 7, S.h - 4);
   }
   // 매개변수 곡면의 섬유 nA개(선마다 nB+1점)를 원본처럼 평균 깊이로 뒤에서부터 긋는다. pos(a, b, out)이 점을 낸다.
-  function fibers(S, slot, nA, nB, pos, colorOf, width, sorted) {
-    const n1 = nB + 1, need = nA * n1 * 2, x = S.x, o = [0, 0, 0, 0];
-    let buf = S.L[slot];
-    if (!buf || buf.length !== need) buf = S.L[slot] = new Float32Array(need);
-    const zs = new Float32Array(nA), idx = [];
-    for (let a = 0; a < nA; a++) {
-      let zsum = 0;
-      for (let b = 0; b <= nB; b++) { pos(a, b, o); const q = (a * n1 + b) * 2; buf[q] = o[0]; buf[q + 1] = o[1]; zsum += o[2]; }
-      zs[a] = zsum / n1; idx.push(a);
-    }
-    if (sorted) idx.sort((p, q) => zs[q] - zs[p]);
-    x.lineWidth = width;
-    for (const a of idx) {
-      x.strokeStyle = colorOf(a, zs[a]);
-      x.beginPath();
-      const q0 = a * n1 * 2;
-      x.moveTo(buf[q0], buf[q0 + 1]);
-      for (let b = 1; b <= nB; b++) x.lineTo(buf[q0 + b * 2], buf[q0 + b * 2 + 1]);
-      x.stroke();
-    }
-  }
-
   // ------------------------------------------------------------ 차원의 접힘(08) — 4차원 테서랙트, 축 넷 = 네 관점
   // 원본 그대로: 크기가 다른 테서랙트 26겹을 세 평면에서 4차원 회전해 투영, 밝게 드러나는 겹 수 ← 진행(원본은 단계).
   // 회전은 원본의 약 3배 빠르기 — 몇 초 안에 축이 접혔다 펴지는 것이 보이게. 얹은 것: 4차원의 축 넷에 '횟수·주말·
@@ -976,81 +953,8 @@
     },
   };
 
-  // ------------------------------------------------------------ 질서의 꽃(09) — 슈퍼포뮬러 주름 곡면, 꽃잎 = 사람
-  // 원본 그대로: 슈퍼포뮬러(m=7) 곡면의 위도선 105 → 72줄·경도선 70 → 52줄, 위도별 주름(폭 ← 진행), 같은 회전.
-  // 얹은 것: 꽃잎 일곱이 일곱 사람이고 꽃잎 길이가 그 사람의 밤 근무 수다(꽃잎 끝 숫자). 1.7초마다 밤이 가장 많은
-  // 꽃잎에서 가장 적은 꽃잎으로 달 하나가 건너가 길이가 고르게 펴진다(진행이 앞서면 진행만큼). 다 펴져도 꽃잎마다
-  // 주름·기울기는 제각각 — 모두를 같은 모양으로 만들지 않는 균등. 실제 탄성 물리·실제 배정 기록이 아니다.
-  function superR(a, m, n1, n2, n3) { return (Math.abs(Math.cos(m * a / 4)) ** n2 + Math.abs(Math.sin(m * a / 4)) ** n3) ** (-1 / n1); }
-  const flower = {
-    key: "flower", name: "질서의 꽃",
-    init(S) {
-      abyssInit(S, "flower");
-      // 밤 수가 고르지 않은 일곱 사람 — 많은 사람과 적은 사람을 번갈아 둘러 놓는다
-      const cnt = S.plan.map(r => r.filter(v => v === "N").length), ord = cnt.map((_, i) => i).sort((a, b) => cnt[b] - cnt[a] || a - b);
-      const pick = [ord[0], ord[ord.length - 1], ord[1], ord[ord.length - 2], ord[2], ord[ord.length - 3], ord[Math.floor(ord.length / 2)]];
-      let b = pick.map(i => cnt[i]);
-      if (Math.max(...b) - Math.min(...b) < 4) b = [9, 3, 7, 4, 8, 2, 6];   // 명단이 이미 고르면 연출이 안 보인다
-      const states = [b.slice()], moves = [];
-      for (let g = 0; g < 30; g++) {
-        const hi = b.indexOf(Math.max(...b)), lo = b.indexOf(Math.min(...b));
-        if (b[hi] - b[lo] <= 1) break;
-        b = b.slice(); b[hi]--; b[lo]++; moves.push([hi, lo]); states.push(b);
-      }
-      S.L.who = pick; S.L.states = states; S.L.moves = moves;
-      S.L.mean = states[0].reduce((s, v) => s + v, 0) / 7;
-    },
-    draw(S) {
-      const { x, w, h, P } = S, L = S.L, [, p1, p2] = L.pal, ab = L.ab, sec = S.reduce ? 0 : S.t / 1000;
-      abyssBg(S);
-      // 몇 번째 건너감인지 — 시간(1.7초마다)과 진행 가운데 앞선 쪽
-      const K = L.moves.length, eff = Math.min(K, Math.max(S.reduce ? 0 : Math.max(0, sec - .5) / 1.7, S.ps * K)), n = Math.floor(eff), ph = eff - n;
-      const land = n < K ? cl01((ph - .55) / .3) : 0, cur = L.states[n], nxt = L.states[Math.min(K, n + 1)];
-      const sc = cur.map((v, i) => Math.max(.6, Math.min(1.4, 1 + .1 * ((v + (nxt[i] - v) * land) - L.mean))));
-      const scAt = (u) => { const f = ((u / (TAU / 7)) % 7 + 7) % 7, k0 = Math.floor(f), fr = f - k0, s = fr * fr * (3 - 2 * fr); return sc[k0] * (1 - s) + sc[(k0 + 1) % 7] * s; };
-      const size = Math.min(w * .3, (h - 12) * .45), Pj = abyssProj(.3 + sec * .055, -.3, size, w / 2, h * .47), wav = .04 + .03 * S.ps;
-      // u(둘레)마다 변하지 않는 값(슈퍼포뮬러 반지름 등)은 표로 한 번만 — 점이 만 개 넘어 매번 거듭제곱하면 무거웠다
-      const U = L.utab || (L.utab = new Map()), ut = (u) => {
-        let e = U.get(u);
-        if (!e) { e = [Math.cos(u), Math.sin(u), superR(u, 7, .47, 1.4, 1.4), Math.cos(7 * u), u * 21, 0, -1]; U.set(u, e); }
-        if (e[6] !== S.now) { e[5] = scAt(u); e[6] = S.now; }
-        return e;
-      };
-      const pos = (u, v, o) => {
-        const e = ut(u), r = e[2] * e[5], cv = Math.cos(v), wave = wav * Math.sin(e[4] + v * 9 + sec * .25) * cv * cv;
-        return Pj((r * .75 + wave) * cv * e[0], (r * .75 + wave) * cv * e[1], .65 * Math.sin(v) + .16 * e[3] * cv * cv, o);
-      };
-      fibers(S, "fa", 72, 140, (a, b, o) => pos(b / 140 * TAU, (a / 71 - .5) * Math.PI, o),
-        (a, z) => mixc(p1, p2, a / 72, (.16 + .27 * cl01((1 - z) / 2)) * ab), .65, true);
-      fibers(S, "fb", 52, 52, (a, b, o) => pos(a / 52 * TAU, (b / 52 - .5) * Math.PI, o), () => rgba(p1, .145 * ab), .5, false);
-      // 꽃잎 끝 — 밤 근무 수
-      const o = [0, 0, 0, 0], tips = [], ctr = Pj(0, 0, 0, [0, 0, 0, 0]);
-      for (let k = 0; k < 7; k++) { pos(k * TAU / 7, 0, o); tips.push([o[0], o[1]]); }
-      x.font = "700 9px ui-monospace, Menlo, monospace"; x.textAlign = "center"; x.textBaseline = "middle";
-      const mv = n < K ? L.moves[n] : null;
-      tips.forEach(([X, Y], k) => {
-        const dx = X - ctr[0], dy = Y - ctr[1], d = Math.hypot(dx, dy) || 1, v = land > .5 ? nxt[k] : cur[k];
-        const tx = Math.max(8, Math.min(w - 8, X + dx / d * 9)), ty = Math.max(7, Math.min(h - 19, Y + dy / d * 7)), hot = mv && (mv[0] === k || mv[1] === k) && ph < .9;
-        x.fillStyle = hot ? P.col.N : S.P.sub; x.fillText(String(v), tx, ty);
-      });
-      // 건너가는 달 — 많은 꽃잎에서 적은 꽃잎으로
-      if (mv && !S.reduce && ph < .6) {
-        const f = cl01(ph / .55), e = f * f * (3 - 2 * f), [ax, ay] = tips[mv[0]], [bx, by] = tips[mv[1]];
-        const mx = (ax + bx) / 2, my = (ay + by) / 2, ox = mx - ctr[0], oy = my - ctr[1], od = Math.hypot(ox, oy) || 1, lift = 18;
-        const qx = mx + ox / od * lift, qy = my + oy / od * lift;
-        const X = (1 - e) * (1 - e) * ax + 2 * (1 - e) * e * qx + e * e * bx, Y = (1 - e) * (1 - e) * ay + 2 * (1 - e) * e * qy + e * e * by;
-        x.strokeStyle = rgba(P.col.N, .35); x.lineWidth = 1; x.setLineDash([2, 3]);
-        x.beginPath(); x.moveTo(ax, ay); x.quadraticCurveTo(qx, qy, bx, by); x.stroke(); x.setLineDash([]);
-        crescent(x, X, Y, 4, S.dark ? P.moon : P.col.N);
-      }
-      const done = eff >= K;
-      caption(S, flower.name, done ? "고르게 폈지만 꽃잎마다 모양은 제각각" : "꽃잎 = 한 사람, 길이 = 밤 근무 · 많은 쪽 밤을 적은 쪽으로",
-        done ? "고르게, 그러나 제각각" : "꽃잎 = 사람, 숫자 = 밤 근무");
-    },
-  };
-
-  // 열셋 모두 앱 생성 중 무작위 후보다(직전 것 제외). 모음 페이지는 __genVizForce로 하나씩 고정해 그린다.
-  const VIZ = [rain, journey, ripple, helix, city, mandala, porous, growth, score, orrery, swaps, tesseract, flower];
+  // 열둘 모두 앱 생성 중 무작위 후보다(직전 것 제외). 모음 페이지는 __genVizForce로 하나씩 고정해 그린다.
+  const VIZ = [rain, journey, ripple, helix, city, mandala, porous, growth, score, orrery, swaps, tesseract];
   const NAMES = VIZ.map(v => v.name);
   const LAST_KEY = "ns_genviz_last";
   let last = null;
