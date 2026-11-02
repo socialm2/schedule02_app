@@ -1107,7 +1107,12 @@
     const t0 = S.now; let prev = S.now;
     const draw = (now) => {
       if (run !== me) return;
-      const p = Math.max(0, Math.min(1, Number(opts.progress()) || 0));
+      // 연출 진행 = 게이지와 '앞당김' 중 큰 쪽. 게이지는 8초 예산으로 고르게 차는데 생성은 보통 3~8초에
+      // 끝나서, 게이지만 따르면 처음 1~2초는 거의 비어 있고 끝나기 전에 절반도 못 그린 채 닫혔다(사용자 11/2:
+      // 악보·교환의 성좌가 "처음에 멈칫", "속도 전체적으로 봐줘"). 그래서 처음 3초 안에 85%까지는 시간으로
+      // 앞당겨 채우고(감속 곡선), 그 뒤로는 게이지를 따른다. 생성이 끝나면 어차피 게이지가 따라온다.
+      const lead = .85 * (1 - Math.pow(1 - Math.min(1, Math.max(0, now - t0) / 3000), 3));
+      const p = Math.max(lead, Math.max(0, Math.min(1, Number(opts.progress()) || 0)));
       // rAF의 now는 start()에서 읽은 performance.now()보다 이를 수 있다 — 음수 경과시간이면 다공성 질서의
       // 탐색자 위치가 -1이 돼 그리다 멈췄다(ui_smoke가 잡음). 0 아래로 내려가지 않게 한다.
       S.p = p; S.now = now; S.t = Math.max(0, now - t0);
