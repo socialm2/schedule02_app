@@ -1200,3 +1200,15 @@ details.expert-sec > .side-sec { margin-top: 12px; }
 .swap-tools { font-size: .75rem; color: var(--sub); margin: 4px 0; }
 .swap-tools label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
 
+/* 변경 안내 초안(GPT 11/2 보고서 N03) — 공지 기준본 대비 바뀐 사람만 */
+.notice-sec .notice-sum { margin: 6px 0; font-size: .8125rem; }
+.notice-list { list-style: none; padding: 0; margin: 4px 0; }
+.notice-list li { border-bottom: 1px solid var(--line); padding: 7px 0; font-size: .75rem; }
+.notice-list li.sent { opacity: .55; }
+.notice-list .notice-who { display: flex; align-items: center; gap: 8px; }
+.notice-list .notice-sent { margin-left: auto; display: inline-flex; gap: 4px; align-items: center; color: var(--sub); cursor: pointer; }
+.notice-list .notice-what { margin: 3px 0 5px; line-height: 1.5; }
+.notice-list .notice-copy { font-size: .6875rem; padding: 3px 9px; }
+.notice-sec .warn-text { color: var(--warn); }
+.notice-fallback { position: fixed; left: 8px; right: 8px; bottom: 8px; height: 120px; z-index: 300; }
+

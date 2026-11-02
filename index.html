@@ -55,7 +55,7 @@
   <header>
     <!-- 배지·빌드시각은 스크린리더가 제목으로 읽지 않게 감싼다(aria-hidden). .build-time span 자체는
          CI(deploy.yml)가 정규식으로 찾아 바꾸므로 그 태그에는 속성을 더하지 말 것. -->
-    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.87</span><span class="build-time">Updated 2026-11-02 14:40:28</span></span></h1>
+    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.87</span><span class="build-time">Updated 2026-11-02 15:37:48</span></span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
@@ -242,6 +242,7 @@
 <!-- 출력 화면의 "월간근무표 올리기" — 숨은 파일 칸. 접었다 폈다 하는 영역 안에
      두면 그 영역이 닫혀 있을 때 브라우저가 클릭을 무시할 수 있어 바깥에 둔다. -->
 <input type="file" id="monthInput" accept=".xlsx" class="file-input-hidden" tabindex="-1">
+<input type="file" id="baselineInput" accept=".xlsx" class="file-input-hidden" tabindex="-1">
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <!-- platform.js가 먼저다 — app.js가 시작하자마자 부르는 api()·bootPlatform()이
      여기 들어 있다(Worker로 요청 보내기·파일 올리고 받기·Pyodide 부팅). -->

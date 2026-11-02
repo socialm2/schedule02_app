@@ -560,6 +560,9 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 <li><b>날짜 머리칸을 누르면</b> 그날 병동(누가 어디서 일하는지)이 뜨고, 거기서 이름을 누르면 그 사람의 한 달 여정이 뜹니다.
 패널 맨 아래 <b>월간 근무 보고(HTML) 받기</b>는 첫 장 요약(확인할 항목·부담 분포)과 검증·일별 인원·원티드·점수표·시각화를
 한 파일로 묶어 줍니다 — 열어서 인쇄하면 PDF.</li>
+<li><b>변경 안내 초안</b> — 근무표를 공지한 뒤 칸이 바뀌면, 오른쪽 패널에서 공지한 판(공지한 출력①을 올리거나 지금
+화면 표)을 기준본으로 정하세요. 그 뒤 바뀐 사람만 모아 "12일(목) E→D" 꼴의 개인별 안내 문구를 만들어 줍니다.
+복사해서 직접 보내고 '전달함'을 표시합니다(받았는지는 알 수 없습니다). 기준본은 이 탭 안에만 남습니다.</li>
 <li><b>D·E 배분</b> — D와 E는 사람마다 비슷한 비율로 나뉩니다(한 사람은 D만, 다른 사람은 E만 서지
 않게). 생성 마지막에 같은 날 D인 사람과 E인 사람을 맞바꿔 맞추므로 그날 인원·근무일·휴무는 그대로입니다.
 <b>원티드로 신청한 칸과 직접 고친(고정) 칸은 건드리지 않아</b>, D나 E를 많이 신청한 분은 그만큼 치우칠 수 있습니다.</li>
@@ -2112,6 +2115,119 @@ $("#restoreSampleBtn").onclick = () => {
 // 날아가므로 표만 그려 두면 다운로드·편집이 전부 "생성된 근무표가 없다"로 막힌다 — 그게 더 나쁘다. 같은
 // 입력·같은 시드면 같은 표가 나오고(엔진이 결정적), 고정 칸은 편집으로 다시 올려 적용한다. 그래도 다르면
 // 몇 칸이 다른지 그대로 말한다.
+// ================================================================ 변경 안내 초안 (GPT 11/2 보고서 N03)
+// 근무표를 공지한 뒤 칸이 바뀌면, 파트장은 바뀐 사람·날짜를 다시 찾아 안내문을 만들었다. 공지한 판을
+// '기준본'으로 정해 두면(이미 공지한 출력①을 올리거나, 지금 화면 표를 그대로) 지금 표와 비교해 바뀐
+// 사람만 모아 "12일(목) E→D" 꼴의 개인별 안내 초안을 만든다. 복사만 한다 — 보내는 것은 사람이 한다.
+//  - 기준본은 이 탭 안(sessionStorage)에만 둔다 — 기기에 남는 범위는 늘리지 않는다(보안 문서 1절).
+//  - 다른 달 기준본은 쓰지 않는다(날짜가 밀린 비교는 모두를 '바뀐 사람'으로 만든다). 파일은 API가 반려하고,
+//    화면 기준본은 연월이 다르면 버린다. 명단이 다르면 '새로 들어온/빠진 사람'으로 따로 적는다.
+//  - A→B→A로 돌아온 칸은 기준본과 같으므로 안내에서 빠진다. B팀(신입) 행도 비교한다.
+//  - '전달함' 표시는 그 사람의 바뀐 내용이 같을 때만 유지한다 — 다시 바뀌면 다시 '전달 필요'.
+const SESSION_NOTICE_KEY = "ns_session_notice_v1";
+let NOTICE = null;   // {year, month, label, at, grid, teamB, sent:{sid: fingerprint}}
+function loadNotice() {
+  const n = sessionGet(SESSION_NOTICE_KEY);
+  NOTICE = (n && ST && n.year === ST.year && n.month === ST.month) ? n : null;
+  if (n && !NOTICE) sessionDel(SESSION_NOTICE_KEY);
+}
+function saveNotice() { if (NOTICE) { if (!sessionSet(SESSION_NOTICE_KEY, NOTICE)) showToast("기준본을 이 탭에 보관하지 못했습니다 — 새로고침하면 다시 정해야 합니다", true); } else sessionDel(SESSION_NOTICE_KEY); }
+const noticeCode = v => (v === "/" ? "OFF" : (v || "빈칸"));
+function noticeDiff() {
+  if (!NOTICE || !ST) return null;
+  const out = [], days = ST.days || [];
+  const lab = d => `${d + 1}일${days[d] ? "(" + days[d].dow + ")" : ""}`;
+  const pend = new Set((ST.pending || []).map(k => k));
+  const cmp = (sid, a, b, team) => {
+    if (!a && b) { out.push({ sid, team, kind: "new", items: [] }); return; }
+    if (a && !b) { out.push({ sid, team, kind: "gone", items: [] }); return; }
+    const items = [];
+    for (let d = 0; d < Math.max(a.length, b.length); d++) {
+      const x = a[d] || "", y = b[d] || "";
+      if (x !== y) items.push({ d, from: x, to: y, pending: pend.has(`${sid}:${d}`), text: `${lab(d)} ${noticeCode(x)}→${noticeCode(y)}` });
+    }
+    if (items.length) out.push({ sid, team, kind: "changed", items });
+  };
+  const staffNow = ST.grid || {}, teamNow = ST.team_b_grid || {};
+  for (const sid of new Set([...Object.keys(NOTICE.grid), ...Object.keys(staffNow)])) cmp(sid, NOTICE.grid[sid], staffNow[sid], false);
+  for (const sid of new Set([...Object.keys(NOTICE.teamB || {}), ...Object.keys(teamNow)])) cmp(sid, (NOTICE.teamB || {})[sid], teamNow[sid], true);
+  return out;
+}
+const noticeFp = e => e.kind + ":" + e.items.map(i => i.text).join(",");
+function noticeText(e) {
+  const head = `[${ST.year}년 ${ST.month}월 근무 변경 안내] ${e.sid}님`;
+  if (e.kind === "new") return `${head}, 공지 뒤 근무표에 새로 들어오셨습니다 — 이번 달 근무를 확인해 주세요.`;
+  if (e.kind === "gone") return `${head}, 공지 뒤 이번 달 근무표에서 빠지셨습니다 — 확인 부탁드립니다.`;
+  return `${head}, 공지한 근무표에서 다음이 바뀌었습니다: ${e.items.map(i => i.text).join(", ")}.`;
+}
+function renderNotice() {
+  if (!ST) return "";
+  if (!NOTICE) loadNotice();   // 새로고침·복원 뒤 이 탭에 남은 기준본을 되찾는다
+  if (NOTICE && (NOTICE.year !== ST.year || NOTICE.month !== ST.month)) { NOTICE = null; saveNotice(); }
+  let html = `<details class="side-sec notice-sec" id="noticeSec"${NOTICE ? " open" : ""}><summary><h3 style="display:inline">변경 안내 초안</h3></summary>`;
+  if (!NOTICE) {
+    html += `<p class="hint">근무표를 공지한 뒤 칸이 바뀌면, 바뀐 사람에게 보낼 안내 문구를 만들어 드립니다.
+      먼저 <b>공지한 판</b>을 기준본으로 정하세요.</p>
+      <button class="wide notice-set-screen">지금 화면 표를 공지 기준본으로</button>
+      <button class="wide notice-set-file">공지한 출력① 올려서 기준본으로</button>
+      <p class="hint">기준본은 이 탭 안에만 보관되고, 탭을 닫으면 사라집니다. 근무표 자체는 바뀌지 않습니다.</p></details>`;
+    return html;
+  }
+  const diff = noticeDiff(), when = new Date(NOTICE.at);
+  const stamp = `${when.getMonth() + 1}/${when.getDate()} ${String(when.getHours()).padStart(2, "0")}:${String(when.getMinutes()).padStart(2, "0")}`;
+  html += `<p class="hint">기준본: <b>${esc(NOTICE.label)}</b> (${stamp}) · <button class="linklike notice-clear">기준본 지우기</button></p>`;
+  if (!diff.length) {
+    html += `<p class="hint">기준본과 지금 표가 같습니다 — 안내할 변경이 없습니다.</p></details>`;
+    return html;
+  }
+  const pendN = diff.reduce((n, e) => n + e.items.filter(i => i.pending).length, 0);
+  const sent = NOTICE.sent || {}, need = diff.filter(e => sent[e.sid] !== noticeFp(e)).length;
+  html += `<p class="notice-sum">바뀐 사람 <b>${diff.length}명</b> · 전달 필요 <b>${need}명</b></p>`;
+  // '재생성 적용'은 고정하지 않은 칸을 다시 짜서 공지 뒤 한두 칸 고친 것이 수십 명의 변경이 된다 — 안내가
+  // 길어진 이유를 알려 주고, 고친 칸만 바뀌는 길(엑셀에서 고쳐 되올리기)을 알려 준다.
+  if (diff.length > 5) html += `<p class="hint">바뀐 사람이 많습니다 — '재생성 적용'은 고정하지 않은 칸을 다시 짭니다.
+    공지 뒤 몇 칸만 고치려면 출력①을 엑셀에서 고쳐 <b>수정 엑셀 파일 업로드</b>로 올리세요(고친 칸만 바뀝니다).</p>`;
+  if (pendN) html += `<p class="hint warn-text">적용 안 한 편집 ${pendN}칸이 섞여 있습니다(＊ 표시) — '재생성 적용' 뒤에 다시 보세요.</p>`;
+  html += '<ul class="notice-list">';
+  diff.forEach((e, k) => {
+    const done = sent[e.sid] === noticeFp(e);
+    const what = e.kind === "new" ? "새로 들어옴" : e.kind === "gone" ? "근무표에서 빠짐" : e.items.map(i => esc(i.text) + (i.pending ? "＊" : "")).join(", ");
+    html += `<li class="${done ? "sent" : ""}"><div class="notice-who"><b>${esc(e.sid)}</b>${e.team ? ' <span class="lv">B팀</span>' : ""}
+      <label class="notice-sent"><input type="checkbox" class="notice-done" data-k="${k}"${done ? " checked" : ""}> 전달함</label></div>
+      <div class="notice-what">${what}</div>
+      <button class="notice-copy" data-k="${k}">이 사람 안내 복사</button></li>`;
+  });
+  html += `</ul><div class="action-row"><button class="notice-copy-all">전체 목록 복사</button></div>
+    <p class="hint">복사만 합니다 — 카톡·문자로 보내는 것은 직접 하세요. '전달함'은 표시일 뿐 받았는지는 알 수 없습니다.</p></details>`;
+  return html;
+}
+async function noticeCopy(text) {
+  try { await navigator.clipboard.writeText(text); showToast("복사했습니다 — 붙여넣어 보내세요"); }
+  catch (e) {
+    // 클립보드가 막힌 브라우저(일부 http·인앱 브라우저) — 고를 수 있게 상자에 띄운다
+    const ta = document.createElement("textarea"); ta.value = text; ta.className = "notice-fallback";
+    document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); showToast("복사했습니다"); } catch (e2) { showToast("자동 복사가 막혀 있습니다 — 길게 눌러 복사하세요", true); }
+    setTimeout(() => ta.remove(), 4000);
+  }
+}
+function setNoticeFromScreen() {
+  NOTICE = { year: ST.year, month: ST.month, label: `화면 표 ${ST.round}회차`, at: Date.now(),
+             grid: JSON.parse(JSON.stringify(ST.grid)), teamB: JSON.parse(JSON.stringify(ST.team_b_grid || {})), sent: {} };
+  saveNotice(); renderSide(); showToast("지금 표를 공지 기준본으로 정했습니다 — 이제 칸을 바꾸면 안내 초안이 생깁니다");
+}
+async function setNoticeFromFile(f) {
+  try {
+    const b = await apiUpload("/api/baseline_month", f);
+    const teamB = {}, grid = {};
+    for (const [sid, row] of Object.entries(b.grid)) ((b.team_b_names || []).includes(sid) ? teamB : grid)[sid] = row;
+    NOTICE = { year: b.year, month: b.month, label: f.name, at: Date.now(), grid, teamB, sent: {} };
+    saveNotice(); renderSide();
+    const n = noticeDiff().length;
+    showToast(n ? `공지한 출력①을 기준본으로 정했습니다 — 바뀐 사람 ${n}명` : "공지한 출력①을 기준본으로 정했습니다 — 지금 표와 같습니다");
+    const sec = $("#noticeSec"); if (sec) sec.scrollIntoView({ block: "nearest" });
+  } catch (e) { /* apiUpload가 이유를 토스트로 띄운다 */ }
+}
+
 const SESSION_RESULT_KEY = "ns_session_result_v1";
 const SESSION_FILES_KEY = "ns_session_files_v1";
 function sessionGet(key) { try { return JSON.parse(sessionStorage.getItem(key) || "null"); } catch (e) { return null; } }
@@ -3180,6 +3296,32 @@ delegateClick(document.getElementById("sidePane"), "button.undo-edit",
   (b) => undoEdit(b.dataset.sid, Number(b.dataset.day)));
 delegateClick(document.getElementById("sidePane"), "button.swap-pick",
   (b) => stageSwap(b.dataset.sid, Number(b.dataset.day), b.dataset.partner));
+delegateClick(document.getElementById("sidePane"), "button.notice-set-screen", () => setNoticeFromScreen());
+delegateClick(document.getElementById("sidePane"), "button.notice-set-file", () => $("#baselineInput").click());
+delegateClick(document.getElementById("sidePane"), "button.notice-clear", () => {
+  if (!confirm("공지 기준본을 지울까요? 안내 초안과 '전달함' 표시도 함께 사라집니다.")) return;
+  NOTICE = null; saveNotice(); renderSide();
+});
+delegateClick(document.getElementById("sidePane"), "button.notice-copy", (b) => {
+  const e = (noticeDiff() || [])[Number(b.dataset.k)]; if (e) noticeCopy(noticeText(e));
+});
+delegateClick(document.getElementById("sidePane"), "button.notice-copy-all", () => {
+  const d = noticeDiff() || []; if (!d.length) return;
+  noticeCopy(`[${ST.year}년 ${ST.month}월 근무 변경 — 공지 기준본 대비 ${d.length}명]\n` +
+    d.map(e => `· ${e.sid}${e.team ? "(B팀)" : ""}: ${e.kind === "new" ? "새로 들어옴" : e.kind === "gone" ? "근무표에서 빠짐" : e.items.map(i => i.text).join(", ")}`).join("\n"));
+});
+document.getElementById("sidePane").addEventListener("change", (ev) => {
+  if (!ev.target.classList || !ev.target.classList.contains("notice-done") || !NOTICE) return;
+  const e = (noticeDiff() || [])[Number(ev.target.dataset.k)]; if (!e) return;
+  NOTICE.sent = NOTICE.sent || {};
+  if (ev.target.checked) NOTICE.sent[e.sid] = noticeFp(e); else delete NOTICE.sent[e.sid];
+  saveNotice(); renderSide(); const sec = $("#noticeSec"); if (sec) sec.scrollIntoView({ block: "nearest" });
+});
+$("#baselineInput").onchange = async () => {
+  const el = $("#baselineInput"), f = el.files[0];
+  el.value = "";   // 같은 파일을 다시 골라도 걸리게
+  if (f) await setNoticeFromFile(f);
+};
 delegateClick(document.getElementById("sidePane"), "button.swap-more",
   () => { if (SWAP) { SWAP.showAll = !SWAP.showAll; renderSide(); const sec = $("#swapSec"); if (sec) sec.scrollIntoView({ block: "nearest" }); } });
 document.getElementById("sidePane").addEventListener("change", (ev) => {
@@ -4140,6 +4282,7 @@ function renderSide() {
     </div>`;
   }
   html += "</div>";
+  html += renderNotice();
 
   // 입력 요약 — 공휴일은 **이 달의 달력**(ST.days)에서 센다. 예전엔 params_summary.holidays(1년치
   // 표)의 길이를 그대로 찍어 11월에 "공휴일 18개"가 나왔다(2026-10-31 검토 P1). 토·일이 아닌데
