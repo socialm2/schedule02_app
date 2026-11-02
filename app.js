@@ -1765,18 +1765,13 @@ $("#genStopBtn").onclick = () => {
 // ---------------------------------------------------------------- 생성 중 시각화 (오버레이 애니메이션)
 // 생성할 때마다 열두 가지(비·여정·파문·나선·야경·만다라·다공성 질서·성장하는 해·병동의 악보·한 달의 궤도·
 // 교환의 성좌·차원의 접힘) 중 하나를 직전 것만 빼고 무작위로 골라 #genRain 캔버스에 그린다. 그리는 코드는
-// genviz.js(GenViz)에 있고, 여기서는 명단 수·달의 날수와 진행 비율만 넘긴다. 진행은 게이지(#genProgressFill)의 비율을 그대로 따른다
-// — 게이지는 끝나기 전 98%에서 멈추므로 98%를 다 찬 것으로 본다. 실제 엔진의 칸 배치 순서가 아니라
-// (Worker가 도는 동안은 알 수 없다) 날짜 순서로 놓는 연출이다. 점검용 고정: window.__genVizForce = '야경'.
+// genviz.js(GenViz)에 있고, 여기서는 진행 비율만 넘긴다 — 게이지는 끝나기 전 98%에서 멈추므로 98%를 다 찬 것으로
+// 본다. 칸은 genviz.js에 실린 실제 생성 기록(앱 샘플 명단·2026년 10월)의 순서로 놓인다(Worker가 도는 동안은 이번
+// 생성의 순서를 알 수 없다). 사람 수·날짜도 그 기록 기준이다. 점검용 고정: window.__genVizForce = '야경'.
 function startGenViz() {
   const cv = $("#genRain");
   if (!cv || !window.GenViz) return;
-  // 명단이 길면 앞 14명만 — 40명을 160px에 넣으면 글자가 점이 된다(연출이지 표가 아니다)
-  const nS = Math.min(14, Math.max(6, (typeof formStaff !== "undefined" && formStaff.length) || 14));
-  const y = Number($("#f_year")?.value), m = Number($("#f_month")?.value);
-  const nD = (y && m) ? new Date(y, m, 0).getDate() : 30;
   window.GenViz.start(cv, {
-    nS, nD, year: y || null, month: m || null,
     progress: () => (parseFloat(($("#genProgressFill") || {}).style?.width || "0") || 0) / 98,
   });
 }

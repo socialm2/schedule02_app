@@ -2,23 +2,28 @@
 // 생성 오버레이의 캔버스(#genRain, 높이 160px)에 열두 가지 연출 중 하나를 그린다. 생성할 때마다 무작위로
 // 고르되 직전 것은 빼고 고른다(같은 그림이 연달아 나오면 '무작위'로 안 보인다). 후보는 원래 있던 '비'(사용자가
 // 남기라고 함) + docs/시각화/모음/시각화_9가지_261101.html에서 고른 것 가운데 여덟 가지(탐색과정은 사용자가
-// 뺐다, 2026-11-01) + GPT 갤러리의 성장하는 해(02-04)·교환의 성좌(01-07). 원본을 160px 상자에서 눈에 보이게
-// 줄였고, 뒤의 둘은 근무표와의 연결이 한눈에 보이게 다시 그렸다(사용자: '이해가 잘되게').
-//  - 생성은 보통 3~10초라, 진행과 별개로 시간으로 도는 움직임(걷기·회전·재생선·탐색자·맞교환)을 3~5초 주기로
-//    두어 처음 2~3초 안에 무엇을 보여 주는지 드러나게 했다(사용자). 진행에 묶인 것은 '채워지는' 부분이다.
-//  - GPT '탐색의 심연'(02)의 08 차원의 접힘도 무작위 후보다(사용자 2026-11-02). 09 질서의 꽃은 넣었다가 "안 예쁘다"로 뺐다(열둘).
+// 뺐다, 2026-11-01) + GPT 갤러리의 성장하는 해(02-04)·교환의 성좌(01-07) + GPT '탐색의 심연'의 08 차원의 접힘
+// (사용자 2026-11-02; 09 질서의 꽃은 넣었다가 "안 예쁘다"로 뺐다). 원본을 160px 상자에 맞게 줄였다.
 //
 // 지키는 것 — 열두 가지 모두 같다:
-//  - 근무 글자·배치는 rosterRow() 한 곳에서 나온다. 칸마다 무작위로 뽑으면 N 4연속·E 8연속처럼 실제
-//    근무표에 없는 줄이 나온다(사용자). 그래서 사람마다 블록으로 짠다 — 야간 2~3일 뒤 OFF 2일, 주간·저녁
-//    3~5일 뒤 OFF(E로 끝나면 2일, E→D 없음).
-//  - 진행은 게이지(#genProgressFill)의 비율 하나를 따른다(app.js가 progress()로 넘긴다). 실제 엔진의 칸
-//    배치 순서가 아니라(Worker가 도는 동안은 알 수 없다) 날짜 순서로 놓는 연출이다(성장하는 해만 뿌리에서
-//    가까운 칸부터). 게이지는 끝나기 전 98%에서 멈추므로 app.js가 98%를 1로 넘긴다. 끝까지 차면 완성된 모습.
+//  - 칸은 실제 생성 기록 순서로 놓는다(사용자 2026-11-02: "원본처럼, 원본 생성 순서처럼"). 원본들이 재생하는
+//    기록(아래 TRACE — docs/시각화/claude_20261022/data/trace_sample_261022.json, 앱 샘플 명단 40명·2026년 10월,
+//    tools/build_genviz_trace.py가 줄여 싣는다)을 그대로 재생한다: 파트장 → 야간전담 → 야간 블록 → 수면오프 →
+//    주간 채우기 → 남은 칸 OFF → 수리·균등화(이미 놓인 칸이 바뀐다). 근무 글자·배치도 실제 엔진 결과라 규칙을 지킨다.
+//    격자를 그리는 연출은 앞 14명(TRACE.rows)·31일만 쓰고, 교환의 성좌만 원본처럼 40명을 점으로 그린다.
+//    사람 수·날짜는 이 기록 기준이라 화면의 명단 수·달과 다를 수 있다 — 연출이지 이번 달 표가 아니다.
+//    (생성이 도는 동안은 Worker 안의 실제 순서를 알 수 없다. 그래서 같은 엔진의 기록 한 벌을 재생한다.)
+//  - 등속(사용자 2026-11-02: "모두 등속도로"). 감속·가속 곡선(ease-out, 지수 스무딩, 앞당김 곡선)을 쓰지 않는다.
+//    진행 = max(게이지, 경과시간/T)를 직선으로 — T(연출마다, 기본 5.5초) 동안 기록 전체를 일정한 빠르기로
+//    재생한다. 생성은 보통 3~8초라(꼼꼼히는 30초) 5.5초면 대개 끝나기 전에 채움(기록의 앞 2/3, 약 3.7초)을 다
+//    보고 수리 단계 일부까지 보인다. 처음부터 시간으로 움직이므로 게이지가 처음 1~2초 거의 안 움직여도 멈칫하지
+//    않는다(사용자 11/2 "처음이 너무 느려 멈칫"). 게이지가 앞서 가면(꼼꼼히 만들기의 시도 단위 게이지) 2/T의
+//    일정한 빠르기로 따라간다 — 확 건너뛰지 않는다. 낙하·회전·재생 점도 모두 일정한 빠르기다.
+//  - 첫 1.5~3초 안에 무엇을 보여 주는지 드러난다: 파트장 줄·야간전담 줄·야간 블록이 그 안에 놓인다.
 //  - 다크/라이트: 다크면 캔버스가 바탕을 칠한다. 라이트면 바탕을 칠하지 않고(clearRect) CSS(.gen-rain)에
 //    맡기며, 글자·선은 밝은·어두운 바탕 양쪽에서 대비 3:1 이상인 중간 톤이다. 삼성 인터넷 다크 모드는
 //    라이트 페이지를 강제로 어둡게 칠하면서 캔버스 픽셀은 그대로 둬, 캔버스가 바탕을 칠하면 비 상자만
-//    하얗게 떴다(2026-10-31 사용자 캡처).
+//    하얗게 떴다(2026-10-31 사용자 캡처). 야경만은 원본이 밤 그림이라 라이트에서도 밤하늘을 칠한다.
 //  - prefers-reduced-motion이면 움직임 없이 진행 상태만 0.5초마다 다시 그린다.
 //  - 점검용 고정: window.__genVizForce = '야경'(이름이나 key, '비' 포함). 고른 것은 GenViz.current()로 읽는다.
 // 이 파일은 그리기만 한다 — Worker·전송과 무관하다(app.js의 startGenViz가 부른다).
@@ -26,20 +31,26 @@
   "use strict";
 
   const TAU = Math.PI * 2;
-  // 라이트 값은 #EEF2F0·#FFFFFF와 #121212·#202124 양쪽에 3:1 이상(2026-11-01 계산).
+  // 근무 색. D·E·N은 원래 값, 나머지(야간전담 NK·prn p·파트장 8A·수면오프 S/)는 클로드 갤러리 원본 색.
+  // 라이트 값은 #EEF2F0·#FFFFFF와 #121212·#202124 양쪽에 3:1 이상(2026-11-01·11-02 계산).
   const PAL = {
     dark: {
-      bg: "#0b0f19", col: { D: "#60A5FA", E: "#FB923C", N: "#A78BFA", "/": "#9AA4B8" },
+      bg: "#0b0f19",
+      col: { D: "#60A5FA", E: "#FB923C", N: "#A78BFA", "/": "#9AA4B8", NK: "#F472B6", p: "#4ADE80", "8A": "#CBD5E1", "S/": "#2DD4BF" },
       ink: "#E8EEF6", sub: "#8C98AC", dim: "#9AA4B8", label: "rgba(232,238,246,.42)", flash: "#FFFFFF",
       gold: "#FFD678", red: "#FF6E5A", sun: "#FFC857", moon: "#E6E9FF",
-      seek: ["#9FD8FF", "#C9B6FF", "#C7F5A8"], wall: ["#7FA88F", "#B9B07A", "#D6B06A"],
     },
     light: {
-      clear: true, col: { D: "#2F7BE6", E: "#E0620F", N: "#7C6BE0", "/": "#7E888E" },
+      clear: true,
+      col: { D: "#2F7BE6", E: "#E0620F", N: "#7C6BE0", "/": "#7E888E", NK: "#D2489A", p: "#2F8F4E", "8A": "#6F8296", "S/": "#0E9488" },
       ink: "#7A8580", sub: "#7E888E", dim: "#7E888E", label: "rgba(126,136,142,.75)", flash: "#0D9488",
       gold: "#B7791F", red: "#D9483B", sun: "#B7791F", moon: "#7C6BE0",
-      seek: ["#2F7BE6", "#8B6FD6", "#4D9A3A"], wall: ["#7E888E", "#7A8580", "#B7791F"],
     },
+  };
+  // GPT 갤러리(악보·궤도·성좌) 원본 색 — 다크는 원본 그대로, 라이트는 같은 색상의 중간 톤(위와 같은 3:1 기준)
+  const GPT_COL = {
+    dark: { D: "#51B9B0", E: "#EF986D", N: "#9985DB", NK: "#D59BD8", "/": "#8A9694", "S/": "#D6C79B", "8A": "#E0C36B", p: "#ACD19A" },
+    light: { D: "#25918A", E: "#C9672F", N: "#7F6BD0", NK: "#B45BB8", "/": "#7E888E", "S/": "#8E7C40", "8A": "#9A7A18", p: "#478C35" },
   };
   const rgbCache = new Map();
   function rgba(hex, a) {
@@ -50,51 +61,90 @@
   function rnd(i) { const x = Math.sin(i * 9301 + 49297) * 233280; return x - Math.floor(x); }
   function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
-  // 한 사람의 한 달 — 열한 가지가 모두 이 줄을 쓴다(위 머리말). 연속근무는 5일을 넘지 않는다.
-  function rosterRow(i, nD) {
-    const out = []; let k = 0;
-    const r = () => rnd(i * 977 + (k++) * 13 + 5);
-    const push = (v, n) => { for (let j = 0; j < n; j++) out.push(v); };
-    push("/", Math.floor(r() * 3));                    // 줄마다 시작을 어긋나게
-    while (out.length < nD) {
-      const t = r();
-      if (t < .27) { push("N", 2 + Math.floor(r() * 2)); push("/", 2); continue; }
-      const len = 3 + Math.floor(r() * 3);
-      const dLen = t < .58 ? len : t < .8 ? 0 : 1 + Math.floor(r() * (len - 1));
-      for (let j = 0; j < len; j++) out.push(j < dLen ? "D" : "E");
-      push("/", dLen < len ? 2 : 1 + Math.floor(r() * 2));
-    }
-    return out.slice(0, nD);
-  }
-  // 같은 근무가 이어지는 구간 — 악보의 긴 음표, 궤도의 원호
-  function runsOf(row) {
-    const out = [];
-    for (let d = 0; d < row.length; d++) {
-      const v = row[d];
-      if (v === "/") continue;
-      const last = out[out.length - 1];
-      if (last && last.v === v && last.d1 === d - 1) last.d1 = d; else out.push({ v, d0: d, d1: d });
-    }
-    return out;
-  }
+  // <<TRACE — tools/build_genviz_trace.py가 쓴다. 손으로 고치지 말 것.
+  // 원자료: docs/시각화/claude_20261022/data/trace_sample_261022.json(앱 샘플 명단 40명 · 2026년 10월 · 시드 0) — 사건 1747건, 칸을 바꾼 단계 26개.
+  // ev: 사건마다 4글자 = 단계·사람·날짜·근무(codes의 번호), 글자 하나 = ALPHA의 위치.
+  const TRACE = {
+    nS: 40, nD: 31, rows: 14,
+    alpha: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-",
+    codes: ["D", "E", "N", "NK", "/", "p", "8A", "S/"],
+    weekend: "0011100011100000110000011000001",
+    stages: ["파트장", "야간전담", "야간 블록", "수면오프", "주간 채우기", "남은 칸 OFF", "미달 수리", "퐁당퐁당 정리", "짧은 블록 늘리기", "짧은 블록 늘리기", "짧은 블록 늘리기", "짧은 블록 늘리기", "짧은 블록 늘리기", "OFF 고르게", "퐁당퐁당 정리", "퐁당퐁당 정리", "짧은 블록 늘리기", "짧은 블록 늘리기", "짧은 블록 늘리기", "짧은 블록 늘리기", "짧은 블록 늘리기", "퐁당퐁당(전역)", "2일 블록(전역)", "퐁당퐁당(전역)", "D/E 균형", "주말 맞교환"],
+    ev: "000600160024003400440056006600760084009400a400b600c600d600e600f600g400h400i600j600k600l600m600n400o400p600q600r600s600t6"
+      + "00u41a031a131a231a341a441a541a631a731a841a941aa41ab31ac31ad31ae41af41ag41ah31ai31aj41ak41al41am31an31ao31ap41aq41ar41as3"
+      + "1at31au41c331c431c541c641c741c831c931ca31cb41cc41cd41ce31cf31cg41ch41ci31cj31ck31cl41cm41cn31co31cp41cq41cr31cs31ct31cu4"
+      + "1c041c141c242m022m122m242m342B022B122B242B342o022o122o242o342f022f122f242f342w022w122w242w342g222g322g442g542p222p322p44"
+      + "2p542i222i322i442i542u222u322u442u54212221322144215422422252226422742D422D522D642D742r422r522r642r742n422n522n642n742z42"
+      + "2z522z642z742s522s622s742s842x622x722x842x9429622972298429942l622l722l842l942y622y722y842y942k722k822k942ka42782279227a4"
+      + "27b42q822q922qa42qb42A822A922Aa42Ab42v822v922va42vb42ma22mb22mc42md423a223b223c223d423e428a228b228c428d42ta22tb22tc42td4"
+      + "2ba22bb22bc42bd42gc22gd22ge42gf42Cc22Cd22Ce42Cf42jc22jd22je42jf426c226d226e426f421d221e221f421g422e222f222g422h42he22hf2"
+      + "2hg42hh42oe22of22og42oh42we22wf22wg42wh42sf22sg22sh42si42ig22ih22ii42ij42fg22fh22fi42fj42pg22ph22pi42pj42Bg22Bh22Bi42Bj4"
+      + "2zh22zi22zj42zk42ui22uj22uk42ul42Di22Dj22Dk42Dl42ni22nj22nk42nl42mj22mk22ml42mm42yj22yk22yl42ym429k229l229m429n42rk22rl2"
+      + "2rm42rn42kk22kl22km42kn42gl22gm22gn42go427l227m227n427o42Al22Am22An42Ao421m221n221o421p42lm22ln22lo42lp422n222o222p422q4"
+      + "28o228p228q428r42qo22qp22qq42qr42vo22vp22vq42vr42bp22bq22br42bs42jp22jq22jr42js42Cp22Cq22Cr42Cs42tq22tr22ts42tt426q226r2"
+      + "26s426t42xq22xr22xs42xt42hr22hs22ht42hu423r223s223t223u42os22ot22ou42is22it22iu42ft22fu22nu229u22ku227u231q732r733073f47"
+      + "3gp73i073mn73o474d004e0045004s004y004C004p004b004D0046014z014u014h014q014v0148014A014r0144054d104e1045104y104s104p104C10"
+      + "4b104D1046114q114u114v114h114A1148114r114z11441545204e204d204y204C204D204s2046214h214r214b214A2148214z214q2145304e304d30"
+      + "4C304y304n304s3046314h314b3142314A3148314q314x3149404j404w404t404l404m4043404k414x414B4147414v4149504t504l504w504j504m50"
+      + "43504y504d5047514B514k514x514v5145514e514o514f5144554d604w604t604j604m6043604g6041604i6045614e614B614o614k6147614f614v61"
+      + "4u61446541704d704g704i704j704t704w704q704A7045714e714u714B714o714f714m7143714p7144754g804d8041804i804D804r804C804o814581"
+      + "4e814u814f814p8146814h814g904t904b904r904D904C90489041904m9143914u914h9146914p914i9149a04Da04ra04Ca04ja04wa04la046a14ha1"
+      + "4pa14oa14xa14ya14na14za149b04lb04jb04wb04gb04rb04Db042b04kb04nb14xb14zb14yb14ob14hb14Bb14sb14db144b542c04lc04kc049c041c0"
+      + "4wc047c04ec045c04nc14xc14zc14Bc14sc14dc14yc14oc14qc144c542d04ld047d04ed045d04kd049d04Ad04vd04nd14sd14zd14Bd14qd14xd14dd1"
+      + "4yd14hd144d547e04ve04Ae04ee045e04ke04te048e04be04qe14Be14de14ie14ue14pe14fe14me14re144e54bf04tf048f04Af047f04vf04ef045f0"
+      + "4lf04if14uf14pf14ff14mf14rf14qf14nf149f144f54bg04lg04tg04zg04vg04Ag048g04jg049g14mg14ng14ug14rg14xg143g14gh04jh04lh04th0"
+      + "4Dh04bh048h043h14xh149h14mh14nh14rh14kh145h14gi04ji04yi04li042i041i04wi046i04Ci04ki14xi143i145i149i147i14ei14di14oi144i5"
+      + "42j041j04Cj04wj046j04gj04jj04sj04hj047j14ej14dj14oj14xj14kj143j145j14rj144j542k04sk041k04Ck04wk046k04Ak04hk04ik047k14ek1"
+      + "4dk14ok145k14Bk14pk14fk14vk144k542l04il04sl04Cl046l04wl04ll04hl04zl04pl14Bl14fl14vl14dl14el14ol148l14tl144l54im04zm04sm0"
+      + "4hm04Dm04bm04qm04um04nm048m14Bm14pm14tm14fm14vm14jm14xm143m144m54qn04zn04un04Dn04bn04nn04in04wn04fn14Bn14jn14tn14xn143n1"
+      + "48n14bo04wo04Co04zo04uo04Do04no043o14jo14to14xo14oo14yo14so14eo14mp046p04Dp04np04up04wp04Ap047p04kp04ep14yp14sp14op143p1"
+      + "49p14pp14ip14Bp144p54mq04Aq047q04kq04hq04wq04gq04lq04zq049q14yq14pq14iq14sq14Bq14eq14oq14rq144q54gr04Ar04lr04mr047r04zr0"
+      + "4kr041r04Dr049r14yr14pr14rr14ir14Br14sr14er14fr144r541s04gs04ls04As04Ds04ms047s04ks04zs04fs149s14rs14ps14Bs142s14qs14vs1"
+      + "48s144s541t04gt04nt04lt04Dt04zt04bt04Ct04dt042t14qt14vt148t14rt145t14ut14jt14yt144t541u04du04Cu04bu04Du04wu04su04eu042u1"
+      + "45u14yu14vu14qu14ju14uu15104511451a451b451h451l45204521452245284529452a452m4531453245334538453f453k453l453q4542454345444"
+      + "5484549454a454g454h454n454o454u45544559455a455b455g455l455m455n455o455p455q455r455s4564456545664567456b456g456h456m456n4"
+      + "56o456u45704571457245734577457g457h457t45844585458645874588458i458j458k458u4590459145924593459e459j459o459t45b445b545b64"
+      + "5b745b845bi45bj45bk45bl45d445d945da45df45dg45dh45dm45dn45do45dp45dq45dr45ds45e445e945ea45eb45eg45eh45em45en45es45et45f94"
+      + "5fa45fb45fc45fd45fo45fp45fq45g045g145ga45gg45gk45gu45h445h545h645h745hc45hi45hn45ho45hp45i145ia45ib45ic45id45io45j045j14"
+      + "5j245j345j845j945jk45jl45k045k145k245k345kf45kg45ko45kt45l045l145l245l345le45lj45lk45lu45m845mi45mo45mt45mu45n045n145n24"
+      + "5n845n945ne45nq45nr45ns45o945od45om45on45or45p645pb45pc45pd45pn45po45pt45pu45q445q545q645qg45qh45qi45qj45qk45ql45r345rc4"
+      + "5rd45ri45ro45rp45ru45s445s945sa45se45sn45ss45st45t045t145t245t345t845ti45tj45tk45tp45tu45ua45ub45uc45ud45uh45uq45ur45us4"
+      + "5v245v345v745vc45vh45vi45vj45vn45w845w945wd45wm45wr45ws45wt45x045x145x245xe45xf45xk45xl45xp45xu45y445ye45yf45yg45yh45yn4"
+      + "5ys45z345z845z945ze45zf45zp45zu45A445A545A645Ac45Ah45Ai45Aj45At45Au45B845B945Ba45Bf45Bo45Bt45Bu45C445C545C645C745Cb45Cg4"
+      + "5Ch45Cm45Cn45D345Dc45Dd45De45Df45Dg45Dq466346731664168346v3168416s3469306s417zt47wt084148g158zt085s08zu08b348b4188448831"
+      + "88u18dt18ds18du18eu48Au08jt48ju08su48ut48gu08v048v1481118wt48wu48yt48Bs487s489s48yu484048g0587t08us181018zq48fq08Bt18gq4"
+      + "89t185q095q49up49uq0983498419b449b319Bt49jt09Au49lt49hp09lu09ut1ab34ab41a844a831auq4anp4anq0aup0b834b841bb44bb31bnq4bup4"
+      + "buq0bnp0cb34cb41c844c831cuq4cnp4cnq0cup0d184d280dg84db80do84dn81d1u4d6u0d3h4dqh1d754d651d954dC50de24dt20e194e290e3g4eqf4"
+      + "eqg1e3f1e764e661eb44e834e841eb31ee34el30eg94ej90elu4e1u0en84eg81et24ee14ee20et10eC54e950fe04ft14ft00fe10g164gA60g284g880"
+      + "g294g3i4g3h1g3j4gvj1g624g631g721glu0gt04ge21gt20gnq4gup4guq0gnp0gqh4gqi1gd84gh34g234gC70gd71g604g700gw90gCu4g201gm74gm80"
+      + "g824g831h174hm64hm70h160h204h601h3f4hqg4hqf1h3g1h3h4hqi4hqh1h3i1ht24h804h810he31hCu0he11he24h220hlu4huq4hnp4hnq0hup0hCt4"
+      + "hlt0ht01h634h621i164im74im60i170i221i814i821i210i3g4iqf4iqg1i3f1i3i4i3h1i704i200it04i834ih31iCt0ilt4ilu0it10ie01i624i631"
+      + "inq4iup4iuq0inp0iqh4iqi1iCu4ib20ie54ib14i734i851j174jm64jm70j160j3f4jqg4jqf1j3g1j3h4jqi4jqh1j3i1j604j710j720je21j731j844"
+      + "j854jb04jt14jt00jb11jb24je14je34je41jCu0jlu4juq4jnp4jnq0jup0jCt4jlt0jb51j801k164km74km60k170k3g4kqf4kqg1k3f1k3i4k3h1k804"
+      + "k600k634k621k831kb14kb01kb54kb41ke24ke31ke44ke51kCt0klt4klu0knq4kup4kuq0knp0kqh4kqi1kt04kt11kCu4k734l174lm70l180lm84l3f4"
+      + "lqg4lqf1l3g1l6u4lxu0l744l841lt14lt01le00le11le34l204l231llu4lwu0lqi4l3i1luq4l5q0lCt4lwt0lwn4lCn0l824lb21m700m821me21n184"
+      + "nm80n170nm74n5q4nuq0nb04n801nt04nx01ntu0nxu4owa1oxa0owb1oxb0owc1oxc0oDb1oBb0ol51oo50ofr0oDs1oDa1ooa0oC71oBk0oBl0oC81ofk0"
+      + "ofl0op70op80oC91op90oCa1opa0ol41oB40ooo0oop0oD01oxh0oD11oe10oD21oe20owk1owl1oBc0oBd0oll1olr1oli1ooi0oxg0ojh1oji1oxi0ojj1"
+      + "oxj0ol31ols1oqs0og61og71orh0ogs1ogt1ou60ou70o7d1o7e1oBe0ofe0o7f1off0ovt0ovu0ob91obg1o3g0obh1o3h0owp1owq1owj1ooj0ov30oA71"
+      + "oAk1o1c1oDt1oqt0oDu1oqu0ote1ore0otf1orf0otg1org0oth1odi0oCo1od70owi1oAs1ovs0o1i1oei0o1j1oej0o1k1oek0o8s0o8t0ogu1ob81ou80"
+      + "ou90opk0opl0o3i0ooq0o610oq00o2k1o2l1om81oh80oja1oya0ojb1oyb0ozg1ods0o7t1oke1oyi1op11p731p7i4p851pb51pAh0p824pl21pl54pb24"
+      + "px21px54pAd4pq34pqi1prd0prh4",
+  };
+  // TRACE>>
 
-  // rosterRow가 지키는 줄 규칙 — 맞교환(교환의 성좌)이 이것을 깨면 그 교환은 하지 않는다.
-  // E 다음 D 없음, E-OFF-D 없음, 야간은 2~3일 뒤 OFF 2일(달 끝은 예외), 연속근무 5일 이하.
-  function validRow(r) {
-    let work = 0;
-    for (let d = 0; d < r.length; d++) {
-      const v = r[d];
-      work = v === "/" ? 0 : work + 1;
-      if (work > 5) return false;
-      if (v === "E" && (r[d + 1] === "D" || (r[d + 1] === "/" && r[d + 2] === "D"))) return false;
-      if (v === "N" && r[d + 1] !== "N") {
-        let n = 1; while (d - n >= 0 && r[d - n] === "N") n++;
-        if (n > 3) return false;
-        for (let k = 1; k <= 2 && d + k < r.length; k++) if (r[d + k] !== "/") return false;
-      }
-    }
-    return true;
-  }
+  // 기록 풀기 — 한 번만. ev = [단계, 사람, 날짜, 근무] 배열(단계 순서). final = 재생 끝의 표(40명).
+  const TR = (() => {
+    const A = TRACE.alpha, s = TRACE.ev, ev = [];
+    for (let k = 0; k < s.length; k += 4) ev.push([A.indexOf(s[k]), A.indexOf(s[k + 1]), A.indexOf(s[k + 2]), TRACE.codes[A.indexOf(s[k + 3])]]);
+    const final = Array.from({ length: TRACE.nS }, () => new Array(TRACE.nD).fill(""));
+    for (const e of ev) final[e[1]][e[2]] = e[3];
+    return { ev, final, weekend: Array.from(TRACE.weekend, c => c === "1"), stages: TRACE.stages,
+             grid14: ev.filter(e => e[1] < TRACE.rows) };
+  })();
+  // 여정·파문·성장하는 해는 D·E·N·쉼 네 글자만 다룬다 — 기록의 근무를 그 넷으로(파트장 8A·prn은 낮, 야간전담은 밤, 수면오프는 쉼)
+  const BASIC = { D: "D", E: "E", N: "N", NK: "N", "/": "/", p: "D", "8A": "D", "S/": "/" };
+  // 칸에 쓰는 한 글자 — 원본(갤러리 II 비)과 같다: 야간전담은 K, 나머지는 첫 글자
+  const glyph = (v) => (v === "NK" ? "K" : v[0]);
 
   function paint(S, fill) {
     if (S.P.clear) S.x.clearRect(0, 0, S.w, S.h);
@@ -113,12 +163,6 @@
   function gridLayout(S, padX, top, bottom) {
     const cs = Math.min((S.w - padX * 2) / S.nD, (S.h - top - bottom) / S.nS);
     return { cs, ox: (S.w - cs * S.nD) / 2, oy: top + (S.h - top - bottom - cs * S.nS) / 2 };
-  }
-  // 방금 놓인 칸은 잠깐 밝게(0~1, 1이면 방금)
-  function fresh(S, key, dur) {
-    if (S.reduce) return 0;
-    const t0 = S.born.get(key);
-    return t0 === undefined ? 0 : Math.max(0, 1 - (S.now - t0) / dur);
   }
   function crescent(x, cx, cy, r, fill) {
     x.save();
@@ -265,9 +309,21 @@
     },
   };
 
-  // ------------------------------------------------------------ 나선 — 한 달이 감겨 올라간다
-  // 원본: 갤러리3 drawHelix(3D 계단). 줄인 것: 세 바퀴짜리 나선 하나, 사람은 나선 띠의 겹, 날짜가 지날수록
-  // 위로. 놓인 칸만 띠가 되고, 아직 안 놓인 길은 옅은 선으로 미리 보인다. 5초에 한 바퀴 돈다.
+  // 방금 바뀐 칸인지 — 0~1(1이면 방금). 직선으로 사라진다.
+  function age01(S, key, dur) {
+    if (S.reduce) return 1;
+    const t0 = S.born.get(key);
+    return t0 === undefined ? 1 : Math.min(1, (S.now - t0) / dur);
+  }
+  function roundRect(x, X, Y, W, H, r) {
+    if (x.roundRect) { x.beginPath(); x.roundRect(X, Y, W, H, r); x.fill(); } else x.fillRect(X, Y, W, H);
+  }
+
+  // ------------------------------------------------------------ 나선 — 한 달이 계단처럼 감겨 올라간다
+  // 원본: 갤러리3 drawHelix 그대로 — 날짜마다 .33라디안씩 돌며 위로(1일이 아래), 사람은 안쪽에서 바깥으로 겹,
+  // 근무는 띠 높이(N이 가장 높다)와 색. 아직 안 놓인 칸은 어두운 띠로 길이 먼저 보이고, 칸은 기록 순서로 놓인다 —
+  // 그래서 색깔별로 생긴다(파트장 8A → 야간전담 → 야간 N → 주간 D·E → 남은 OFF). 12초에 한 바퀴(원본과 같은 빠르기).
+  const HELIX_LIFT = { D: 1, E: 1.6, N: 2.8, NK: 2.8, "/": 0, p: .9, "8A": .6, "S/": .3 };
   const helix = {
     key: "helix", name: "나선",
     init(S) {
@@ -276,165 +332,130 @@
     draw(S) {
       const { x, w, h, P, nS, nD } = S;
       paint(S, S.L.bg);
-      const turns = 3, tilt = .2, Ro = Math.min(w * .4, 150), Ri = Ro * .45, band = (Ro - Ri) / nS;
-      const ry = Ro * tilt, top = 6, bot = h - 14, rise = bot - top - ry * 2, cx = w / 2;
-      const rot = S.reduce ? 0 : S.t / 5000 * TAU, TH = turns * TAU;
-      const pt = (th, r) => { const a = th + rot; return [cx + Math.cos(a) * r, bot - ry - (th / TH) * rise + Math.sin(a) * r * tilt]; };
-      // 갈 길(옅게)
-      x.strokeStyle = rgba(P.dim, .16); x.lineWidth = 1; x.beginPath();
-      for (let k = 0; k <= 180; k++) { const [px, py] = pt(k / 180 * TH, (Ri + Ro) / 2); if (k) x.lineTo(px, py); else x.moveTo(px, py); }
-      x.stroke();
+      // 원본 area()의 비율 그대로(기준 크기 U) 같은 투영(F 900, 거리 1300)으로 그리고 배율 k로 160px 상자 높이에 맞춘다 —
+      // 원본은 나선이 화면 높이의 40%쯤이라 그대로 줄이면 160px에서 점만 해진다
+      const ah = h - 12, cx = w / 2, cy = 3 + ah / 2, rot = S.reduce ? 0 : S.t / 12000 * TAU, F = 900;
+      const U = 520, R0 = U * .12, DR = U * .55 / nS, HT = U * .9, k = ah / (U * .95);
       const quads = [];
       for (let d = 0; d < nD; d++) {
-        const th0 = d / nD * TH, th1 = (d + 1) / nD * TH - .03, z = Math.sin((th0 + th1) / 2 + rot);
+        const th = d * .33 + rot, th2 = (d + 1) * .33 + rot - .03, y = HT * (.5 - (d + .5) / nD);
         for (let i = 0; i < nS; i++) {
-          const key = i * nD + d;
-          if (S.rank[key] >= S.settled) continue;
-          quads.push({ z, th0, th1, i, d, key });
+          const code = S.grid[i][d], r0 = R0 + i * DR, r1 = r0 + DR * .9;
+          const lift = code && code !== "/" ? -HELIX_LIFT[code] * 6 : 0;
+          const pt = (r, t) => {
+            const X = Math.cos(t) * r, Z0 = Math.sin(t) * r, Y0 = y + lift, el = .55;
+            const Y = Y0 * Math.cos(el) - Z0 * Math.sin(el), Z = Y0 * Math.sin(el) + Z0 * Math.cos(el) + 1300, sc = F / Z * k;
+            return [cx + X * sc, cy + Y * sc, Z];
+          };
+          const p = [pt(r0, th), pt(r1, th), pt(r1, th2), pt(r0, th2)];
+          quads.push({ z: (p[0][2] + p[2][2]) / 2, p, code, key: i * nD + d });
         }
       }
-      quads.sort((a, b) => a.z - b.z);
+      quads.sort((a, b) => b.z - a.z);
+      const edge = S.dark ? "rgba(0,0,0,.35)" : "rgba(255,255,255,.25)";
       for (const q of quads) {
-        const v = S.plan[q.i][q.d], r0 = Ri + q.i * band, r1 = r0 + band * .85;
-        const a = pt(q.th0, r0), b = pt(q.th0, r1), c = pt(q.th1, r1), e = pt(q.th1, r0);
-        const depth = .4 + .6 * (q.z + 1) / 2, f = fresh(S, q.key, 600);
-        x.fillStyle = f > .4 ? P.flash : rgba(P.col[v], (v === "/" ? .3 : 1) * depth);
-        x.beginPath(); x.moveTo(a[0], a[1]); x.lineTo(b[0], b[1]); x.lineTo(c[0], c[1]); x.lineTo(e[0], e[1]); x.closePath(); x.fill();
+        // 깊이 음영(원본) — 라이트는 밝은 바탕 위라 같은 투명도가 바래 보여 뒤쪽도 60%까지만 옅게
+        const d0 = Math.max(.25, 1.4 - q.z / 1500), depth = S.dark ? d0 : .6 + .4 * Math.min(1, d0), a = q.code ? age01(S, q.key, 700) : 1;
+        if (q.code) x.fillStyle = rgba(P.col[q.code], (q.code === "/" ? .3 : .95) * depth * a);
+        else x.fillStyle = S.dark ? rgba("#0f172a", .35 * depth) : rgba(P.dim, .1 * depth);
+        x.beginPath(); x.moveTo(q.p[0][0], q.p[0][1]); for (let n = 1; n < 4; n++) x.lineTo(q.p[n][0], q.p[n][1]); x.closePath(); x.fill();
+        x.strokeStyle = edge; x.lineWidth = .5; x.stroke();
       }
     },
   };
 
-  // ------------------------------------------------------------ 야경 — 밤의 도시, 근무가 놓이면 창에 불이 켜진다
-  // 원본: 갤러리 drawCity. 사용자(11/1): "좀 더 야경스럽게 — 건물인지도 몰랐다, 달·별도 뜨고". 그래서 밤하늘
-  // (그라데이션)·초승달·반짝이는 별·가끔 별똥별, 뒤편 먼 건물 실루엣, 앞에 한 주가 한 채인 빌딩(층 = 사람,
-  // 창 = 그날 근무; 지붕·옥상 철탑·깜빡이는 항공등), 아래 물에 비친 불빛. 야경은 '그림'이라 라이트 모드에서도
-  // 밤하늘을 칠한다(캔버스 바탕이 아니라 그림 속 하늘 — 강제 다크에서도 그대로 밤이다).
+  // ------------------------------------------------------------ 야경 — 칸이 창문, 근무가 놓이면 불이 켜진다
+  // 원본: 갤러리 drawCity 그대로 — 밤하늘에 반짝이는 별, 사람 × 날짜 격자의 창문, 놓인 칸은 근무색으로 빛나고 막
+  // 켜진 창은 하얗게. 쉬는 칸은 흐린 점, 아직 빈 칸은 더 흐린 점(주말은 붉게). 위에 날짜. 켜지는 순서는 원본과 같은
+  // 생성 기록 순서다. 예전의 빌딩·달·물가 그림은 걷어냈다(사용자 11/2: "도시처럼 말고 원본처럼 별 넣고").
+  // 원본이 밤 그림이라 라이트 모드에서도 밤하늘을 칠한다(캔버스 바탕이 아니라 그림 속 하늘 — 강제 다크에서도 밤이다).
+  // 빛 번짐은 원본의 shadowBlur 대신 옅은 큰 사각형 하나로 낸다 — 434칸에 매 프레임 그림자를 주면 폰이 버벅인다.
+  const CITY_COL = { D: "#3b82f6", E: "#f97316", N: "#8b5cf6", NK: "#ec4899", p: "#22c55e", "8A": "#94a3b8", "S/": "#14b8a6" };
   const city = {
     key: "city", name: "야경",
     init(S) {
-      const { x, w, h, nS, nD } = S;
-      const sky = x.createLinearGradient(0, 0, 0, h); sky.addColorStop(0, "#050816"); sky.addColorStop(.62, "#14183a"); sky.addColorStop(1, "#2a2350");
-      const weeks = Math.ceil(nD / 7), gap = 9, water = 16;
-      // 하늘을 위쪽 40% 남짓 남긴다 — 건물이 꽉 차면 달·별이 가려 '밤'으로 안 보였다
-      const cs = Math.min((w - 40 - gap * (weeks - 1)) / nD, (h - water - Math.max(46, h * .36)) / nS);
-      const W = cs * nD + gap * (weeks - 1), ground = h - water;
-      const bld = [];
-      for (let k = 0; k < weeks; k++) {
-        const d0 = k * 7, d1 = Math.min(nD, d0 + 7), extra = 4 + rnd(k + 7) * 18;
-        bld.push({ d0, d1, extra, roof: Math.floor(rnd(k + 31) * 3), mast: rnd(k + 53) > .4 });
-      }
-      const far = []; for (let k = 0, xx = 0; xx < w; k++) { const bw = 10 + rnd(k + 400) * 22, bh = 18 + rnd(k + 500) * 34; far.push([xx, bw, bh]); xx += bw + 1; }
-      S.L.g = { sky, cs, ox: (w - W) / 2, ground, gap, oy: ground - cs * nS - 2, bld, far, water };
+      const { w, h, nS, nD } = S, top = 12, bottom = 15;
+      const cs = Math.min((w - 16) / nD, (h - top - bottom) / nS);
+      S.L.g = { cs, ox: (w - cs * nD) / 2, oy: top + (h - top - bottom - cs * nS) / 2 };
     },
     draw(S) {
-      const { x, w, h, P, nS, nD } = S, g = S.L.g, { cs, ox, ground, gap, oy } = g;
-      x.fillStyle = g.sky; x.fillRect(0, 0, w, h);
-      // 별 — 반짝임, 가끔 별똥별
-      for (let k = 0; k < 46; k++) {
-        const a = S.reduce ? .5 : .25 + .55 * Math.abs(Math.sin(S.now / (700 + k * 23) + k));
-        x.fillStyle = `rgba(255,255,255,${a * .8})`; const sz = rnd(k + 77) > .85 ? 1.8 : 1.1;
-        x.fillRect(rnd(k + 300) * w, rnd(k + 900) * (oy - 10), sz, sz);
+      const { x, w, h, nS, nD } = S, { cs, ox, oy } = S.L.g;
+      x.fillStyle = "#04060b"; x.fillRect(0, 0, w, h);
+      for (let k = 0; k < 90; k++) {
+        const a = S.reduce ? .5 : .25 + .5 * Math.abs(Math.sin(S.now / 900 + k));
+        x.fillStyle = `rgba(255,255,255,${a * .5})`; x.fillRect(rnd(k) * w, rnd(k + 1000) * h * .55, 1.2, 1.2);
       }
-      if (!S.reduce) { const c = (S.t % 4200) / 900; if (c < 1) { const sx = w * .2 + c * w * .35, sy = 8 + c * 22;
-        const gr = x.createLinearGradient(sx - 26, sy - 9, sx, sy); gr.addColorStop(0, "rgba(255,255,255,0)"); gr.addColorStop(1, "rgba(255,255,255,.85)");
-        x.strokeStyle = gr; x.lineWidth = 1.3; x.beginPath(); x.moveTo(sx - 26, sy - 9); x.lineTo(sx, sy); x.stroke(); } }
-      // 달 — 은은한 빛무리와 초승달
-      const mx = w - 30, my = 18, glow = x.createRadialGradient(mx, my, 2, mx, my, 34);
-      glow.addColorStop(0, "rgba(255,244,214,.35)"); glow.addColorStop(1, "rgba(255,244,214,0)");
-      x.fillStyle = glow; x.fillRect(mx - 34, my - 34, 68, 68); crescent(x, mx, my, 9, "#FFF4D6");
-      // 먼 건물 실루엣
-      x.fillStyle = "#0e1230"; for (const [fx, fw, fh] of g.far) x.fillRect(fx, ground - fh, fw, fh);
-      const dx = (d) => ox + d * cs + Math.floor(d / 7) * gap;
-      // 빌딩 — 한 주가 한 채
-      g.bld.forEach((b, k) => {
-        const bx = dx(b.d0) - 3, bw = (b.d1 - b.d0) * cs + 6, top = oy - 3 - b.extra;
-        x.fillStyle = "#1a2047"; x.fillRect(bx, top, bw, ground - top);
-        x.fillStyle = "#283066"; x.fillRect(bx, top, 2, ground - top); x.fillRect(bx, top, bw, 1.5);                     // 모서리 빛
-        if (b.roof === 1) { x.fillStyle = "#1a2047"; x.fillRect(bx + bw * .2, top - 5, bw * .6, 5); }
-        if (b.roof === 2) { x.fillStyle = "#1a2047"; x.beginPath(); x.moveTo(bx, top); x.lineTo(bx + bw / 2, top - 8); x.lineTo(bx + bw, top); x.fill(); }
-        if (b.mast) {
-          const mxx = bx + bw * .7, mt = top - (b.roof ? 16 : 12);
-          x.strokeStyle = "#2b3263"; x.lineWidth = 1; x.beginPath(); x.moveTo(mxx, top - (b.roof === 1 ? 5 : 0)); x.lineTo(mxx, mt); x.stroke();
-          const on = S.reduce || Math.floor((S.t + k * 370) / 600) % 2 === 0;
-          if (on) { x.fillStyle = "rgba(255,80,80,.95)"; x.beginPath(); x.arc(mxx, mt, 1.6, 0, TAU); x.fill();
-            x.fillStyle = "rgba(255,80,80,.18)"; x.beginPath(); x.arc(mxx, mt, 4.5, 0, TAU); x.fill(); }
-        }
-      });
-      // 창문 — 층 = 사람, 칸 = 그날. 근무가 놓이면 불이 켜진다(색 = D·E·N), 쉬는 날은 꺼진 창
-      const warm = { D: "#9cc9ff", E: "#ffc27a", N: "#c8b2ff" };
       for (let i = 0; i < nS; i++) for (let d = 0; d < nD; d++) {
-        const key = i * nD + d, wx = dx(d), wy = oy + i * cs, v = S.plan[i][d];
-        const placed = S.rank[key] < S.settled;
-        if (!placed || v === "/") { x.fillStyle = "#0a0d22"; x.fillRect(wx + cs * .22, wy + cs * .22, cs * .56, cs * .56); continue; }
-        const f = fresh(S, key, 700), c = warm[v];
-        x.fillStyle = rgba(c, .16 + .3 * f); x.fillRect(wx - cs * .08, wy - cs * .08, cs * 1.16, cs * 1.16);
-        x.fillStyle = f > .45 ? "#ffffff" : c; x.fillRect(wx + cs * .2, wy + cs * .2, cs * .6, cs * .6);
+        const code = S.grid[i][d], X = ox + d * cs, Y = oy + i * cs;
+        if (!code || code === "/") {
+          x.fillStyle = code ? "rgba(120,140,180,.22)" : (TR.weekend[d] ? "rgba(255,120,120,.14)" : "rgba(255,255,255,.07)");
+          x.fillRect(X + cs * .38, Y + cs * .38, cs * .24, cs * .24); continue;
+        }
+        const col = CITY_COL[code], fa = 1 - age01(S, i * nD + d, 900);
+        x.fillStyle = rgba(col, .2 + .35 * fa); x.fillRect(X + cs * .02, Y + cs * .02, cs * .96, cs * .96);
+        x.fillStyle = fa > 0 ? rgba("#ffffff", .5 + .5 * fa) : col; x.fillRect(X + cs * .22, Y + cs * .22, cs * .56, cs * .56);
+        if (fa > 0) { x.fillStyle = rgba(col, 1 - fa); x.fillRect(X + cs * .22, Y + cs * .22, cs * .56, cs * .56); }
       }
-      // 물가 — 불빛이 흔들리며 비친다
-      x.fillStyle = "#070a1c"; x.fillRect(0, ground, w, h - ground);
-      for (let i = nS - 1; i >= Math.max(0, nS - 6); i--) for (let d = 0; d < nD; d++) {
-        const key = i * nD + d, v = S.plan[i][d];
-        if (v === "/" || S.rank[key] >= S.settled) continue;
-        const ry = ground + (nS - 1 - i) * cs * .55 + 2, wob = S.reduce ? 0 : Math.sin(S.now / 260 + d + i) * 1.2;
-        x.fillStyle = rgba(warm[v], .22 - (nS - 1 - i) * .03); x.fillRect(dx(d) + cs * .2 + wob, ry, cs * .6, 1.4);
+      x.font = `${Math.max(7, Math.min(9, cs * .7))}px system-ui, sans-serif`; x.textAlign = "center"; x.textBaseline = "alphabetic";
+      for (let d = 0; d < nD; d++) if (d % 2 === 0 || TR.weekend[d]) {
+        x.fillStyle = TR.weekend[d] ? "rgba(255,150,150,.8)" : "rgba(255,255,255,.4)";
+        x.fillText(String(d + 1), ox + d * cs + cs / 2, oy - 2.5);
       }
-      x.fillStyle = "rgba(255,255,255,.06)"; x.fillRect(0, ground, w, 1);
     },
   };
 
   // ------------------------------------------------------------ 만다라 — 한 바퀴가 한 달, 동심원이 사람
-  // 원본: 갤러리 drawRadial. 줄인 것: 날짜 숫자는 주마다 하나(1·8·15·22·29), 가운데는 달 이름. 주말은
-  // 옅은 부채꼴. 날짜는 고정 — 돌리면 어지럽다(사용자, 11/1). 1일이 12시 방향.
+  // 원본: 갤러리 drawRadial 그대로 — 1일이 12시 방향, 바깥에 날짜(주말은 붉게)와 주말 부채꼴, 쉬는 칸은 가는 원호.
+  // 칸은 생성 기록 순서로 놓이고 막 놓인 칸은 하얗게 빛난다. 돌리지 않는다(사용자 11/1: 날짜가 돌면 어지럽다).
+  // 가운데의 연·월은 뺐다 — 기록의 달(2026년 10월)이 지금 만드는 달과 달라 헷갈린다.
   const mandala = {
     key: "mandala", name: "만다라",
     init(S) {
-      if (S.dark) { const g = S.x.createRadialGradient(S.w / 2, S.h / 2, 0, S.w / 2, S.h / 2, S.w * .6); g.addColorStop(0, "#111833"); g.addColorStop(1, "#05070d"); S.L.bg = g; }
+      if (S.dark) { const g = S.x.createRadialGradient(S.w / 2, S.h / 2, 0, S.w / 2, S.h / 2, S.w * .6); g.addColorStop(0, "#0d1226"); g.addColorStop(1, "#04060b"); S.L.bg = g; }
     },
     draw(S) {
       const { x, w, h, P, nS, nD } = S;
       paint(S, S.L.bg);
-      const cx = w / 2, cy = h / 2, R = h / 2 - 14, r0 = R * .24, rw = (R - r0) / nS;
-      const a0 = -Math.PI / 2, da = TAU / nD;   // 돌리지 않는다 — 날짜가 돌면 어지럽다(사용자 11/1). 1일은 늘 12시 방향
-      if (S.dow0 !== null) for (let d = 0; d < nD; d++) {
-        const wd = (S.dow0 + d) % 7;
-        if (wd !== 0 && wd !== 6) continue;
-        x.fillStyle = rgba(P.red, S.dark ? .08 : .07);
+      const cx = w / 2, cy = h / 2 - 1, R = h / 2 - 13, r0 = R * .22, rw = (R - r0) / nS, a0 = -Math.PI / 2, da = TAU / nD;
+      for (let d = 0; d < nD; d++) if (TR.weekend[d]) {
+        x.fillStyle = S.dark ? "rgba(255,120,120,.07)" : rgba(P.red, .07);
         x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, R + 3, a0 + d * da, a0 + (d + 1) * da); x.closePath(); x.fill();
       }
-      x.strokeStyle = rgba(P.dim, .18); x.lineWidth = 1;
-      x.beginPath(); x.arc(cx, cy, r0 - 3, 0, TAU); x.stroke();
-      x.beginPath(); x.arc(cx, cy, R + 3, 0, TAU); x.stroke();
       for (let i = 0; i < nS; i++) {
         const r = r0 + (i + .5) * rw;
         for (let d = 0; d < nD; d++) {
-          const key = i * nD + d;
-          if (S.rank[key] >= S.settled) continue;
-          const v = S.plan[i][d], f = fresh(S, key, 600);
-          x.strokeStyle = f > .4 ? P.flash : rgba(P.col[v], v === "/" ? .4 : 1);
-          x.lineWidth = rw * (v === "/" ? .3 : .82);
-          x.beginPath(); x.arc(cx, cy, r, a0 + d * da + .012, a0 + (d + 1) * da - .012); x.stroke();
+          const code = S.grid[i][d];
+          if (!code) continue;
+          // 막 놓인 칸은 0.3초 하얗다 — 원본은 0.9초였는데 이 크기에서는 한꺼번에 수십 칸이 하얘져 색이 안 보였다
+          const fa = 1 - age01(S, i * nD + d, 600);
+          x.beginPath(); x.arc(cx, cy, r, a0 + d * da + .012, a0 + (d + 1) * da - .012);
+          x.lineWidth = rw * (code === "/" ? .35 : .82) * (1 + fa * .3);
+          x.strokeStyle = fa > .5 ? P.flash : rgba(P.col[code], code === "/" ? .45 : .95); x.stroke();
         }
       }
-      x.textAlign = "center"; x.textBaseline = "middle"; x.font = "9px system-ui, sans-serif";
-      for (let d = 0; d < nD; d += 7) {
+      x.strokeStyle = rgba(P.dim, .2); x.lineWidth = 1; x.beginPath(); x.arc(cx, cy, r0 - 3, 0, TAU); x.stroke();
+      x.font = "7.5px system-ui, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle";
+      for (let d = 0; d < nD; d++) {
         const a = a0 + (d + .5) * da;
-        x.fillStyle = d ? rgba(P.sub, .8) : P.ink;
-        x.fillText(String(d + 1), cx + Math.cos(a) * (R + 10), cy + Math.sin(a) * (R + 10));
+        x.fillStyle = TR.weekend[d] ? (S.dark ? "rgba(255,150,150,.9)" : P.red) : rgba(P.sub, S.dark ? .75 : 1);
+        x.fillText(String(d + 1), cx + Math.cos(a) * (R + 7.5), cy + Math.sin(a) * (R + 7.5));
       }
-      if (S.month) { x.font = "600 11px system-ui, sans-serif"; x.fillStyle = P.ink; x.fillText(`${S.month}월`, cx, cy); }
     },
   };
 
-  // ------------------------------------------------------------ 비 — 지금까지의 연출 그대로
-  // 보고서 11장 '비'의 축소판 — 근무 글자가 위에서 떨어져 제자리에 앉는다. 사용자가 아홉 가지를 더하면서
-  // 이것도 후보로 남기라고 했다(2026-11-01). 색·움직임은 그대로이고, 아래 14px만 이름표 자리로 비웠다.
-  const RAIN_COL = { dark: { D: "#BDD7EE", E: "#F8CBAD", N: "#8EA2EC", "/": "rgba(255,255,255,.28)" },
-                     light: { D: "#3B82F6", E: "#EA580C", N: "#6366F1", "/": "#8A949A" } };
+  // ------------------------------------------------------------ 비 — 근무 글자가 캔버스 위에서 떨어져 제자리에 앉는다
+  // 원본: 갤러리 II drawRain(보고서 11장 '비'와 같은 것) — 놓인 칸의 글자는 하얗게 떨어져 앉으면 제 색이 되고,
+  // 아직 빈 칸 위로는 초록 글자 비가 내린다. 바꾼 것: 원본은 1.5칸 위에서 잠깐 내려왔는데 사용자가 "원본처럼 위에서
+  // 내려오게"(11/2)라 캔버스 위 끝에서부터 일정한 빠르기(FALL px/초)로 떨어진다. 수리 단계에서 칸이 바뀌면 새 글자가
+  // 다시 위에서 떨어져 옛 글자를 덮는다. 글자는 생성 기록 순서로 떨어진다. 아래 14px은 이름표 자리.
+  const RAIN_COL = { dark: { D: "#BDD7EE", E: "#F8CBAD", N: "#8EA2EC", "/": "rgba(255,255,255,.28)", NK: "#F9A8D4", p: "#86EFAC", "8A": "#E2E8F0", "S/": "#99F6E4" },
+                     light: { D: "#3B82F6", E: "#EA580C", N: "#6366F1", "/": "#8A949A", NK: "#D2489A", p: "#2F8F4E", "8A": "#6F8296", "S/": "#0E9488" } };
+  const FALL = 260;   // px/초 — 맨 아래 줄까지 0.6초 남짓
   const rain = {
     key: "rain", name: "비",
     init(S) { S.L.g = gridLayout(S, 6, 5, 13); S.L.col = S.dark ? RAIN_COL.dark : RAIN_COL.light; },
     draw(S) {
-      const { x, h, nS, nD } = S, { cs, ox, oy } = S.L.g;
+      const { x, h, nS, nD } = S, { cs, ox, oy } = S.L.g, col = S.L.col;
       if (S.dark) { x.fillStyle = S.reduce ? "#0b0f19" : "rgba(11,15,25,.45)"; x.fillRect(0, 0, S.w, h); }
       else x.clearRect(0, 0, S.w, h);
       x.font = `700 ${Math.max(5, cs * .78)}px ui-monospace, Menlo, monospace`;
@@ -447,20 +468,187 @@
             const yy = oy + head - k * cs;
             if (yy < oy || yy > oy + cs * nS) continue;
             const i = Math.floor((yy - oy) / cs);
-            if (S.rank[i * nD + d] < S.settled) continue;
+            if (S.grid[i][d]) continue;
             x.fillStyle = `rgba(${drop},${k ? .2 - k * .02 : .55})`;
             x.fillText(chars[Math.floor(rnd(d * 31 + k + Math.floor(S.now / 90)) * 4)], ox + d * cs + cs / 2, yy + cs / 2);
           }
         }
       }
+      const put = (v, X, Y, white) => {
+        x.fillStyle = white ? land : col[v]; x.globalAlpha = v === "/" || v === "S/" ? .5 : 1;
+        x.fillText(glyph(v), X, Y); x.globalAlpha = 1;
+      };
       for (const [key, t0] of S.born) {
-        const i = Math.floor(key / nD), d = key % nD, v = S.plan[i][d];
-        const a = S.reduce ? 1 : Math.min(1, (S.now - t0) / 450), e = 1 - Math.pow(1 - a, 3);
-        x.fillStyle = a < 1 ? land : S.L.col[v];
-        x.globalAlpha = v === "/" ? .5 : 1;
-        x.fillText(v, ox + d * cs + cs / 2, oy + i * cs + cs / 2 - (1 - e) * cs * 1.5);
-        x.globalAlpha = 1;
+        const i = Math.floor(key / nD), d = key % nD, v = S.grid[i][d], X = ox + d * cs + cs / 2, ty = oy + i * cs + cs / 2;
+        const y = S.reduce ? ty : -cs / 2 + (S.now - t0) / 1000 * FALL;
+        if (y >= ty) { put(v, X, ty, false); continue; }
+        const prev = S.prev.get(key);
+        if (prev) put(prev, X, ty, false);
+        put(v, X, y, true);
       }
+    },
+  };
+
+  // ------------------------------------------------------------ 병동의 악보 — 사람이 오선, 같은 근무 연속이 긴 음표
+  // 원본: GPT 01-03 그대로 — 한 줄이 한 사람, 같은 근무가 이어지면 둥근 막대 하나(쉼·수면오프는 쉼표 = 빈칸),
+  // 막대 왼쪽 끝에 옅은 음표 머리, 주말은 옅은 띠, 마디선 = 7일. 음표는 생성 기록 순서로 적힌다: 파트장 줄이
+  // 먼저 한 줄로, 야간 블록이 띄엄띄엄, 주간이 1일부터 날짜 순으로 채워지고, 수리 단계에서 막대가 끊기고 이어진다.
+  // 원본의 재생선(단계마다 왼쪽→오른쪽)은 뺐다 — 단계 길이에 따라 빠르기가 달라져 등속이 아니고, 날짜 축 위의
+  // 선이 '지금 그 날짜를 쓴다'로 읽혀 기록 순서(야간 먼저 등)와 어긋난다. 대신 막 적힌 칸이 잠깐 밝다.
+  const score = {
+    key: "score", name: "병동의 악보",
+    draw(S) {
+      const { x, w, h, nS, nD, P } = S, C = S.dark ? GPT_COL.dark : GPT_COL.light;
+      paint(S);
+      const x0 = 24, y0 = 7, aw = w - x0 - 8, ah = h - y0 - 17, dx = aw / nD, dy = ah / nS;
+      for (let d = 0; d < nD; d++) {
+        if (TR.weekend[d]) { x.fillStyle = S.dark ? "rgba(255,230,190,.05)" : "rgba(125,101,64,.07)"; x.fillRect(x0 + d * dx, y0, dx, ah); }
+      }
+      x.strokeStyle = rgba(P.dim, S.dark ? .22 : .3); x.lineWidth = .5; x.beginPath();
+      for (let i = 0; i < nS; i++) { const y = Math.round(y0 + (i + .5) * dy) + .5; x.moveTo(x0, y); x.lineTo(x0 + aw, y); }
+      x.stroke();
+      x.strokeStyle = rgba(P.dim, .5); x.lineWidth = 1; x.beginPath();
+      for (let d = 0; d < nD; d += 7) { const xx = Math.round(x0 + d * dx) + .5; x.moveTo(xx, y0 - 4); x.lineTo(xx, y0 + ah + 4); }
+      x.stroke();
+      x.font = "8px system-ui, sans-serif"; x.textAlign = "right"; x.textBaseline = "middle"; x.fillStyle = rgba(P.sub, .85);
+      for (let i = 0; i < nS; i += 5) x.fillText(String(i + 1).padStart(2, "0"), x0 - 5, y0 + (i + .5) * dy);
+      const head = S.dark ? "#FFFFFF" : "#493F40";
+      for (let i = 0; i < nS; i++) {
+        const y = y0 + (i + .5) * dy, row = S.grid[i];
+        for (let a = 0; a < nD;) {
+          const v = row[a]; let b = a + 1;
+          while (b < nD && row[b] === v) b++;
+          if (v && v !== "/" && v !== "S/") {
+            const X = x0 + a * dx + 1.5, W = (b - a) * dx - 3;
+            x.fillStyle = C[v]; roundRect(x, X, y - dy * .34, W, dy * .68, Math.min(3, dy * .3));
+            x.fillStyle = rgba(head, .18); x.beginPath(); x.arc(X + 3, y, dy * .24, 0, TAU); x.fill();
+          }
+          a = b;
+        }
+      }
+      // 막 적힌 칸 — 직선으로 사라지는 밝은 칸(놓인 칸이든 바뀐 칸이든)
+      for (const e of S.log) {
+        const f = 1 - age01(S, e[0] * nD + e[1], 600);
+        if (f <= 0) continue;
+        x.fillStyle = rgba(P.flash, .75 * f); x.fillRect(x0 + e[1] * dx + 1, y0 + e[0] * dy + dy * .12, dx - 2, dy * .76);
+      }
+    },
+  };
+
+  // ------------------------------------------------------------ 한 달의 궤도 — 동심 궤도 위 원호가 근무
+  // 원본: GPT 01-04 그대로 — 안쪽부터 사람 하나에 궤도 하나, 12시에서 시계 방향으로 1~31일, 칸 하나가 원호 하나
+  // (쉬는 칸은 옅게), 가운데는 채운 비율, 방금 바뀐 칸에 작은 빛 점. 칸은 생성 기록 순서로 놓인다. 원본에서 보이던
+  // '다 채운 뒤의 교환' — 수리·균등화 단계에서 이미 놓인 칸의 색이 바뀌는 것 — 이 160px에서도 보이게, 바뀐 칸은
+  // 원호가 하얗게 번쩍인 뒤 새 색이 되고 그 자리에 고리가 퍼진다. 오른쪽 아래에 지금 단계와 바뀐 칸 수.
+  // 원본의 바늘(단계마다 한 바퀴)은 뺐다 — 악보의 재생선과 같은 이유(단계마다 빠르기가 달라 등속이 아니다).
+  const orrery = {
+    key: "orrery", name: "한 달의 궤도",
+    init(S) {
+      if (S.dark) { const g = S.x.createRadialGradient(S.w / 2, S.h / 2, 0, S.w / 2, S.h / 2, S.w * .6); g.addColorStop(0, "#161b33"); g.addColorStop(1, "#0b0e1c"); S.L.bg = g; }
+    },
+    draw(S) {
+      const { x, w, h, nS, nD, P } = S, C = S.dark ? GPT_COL.dark : GPT_COL.light;
+      paint(S, S.L.bg);
+      const cx = w / 2, cy = h / 2 - 2, R = h / 2 - 15, r0 = R * .24, dr = (R - r0) / nS, a0 = -Math.PI / 2, da = TAU / nD;
+      x.strokeStyle = rgba(S.dark ? "#666886" : P.dim, .25); x.lineWidth = .5;
+      for (let i = 0; i < nS; i++) { x.beginPath(); x.arc(cx, cy, r0 + (i + .5) * dr, 0, TAU); x.stroke(); }
+      let filled = 0;
+      for (let i = 0; i < nS; i++) {
+        const r = r0 + (i + .5) * dr;
+        for (let d = 0; d < nD; d++) {
+          const v = S.grid[i][d];
+          if (!v) continue;
+          filled++;
+          const key = i * nD + d, a = age01(S, key, 900), changed = S.prev.has(key);
+          x.lineWidth = dr * .68;
+          x.strokeStyle = changed && a < .45 ? P.flash : rgba(C[v], (v === "/" ? .35 : .9) * (changed ? 1 : .25 + .75 * a));
+          x.beginPath(); x.arc(cx, cy, r, a0 + d * da + .01, a0 + (d + 1) * da - .01); x.stroke();
+        }
+      }
+      x.font = "7.5px system-ui, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillStyle = rgba(P.sub, .9);
+      for (let d = 0; d < nD; d += 5) { const a = a0 + (d + .5) * da; x.fillText(String(d + 1).padStart(2, "0"), cx + Math.cos(a) * (R + 8), cy + Math.sin(a) * (R + 8)); }
+      // 방금 바뀐 칸 — 원본의 빛 점(최근 18칸). 다 채운 뒤 바뀐 칸에는 퍼지는 고리를 더한다(0.9초, 일정한 빠르기)
+      const dot = S.dark ? "#FFF5D7" : P.flash;
+      for (const e of S.log.slice(-18)) {
+        const r = r0 + (e[0] + .5) * dr, a = a0 + (e[1] + .5) * da, px = cx + Math.cos(a) * r, py = cy + Math.sin(a) * r;
+        x.fillStyle = dot; x.beginPath(); x.arc(px, py, 1.7, 0, TAU); x.fill();
+      }
+      for (const e of S.log) {
+        if (!e[4]) continue;
+        const f = age01(S, e[0] * nD + e[1], 900);
+        if (f >= 1) continue;
+        const r = r0 + (e[0] + .5) * dr, a = a0 + (e[1] + .5) * da;
+        x.strokeStyle = rgba(dot, .9 * (1 - f)); x.lineWidth = 1.2;
+        x.beginPath(); x.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 2 + 6 * f, 0, TAU); x.stroke();
+      }
+      x.fillStyle = S.dark ? "#EAE5F3" : P.ink; x.font = "300 15px Georgia, serif";
+      x.fillText(String(Math.round(filled / (nS * nD) * 100)), cx, cy - 3);
+      x.font = "7px system-ui, sans-serif"; x.fillStyle = P.sub; x.fillText("% 채움", cx, cy + 8);
+      if (S.stage >= 0) caption(S, orrery.name, S.changed ? `${TR.stages[S.stage]} · 바뀐 칸 ${S.changed}` : TR.stages[S.stage], TR.stages[S.stage]);
+    },
+  };
+
+  // ------------------------------------------------------------ 교환의 성좌 — 그 단계에서 바뀐 칸을 잇는 선
+  // 원본: GPT 01-07을 거의 그대로(사용자 11/2: "원본이 좋아, 거의 그대로") — 왼쪽 점 = 직원 40명, 오른쪽 점 = 1~31일,
+  // 곡선 하나 = 지금 단계에서 바뀐 칸 하나(직원 → 날짜, 색 = 바뀐 뒤 근무). 그 단계에 등장한 직원·날짜는 점이 커지고
+  // 밝아지며, 최근 18칸 위로 작은 점이 곡선을 따라 흐른다. 단계가 넘어가면 선이 그 단계의 것으로 바뀐다 — 파트장
+  // 단계는 점 하나에서 31일로 부채, 채움 단계는 촘촘한 그물, 수리 단계는 가느다란 선 몇 개. 아래 가운데는 단계 이름과
+  // 순변경 수. 160px에 맞게 크기만 줄였다(원본 1000단위 좌표 → 이 상자). 예전 격자 + 맞교환 연출은 걷어냈다.
+  // 재생도 원본처럼 단계 단위: 단계마다 원본의 머무는 시간(0.7초 + 바뀐 칸 × 5ms, 최대 2.7초)에 비례해 시간을 주고
+  // 그 안에서 선을 일정한 빠르기로 더한다. 원본은 다 보는 데 26초쯤인데 생성은 3~8초라, 전체를 10초(T)로 줄였다 —
+  // 채움 단계(파트장~남은 칸 OFF)가 3.7초쯤에 끝나고 그 뒤로 수리 단계가 0.3~0.5초씩 넘어간다.
+  const constellation = {
+    key: "constellation", name: "교환의 성좌", T: 10,
+    init(S) {
+      const st = [], ev = TR.ev;
+      for (let k = 0; k < ev.length; k++) {
+        const s = ev[k][0];
+        if (!st.length || st[st.length - 1].s !== s) st.push({ s, from: k, n: 0 });
+        st[st.length - 1].n++;
+      }
+      let t = 0;
+      for (const o of st) { o.t0 = t; o.dur = Math.min(2.7, .7 + o.n * .005); t += o.dur; }
+      S.L.st = st; S.L.total = t;
+      const dk = S.dark;
+      S.L.c = { bg: "#201729", fg: dk ? "#F4E6EC" : S.P.ink, muted: dk ? "#C6AABF" : "#93778C", left: dk ? "#F2C6D2" : "#B5577F",
+                right: dk ? "#E8DAB3" : "#9A7A18", off: "#93778C", line: dk ? GPT_COL.dark : GPT_COL.light, boost: dk ? 1 : 1.6 };
+    },
+    draw(S) {
+      const { x, w, h } = S, L = S.L, c = L.c, nS = TRACE.nS, nD = TRACE.nD;
+      if (S.dark) { x.fillStyle = c.bg; x.fillRect(0, 0, w, h); } else x.clearRect(0, 0, w, h);
+      // 지금 단계와 그 안에서 몇 칸까지 — 진행(직선) × 전체 시간
+      const tau = S.ps * L.total;
+      let k = 0;
+      while (k < L.st.length - 1 && tau >= L.st[k].t0 + L.st[k].dur) k++;
+      const o = L.st[k], f = S.ps >= 1 ? 1 : Math.max(0, Math.min(1, (tau - o.t0) / o.dur));
+      const changes = TR.ev.slice(o.from, o.from + Math.floor(o.n * f + 1e-9));
+      const xL = w * .1, xR = w * .9, y0 = 14, ah = h - y0 - 27, yL = (i) => y0 + i * ah / (nS - 1), yR = (d) => y0 + d * ah / (nD - 1);
+      const c1 = xL + (xR - xL) * .3125, c2 = xL + (xR - xL) * .6875;   // 원본 350·650(100~900 사이)
+      const aL = new Set(changes.map(e => e[1])), aR = new Set(changes.map(e => e[2]));
+      x.lineWidth = 1;
+      const al = Math.min(1, (changes.length > 100 ? .13 : .43) * c.boost);
+      for (const e of changes) {
+        const y1 = yL(e[1]), y2 = yR(e[2]);
+        x.strokeStyle = rgba(c.line[e[3]], al);
+        x.beginPath(); x.moveTo(xL + 4, y1); x.bezierCurveTo(c1, y1, c2, y2, xR - 4, y2); x.stroke();
+      }
+      const dotAt = (X, Y, on, col) => { x.fillStyle = on ? col : rgba(c.off, .4); x.beginPath(); x.arc(X, Y, on ? 2 : 1, 0, TAU); x.fill(); };
+      for (let i = 0; i < nS; i++) dotAt(xL, yL(i), aL.has(i), c.left);
+      for (let d = 0; d < nD; d++) dotAt(xR, yR(d), aR.has(d), c.right);
+      // 최근 18칸 위를 흐르는 점 — 원본처럼 곡선 매개변수로 일정한 빠르기(5.6초에 한 번)
+      const clock = S.reduce ? 0 : S.t / 1000;
+      changes.slice(-18).forEach((e, n) => {
+        const y1 = yL(e[1]), y2 = yR(e[2]), t = (clock * .18 + n * .071) % 1, u = 1 - t;
+        const X = u * u * u * (xL + 4) + 3 * u * u * t * c1 + 3 * u * t * t * c2 + t * t * t * (xR - 4);
+        const Y = u * u * u * y1 + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t * t * t * y2;
+        x.fillStyle = c.line[e[3]]; x.beginPath(); x.arc(X, Y, 1.6, 0, TAU); x.fill();
+      });
+      x.font = "8px system-ui, sans-serif"; x.textBaseline = "middle"; x.fillStyle = c.muted;
+      x.textAlign = "right"; for (let i = 0; i < nS; i += 10) x.fillText(String(i + 1).padStart(2, "0"), xL - 6, yL(i));
+      x.textAlign = "left"; for (let d = 0; d < nD; d += 10) x.fillText(String(d + 1).padStart(2, "0"), xR + 6, yR(d));
+      x.textAlign = "center"; x.fillText("직원", xL, 6); x.fillText("날짜", xR, 6);
+      x.textBaseline = "alphabetic"; x.fillStyle = c.fg; x.font = "600 10px system-ui, sans-serif";
+      x.fillText(`${TR.stages[o.s]} · 순변경 ${changes.length}`, w / 2, h - 4);
     },
   };
 
@@ -577,92 +765,6 @@
     },
   };
 
-  // ------------------------------------------------------------ 병동의 악보 — 사람이 오선, 같은 근무 연속이 긴 음표
-  // 원본: GPT 01-03. 줄인 것: 줄 하나가 한 사람, 같은 근무가 이어지면 막대 하나(낮은 위·저녁 가운데·밤 아래로
-  // 조금씩 비켜 음높이처럼), 쉬는 날은 쉼표(빈칸). 진행만큼 악보가 적히고(점선), 금빛 재생선은 4초마다 지나간다. 마디 = 한 주.
-  const score = {
-    key: "score", name: "병동의 악보",
-    init(S) { S.L.runs = S.plan.map(runsOf); },
-    draw(S) {
-      const { x, w, h, P, nS, nD } = S;
-      paint(S);
-      const ox = 10, ow = w - 20, top = 7, bottom = 16, pitch = (h - top - bottom) / nS, cw = ow / nD;
-      // 적는 자리(W)는 진행을 따르고, 재생선(X)은 시간으로 4초에 한 번 왼쪽→오른쪽을 지나간다 — 생성이
-      // 3초 만에 끝나도 '재생선이 악보를 읽고 지나간다'가 보이게. 재생선이 지나가는 음표는 머리가 밝아진다.
-      // 앞 70%는 시간으로 2초 안에 적고 나머지는 진행을 따른다 — 진행만 따르면 게이지가 처음 1~2초 거의
-      // 안 움직여 빈 오선 위로 재생선만 지나가 "처음에 멈칫했다가 시작"했다(사용자, 11/2).
-      const lead = S.reduce ? 0 : .7 * (1 - Math.pow(1 - Math.min(1, S.t / 2000), 3));
-      const W = ox + Math.max(S.ps, lead) * ow, X = S.reduce ? W : ox + ((S.t / 4000) % 1) * ow, off = { D: -.2, E: 0, N: .2 };
-      x.strokeStyle = rgba(P.dim, .2); x.lineWidth = 1;
-      x.beginPath();
-      for (let i = 0; i < nS; i++) { const y = Math.round(top + (i + .5) * pitch) + .5; x.moveTo(ox, y); x.lineTo(ox + ow, y); }
-      for (let d = 0; d <= nD; d += 7) { const xx = Math.round(ox + d * cw) + .5; x.moveTo(xx, top); x.lineTo(xx, h - bottom); }
-      x.stroke();
-      x.lineCap = "round";
-      for (let i = 0; i < nS; i++) {
-        const y0 = top + (i + .5) * pitch;
-        for (const r of S.L.runs[i]) {
-          const x0 = ox + r.d0 * cw + 1.5, xe = ox + (r.d1 + 1) * cw - 1.5, x1 = Math.min(xe, W);
-          if (x0 >= W) break;
-          const y = y0 + off[r.v] * pitch, lw = Math.max(2, pitch * .42), playing = !S.reduce && X >= x0 - 2 && X <= xe + 2;
-          x.strokeStyle = P.col[r.v]; x.lineWidth = lw;
-          x.beginPath(); x.moveTo(x0 + lw / 2, y); x.lineTo(Math.max(x0 + lw / 2, x1 - lw / 2), y); x.stroke();
-          x.fillStyle = playing ? P.flash : P.col[r.v];
-          x.beginPath(); x.arc(x0 + lw / 2, y, lw * (playing ? .85 : .62), 0, TAU); x.fill();
-        }
-      }
-      x.lineCap = "butt";
-      if (W < ox + ow - .5) { x.strokeStyle = rgba(P.dim, .5); x.lineWidth = 1; x.setLineDash([2, 3]); x.beginPath(); x.moveTo(W, top - 2); x.lineTo(W, h - bottom + 2); x.stroke(); x.setLineDash([]); }
-      if (S.dark) { x.fillStyle = rgba(P.gold, .12); x.fillRect(X - 4, top - 3, 8, h - top - bottom + 6); }
-      x.strokeStyle = P.gold; x.lineWidth = 1.4;
-      x.beginPath(); x.moveTo(X, top - 3); x.lineTo(X, h - bottom + 3); x.stroke();
-      x.fillStyle = P.gold; x.beginPath(); x.arc(X, top - 3, 2.2, 0, TAU); x.fill();
-    },
-  };
-
-  // ------------------------------------------------------------ 한 달의 궤도 — 동심 궤도 위 원호가 근무
-  // 원본: GPT 01-04. 줄인 것: 열 사람까지 궤도 하나씩, 같은 근무가 이어지면 원호 하나. 진행만큼 원호가
-  // 그려지고 그 끝에 행성(그날의 근무색). 궤도는 저마다 다른 속도로 돈다. 가운데는 진행 %.
-  const orrery = {
-    key: "orrery", name: "한 달의 궤도",
-    init(S) {
-      S.L.nR = Math.min(10, S.nS); S.L.runs = S.plan.slice(0, S.L.nR).map(runsOf);
-      if (S.dark) { const g = S.x.createRadialGradient(S.w / 2, S.h / 2, 0, S.w / 2, S.h / 2, S.w * .6); g.addColorStop(0, "#0f1530"); g.addColorStop(1, "#05070f"); S.L.bg = g; }
-    },
-    draw(S) {
-      const { x, w, h, P, nD } = S, nR = S.L.nR;
-      paint(S, S.L.bg);
-      const cx = w / 2, cy = h / 2, R = h / 2 - 9, r0 = R * .36, gap = (R - r0) / Math.max(1, nR - 1);
-      const sweep = S.ps * TAU, da = TAU / nD, lw = Math.max(2, gap * .55);
-      // 궤도마다 제 속도로 돈다(안쪽 3초·바깥 6초에 한 바퀴) — 생성이 3초면 끝나도 '도는 궤도'로 보이게.
-      // 그려지는 양(sweep)은 진행을 따른다. 바늘·가운데 %도 진행.
-      const spin = (i) => -Math.PI / 2 + (S.reduce ? 0 : S.t / 1000 * TAU / (3 + 3 * i / Math.max(1, nR - 1)));
-      x.strokeStyle = rgba(P.dim, .16); x.lineWidth = 1;
-      for (let i = 0; i < nR; i++) { x.beginPath(); x.arc(cx, cy, r0 + i * gap, 0, TAU); x.stroke(); }
-      x.lineCap = "round";
-      for (let i = 0; i < nR; i++) {
-        const r = r0 + i * gap, a0 = spin(i);
-        for (const run of S.L.runs[i]) {
-          const s = a0 + run.d0 * da + .05, e = Math.min(a0 + (run.d1 + 1) * da - .05, a0 + sweep);
-          if (e <= s) continue;
-          x.strokeStyle = P.col[run.v]; x.lineWidth = lw;
-          x.beginPath(); x.arc(cx, cy, r, s, e); x.stroke();
-        }
-      }
-      x.lineCap = "butt";
-      const day = Math.min(nD - 1, Math.floor(S.ps * nD));
-      if (S.ps < .999) for (let i = 0; i < nR; i++) {
-        const r = r0 + i * gap, v = S.plan[i][day], a = spin(i) + sweep;
-        x.fillStyle = v === "/" ? rgba(P.dim, .7) : (S.dark ? P.flash : P.col[v]);
-        x.beginPath(); x.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, v === "/" ? 1.4 : 2, 0, TAU); x.fill();
-      }
-      x.textAlign = "center"; x.textBaseline = "middle";
-      x.fillStyle = P.ink; x.font = "600 15px system-ui, sans-serif";
-      x.fillText(String(Math.round(S.ps * 100)), cx, cy - 2);
-      x.font = "8px system-ui, sans-serif"; x.fillStyle = P.sub; x.fillText("%", cx, cy + 10);
-    },
-  };
-
   // ------------------------------------------------------------ 성장하는 해 — 빈 자리를 찾아 가지가 자라며 채운다
   // 원본: GPT 02-04 공간 점유 성장(가지가 끌림점 쪽으로 자람). 이해되게 바꾼 것: 끌림점이 곧 근무표의 빈 칸이다.
   // 바닥 가운데 뿌리에서, 아직 안 채운 칸(옅은 점)으로 가장 가까운 가지가 뻗어 가고, 닿으면 그 칸에 근무 글자가
@@ -730,98 +832,6 @@
         const key = L.branches[k].key, v = S.plan[Math.floor(key / nD)][key % nD], [px, py] = L.centre(key);
         x.fillStyle = age < GROW + 300 ? P.flash : (v === "/" ? rgba(P.dim, .55) : P.col[v]);
         x.fillText(v, px, py + .5);
-      }
-    },
-  };
-
-  // ------------------------------------------------------------ 교환의 성좌 — 같은 날 두 사람이 근무를 맞바꾼다
-  // 원본: GPT 01-07(왼쪽 점=사람, 오른쪽 점=날짜, 선=그 단계에서 바뀐 칸). 이해되게 바꾼 것: 근무표 격자를 그대로
-  // 두고, 같은 날 두 사람의 E와 D가 선으로 이어진 채 자리를 바꾼다(글자가 위아래로 엇갈려 움직인다). 바꾼 자리는
-  // 별로 남아 선이 쌓이면 성좌가 된다. 맞교환은 위 validRow를 깨지 않는 것만 한다(E→D·E-OFF-D가 생기면 안 함).
-  // 1.4초마다 하나 — 생성이 3초면 끝나도 두 번은 보인다. 격자 채움은 진행(날짜 순서)을 따른다.
-  // 맞교환은 이미 다 놓인 날짜(그 날의 칸이 모두 채워진 열)에서만 한다 — 예전엔 진행과 무관하게 1~7일에서
-  // 바꿔 "근무표가 나오기 전부터 바뀌고 있다"(사용자, 11/2). 다 놓인 날이 생길 때까지는 기다린다.
-  const swaps = {
-    key: "swaps", name: "교환의 성좌",
-    init(S) {
-      S.L.g = gridLayout(S, 22, 5, 16);
-      S.L.cur = S.plan.map(r => r.slice());
-      S.L.done = []; S.L.sw = null; S.L.next = 250;
-    },
-    // 그 날의 칸이 모두 놓인 날짜 수(날짜 순서로 놓으므로 앞에서부터 이어진다)
-    fullDays(S) {
-      let n = 0;
-      while (n < S.nD) { let all = true; for (let i = 0; i < S.nS; i++) if (S.rank[i * S.nD + n] >= S.settled) { all = false; break; } if (!all) break; n++; }
-      return n;
-    },
-    pick(S, slot) {
-      const { nS } = S, cur = S.L.cur, maxD = swaps.fullDays(S) - 1;
-      const cand = [];
-      for (let d = 0; d <= maxD; d++) for (let a = 0; a < nS; a++) {
-        if (cur[a][d] !== "E") continue;
-        for (let b = 0; b < nS; b++) {
-          if (cur[b][d] !== "D") continue;
-          const ra = cur[a].slice(), rb = cur[b].slice(); ra[d] = "D"; rb[d] = "E";
-          if (validRow(ra) && validRow(rb)) cand.push([a, b, d]);
-        }
-      }
-      if (!cand.length) return null;
-      // 최근 날짜 쪽을 더 자주 — 지금 채우는 자리 근처에서 고치는 것처럼
-      cand.sort((p, q) => q[2] - p[2]);
-      const c = cand[Math.floor(Math.pow(rnd(slot * 7 + 3), 2) * cand.length)];
-      return { a: c[0], b: c[1], d: c[2] };
-    },
-    draw(S) {
-      const { x, w, h, P, nS, nD } = S, L = S.L, { cs, ox, oy } = L.g, cur = L.cur;
-      paint(S);
-      const PERIOD = 1400, MOVE = 900, t = S.reduce ? 0 : S.t;
-      // 다음 맞교환 — 앞 것이 끝나고(1.4초) 바꿀 수 있는 날이 있을 때만. 없으면 매 프레임 다시 본다.
-      if (!S.reduce && t >= L.next) {
-        const nx = swaps.pick(S, Math.floor(t / PERIOD));
-        if (nx) {
-          if (L.sw && L.sw.applied) { L.done.push(L.sw); if (L.done.length > 14) L.done.shift(); }
-          nx.t0 = t; L.sw = nx; L.next = t + PERIOD;
-        }
-      }
-      const sw = L.sw, ph = sw ? (t - sw.t0) / MOVE : 1, moving = sw && ph < 1;
-      if (sw && !moving && !sw.applied) {
-        // 다시 확인하고 바꾼다 — 고른 뒤에 다른 교환이 끼어들 일은 없지만, 규칙을 깨는 줄은 한 프레임도 안 그린다
-        const ra = cur[sw.a].slice(), rb = cur[sw.b].slice(); ra[sw.d] = "D"; rb[sw.d] = "E";
-        if (validRow(ra) && validRow(rb)) { cur[sw.a] = ra; cur[sw.b] = rb; sw.applied = true; } else L.sw = null;
-      }
-      const cx = (d) => ox + (d + .5) * cs, cy = (i) => oy + (i + .5) * cs;
-      // 사람 줄 이름(짝수만) — 왼쪽 여백
-      x.font = "8px system-ui, sans-serif"; x.textAlign = "right"; x.textBaseline = "middle"; x.fillStyle = rgba(P.sub, .8);
-      for (let i = 0; i < nS; i += 2) x.fillText(String(i + 1).padStart(2, "0"), ox - 3, cy(i));
-      // 쌓인 성좌 — 지난 맞교환의 선과 별
-      const arc = (sw2, alpha, lw) => {
-        const xa = cx(sw2.d), ya = cy(sw2.a), yb = cy(sw2.b), bend = 10 + Math.abs(sw2.a - sw2.b) * cs * .25;
-        x.strokeStyle = rgba(P.gold, alpha); x.lineWidth = lw;
-        x.beginPath(); x.moveTo(xa + cs * .45, ya); x.quadraticCurveTo(xa + bend, (ya + yb) / 2, xa + cs * .45, yb); x.stroke();
-      };
-      L.done.forEach((p, k) => arc(p, .18 + .3 * k / L.done.length, 1));
-      // 격자 — 진행만큼 날짜 순서로 채운다. 맞교환 중인 두 칸은 진행과 무관하게 보인다.
-      x.font = `700 ${Math.max(6, cs * .78)}px ui-monospace, Menlo, monospace`; x.textAlign = "center";
-      for (let i = 0; i < nS; i++) for (let d = 0; d < nD; d++) {
-        const key = i * nD + d, mine = sw && sw.d === d && (sw.a === i || sw.b === i);
-        if (S.rank[key] >= S.settled) { x.fillStyle = rgba(P.dim, .16); x.fillRect(cx(d) - .8, cy(i) - .8, 1.6, 1.6); continue; }
-        if (mine && moving) continue;
-        const v = cur[i][d], star = L.done.some(p => p.d === d && (p.a === i || p.b === i));
-        if (star) { x.fillStyle = rgba(P.gold, S.dark ? .22 : .18); x.fillRect(cx(d) - cs / 2 + .5, cy(i) - cs / 2 + .5, cs - 1, cs - 1); }
-        x.fillStyle = v === "/" ? rgba(P.dim, .5) : P.col[v];
-        x.fillText(v, cx(d), cy(i) + .5);
-      }
-      if (sw && (moving || sw.applied)) {
-        const e = moving ? .5 - .5 * Math.cos(Math.PI * Math.min(1, Math.max(0, (ph - .15) / .85))) : 1;
-        arc(sw, .95, 1.6);
-        const xa = cx(sw.d), ya = cy(sw.a), yb = cy(sw.b);
-        for (const [y0, y1, v, side] of [[ya, yb, moving ? "E" : cur[sw.a][sw.d], -1], [yb, ya, moving ? "D" : cur[sw.b][sw.d], 1]]) {
-          const yy = moving ? y0 + (y1 - y0) * e : y0, xx = xa + (moving ? side * Math.sin(Math.PI * e) * cs * .8 : 0);
-          x.fillStyle = rgba(P.flash, S.dark ? .25 : .18); x.fillRect(xx - cs / 2, yy - cs / 2, cs, cs);
-          x.fillStyle = P.col[v]; x.fillText(v, xx, yy + .5);
-        }
-        x.font = "600 10px system-ui, sans-serif"; x.textAlign = "right"; x.textBaseline = "alphabetic"; x.fillStyle = P.ink;
-        x.fillText(`${sw.d + 1}일 맞교환 · 이름${String(sw.a + 1).padStart(2, "0")} E ↔ 이름${String(sw.b + 1).padStart(2, "0")} D`, w - 7, h - 4);
       }
     },
   };
@@ -954,9 +964,10 @@
   };
 
   // 열둘 모두 앱 생성 중 무작위 후보다(직전 것 제외). 모음 페이지는 __genVizForce로 하나씩 고정해 그린다.
-  const VIZ = [rain, journey, ripple, helix, city, mandala, porous, growth, score, orrery, swaps, tesseract];
+  const VIZ = [rain, journey, ripple, helix, city, mandala, porous, growth, score, orrery, constellation, tesseract];
   const NAMES = VIZ.map(v => v.name);
   const LAST_KEY = "ns_genviz_last";
+  const T_DEFAULT = 5.5;   // 초 — 기록 전체를 다 재생하는 시간(머리말 '등속'). 연출이 T를 가지면 그것을 쓴다.
   let last = null;
   try { last = localStorage.getItem(LAST_KEY); } catch (e) { /* 저장 막힘 — 이 탭 안에서만 직전 제외 */ }
   let run = null;   // { S, viz, raf, timer }
@@ -981,7 +992,7 @@
     run = null;
   }
 
-  // opts: { nS, nD, year, month, progress: () => 0~1 }
+  // opts: { progress: () => 0~1 } — 게이지 비율. 사람 수·날짜는 기록(TRACE)을 따른다(머리말).
   function start(cv, opts) {
     stop();
     const reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -992,18 +1003,16 @@
     const x = cv.getContext("2d");
     if (!x) return null;
     x.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const nS = opts.nS, nD = opts.nD;
-    const plan = Array.from({ length: nS }, (_, i) => rosterRow(i, nD));
-    // 놓는 순서: 날짜 순서, 같은 날 안에서는 섞어서
-    const order = [], rank = new Int32Array(nS * nD);
-    for (let d = 0; d < nD; d++) {
-      const rows = Array.from({ length: nS }, (_, i) => i).sort((a, b) => rnd(a * 7 + d) - rnd(b * 7 + d));
-      for (const i of rows) { rank[i * nD + d] = order.length; order.push(i * nD + d); }
-    }
-    const dow0 = opts.year && opts.month ? new Date(opts.year, opts.month - 1, 1).getDay() : null;
-    const S = { x, w, h, dark, reduce, P: dark ? PAL.dark : PAL.light, nS, nD, plan, order, rank,
-                born: new Map(), settled: 0, p: 0, ps: 0, now: performance.now(), t: 0, month: opts.month || null, dow0, L: {} };
-    const viz = choose();
+    const nS = TRACE.rows, nD = TRACE.nD;
+    // S.grid = 지금까지 재생한 표(빈 칸은 ""), S.plan = 완성표를 D·E·N·쉼으로(여정·파문·성장하는 해),
+    // S.born = 칸마다 마지막으로 쓴 시각, S.prev = 다 놓인 칸이 바뀌었을 때 그 앞 근무, S.log = 최근에 쓴 칸
+    // [사람, 날짜, 근무, 시각, 바뀐 칸인지], S.changed = 다 놓인 뒤 바뀐 칸 수, S.stage = 마지막으로 쓴 단계.
+    const S = { x, w, h, dark, reduce, P: dark ? PAL.dark : PAL.light, nS, nD,
+                grid: Array.from({ length: nS }, () => new Array(nD).fill("")),
+                plan: TR.final.slice(0, nS).map(r => r.map(v => BASIC[v])),
+                applied: 0, born: new Map(), prev: new Map(), log: [], changed: 0, stage: -1,
+                p: 0, ps: 0, now: performance.now(), t: 0, L: {} };
+    const viz = choose(), T = (viz.T || T_DEFAULT) * 1000, ev = TR.grid14;
     const me = { S, viz, raf: null, timer: null };
     run = me;
     GenViz.lastError = null;
@@ -1011,24 +1020,26 @@
     const t0 = S.now; let prev = S.now;
     const draw = (now) => {
       if (run !== me) return;
-      // 연출 진행 = 게이지와 '앞당김' 중 큰 쪽. 게이지는 8초 예산으로 고르게 차는데 생성은 보통 3~8초에
-      // 끝나서, 게이지만 따르면 처음 1~2초는 거의 비어 있고 끝나기 전에 절반도 못 그린 채 닫혔다(사용자 11/2:
-      // 악보·교환의 성좌가 "처음에 멈칫", "속도 전체적으로 봐줘"). 그래서 처음 3초 안에 85%까지는 시간으로
-      // 앞당겨 채우고(감속 곡선), 그 뒤로는 게이지를 따른다. 생성이 끝나면 어차피 게이지가 따라온다.
-      const lead = .85 * (1 - Math.pow(1 - Math.min(1, Math.max(0, now - t0) / 3000), 3));
-      const p = Math.max(lead, Math.max(0, Math.min(1, Number(opts.progress()) || 0)));
       // rAF의 now는 start()에서 읽은 performance.now()보다 이를 수 있다 — 음수 경과시간이면 다공성 질서의
       // 탐색자 위치가 -1이 돼 그리다 멈췄다(ui_smoke가 잡음). 0 아래로 내려가지 않게 한다.
-      S.p = p; S.now = now; S.t = Math.max(0, now - t0);
+      S.now = now; S.t = Math.max(0, now - t0);
       const dt = Math.max(0, Math.min(200, now - prev)); prev = Math.max(prev, now);
-      S.ps = reduce ? p : (p < S.ps ? p : S.ps + (p - S.ps) * (1 - Math.exp(-dt / 220)));
-      if (p >= 1 && S.ps > .995) S.ps = 1;
-      const target = Math.min(order.length, Math.floor(order.length * p));
-      while (S.settled < target) { S.born.set(order[S.settled], now); S.settled++; }
+      // 진행 = max(시간/T, 게이지) — 둘 다 직선. 게이지가 앞서면 2/T의 일정한 빠르기로 따라간다(머리말 '등속').
+      const target = Math.min(1, Math.max(S.t / T, Math.max(0, Math.min(1, Number(opts.progress()) || 0))));
+      S.ps = reduce ? target : Math.max(Math.min(1, S.t / T), Math.min(target, S.ps + dt * 2 / T));
+      S.p = S.ps;
+      const upto = S.ps >= 1 ? ev.length : Math.floor(ev.length * S.ps);
+      while (S.applied < upto) {
+        const [stg, i, d, v] = ev[S.applied++], key = i * nD + d, old = S.grid[i][d];
+        if (old) { S.prev.set(key, old); S.changed++; }
+        S.grid[i][d] = v; S.born.set(key, now); S.stage = stg;
+        S.log.push([i, d, v, now, !!old]);
+      }
+      if (S.log.length > 80) S.log.splice(0, S.log.length - 80);
       try {
         viz.draw(S);
         x.textAlign = "left"; x.textBaseline = "alphabetic"; x.font = "10px system-ui, sans-serif";
-        x.fillStyle = S.P.label; x.fillText(viz.name, 7, h - 4);
+        x.fillStyle = viz === city ? "rgba(232,238,246,.5)" : S.P.label; x.fillText(viz.name, 7, h - 4);
       } catch (e) { fail(e, viz); }
     };
     if (reduce) { draw(performance.now()); me.timer = setInterval(() => draw(performance.now()), 500); return viz.name; }
@@ -1044,9 +1055,9 @@
   }
 
   const GenViz = window.GenViz = {
-    NAMES, start, stop, rosterRow, validRow, lastError: null,
+    NAMES, start, stop, lastError: null,
     current: () => (run ? run.viz.name : null),
-    // 점검용 — 지금 연출의 내부 상태(교환의 성좌가 바꾼 줄이 규칙을 지키는지 등). 화면은 쓰지 않는다.
-    debugState: () => (run ? run.S.L : null),
+    // 점검용 — 진행(ps)·재생한 사건 수(applied/total)·바뀐 칸 수와 연출 내부 상태. 화면은 쓰지 않는다.
+    debugState: () => (run ? { ps: run.S.ps, t: run.S.t, applied: run.S.applied, total: TR.grid14.length, changed: run.S.changed, L: run.S.L } : null),
   };
 })();
