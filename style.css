@@ -1189,3 +1189,14 @@ details.expert-sec > .side-sec { margin-top: 12px; }
 /* 입력 설명서 '처음이면 이 세 줄만' */
 .modal-body ol.first-three { padding-left: 20px; margin: 4px 0 8px; }
 .modal-body ol.first-three li { margin: 3px 0; }
+
+/* 맞교환 후보 비교 카드(GPT 11/2 보고서 X01) — 두 사람의 야간·주말 전→후, 공평성 말로 */
+.swap-list.swap-cards li { display: block; padding: 7px 0; }
+.swap-cards .swap-head { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+.swap-cards .swap-rank { color: var(--sub); font-size: .6875rem; }
+.swap-cards .swap-meta { display: block; line-height: 1.5; }
+.swap-cards .good { color: var(--ok); }
+.swap-cards .bad { color: var(--hard); }
+.swap-tools { font-size: .75rem; color: var(--sub); margin: 4px 0; }
+.swap-tools label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+

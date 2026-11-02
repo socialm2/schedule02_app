@@ -2115,15 +2115,21 @@ $("#restoreSampleBtn").onclick = () => {
 const SESSION_RESULT_KEY = "ns_session_result_v1";
 const SESSION_FILES_KEY = "ns_session_files_v1";
 function sessionGet(key) { try { return JSON.parse(sessionStorage.getItem(key) || "null"); } catch (e) { return null; } }
-function sessionSet(key, val) { try { sessionStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* 용량·정책 — 조용히 생략 */ } }
+// 저장 성공 여부를 돌려준다 — 예전엔 실패를 삼켜, 저장이 안 됐는데도 그 전 회차 기록이 '직전 근무표'로
+// 남아 복원 카드가 옛 표를 내밀었다(GPT 11/2 보고서 P01).
+function sessionSet(key, val) { try { sessionStorage.setItem(key, JSON.stringify(val)); return true; } catch (e) { return false; } }
 function sessionDel(key) { try { sessionStorage.removeItem(key); } catch (e) { /* 없는 것과 같다 */ } }
 
+// 파일 변환(await)이 끝난 '뒤에' 저장 목록을 읽어 합친다. 예전엔 먼저 읽고 변환을 기다렸다가 써서, 입력①·②가
+// 거의 동시에 저장되면(복원 버튼이 둘을 연달아 다시 올릴 때) 늦게 끝난 쪽이 먼저 쓴 쪽을 지웠다 — 한 번 더
+// 새로고침하면 입력① 없이 복원됐다(GPT 11/2 보고서 P02). 저장에 실패하면 직전 결과도 지운다: 파일이 빠진
+// 기록으로 '복원'하면 다른 입력으로 다시 만들게 된다.
 async function rememberSessionFile(kind, file) {
-  try {
-    const files = sessionGet(SESSION_FILES_KEY) || {};
-    files[kind] = { name: file.name, b64: await fileToBase64(file) };
-    sessionSet(SESSION_FILES_KEY, files);
-  } catch (e) { /* 파일을 못 읽어도 반영 자체는 끝났다 */ }
+  let b64;
+  try { b64 = await fileToBase64(file); } catch (e) { return; }   // 파일을 못 읽어도 반영 자체는 끝났다
+  const files = sessionGet(SESSION_FILES_KEY) || {};
+  files[kind] = { name: file.name, b64 };
+  if (!sessionSet(SESSION_FILES_KEY, files)) sessionDel(SESSION_RESULT_KEY);
 }
 function forgetSessionFile(kind) {
   const files = sessionGet(SESSION_FILES_KEY) || {};
@@ -2134,13 +2140,15 @@ function saveSessionResult() {
   if (!ST) return;
   const val = (sid, d) => (ST.grid[sid] || [])[d];
   const keyOf = k => { const i = k.lastIndexOf(":"); return [k.slice(0, i), Number(k.slice(i + 1))]; };
-  sessionSet(SESSION_RESULT_KEY, {
+  const ok = sessionSet(SESSION_RESULT_KEY, {
     at: Date.now(), year: ST.year, month: ST.month, ward: ST.ward_id || "", staffCount: ST.staff.length,
-    round: ST.round, thorough: thoroughOn(), grid: ST.grid,
+    round: ST.round, thorough: thoroughOn(), grid: ST.grid, seed: ST.current_seed ?? null,
     locked: (ST.locked || []).map(k => { const [sid, d] = keyOf(k); return { sid, day: d, v: val(sid, d) }; }),
     pending: (ST.pending || []).map(k => { const [sid, d] = keyOf(k); return { sid, day: d, v: val(sid, d) }; }),
     teamB: ST.team_b_grid || {},
   });
+  // 저장 실패면 그 전 회차 기록을 지운다 — 남겨 두면 복원 카드가 옛 표를 '직전 근무표'라고 내민다(P01)
+  if (!ok) { sessionDel(SESSION_RESULT_KEY); renderRestoreCard(); }
 }
 function forgetSessionResult() { sessionDel(SESSION_RESULT_KEY); renderRestoreCard(); }
 
@@ -2177,6 +2185,13 @@ async function restoreSession() {
     if (chk) chk.checked = !!saved.thorough;
     await runGenerate($("#generateBtn"), $("#genStatus"));
     if (!ST) throw new Error("생성이 끝나지 않았습니다");
+    // 점수표에서 다른 근무표(시드)를 골라 쓰던 중이었으면 그 표로 돌린다 — 예전엔 기본 선택으로 돌아가
+    // 칸이 통째로 달라졌다(GPT 11/2 보고서 P03). 고정 칸·편집은 그 표 위에 다시 올린다.
+    if (saved.seed != null && saved.seed !== ST.current_seed && (ST.attempt_table || []).some(a => a.seed === saved.seed)) {
+      showGenOverlay(`직전에 고른 시드 ${saved.seed}의 근무표로 바꾸는 중입니다…`);
+      try { ST = await api("/api/select_attempt", { method: "POST", body: JSON.stringify({ seed: saved.seed }) }); render(); }
+      finally { hideGenOverlay(); }
+    }
     // 고정 칸(재생성 때 잠근 것·되올린 수정본)은 편집으로 다시 올려 한 번 적용한다.
     if (saved.locked.length) {
       showGenOverlay(`고정 칸 ${saved.locked.length}개를 다시 적용하는 중입니다…`);
@@ -2198,8 +2213,12 @@ async function restoreSession() {
       for (let d = 0; d < row.length; d++) if (row[d]) ST = await api("/api/edit/team_b", { method: "POST", body: JSON.stringify({ staff_id: name, day: d, shift: row[d] }) });
     }
     if (saved.pending.length || Object.keys(saved.teamB || {}).length) { render({ keepScroll: true }); refreshFeedback(); }
+    // 직전과 같은지 — 저장된 사람만이 아니라 지금 표의 사람(새로 생긴 줄)과 B팀까지 본다(GPT 11/2 보고서 P04)
     let diff = 0;
-    for (const sid in saved.grid) { const a = saved.grid[sid], b = ST.grid[sid] || []; for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) diff++; }
+    const rowDiff = (a = [], b = []) => { let n = 0; for (let i = 0; i < Math.max(a.length, b.length); i++) if ((a[i] || "") !== (b[i] || "")) n++; return n; };
+    for (const sid of new Set([...Object.keys(saved.grid), ...Object.keys(ST.grid)])) diff += rowDiff(saved.grid[sid], ST.grid[sid]);
+    const tbNow = ST.team_b_grid || {}, tbSaved = saved.teamB || {};
+    for (const sid of new Set([...Object.keys(tbSaved), ...Object.keys(tbNow)])) diff += rowDiff(tbSaved[sid], tbNow[sid]);
     showToast(diff === 0
       ? "직전 근무표를 그대로 복원했습니다"
       : `입력은 그대로 복원했지만 표가 직전과 ${diff}칸 다릅니다 — 내려받아 두신 출력①이 있으면 '수정 엑셀 파일 업로드'로 올리면 그 표가 됩니다`, diff !== 0);
@@ -2423,17 +2442,44 @@ function renderSwap() {
   if (!s.candidates.length) {
     html += `<p class="fragile-note">${esc(s.reason || "상대가 없습니다")}</p>`;
   } else {
-    html += '<ul class="swap-list">';
-    for (const c of s.candidates) {
-      const eq = c.equity_delta > 0 ? `형평 ${c.equity_delta > 0 ? "+" : ""}${c.equity_delta}` : (c.equity_delta < 0 ? `형평 ${c.equity_delta}` : "형평 변화 없음");
-      const tags = [eq];
-      if (c.breaks_wish) tags.push("상대 희망 칸 깨짐");
-      if (c.warnings.length) tags.push("경고 " + c.warnings.join("·"));
-      html += `<li><button class="swap-pick" data-sid="${escAttr(s.staff_id)}" data-day="${s.day}" data-partner="${escAttr(c.partner)}">` +
+    // 후보 비교 카드(GPT 11/2 보고서 X01) — 예전엔 "형평 +0.4"처럼 부호만 보여 좋아지는지 나빠지는지,
+    // 왜 이 사람인지 알기 어려웠다. 두 사람의 야간·주말 근무 횟수가 전→후로 어떻게 바뀌는지와, 공평성이
+    // 좋아지는지(편차 감소)를 말로 보여 준다. equity_delta는 after−before 편차라 작을수록 좋다 — 뒤집지 않는다.
+    // 기본 3명, [모두 보기]로 전체. '원티드 보존 우선'은 보기 정렬만 바꾼다(추천 순서·재검사는 그대로).
+    const row = sid => (ST.grid[sid] || []).slice();
+    const tally = r => {
+      let n = 0, w = 0;
+      for (let d = 0; d < r.length; d++) { if (r[d] === "N" || r[d] === "NK") n++; if (ST.days[d] && ST.days[d].weekend && isWorkCode(r[d])) w++; }
+      return { n, w };
+    };
+    const change = (b, a, label) => b === a ? "" : `${label} ${b}→${a}`;
+    const me0 = row(s.staff_id), me1 = me0.slice(); me1[s.day] = s.want;
+    const meB = tally(me0), meA = tally(me1);
+    let list = s.candidates.map((c, k) => ({ c, k }));
+    if (s.wishFirst) list.sort((x, y) => (x.c.breaks_wish - y.c.breaks_wish) || (x.k - y.k));
+    const total = list.length, shown = s.showAll ? list : list.slice(0, 3);
+    html += `<div class="swap-tools"><label><input type="checkbox" class="swap-sort"${s.wishFirst ? " checked" : ""}> 원티드 보존 우선으로 보기</label></div>`;
+    html += '<ul class="swap-list swap-cards">';
+    for (const { c, k } of shown) {
+      const p0 = row(c.partner), p1 = p0.slice(); p1[s.day] = c.my_shift;
+      const pB = tally(p0), pA = tally(p1);
+      const mine = [change(meB.n, meA.n, "야간"), change(meB.w, meA.w, "주말 근무")].filter(Boolean).join(" · ") || "야간·주말 그대로";
+      const theirs = [change(pB.n, pA.n, "야간"), change(pB.w, pA.w, "주말 근무")].filter(Boolean).join(" · ") || "야간·주말 그대로";
+      const eq = c.equity_delta < 0 ? `<b class="good">공평성 좋아짐</b> (편차 ${c.equity_delta})`
+        : c.equity_delta > 0 ? `<b class="bad">공평성 나빠짐</b> (편차 +${c.equity_delta})` : "공평성 변화 없음";
+      const tags = [];
+      if (c.breaks_wish) tags.push(`<span class="bad">${esc(c.partner)}의 원티드 칸이 깨짐</span>`);
+      if (c.warnings.length) tags.push(`추가 검토 ${esc(c.warnings.join("·"))}`);
+      html += `<li><div class="swap-head"><button class="swap-pick" data-sid="${escAttr(s.staff_id)}" data-day="${s.day}" data-partner="${escAttr(c.partner)}">` +
               `${esc(c.partner)} <span class="lv">Lv${c.partner_level}</span></button>` +
-              `<span class="swap-meta">${esc(c.partner)} ${esc(c.partner_shift)}→${esc(c.my_shift)} · ${esc(tags.join(" · "))}</span></li>`;
+              `<span class="swap-rank">추천 ${k + 1}위</span></div>` +
+              `<div class="swap-meta">${s.day + 1}일 ${esc(s.staff_id)} ${esc(s.current)}→${esc(s.want)}, ${esc(c.partner)} ${esc(c.partner_shift)}→${esc(c.my_shift)}</div>` +
+              `<div class="swap-meta">${esc(s.staff_id)}: ${esc(mine)} / ${esc(c.partner)}: ${esc(theirs)}</div>` +
+              `<div class="swap-meta">${eq}${tags.length ? " · " + tags.join(" · ") : ""}</div></li>`;
     }
     html += "</ul>";
+    if (total > 3) html += `<div class="action-row"><button class="swap-more">${s.showAll ? "3명만 보기" : `모두 보기 (${total}명)`}</button></div>`;
+    html += `<p class="fragile-note">추천은 고른 사람이 실제로 바꿀 수 있다는 뜻이 아닙니다 — 상대에게 먼저 물어보세요. 누르면 편집 목록에 올리기 전에 다시 검사합니다.</p>`;
   }
   const skipped = [];
   if (s.skipped_locked) skipped.push(`잠김·편집 중 ${s.skipped_locked}`);
@@ -3134,6 +3180,13 @@ delegateClick(document.getElementById("sidePane"), "button.undo-edit",
   (b) => undoEdit(b.dataset.sid, Number(b.dataset.day)));
 delegateClick(document.getElementById("sidePane"), "button.swap-pick",
   (b) => stageSwap(b.dataset.sid, Number(b.dataset.day), b.dataset.partner));
+delegateClick(document.getElementById("sidePane"), "button.swap-more",
+  () => { if (SWAP) { SWAP.showAll = !SWAP.showAll; renderSide(); const sec = $("#swapSec"); if (sec) sec.scrollIntoView({ block: "nearest" }); } });
+document.getElementById("sidePane").addEventListener("change", (ev) => {
+  if (!ev.target.classList || !ev.target.classList.contains("swap-sort") || !SWAP) return;
+  SWAP.wishFirst = ev.target.checked; renderSide();
+  const sec = $("#swapSec"); if (sec) sec.scrollIntoView({ block: "nearest" });
+});
 delegateClick(document.getElementById("sidePane"), "button.swap-close",
   () => { SWAP = null; renderSide(); paintFragile(); });
 delegateClick(document.getElementById("holidayCalendar"), "td[data-iso]",
