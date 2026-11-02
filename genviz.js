@@ -143,8 +143,9 @@
   })();
   // 여정·파문·성장하는 해는 D·E·N·쉼 네 글자만 다룬다 — 기록의 근무를 그 넷으로(파트장 8A·prn은 낮, 야간전담은 밤, 수면오프는 쉼)
   const BASIC = { D: "D", E: "E", N: "N", NK: "N", "/": "/", p: "D", "8A": "D", "S/": "/" };
-  // 칸에 쓰는 한 글자 — 원본(갤러리 II 비)과 같다: 야간전담은 K, 나머지는 첫 글자
-  const glyph = (v) => (v === "NK" ? "K" : v[0]);
+  // 칸에 쓰는 글자 — 근무 코드를 그대로 쓴다. 원본(갤러리 II 비)은 한 글자로 줄여 야간전담 NK가 'K', 8A가 '8',
+  // 수면오프 S/가 'S'로 나와 "K라는 근무가 있다, 말이 안 된다"(사용자, 11/3). 두 글자 코드는 칸에 맞게 글씨를 줄인다.
+  const glyph = (v) => v;
 
   function paint(S, fill) {
     if (S.P.clear) S.x.clearRect(0, 0, S.w, S.h);
@@ -474,9 +475,13 @@
           }
         }
       }
+      const f1 = `700 ${Math.max(5, cs * .78)}px ui-monospace, Menlo, monospace`, f2 = `700 ${Math.max(4, cs * .5)}px ui-monospace, Menlo, monospace`;
       const put = (v, X, Y, white) => {
+        const g = glyph(v);
         x.fillStyle = white ? land : col[v]; x.globalAlpha = v === "/" || v === "S/" ? .5 : 1;
-        x.fillText(glyph(v), X, Y); x.globalAlpha = 1;
+        if (g.length > 1) x.font = f2;
+        x.fillText(g, X, Y); x.globalAlpha = 1;
+        if (g.length > 1) x.font = f1;
       };
       for (const [key, t0] of S.born) {
         const i = Math.floor(key / nD), d = key % nD, v = S.grid[i][d], X = ox + d * cs + cs / 2, ty = oy + i * cs + cs / 2;
