@@ -145,7 +145,8 @@
   const BASIC = { D: "D", E: "E", N: "N", NK: "N", "/": "/", p: "D", "8A": "D", "S/": "/" };
   // 칸에 쓰는 글자 — 근무 코드를 그대로 쓴다. 원본(갤러리 II 비)은 한 글자로 줄여 야간전담 NK가 'K', 8A가 '8',
   // 수면오프 S/가 'S'로 나와 "K라는 근무가 있다, 말이 안 된다"(사용자, 11/3). 두 글자 코드는 칸에 맞게 글씨를 줄인다.
-  const glyph = (v) => v;
+  // 그다음 "글씨가 너무 작다 — NK는 그냥 N으로"(사용자, 11/3): 야간전담은 N(색은 NK색 그대로), 8A·S/만 두 글자.
+  const glyph = (v) => (v === "NK" ? "N" : v);
 
   function paint(S, fill) {
     if (S.P.clear) S.x.clearRect(0, 0, S.w, S.h);
@@ -174,8 +175,10 @@
   }
 
   // ------------------------------------------------------------ 여정 — 한 사람이 날짜를 걸어간다
-  // 원본: 개념1 여정 장면. 줄인 것: 카드·설명을 빼고, 해(D)·노을(E)·달(N)·쉼을 날짜 눈금 위에만 둔다.
-  // 걸어온 날만 하늘에 뜬다. 아래 점 줄이 그 사람의 한 달 — 이것이 진행을 따른다(끝까지 가면 다 찬다).
+  // 원본: 개념1 여정 장면. 배경을 원본대로 — 하늘색이 지금 걷는 날의 근무를 따른다(낮 하늘색 / 저녁 보라→주황 /
+  // 밤 남색과 별 / 쉼 회색), 이웃 날과 섞이며 바뀐다. 굽이치는 언덕, 날짜 이정표(가까울수록 크게), 해·노을·달·구름.
+  // 단색 밤하늘 하나였을 때 "배경이 너무 단순해서 안 예쁘다"(사용자, 11/3). 그림이라 라이트 모드에서도 하늘을 칠한다.
+  // 카드·설명은 뺐고, 아래 점 줄이 그 사람의 한 달 — 이것이 진행을 따른다.
   const journey = {
     key: "journey", name: "여정",
     init(S) {
@@ -187,68 +190,65 @@
         if (s > score) { score = s; best = i; }
       }
       S.L.row = S.plan[best];
-      if (S.dark) {
-        const g = S.x.createLinearGradient(0, 0, 0, S.h);
-        g.addColorStop(0, "#070b1f"); g.addColorStop(.62, "#1a2050"); g.addColorStop(1, "#0b1026");
-        S.L.sky = g;
-      }
     },
     draw(S) {
       const { x, w, h, P, nD } = S, row = S.L.row;
-      paint(S, S.L.sky);
-      stars(S, 26, h * .5);
-      // 걷는 사람은 시간으로 걷는다(초당 2.4일) — 생성이 3초 만에 끝나도 해·노을·달을 몇 개 지나가야 한다.
-      // 다만 진행(아래 점 줄)보다 8일 넘게 앞서지는 않고, 진행이 더 빠르면 진행을 따른다.
+      // 걷는 사람은 시간으로 걷는다(일정한 빠르기, 초당 2.4일) — 진행(아래 점 줄)보다 8일 넘게 앞서지 않고,
+      // 진행이 더 빠르면 진행을 따른다.
       const prog = S.ps * (nD - 1), pd = Math.min(nD - 1, Math.max(prog, Math.min(prog + 8, S.t / 1000 * 2.4)));
-      const hy = h * .66, sp = 46, wx = w * .36;
-      const ground = (sx) => hy + 3.5 * Math.sin((sx + pd * sp) / 70);
-      // 지평선
-      x.beginPath();
-      for (let sx = 0; sx <= w; sx += 6) { const y = ground(sx); if (sx) x.lineTo(sx, y); else x.moveTo(sx, y); }
-      if (S.dark) { x.lineTo(w, h); x.lineTo(0, h); x.closePath(); x.fillStyle = "#0d1330"; x.fill(); }
-      else { x.strokeStyle = rgba(P.dim, .7); x.lineWidth = 1.2; x.stroke(); }
-      x.textAlign = "center"; x.textBaseline = "middle";
-      const cur = Math.round(pd);
+      const kind = v => { const b = BASIC[v] || "/"; return b; };
+      const SKY = { D: ["#8ec5ff", "#dff0ff"], E: ["#3b2a5a", "#f59e6b"], N: ["#050816", "#1a2050"], "/": ["#5b6b84", "#c7d2e2"] };
+      const mixHex = (a, b, t) => { const p = hex3(a), q = hex3(b); return `rgb(${p.map((v, i) => Math.round(v + (q[i] - v) * t)).join(",")})`; };
+      // 하늘 — 지금 날과 다음 날의 하늘을 섞는다
+      const d0 = Math.floor(pd), d1 = Math.min(nD - 1, d0 + 1), f = pd - d0, s0 = SKY[kind(row[d0])], s1 = SKY[kind(row[d1])];
+      const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, mixHex(s0[0], s1[0], f)); g.addColorStop(1, mixHex(s0[1], s1[1], f));
+      x.fillStyle = g; x.fillRect(0, 0, w, h);
+      // 별 — 밤일수록 또렷하게
+      const night = (kind(row[d0]) === "N" ? 1 - f : 0) + (kind(row[d1]) === "N" ? f : 0);
+      for (let k = 0; k < 46; k++) {
+        const a = (.06 + .74 * night) * (.3 + .7 * rnd(k + 9)) * (S.reduce ? 1 : .75 + .25 * Math.sin(S.now / 700 + k));
+        x.fillStyle = `rgba(255,255,255,${a})`; x.fillRect(((rnd(k) * w * 2 - pd * 12) % w + w) % w, rnd(k + 1) * h * .5, 1.3, 1.3);
+      }
+      const sp = 50, cx = w * .4, groundY = h * .7;
+      const hill = (sx) => { const d = (sx - cx) / sp + pd; return groundY + Math.sin(d * 1.7) * 4.5 + Math.sin(d * .6) * 7; };
+      // 언덕
+      x.fillStyle = "rgba(10,14,24,.85)"; x.beginPath(); x.moveTo(0, h);
+      for (let sx = 0; sx <= w; sx += 6) x.lineTo(sx, hill(sx));
+      x.lineTo(w, h); x.closePath(); x.fill();
+      // 날짜마다 하늘의 표지와 이정표
+      x.textAlign = "center"; x.textBaseline = "alphabetic";
       for (let d = 0; d < nD; d++) {
-        const sx = wx + (d - pd) * sp;
-        if (sx < -20 || sx > w + 20) continue;
-        const gy = ground(sx), v = row[d], reached = d <= pd + .5, big = d === cur ? 1.25 : 1;
-        x.strokeStyle = rgba(P.dim, reached ? .6 : .3); x.lineWidth = 1;
-        x.beginPath(); x.moveTo(sx, gy - 1); x.lineTo(sx, gy - 8); x.stroke();
-        x.font = `${d === cur ? 700 : 400} 10px system-ui, sans-serif`;
-        x.fillStyle = d === cur ? P.ink : rgba(P.sub, reached ? .9 : .5);
-        x.fillText(String(d + 1), sx, gy + 11);
-        if (!reached) { x.strokeStyle = rgba(P.dim, .35); x.beginPath(); x.arc(sx, 30, 2.5, 0, TAU); x.stroke(); continue; }
-        if (v !== "/") { x.font = "700 9px ui-monospace, Menlo, monospace"; x.fillStyle = P.col[v]; x.fillText(v, sx, gy + 22); }
-        if (v === "D") {
-          const r = 6.5 * big;
-          x.strokeStyle = P.sun; x.lineWidth = 1.3;
-          for (let k = 0; k < 8; k++) { const a = k * TAU / 8 + (S.reduce ? 0 : S.now / 4000); x.beginPath(); x.moveTo(sx + Math.cos(a) * r * 1.35, 28 + Math.sin(a) * r * 1.35); x.lineTo(sx + Math.cos(a) * r * 1.75, 28 + Math.sin(a) * r * 1.75); x.stroke(); }
-          x.fillStyle = P.sun; x.beginPath(); x.arc(sx, 28, r, 0, TAU); x.fill();
-        } else if (v === "E") {
-          const r = 8 * big, cy = gy - 12;
-          x.fillStyle = P.col.E; x.beginPath(); x.arc(sx, cy, r, Math.PI, TAU); x.closePath(); x.fill();
-          x.strokeStyle = rgba(P.col.E, .7); x.lineWidth = 1; x.beginPath(); x.moveTo(sx - r * 1.5, cy + 2); x.lineTo(sx + r * 1.5, cy + 2); x.stroke();
-        } else if (v === "N") {
-          crescent(x, sx, 28, 7 * big, P.moon);
-        } else {
-          x.font = "10px system-ui, sans-serif"; x.fillStyle = rgba(P.sub, .9); x.fillText("쉼", sx, 29);
-        }
+        const sx = cx + (d - pd) * sp;
+        if (sx < -30 || sx > w + 30) continue;
+        const v = row[d], kd = kind(v), near = Math.max(0, 1 - Math.abs(d - pd)), yg = hill(sx), yy = h * .2, reached = d <= pd + .5;
+        x.globalAlpha = reached ? 1 : .35;
+        if (kd === "D") { glowAt(x, sx, yy, 22, "#fde68a", .55); x.fillStyle = "#fde68a"; x.beginPath(); x.arc(sx, yy, 9, 0, TAU); x.fill(); }
+        else if (kd === "E") { glowAt(x, sx, yy + 22, 22, "#fb923c", .5); x.fillStyle = "#fb923c"; x.beginPath(); x.arc(sx, yy + 22, 9, Math.PI, 0); x.fill(); }
+        else if (kd === "N") { glowAt(x, sx, yy, 18, "#c7d2fe", .4); x.fillStyle = "#e5e7eb"; x.beginPath(); x.arc(sx, yy, 8, 0, TAU); x.fill();
+          x.fillStyle = mixHex(s0[0], s1[0], f); x.beginPath(); x.arc(sx + 3.3, yy - 1.5, 7, 0, TAU); x.fill(); }
+        else { x.fillStyle = "rgba(255,255,255,.75)"; for (let q = 0; q < 3; q++) { x.beginPath(); x.arc(sx - 7 + q * 7, yy + 3 - (q % 2) * 4, 6, 0, TAU); x.fill(); } }
+        x.globalAlpha = 1;
+        // 이정표 — 가까울수록 높고 숫자가 크다
+        x.strokeStyle = `rgba(255,255,255,${.25 + .5 * near})`; x.lineWidth = 1.4;
+        x.beginPath(); x.moveTo(sx, yg); x.lineTo(sx, yg - 12 - 18 * near); x.stroke();
+        x.fillStyle = `rgba(255,255,255,${.5 + .5 * near})`; x.font = `300 ${9 + 6 * near}px system-ui, sans-serif`;
+        x.fillText(String(d + 1), sx, yg - 15 - 21 * near);   // 가까운 날 숫자는 걷는 사람 머리 위로
+        if (v !== "/" && reached) { x.fillStyle = (S.dark ? PAL.dark : PAL.light).col[kd] || "#cbd5e1"; x.font = `700 ${8 + 2 * near}px ui-monospace, Menlo, monospace`; x.fillText(v === "NK" ? "N" : v, sx, yg + 11); }
       }
       // 걷는 사람
-      const gy = ground(wx), moving = !S.reduce && pd < nD - 1 - .01, sw = moving ? Math.sin(S.now / 110) * 4.5 : 2;
-      x.strokeStyle = P.ink; x.fillStyle = P.ink; x.lineWidth = 2; x.lineCap = "round";
-      x.beginPath(); x.arc(wx, gy - 27, 4, 0, TAU); x.fill();
-      x.beginPath(); x.moveTo(wx, gy - 22); x.lineTo(wx, gy - 11);
-      x.moveTo(wx, gy - 11); x.lineTo(wx + sw, gy - 1); x.moveTo(wx, gy - 11); x.lineTo(wx - sw, gy - 1);
-      x.moveTo(wx, gy - 19); x.lineTo(wx - sw, gy - 13); x.moveTo(wx, gy - 19); x.lineTo(wx + sw, gy - 13);
+      const gy = hill(cx), moving = !S.reduce && pd < nD - 1 - .01, sw = moving ? Math.sin(S.now / 110) * 4 : 2, bob = moving ? Math.sin(S.now / 220) * .8 : 0;
+      x.strokeStyle = "#fff"; x.fillStyle = "#fff"; x.lineWidth = 2; x.lineCap = "round";
+      x.beginPath(); x.arc(cx, gy - 24 + bob, 3.6, 0, TAU); x.fill();
+      x.beginPath(); x.moveTo(cx, gy - 20); x.lineTo(cx, gy - 9);
+      x.moveTo(cx, gy - 9); x.lineTo(cx + sw, gy); x.moveTo(cx, gy - 9); x.lineTo(cx - sw, gy);
+      x.moveTo(cx, gy - 17); x.lineTo(cx - sw, gy - 11); x.moveTo(cx, gy - 17); x.lineTo(cx + sw, gy - 11);
       x.stroke(); x.lineCap = "butt";
       // 한 달 점 줄 — 걸어온 날만 색
       const x0 = w * .3, x1 = w - 10, step = (x1 - x0) / nD;
       for (let d = 0; d < nD; d++) {
-        const v = row[d], on = d <= prog + .5;
-        x.fillStyle = on ? (v === "/" ? rgba(P.dim, .5) : P.col[v]) : rgba(P.dim, .18);
-        x.beginPath(); x.arc(x0 + (d + .5) * step, h - 7, on && v !== "/" ? 2 : 1.4, 0, TAU); x.fill();
+        const v = row[d], kd = kind(v), on = d <= prog + .5;
+        x.fillStyle = on ? (kd === "/" ? "rgba(255,255,255,.35)" : (S.dark ? PAL.dark : PAL.light).col[kd]) : "rgba(255,255,255,.15)";
+        x.beginPath(); x.arc(x0 + (d + .5) * step, h - 7, on && kd !== "/" ? 2 : 1.4, 0, TAU); x.fill();
       }
     },
   };
@@ -475,7 +475,7 @@
           }
         }
       }
-      const f1 = `700 ${Math.max(5, cs * .78)}px ui-monospace, Menlo, monospace`, f2 = `700 ${Math.max(4, cs * .5)}px ui-monospace, Menlo, monospace`;
+      const f1 = `700 ${Math.max(5, cs * .78)}px ui-monospace, Menlo, monospace`, f2 = `700 ${Math.max(5, cs * .64)}px ui-monospace, Menlo, monospace`;
       const put = (v, X, Y, white) => {
         const g = glyph(v);
         x.fillStyle = white ? land : col[v]; x.globalAlpha = v === "/" || v === "S/" ? .5 : 1;
