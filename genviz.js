@@ -2,7 +2,7 @@
 // 생성 오버레이의 캔버스(#genRain, 높이 160px)에 열두 가지 연출 중 하나를 그린다. 생성할 때마다 무작위로
 // 고르되 직전 것은 빼고 고른다(같은 그림이 연달아 나오면 '무작위'로 안 보인다). 후보는 원래 있던 '비'(사용자가
 // 남기라고 함) + docs/시각화/모음/시각화_9가지_261101.html에서 고른 것 가운데 여덟 가지(탐색과정은 사용자가
-// 뺐다, 2026-11-01) + GPT 갤러리의 성장하는 해(02-04)·교환의 성좌(01-07) + GPT '탐색의 심연'의 08 차원의 접힘
+// 뺐다, 2026-11-01) + GPT 갤러리의 성장하는 해(02-04, 앱에서는 성장하는 근무표)·교환의 성좌(01-07) + GPT '탐색의 심연'의 08 차원의 접힘
 // (사용자 2026-11-02; 09 질서의 꽃은 넣었다가 "안 예쁘다"로 뺐다). 원본을 160px 상자에 맞게 줄였다.
 //
 // 지키는 것 — 열두 가지 모두 같다:
@@ -142,7 +142,7 @@
     return { ev, final, weekend: Array.from(TRACE.weekend, c => c === "1"), stages: TRACE.stages,
              grid14: ev.filter(e => e[1] < TRACE.rows) };
   })();
-  // 여정·파문·성장하는 해는 D·E·N·쉼 네 글자만 다룬다 — 기록의 근무를 그 넷으로(파트장 8A·prn은 낮, 야간전담은 밤, 수면오프는 쉼)
+  // 여정·파문·성장하는 근무표는 D·E·N·쉼 네 글자만 다룬다 — 기록의 근무를 그 넷으로(파트장 8A·prn은 낮, 야간전담은 밤, 수면오프는 쉼)
   const BASIC = { D: "D", E: "E", N: "N", NK: "N", "/": "/", p: "D", "8A": "D", "S/": "/" };
   // 칸에 쓰는 글자 — 근무 코드를 그대로 쓴다. 원본(갤러리 II 비)은 한 글자로 줄여 야간전담 NK가 'K', 8A가 '8',
   // 수면오프 S/가 'S'로 나와 "K라는 근무가 있다, 말이 안 된다"(사용자, 11/3). 두 글자 코드는 칸에 맞게 글씨를 줄인다.
@@ -182,6 +182,7 @@
   // 카드·설명은 뺐고, 아래 점 줄이 그 사람의 한 달 — 이것이 진행을 따른다.
   const journey = {
     key: "journey", name: "여정",
+    desc: "간호사 한 명이 한 달을 걸어갑니다. 하늘이 그날 근무를 보여 줘요 — 해 = 낮(D), 노을 = 저녁(E), 달 = 밤(N).",
     init(S) {
       // 밤이 섞인 줄을 고른다 — 해만 뜨는 사람은 여정이 심심하다
       let best = 0, score = -1;
@@ -261,6 +262,7 @@
   // 이 가까운 것부터 하얀 테두리로 켜지며 퍼진다(원본과 같은 규칙, 거리만큼 늦게). 진행 막대와는 따로 돈다.
   const ripple = {
     key: "ripple", name: "파문",
+    desc: "완성된 표에서 칸 하나를 누르면, 그 근무와 연관된 근무(같은 블록·이어진 근무·밤 뒤 휴무·같은 날 같은 근무)가 하얗게 표시됩니다.",
     init(S) { S.L.g = gridLayout(S, 8, 6, 14); S.L.tap = null; S.L.n = -1; },
     // 원본 analyze()의 줄임 — 칸 하나에 묶인 칸과 거리(퍼지는 순서)
     related(S, i, d) {
@@ -307,7 +309,7 @@
       const press = age < .25 ? 1 - age / .25 : 0;
       x.fillStyle = rgba(white, .35 + .4 * press); x.beginPath(); x.arc(tx + cs * .9, ty + cs * .9, 4 + 3 * press, 0, TAU); x.fill();
       x.textAlign = "right"; x.textBaseline = "alphabetic"; x.font = "10px system-ui, sans-serif"; x.fillStyle = S.P.label;
-      x.fillText("칸을 누르면 묶인 칸이 번집니다", S.w - 7, S.h - 4);
+      x.fillText("칸을 누르면 연관된 근무가 표시됩니다", S.w - 7, S.h - 4);
     },
   };
 
@@ -328,6 +330,7 @@
   const HELIX_LIFT = { D: 1, E: 1.6, N: 2.8, NK: 2.8, "/": 0, p: .9, "8A": .6, "S/": .3 };
   const helix = {
     key: "helix", name: "나선",
+    desc: "한 달이 나선 계단처럼 감겨 올라갑니다. 파트장 → 야간 → 주간 순서로 근무 색이 채워집니다.",
     init(S) {
       if (S.dark) { const g = S.x.createLinearGradient(0, 0, 0, S.h); g.addColorStop(0, "#090c18"); g.addColorStop(1, "#03040a"); S.L.bg = g; }
     },
@@ -375,6 +378,7 @@
   const CITY_COL = { D: "#3b82f6", E: "#f97316", N: "#8b5cf6", NK: "#ec4899", p: "#22c55e", "8A": "#94a3b8", "S/": "#14b8a6" };
   const city = {
     key: "city", name: "야경",
+    desc: "칸 하나가 창문 하나입니다. 근무가 정해지는 순서대로 밤하늘 아래 창에 불이 켜집니다.",
     init(S) {
       const { w, h, nS, nD } = S, top = 12, bottom = 15;
       const cs = Math.min((w - 16) / nD, (h - top - bottom) / nS);
@@ -412,6 +416,7 @@
   // 가운데의 연·월은 뺐다 — 기록의 달(2026년 10월)이 지금 만드는 달과 달라 헷갈린다.
   const mandala = {
     key: "mandala", name: "만다라",
+    desc: "동심원 하나가 간호사 한 명, 한 바퀴가 한 달입니다. 근무가 정해질 때마다 조각이 칠해집니다.",
     init(S) {
       if (S.dark) { const g = S.x.createRadialGradient(S.w / 2, S.h / 2, 0, S.w / 2, S.h / 2, S.w * .6); g.addColorStop(0, "#0d1226"); g.addColorStop(1, "#04060b"); S.L.bg = g; }
     },
@@ -455,6 +460,7 @@
   const FALL = 260;   // px/초 — 맨 아래 줄까지 0.6초 남짓
   const rain = {
     key: "rain", name: "비",
+    desc: "근무 글자가 비처럼 내려와 제자리에 앉습니다. 내리는 글자도 그 칸의 실제 근무이고, 엔진이 칸을 채우는 순서 그대로입니다.",
     init(S) { S.L.g = gridLayout(S, 6, 5, 13); S.L.col = S.dark ? RAIN_COL.dark : RAIN_COL.light; },
     draw(S) {
       const { x, h, nS, nD } = S, { cs, ox, oy } = S.L.g, col = S.L.col;
@@ -462,7 +468,8 @@
       else x.clearRect(0, 0, S.w, h);
       x.font = `700 ${Math.max(5, cs * .78)}px ui-monospace, Menlo, monospace`;
       x.textAlign = "center"; x.textBaseline = "middle";
-      const drop = S.dark ? "74,222,128" : "20,150,140", land = S.dark ? "#fff" : "#0D9488", chars = "DEN/";
+      const drop = S.dark ? "74,222,128" : "20,150,140", land = S.dark ? "#fff" : "#0D9488";
+      const f1 = `700 ${Math.max(5, cs * .78)}px ui-monospace, Menlo, monospace`, f2 = `700 ${Math.max(5, cs * .64)}px ui-monospace, Menlo, monospace`;
       if (!S.reduce) {
         for (let d = 0; d < nD; d++) {
           const speed = 55 + 45 * rnd(d), head = ((S.now / 1000) * speed + rnd(d + 50) * 400) % (h + 160) - 80;
@@ -471,12 +478,16 @@
             if (yy < oy || yy > oy + cs * nS) continue;
             const i = Math.floor((yy - oy) / cs);
             if (S.grid[i][d]) continue;
+            // 빗방울 글자도 그 칸에 실제로 들어갈 근무(완성표)다 — 예전엔 D·E·N·/ 중 아무 글자나 내려서,
+            // 빈 칸 위를 지나는 가짜 글자가 놓인 근무와 붙어 'N 다음 D' 같은 규칙 위반처럼 읽혔다(사용자, 11/3).
+            const g = glyph(TR.final[i][d]);
             x.fillStyle = `rgba(${drop},${k ? .2 - k * .02 : .55})`;
-            x.fillText(chars[Math.floor(rnd(d * 31 + k + Math.floor(S.now / 90)) * 4)], ox + d * cs + cs / 2, yy + cs / 2);
+            if (g.length > 1) x.font = f2;
+            x.fillText(g, ox + d * cs + cs / 2, yy + cs / 2);
+            if (g.length > 1) x.font = f1;
           }
         }
       }
-      const f1 = `700 ${Math.max(5, cs * .78)}px ui-monospace, Menlo, monospace`, f2 = `700 ${Math.max(5, cs * .64)}px ui-monospace, Menlo, monospace`;
       const put = (v, X, Y, white) => {
         const g = glyph(v);
         x.fillStyle = white ? land : col[v]; x.globalAlpha = v === "/" || v === "S/" ? .5 : 1;
@@ -503,6 +514,7 @@
   // 선이 '지금 그 날짜를 쓴다'로 읽혀 기록 순서(야간 먼저 등)와 어긋난다. 대신 막 적힌 칸이 잠깐 밝다.
   const score = {
     key: "score", name: "병동의 악보",
+    desc: "한 줄이 간호사 한 명인 악보입니다. 같은 근무가 이어지면 긴 음표로 적힙니다.",
     draw(S) {
       const { x, w, h, nS, nD, P } = S, C = S.dark ? GPT_COL.dark : GPT_COL.light;
       paint(S);
@@ -549,6 +561,7 @@
   // 원본의 바늘(단계마다 한 바퀴)은 뺐다 — 악보의 재생선과 같은 이유(단계마다 빠르기가 달라 등속이 아니다).
   const orrery = {
     key: "orrery", name: "한 달의 궤도",
+    desc: "궤도 하나가 간호사 한 명, 원호 하나가 하루 근무입니다. 다 채운 뒤 고치고 맞바꾸는 칸이 번쩍입니다.",
     init(S) {
       if (S.dark) { const g = S.x.createRadialGradient(S.w / 2, S.h / 2, 0, S.w / 2, S.h / 2, S.w * .6); g.addColorStop(0, "#161b33"); g.addColorStop(1, "#0b0e1c"); S.L.bg = g; }
     },
@@ -605,6 +618,7 @@
   // 채움 단계(파트장~남은 칸 OFF)가 3.7초쯤에 끝나고 그 뒤로 수리 단계가 0.3~0.5초씩 넘어간다.
   const constellation = {
     key: "constellation", name: "교환의 성좌", T: 18,   // 10초는 "너무 빠르다"(사용자, 11/3)
+    desc: "왼쪽 점 = 간호사, 오른쪽 점 = 날짜입니다. 선은 그 단계에서 근무가 바뀐 칸 — 처음 채울 땐 촘촘하고, 다듬을수록 가늘어집니다.",
     init(S) {
       const st = [], ev = TR.ev;
       for (let k = 0; k < ev.length; k++) {
@@ -652,7 +666,7 @@
       x.font = "8px system-ui, sans-serif"; x.textBaseline = "middle"; x.fillStyle = c.muted;
       x.textAlign = "right"; for (let i = 0; i < nS; i += 10) x.fillText(String(i + 1).padStart(2, "0"), xL - 6, yL(i));
       x.textAlign = "left"; for (let d = 0; d < nD; d += 10) x.fillText(String(d + 1).padStart(2, "0"), xR + 6, yR(d));
-      x.textAlign = "center"; x.fillText("직원", xL, 6); x.fillText("날짜", xR, 6);
+      x.textAlign = "center"; x.fillText("간호사", xL, 6); x.fillText("날짜", xR, 6);
       x.textBaseline = "alphabetic"; x.fillStyle = c.fg; x.font = "600 10px system-ui, sans-serif";
       x.fillText(`${TR.stages[o.s]} · 순변경 ${changes.length}`, w / 2, h - 4);
     },
@@ -723,6 +737,7 @@
   }
   const porous = {
     key: "porous", name: "다공성 질서",
+    desc: "탐색자 셋이 규칙을 지키는 길을 찾아갑니다. 막히면 붉은 흔적을 남기고 되돌아가 다른 길을 찾습니다.",
     init(S) {
       S.L.G = gyroidGraph(); S.L.round = -1;
       S.L.seekCol = S.dark ? ["#9FD8FF", "#C9B6FF", "#C7F5A8"] : ["#2F7BE6", "#8B6FD6", "#4D9A3A"];
@@ -771,12 +786,13 @@
     },
   };
 
-  // ------------------------------------------------------------ 성장하는 해 — 빈 자리를 찾아 가지가 자라며 채운다
+  // ------------------------------------------------------------ 성장하는 근무표(원본 이름 성장하는 해) — 빈 자리를 찾아 가지가 자라며 채운다
   // 원본: GPT 02-04 공간 점유 성장(가지가 끌림점 쪽으로 자람). 이해되게 바꾼 것: 끌림점이 곧 근무표의 빈 칸이다.
   // 바닥 가운데 뿌리에서, 아직 안 채운 칸(옅은 점)으로 가장 가까운 가지가 뻗어 가고, 닿으면 그 칸에 근무 글자가
   // 켜진다. 가까운 칸부터 채우므로 나무가 바깥으로 퍼진다. 채운 칸 수 = 진행.
   const growth = {
-    key: "growth", name: "성장하는 해",
+    key: "growth", name: "성장하는 근무표",
+    desc: "가지가 아직 비어 있는 근무 칸을 향해 자라고, 닿으면 그 칸의 근무가 켜지며 표가 자랍니다.",
     init(S) {
       const { nS, nD, w, h } = S;
       const g = gridLayout(S, 8, 5, 24), root = [w / 2, h - 3];
@@ -908,7 +924,7 @@
   // 숙련도·지정' 이름을 붙이고 오른쪽 막대 넷에 그 축이 화면에 드러난 길이를 보인다. 한 축이 4번째 차원 쪽으로
   // 돌면 그 축은 가운데로 접혀 막대가 줄고 다른 축이 드러난다 — 한 관점만 보면 다른 관점이 흔들린다. 진행이 차면
   // 막대 넷이 함께 올라오며 덜 흔들린다(여러 관점을 함께 맞춰 감). 막대는 앱 점수가 아니다.
-  const TESS_AX = ["횟수", "주말", "숙련도", "지정"];
+  const TESS_AX = ["근무 횟수", "주말", "숙련도", "지정 근무"];
   function tessRotate(a, t, shell) {
     for (const [u, v, ang] of [[0, 3, t + shell * .045], [1, 2, t * .43], [2, 3, .5 + t * .3]]) {
       const X = a[u], Y = a[v], c = Math.cos(ang), s = Math.sin(ang);
@@ -918,6 +934,7 @@
   }
   const tesseract = {
     key: "tesseract", name: "차원의 접힘",
+    desc: "좋은 근무표는 네 가지 기준(근무 횟수·주말 근무·숙련도 배치·지정 근무)을 함께 맞춰야 합니다. 하나를 맞추면 다른 하나가 흔들려서, 엔진은 네 막대가 함께 올라오도록 칸을 계속 바꿔 봅니다.",
     init(S) {
       abyssInit(S, "tess");
       S.L.axCol = S.dark ? ["#9FD8FF", "#C9B6FF", "#C7F5A8", "#FFD678"] : ["#2F7BE6", "#8B6FD6", "#4D9A3A", "#B7791F"];
@@ -957,7 +974,7 @@
         x.fillStyle = rgba(col, a); x.fillText(TESS_AX[i], X + dx / d * 13, Y + dy / d * 9);
       });
       // 막대 넷 — 그 축이 드러난 길이(돌면 바뀐다) + 진행만큼 함께 올라옴
-      const mean = (vis[0] + vis[1] + vis[2] + vis[3]) / 4, bx = w - panel + 40, bw = panel - 52, by = 14;
+      const mean = (vis[0] + vis[1] + vis[2] + vis[3]) / 4, bx = w - panel + 46, bw = panel - 56, by = 14;
       x.font = "9px system-ui, sans-serif"; x.textAlign = "right";
       for (let i = 0; i < 4; i++) {
         const v = cl01(.2 + .6 * S.ps + (vis[i] - mean) * .9 * (1 - .65 * S.ps)), y = by + i * 14;
@@ -965,7 +982,7 @@
         x.fillStyle = L.axCol[i]; x.fillRect(bx, y - 3, bw * v, 6);
         x.fillStyle = S.P.sub; x.fillText(TESS_AX[i], bx - 5, y);
       }
-      caption(S, tesseract.name, "축 넷 = 네 관점 · 한 축이 접히면 다른 축이 드러납니다", "한 축이 접히면 다른 축이 드러남");
+      caption(S, tesseract.name, "막대 = 기준별로 맞춘 정도 · 넷이 함께 오를수록 고른 표", "넷이 함께 오를수록 고른 표");
     },
   };
 
@@ -1010,7 +1027,7 @@
     if (!x) return null;
     x.setTransform(dpr, 0, 0, dpr, 0, 0);
     const nS = TRACE.rows, nD = TRACE.nD;
-    // S.grid = 지금까지 재생한 표(빈 칸은 ""), S.plan = 완성표를 D·E·N·쉼으로(여정·파문·성장하는 해),
+    // S.grid = 지금까지 재생한 표(빈 칸은 ""), S.plan = 완성표를 D·E·N·쉼으로(여정·파문·성장하는 근무표),
     // S.born = 칸마다 마지막으로 쓴 시각, S.prev = 다 놓인 칸이 바뀌었을 때 그 앞 근무, S.log = 최근에 쓴 칸
     // [사람, 날짜, 근무, 시각, 바뀐 칸인지], S.changed = 다 놓인 뒤 바뀐 칸 수, S.stage = 마지막으로 쓴 단계.
     const S = { x, w, h, dark, reduce, P: dark ? PAL.dark : PAL.light, nS, nD,
@@ -1070,6 +1087,9 @@
   const GenViz = window.GenViz = {
     NAMES, start, stop, lastError: null,
     current: () => (run ? run.viz.name : null),
+    // 지금 도는 연출이 무엇을 보여 주는지 한두 문장 — 앱이 캔버스 아래에, 모음 페이지가 카드에 적는다
+    currentDesc: () => (run ? run.viz.desc : null),
+    DESC: Object.fromEntries(VIZ.map(v => [v.name, v.desc])),
     // 점검용 — 진행(ps)·재생한 사건 수(applied/total)·바뀐 칸 수와 연출 내부 상태. 화면은 쓰지 않는다.
     debugState: () => (run ? { ps: run.S.ps, t: run.S.t, applied: run.S.applied, total: TR.grid14.length, changed: run.S.changed, L: run.S.L } : null),
   };

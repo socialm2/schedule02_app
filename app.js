@@ -1764,20 +1764,28 @@ $("#genStopBtn").onclick = () => {
 };
 
 // ---------------------------------------------------------------- 생성 중 시각화 (오버레이 애니메이션)
-// 생성할 때마다 열두 가지(비·여정·파문·나선·야경·만다라·다공성 질서·성장하는 해·병동의 악보·한 달의 궤도·
+// 생성할 때마다 열두 가지(비·여정·파문·나선·야경·만다라·다공성 질서·성장하는 근무표·병동의 악보·한 달의 궤도·
 // 교환의 성좌·차원의 접힘) 중 하나를 직전 것만 빼고 무작위로 골라 #genRain 캔버스에 그린다. 그리는 코드는
 // genviz.js(GenViz)에 있고, 여기서는 진행 비율만 넘긴다 — 게이지는 끝나기 전 98%에서 멈추므로 98%를 다 찬 것으로
 // 본다. 칸은 genviz.js에 실린 실제 생성 기록(앱 샘플 명단·2026년 10월)의 순서로 놓인다(Worker가 도는 동안은 이번
 // 생성의 순서를 알 수 없다). 사람 수·날짜도 그 기록 기준이다. 점검용 고정: window.__genVizForce = '야경'.
+// 캔버스 아래 #genVizDesc에 그 연출이 무엇을 보여 주는지 한두 문장을 적는다(GenViz.currentDesc).
 function startGenViz() {
-  const cv = $("#genRain");
+  const cv = $("#genRain"), desc = $("#genVizDesc");
   if (!cv || !window.GenViz) return;
   window.GenViz.start(cv, {
     progress: () => (parseFloat(($("#genProgressFill") || {}).style?.width || "0") || 0) / 98,
   });
+  if (desc) {
+    const t = window.GenViz.currentDesc ? window.GenViz.currentDesc() : null;
+    desc.textContent = t || "";
+    desc.style.display = t ? "" : "none";
+  }
 }
 function stopGenViz() {
   if (window.GenViz) window.GenViz.stop();
+  const desc = $("#genVizDesc");
+  if (desc) desc.style.display = "none";
 }
 
 // thorough: 생성·재생성·편집 적용에서 꼼꼼히 만들기가 켜져 있을 때 — 진척 줄과 멈추기 단추를 보인다.
@@ -1786,6 +1794,7 @@ function showGenOverlay(msg, thorough, rain) {
   $("#genOverlayMsg").textContent = msg;
   const rc = $("#genRain");
   if (rc) rc.style.display = rain ? "" : "none";
+  if (!rain && $("#genVizDesc")) $("#genVizDesc").style.display = "none";   // 연출 없는 오버레이에 지난 설명이 남지 않게
   const sub = $("#genOverlaySub");
   if (sub) sub.textContent = thorough ? GEN_SUB_THOROUGH : GEN_SUB_DEFAULT;   // 지난번 '느림' 문구가 남아있지 않게
   genThorough = !!thorough;

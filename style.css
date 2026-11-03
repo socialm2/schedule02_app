@@ -758,6 +758,8 @@ button.small { font-size: .75rem; padding: 5px 11px; margin-top: 6px; }
 /* 라이트 모드에서는 밝은 바탕. 캔버스는 이때 바탕을 칠하지 않으므로, 브라우저가 페이지를 강제로
    어둡게 하면(삼성 인터넷 다크 모드) 이 바탕도 함께 어두워진다 — 글자는 양쪽에서 읽히는 중간 톤(app.js) */
 @media (prefers-color-scheme: light) { .gen-rain { background: #EEF2F0; border: 1px solid var(--line); } }
+/* 연출 설명 — 캔버스 바로 아래, 작고 옅게(두 줄 남짓) */
+#genOverlay .gen-viz-desc { margin: -6px 0 10px; font-size: .75rem; line-height: 1.5; color: var(--sub); text-align: left; word-break: keep-all; }
 #genOverlay .loading-box { max-width: 380px; width: calc(100vw - 32px); }
 #genOverlay .spinner { width: 22px; height: 22px; border-width: 3px; margin-bottom: 10px; }
 /* 오버레이의 시도 진척 줄 + 멈추기 */
