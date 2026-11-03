@@ -24,7 +24,8 @@
 //    맡기며, 글자·선은 밝은·어두운 바탕 양쪽에서 대비 3:1 이상인 중간 톤이다. 삼성 인터넷 다크 모드는
 //    라이트 페이지를 강제로 어둡게 칠하면서 캔버스 픽셀은 그대로 둬, 캔버스가 바탕을 칠하면 비 상자만
 //    하얗게 떴다(2026-10-31 사용자 캡처). 야경만은 원본이 밤 그림이라 라이트에서도 밤하늘을 칠한다.
-//  - prefers-reduced-motion이면 움직임 없이 진행 상태만 0.5초마다 다시 그린다.
+//  - prefers-reduced-motion이면 움직임 없이 완성된 그림을 정지 화면으로 그린다(0.5초마다 다시 그림, 되풀이 없음).
+//  - 한 바퀴(T초, 일정한 빠르기)를 다 그리면 1.5초 보여 주고 비운 뒤 처음부터 — 생성이 길어도 멈춘 그림이 아니다.
 //  - 점검용 고정: window.__genVizForce = '야경'(이름이나 key, '비' 포함). 고른 것은 GenViz.current()로 읽는다.
 // 이 파일은 그리기만 한다 — Worker·전송과 무관하다(app.js의 startGenViz가 부른다).
 (function () {
@@ -603,7 +604,7 @@
   // 그 안에서 선을 일정한 빠르기로 더한다. 원본은 다 보는 데 26초쯤인데 생성은 3~8초라, 전체를 10초(T)로 줄였다 —
   // 채움 단계(파트장~남은 칸 OFF)가 3.7초쯤에 끝나고 그 뒤로 수리 단계가 0.3~0.5초씩 넘어간다.
   const constellation = {
-    key: "constellation", name: "교환의 성좌", T: 10,
+    key: "constellation", name: "교환의 성좌", T: 18,   // 10초는 "너무 빠르다"(사용자, 11/3)
     init(S) {
       const st = [], ev = TR.ev;
       for (let k = 0; k < ev.length; k++) {
@@ -1013,25 +1014,32 @@
     // S.born = 칸마다 마지막으로 쓴 시각, S.prev = 다 놓인 칸이 바뀌었을 때 그 앞 근무, S.log = 최근에 쓴 칸
     // [사람, 날짜, 근무, 시각, 바뀐 칸인지], S.changed = 다 놓인 뒤 바뀐 칸 수, S.stage = 마지막으로 쓴 단계.
     const S = { x, w, h, dark, reduce, P: dark ? PAL.dark : PAL.light, nS, nD,
-                grid: Array.from({ length: nS }, () => new Array(nD).fill("")),
-                plan: TR.final.slice(0, nS).map(r => r.map(v => BASIC[v])),
-                applied: 0, born: new Map(), prev: new Map(), log: [], changed: 0, stage: -1,
-                p: 0, ps: 0, now: performance.now(), t: 0, L: {} };
+                plan: TR.final.slice(0, nS).map(r => r.map(v => BASIC[v])), now: performance.now() };
+    // 한 바퀴의 상태를 비운다 — 처음, 그리고 다 그린 뒤 다시 시작할 때
+    const reset = () => Object.assign(S, { grid: Array.from({ length: nS }, () => new Array(nD).fill("")),
+      applied: 0, born: new Map(), prev: new Map(), log: [], changed: 0, stage: -1, p: 0, ps: 0, t: 0, L: {} });
+    reset();
     const viz = choose(), T = (viz.T || T_DEFAULT) * 1000, ev = TR.grid14;
     const me = { S, viz, raf: null, timer: null };
     run = me;
     GenViz.lastError = null;
     try { viz.init && viz.init(S); } catch (e) { fail(e, viz); return viz.name; }
-    const t0 = S.now; let prev = S.now;
+    // 한 바퀴 = T초 동안 일정한 빠르기로 기록 전체를 재생 → 다 그린 그림을 HOLD초 보여 줌 → 비우고 처음부터.
+    // 예전엔 다 그리면 그대로 멈춰, 생성이 T보다 오래 걸리면(꼼꼼히 만들기 30초 등) 멈춘 그림만 보였다
+    // ("생성 중인데 애니가 멈추면 안 된다, 다시 시작하게" — 사용자, 11/3). 진행은 시간만 따른다(등속) —
+    // 게이지는 끝나기 전에 늘 98%에 멈춰 있어 바퀴를 되돌릴 기준이 될 수 없다. opts.progress는 쓰지 않는다.
+    const HOLD = 1500;
+    let c0 = S.now;
     const draw = (now) => {
       if (run !== me) return;
       // rAF의 now는 start()에서 읽은 performance.now()보다 이를 수 있다 — 음수 경과시간이면 다공성 질서의
       // 탐색자 위치가 -1이 돼 그리다 멈췄다(ui_smoke가 잡음). 0 아래로 내려가지 않게 한다.
-      S.now = now; S.t = Math.max(0, now - t0);
-      const dt = Math.max(0, Math.min(200, now - prev)); prev = Math.max(prev, now);
-      // 진행 = max(시간/T, 게이지) — 둘 다 직선. 게이지가 앞서면 2/T의 일정한 빠르기로 따라간다(머리말 '등속').
-      const target = Math.min(1, Math.max(S.t / T, Math.max(0, Math.min(1, Number(opts.progress()) || 0))));
-      S.ps = reduce ? target : Math.max(Math.min(1, S.t / T), Math.min(target, S.ps + dt * 2 / T));
+      if (!reduce && now - c0 > T + HOLD) {
+        c0 = now; reset();
+        try { viz.init && viz.init(S); } catch (e) { fail(e, viz); return; }
+      }
+      S.now = now; S.t = Math.max(0, now - c0);
+      S.ps = reduce ? 1 : Math.min(1, S.t / T);
       S.p = S.ps;
       const upto = S.ps >= 1 ? ev.length : Math.floor(ev.length * S.ps);
       while (S.applied < upto) {
