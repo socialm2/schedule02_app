@@ -1189,6 +1189,9 @@ details.expert-sec > .side-sec { margin-top: 12px; }
 .boot-err-detail { display: block; font-size: 11px; opacity: .7; margin-top: 4px; word-break: break-all; }
 
 /* 입력 설명서 '처음이면 이 세 줄만' */
+/* 설명서 맨 위 "화면 따라하기" 링크 — 글 설명서보다 먼저 눈에 띄게 */
+.modal-body .walk-link { background: var(--accent-soft, #E6F4F2); border-radius: 8px; padding: 8px 10px; margin: 0 0 10px; font-size: .875rem; }
+.modal-body .walk-link a { font-weight: 700; }
 .modal-body ol.first-three { padding-left: 20px; margin: 4px 0 8px; }
 .modal-body ol.first-three li { margin: 3px 0; }
 

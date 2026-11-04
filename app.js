@@ -384,6 +384,7 @@ iPhone(Safari)은 공유 버튼 → 홈 화면에 추가, Android(Chrome)는 ⋮
 `;
 
 const INFO_HTML_INPUT = `
+<p class="walk-link"><a href="walkthrough.html" target="_blank" rel="noopener">▶ 화면 따라하기</a> — 실제 화면 위에서 손가락이 눌러야 할 자리를 가리키며 입력 12단계·출력 12단계를 자동으로 넘깁니다(폰·PC 화면 둘 다). 옆에 띄워 두고 그대로 누르세요.</p>
 <h3>처음이면 이 세 줄만</h3>
 <ol class="first-three">
 <li><b>그대로 [근무표 생성]을 눌러 보세요</b> — 샘플 병동(40명) 값이 채워져 있어 바로 결과 화면을 볼 수 있습니다.</li>
@@ -533,6 +534,7 @@ ${INFO_MORE}
 `;
 
 const INFO_HTML_OUTPUT = `
+<p class="walk-link"><a href="walkthrough.html#out" target="_blank" rel="noopener">▶ 화면 따라하기 — 출력 편</a> — 결과 띠·검증 요약·칸 고치기·다운로드·되올리기·변경 안내를 실제 화면에서 순서대로 보여 줍니다.</p>
 <h3>근무표가 만들어졌습니다</h3>
 <ul>
 <li><b>편집</b> — 그리드에서 칸을 클릭해 근무를 바꾸면 오른쪽 목록에 '적용 대기'로 쌓입니다(주황 점선 테두리).
@@ -2404,6 +2406,7 @@ function renderFirstUseCard() {
     step(firstUse.wanted, "② 입력①의 <b>양식(다운로드)</b>을 받아 우리 명단·신청을 넣고 <b>업로드</b>") +
     step(firstUse.settings, "③ <b>근무정보·근무인력</b>을 우리 병동 값으로 고치기 — 한 번 고치면 이 브라우저에 저장됩니다") +
     `</ol>` +
+    `<p class="hint">막히면 <a href="walkthrough.html" target="_blank" rel="noopener">▶ 화면 따라하기</a>를 옆에 띄워 두고 그대로 누르세요 — 실제 화면을 손가락이 가리킵니다.</p>` +
     (done ? `<p class="hint first-use-done">✓ 세 단계를 모두 마쳤습니다 — 다음 달부터는 입력①·②만 올리고 생성하면 됩니다.</p>` : "");
   $("#firstUseClose").onclick = () => { firstUse.closed = true; saveFirstUse(); renderFirstUseCard(); };
   if (done && !firstUse.doneShown) { firstUse.doneShown = true; saveFirstUse(); }   // 이번엔 보여주고, 다음에 열면 안 뜬다
