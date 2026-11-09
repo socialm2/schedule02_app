@@ -1257,3 +1257,18 @@ details.expert-sec > .side-sec { margin-top: 12px; }
 .attempt-table td.disp-col, .attempt-table th.disp-col { color: var(--accent); }
 .attempt-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .attempt-scroll .attempt-table { min-width: 100%; white-space: nowrap; }
+
+/* 결과 패널 정돈(2026-11-09) — 칸 사이 간격·설명 글자를 한 규칙으로. 설명은 한 줄, 글은 적게 */
+#sidePane .side-sec { margin-bottom: 18px; }
+#sidePane .side-sec h3 { margin: 0 0 7px; }
+#sidePane .hint, #sidePane .side-note { font-size: .7rem; line-height: 1.45; color: var(--sub); margin: 6px 0 0; }
+#sidePane .hint b { font-weight: 600; color: var(--ink); }
+#sidePane .download-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#sidePane .download-row button { min-height: 42px; }
+#sidePane .reupload-btn { margin-top: 8px; }
+#sidePane .fair-help summary { font-size: .7rem; color: var(--sub); cursor: pointer; margin-top: 6px; }
+#sidePane .fair-help summary::marker { color: var(--sub); }
+#sidePane details.side-sec summary { padding: 4px 0 1px; }
+#sidePane .fair-meta-list { list-style: none; margin: 6px 0 0; padding: 0; }
+#sidePane .fair-meta-list li { font-size: .68rem; color: var(--sub); margin: 2px 0; }
+#sidePane .fair-meta-list li b { color: var(--ink); font-weight: 600; margin-right: 4px; }

@@ -2198,11 +2198,12 @@ function renderNotice() {
   if (NOTICE && (NOTICE.year !== ST.year || NOTICE.month !== ST.month)) { NOTICE = null; saveNotice(); }
   let html = `<details class="side-sec notice-sec" id="noticeSec"${NOTICE ? " open" : ""}><summary><h3 style="display:inline">변경 안내 초안</h3></summary>`;
   if (!NOTICE) {
-    html += `<p class="hint">근무표를 공지한 뒤 칸이 바뀌면, 바뀐 사람에게 보낼 안내 문구를 만들어 드립니다.
-      먼저 <b>공지한 판</b>을 기준본으로 정하세요.</p>
-      <button class="wide notice-set-screen">지금 화면 표를 공지 기준본으로</button>
-      <button class="wide notice-set-file">공지한 출력① 올려서 기준본으로</button>
-      <p class="hint">기준본은 이 탭 안에만 보관되고, 탭을 닫으면 사라집니다. 근무표 자체는 바뀌지 않습니다.</p></details>`;
+    html += `<p class="hint">공지한 뒤 바뀐 칸을 사람별 안내 문구로 만듭니다. 먼저 <b>공지한 판</b>을 기준본으로.</p>
+      <div class="download-row">
+      <button class="notice-set-screen">지금 화면 표를 기준본으로</button>
+      <button class="notice-set-file">공지한 출력① 올려서</button>
+      </div>
+      <p class="hint">기준본은 이 탭에만 남고, 근무표는 바뀌지 않습니다.</p></details>`;
     return html;
   }
   const diff = noticeDiff(), when = new Date(NOTICE.at);
@@ -4275,8 +4276,7 @@ function renderSide() {
     <div class="kpi"><div class="v ${hardCls}">${r.hard_count}</div><div class="l">필수 위반</div></div>
     <div class="kpi"><div class="v">${r.hard.length - r.hard_count}</div><div class="l">추가 검토</div></div>
     <div class="kpi" title="이 입력으로 표를 짠 횟수 — 재생성 적용마다 1씩 늘고, 내려받는 파일 이름 끝에 _r2처럼 붙습니다"><div class="v">${ST.round}</div><div class="l">회차(짠 횟수)</div></div>
-  </div>
-  <p class="side-note">회차 = 이 입력으로 표를 짠 횟수. 재생성 적용마다 1씩 늘고, 내려받는 파일 이름 끝의 <code>_r${ST.round}</code>이 이 숫자입니다.</p>`;
+  </div>`;
   if (r.hard.length > 0) {
     // 정말 못 채운 것(빨강)과 최선노력 규칙만 남은 것(노랑)을 구분해서 보여준다 —
     // 둘 다 같은 class="hard"로만 나가서 구분이 안 되던 것을 고침.
@@ -4302,32 +4302,26 @@ function renderSide() {
   // 파일에도 화면에도 같은 번호를 쓴다 — 받는 파일 이름이 "출력1_월간근무표…"인데
   // 버튼에는 번호가 없어서, 파트장이 "출력②를 입력②로 올리세요"라는 안내를 읽고도
   // 어느 버튼인지 되짚어야 했다. 번호가 곧 다음 달 입력 번호다(출력② → 입력②).
-  html += `<div class="side-sec" id="sideDownload"><h3>다운로드</h3><div class="download-row">
+  // 내려받기와 되올리기는 한 흐름이라 한 칸에 둔다. 설명은 한 줄 — 패널의 글이 많아지면 아무것도 안 읽힌다
+  // (2026-11-09 사용자: "투머치 글씨는 나띵"). 긴 설명은 출력정보 설명서에 있다.
+  html += `<div class="side-sec" id="sideDownload"><h3>다운로드 · 되올리기</h3><div class="download-row">
     <button onclick="if (confirmDownloadWithViolations()) downloadXlsxOcs()" ${hasPending ? "disabled" : ""}><span class="io-tag">출력①</span>월간근무표</button>
     <button onclick="if (confirmDownloadWithViolations()) downloadStaffTable()" ${hasPending ? "disabled" : ""}><span class="io-tag">출력②</span>연간근무표</button>
   </div>
-  ${hasPending
-    ? '<p class="hint">적용 안 한 편집이 있습니다 — "재생성 적용"을 눌러야 다운로드할 수 있습니다.</p>'
-    : '<p class="hint">출력②(연간근무표)를 보관해두면 다음 달에 <b>입력②</b>로 그대로 올려 이월정보를 이어갈 수 있습니다.</p>'}
-  <div id="nextMonthCard"></div>
-  </div>`;
-
-  // 엑셀에서 고친 월간근무표를 되올리는 자리. 다운로드 바로 아래에 둔다 —
-  // 내려받아 고쳐서 되올리는 한 흐름이라 두 버튼이 떨어져 있으면 찾지 못한다.
-  html += `<div class="side-sec"><h3>수정 엑셀 파일 업로드</h3>
-    <button class="wide" onclick="uploadMonth()">수정 엑셀 파일 업로드</button>
-    <p class="hint">내려받아 엑셀에서 고친 <b>출력① 월간근무표</b>를 올리면 그 값 그대로
-    화면에 반영되고, 바뀐 칸은 확정(고정)으로 잠깁니다.</p>`;
+  <button class="wide reupload-btn" onclick="uploadMonth()">엑셀에서 고친 출력① 되올리기</button>
+  <p class="hint">${hasPending
+    ? '적용 안 한 편집이 있습니다 — "재생성 적용" 뒤에 받을 수 있습니다.'
+    : '출력②는 다음 달 입력②로. 되올린 출력①은 그 값으로 반영되고 바뀐 칸은 고정됩니다.'}</p>
+  <div id="nextMonthCard"></div>`;
   if (monthUploadJustApplied()) {
     // 올린 직후에만 두 갈래를 띄운다. 평소에 늘 떠 있으면 '재생성'이 눌리기 쉬운데,
     // 그건 고정 칸 말고는 표 전체를 다시 짜는 동작이라 되돌릴 수 없다.
     html += `<div class="upload-branch">
-      <p class="branch-title">올린 수정본이 반영되었습니다 — 이제 어떻게 할까요?</p>
-      <button class="wide" onclick="downloadBothOutputs()">① 즉시 다운로드</button>
-      <p class="hint">고친 그대로 출력①·출력②를 내려받습니다. <b>다시 계산하지 않습니다.</b></p>
+      <p class="branch-title">수정본이 반영되었습니다 — 어떻게 할까요?</p>
+      <button class="wide" onclick="downloadBothOutputs()">① 그대로 다운로드</button>
+      <p class="hint">다시 계산하지 않습니다.</p>
       <button class="wide" onclick="regenerateThenDownload()">② 재생성 후 다운로드</button>
-      <p class="hint">고친 칸은 그대로 두고 <b>나머지를 규칙에 맞게 다시 짭니다</b> —
-      고정하지 않은 칸은 사람이 바뀔 수 있습니다.</p>
+      <p class="hint">고친 칸은 두고 나머지를 다시 짭니다 — 고정하지 않은 칸은 바뀔 수 있습니다.</p>
     </div>`;
   }
   html += "</div>";
@@ -4355,8 +4349,7 @@ function renderSide() {
     ? nightPool.reduce((sum, p) => sum + p.nights, 0) / nightPool.length : 0;
 
   html += '<div class="side-sec"><h3>개인별 OFF·야간·근무일</h3>' +
-    `<p class="hint">야간편차 = 일반 간호사 평균(${avgNights.toFixed(1)}일, 파트장·NK 제외) 대비 —
-    ±2일 이상이면 다음 달 배정에서 우선 조정 대상으로 참고하면 좋습니다.</p>` +
+    `<p class="hint">야간편차: 일반 간호사 평균 ${avgNights.toFixed(1)}일 대비(파트장·NK 제외). ±2 이상은 다음 달 참고.</p>` +
     '<div style="overflow-x:auto"><table class="person-table"><tr><th>이름</th><th>OFF</th><th>야간</th><th>야간편차</th><th>근무</th></tr>' +
     r.per_person.map(p => {
       const s = staffById[p.id];
@@ -4480,7 +4473,7 @@ function renderSide() {
       if (last && last.text === l) last.n++; else grouped.push({ text: l, n: 1 });
     }
     html += `<details class="side-sec log-sec"><summary><h3 style="display:inline">처리 로그 <span class="count-badge">${r.logs.length}건${grouped.length < r.logs.length ? ` · 묶으면 ${grouped.length}줄` : ""}</span></h3></summary>` +
-      `<p class="side-note">엔진이 배정하면서 남긴 내부 기록(개발자용). 같은 줄이 이어지면 ×n으로 묶었습니다.</p>` +
+      `<p class="side-note">엔진 내부 기록(개발자용). 같은 줄은 ×n으로 묶음.</p>` +
       `<div class="log-box">${grouped.map(g => esc(g.text) + (g.n > 1 ? ` <b>×${g.n}</b>` : "")).join("\n")}</div></details>`;
   }
   html += `</details>`;   // 자세히 보기 끝
@@ -4620,27 +4613,29 @@ function renderFairScore() {
     html += `<li class="fair-axis" data-fair-axis="${escAttr(a.key)}" title="${escAttr(a.unit || "")}">` +
       `<div class="fair-axis-head"><span class="fair-axis-name">${esc(a.name)}${a.weight !== 1 ? ` <small>×${a.weight}</small>` : ""}</span><b class="${cls}">${sc == null ? "–" : sc}${esc2 != null && esc2 !== sc ? ` <span class="fair-edited-axis">→ ${esc2}</span>` : ""}</b></div>` +
       `<div class="fair-bar"><i class="${cls}" style="width:${sc == null ? 0 : sc}%"></i></div>` +
-      `<div class="fair-axis-text">${esc((ea && ea.text) || a.text || "")}</div>` +
-      // 견준 사람 수와 빠진 사람(1인 집단·역할·목표 없음)·원값 — 점수가 좋다는 말이 "견준 사람끼리만 좋다"로 바뀌지 않게
-      `<div class="fair-axis-meta">${esc(fairAxisMeta(a))}</div></li>`;
+      `<div class="fair-axis-text">${esc((ea && ea.text) || a.text || "")}</div></li>`;
   }
   html += `</ul>`;
-  if (f.selection_note) html += `<p class="side-note">${esc(f.selection_note)}</p>`;
   if (f.fatigue_text) html += `<p class="fair-change">추가 지표 — ${esc(f.fatigue_text)}</p>`;
-  if (f.note) html += `<p class="side-note fair-note">${esc(f.note)}</p>`;
   // 변경 최소성 — 재생성·적용이 고정 칸 밖에서 바꾼 칸 수(bridge가 직전 표와 대조). 첫 생성에는 없다.
   if (f.change_text) html += `<p class="fair-change" data-fair-change="${f.change ? f.change.cells : ""}">${esc(f.change_text)}</p>`;
   // 누적 형평성 — 연간근무표(입력②)를 올렸을 때만. 이번 달이 들쭉날쭉해도 누적이 고르면 괜찮고, 반대면 경고.
   const cu = f.cumulative;
   if (cu) {
     html += `<div class="fair-cum" id="fairCum"><b>누적 형평</b> <span>${esc(cu.text || "")}</span>` +
-      (cu.method ? `<div class="side-note" style="margin:4px 0 0">${esc(cu.method)}</div>` : "") +
       ((cu.items || []).length ? `<ul class="burden-list">${cu.items.map(t => `<li>${esc(t)}</li>`).join("")}</ul>`
-        : `<p class="side-note">누적 ${cu.n_months}개월 기준으로 주말 ${(f.cum_gap_w || 3)}일·야간 2회 넘게 쏠린 사람이 없습니다.</p>`) + `</div>`;
+        : `<p class="side-note">주말 3일·야간 2회 넘게 쏠린 사람 없음.</p>`) + `</div>`;
   } else {
-    html += `<p class="side-note">연간근무표(입력②)를 올리면 지난달들과 합친 <b>누적 형평</b>(주말·야간)이 여기 붙습니다.</p>`;
+    html += `<p class="side-note">입력②(연간근무표)를 올리면 누적 형평이 붙습니다.</p>`;
   }
-  html += `<p class="side-note">${esc(f.weights_note || "")} 사람별 '내 달 요약'은 이름을 눌러 여정을 열면 맨 아래에 있고, 월간 보고에 전원이 실립니다.</p>`;
+  // 뜻·산식·선택 기준은 접힘 하나에 — 늘 펼쳐 두면 점수보다 글이 많아 아무것도 안 읽힌다
+  html += `<p class="side-note">참고용입니다 — 낮아도 병동 사정을 아는 파트장이 그대로 두거나 고칩니다. 사람별 한 줄은 이름을 눌러 여정에서.</p>` +
+    `<details class="fair-help"><summary>점수의 뜻 · 견준 사람</summary><p class="side-note">${esc(f.weights_note || "")}</p>` +
+    (f.selection_note ? `<p class="side-note">${esc(f.selection_note)}</p>` : "") +
+    // 축마다 견준 사람 수와 빠진 사람(1인 집단·역할·목표 없음)·원값 — 점수가 좋다는 말이 "견준 사람끼리만 좋다"로 바뀌지 않게.
+    // 늘 펼쳐 두면 축마다 두 줄이 돼 점수보다 글이 많아져 여기로 접었다(2026-11-09).
+    `<ul class="fair-meta-list">${f.axes.map(a => `<li class="fair-axis-meta" data-fair-meta="${escAttr(a.key)}"><b>${esc(a.name)}</b> ${esc(fairAxisMeta(a))}</li>`).join("")}</ul>` +
+    (cu && cu.method ? `<p class="side-note">누적 형평 — ${esc(cu.method)}</p>` : "") + `</details>`;
   // 가중치 조정 — 값은 엔진이 0~5로 고르고 돌려준 것을 그대로 보여 준다(화면이 따로 셈하지 않는다).
   const W = f.weights || {}, FW = f.fatigue_weights || {}, DW = f.default_weights || {}, DF = f.default_fatigue_weights || {};
   const FAT_NAMES = { quick_to_night: "낮→밤 직결", short_recovery: "짧은 회복", consecutive_weekends: "연속 주말" };
@@ -4649,7 +4644,7 @@ function renderFairScore() {
     f.axes.map(a => `<label><span>${esc(a.name)}</span><input type="number" min="0" max="${f.weight_max || 5}" step="0.5" data-fw-axis="${escAttr(a.key)}" value="${W[a.key] ?? a.weight}"></label>`).join("") +
     Object.keys(FAT_NAMES).map(k => `<label><span>피로 · ${FAT_NAMES[k]}</span><input type="number" min="0" max="${f.weight_max || 5}" step="0.5" data-fw-fat="${k}" value="${FW[k] ?? ""}"></label>`).join("") +
     `</div><div class="fair-w-actions"><button type="button" class="btn-sm" data-fw="apply">적용</button><button type="button" class="btn-sm" data-fw="reset">기본값</button></div>` +
-    `<p class="side-note">0은 그 축을 안 봄, 5가 상한. 기기에 기억되고 다음 생성에도 쓰입니다. 시드를 고르는 내부 기준은 바뀌지 않습니다.</p></details></div>`;
+    `<p class="side-note">0은 안 봄, 5가 상한. 기기에 기억됩니다. 표는 바뀌지 않습니다.</p></details></div>`;
   return html;
 }
 
@@ -4736,15 +4731,14 @@ function renderBurdenSummary() {
   const body = items.length ? `<ul class="burden-list">${items.join("")}</ul>`
     : '<p class="side-note">주말·야간·D/E·연속근무 어느 쪽도 눈에 띄게 쏠린 사람이 없습니다.</p>';
   return `<div class="side-sec"><h3>부담 요약 <span class="count-badge">${items.length}항목</span></h3>${body}` +
-    '<p class="side-note">그리드 오른쪽 주말·연속·야간 열과 같은 숫자입니다. 칸을 고치면 바로 다시 셉니다. ' +
-    '주말은 전체 평균과 2일 이상 차이 나는 사람만, D·E는 병동 비율에서 2회 넘게 벗어난 사람만 올립니다.</p></div>';
+    '<p class="side-note">표 오른쪽 주말·연속·야간 열과 같은 숫자 · 평균과 2일(회) 넘게 차이 나는 사람만.</p></div>';
 }
 
 function renderPending() {
   const body = $("#pendingBody");
   if (!body) return;
   if (ST.pending.length === 0) {
-    body.innerHTML = '<p style="color:var(--sub);font-size:12.5px;margin:0 0 8px">아직 고친 칸이 없습니다. 표의 칸을 누르면 근무를 바꿀 수 있습니다.</p>';
+    body.innerHTML = '<p class="hint" style="margin:0">표의 칸을 누르면 바꿀 수 있습니다.</p>';
     return;
   }
   let html = '<ul class="edit-list">';
