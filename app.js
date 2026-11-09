@@ -599,8 +599,12 @@ NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니�
 고치면 점수가 어떻게 되는지 바로 보이고, 적용하거나 취소하면 한 숫자로 돌아옵니다. 점수는 참고용이라 낮아도 막지 않습니다 —
 연휴·휴가·교육·개인 요청 같은 병동 사정은 파트장이 알고 있으니 그대로 두거나 고치면 됩니다. 다운로드한 출력① 엑셀(일반·OCS 양식 모두)
 맨 아래와 월간 근무 보고 5-1절에도 같은 점수가 실립니다(엑셀의 값은 내려받은 시점 것이라 파일에서 칸을 고쳐도 바뀌지 않습니다).</li>
-<li><b>누적 형평 · 변경 최소성 · 가중치</b> — 연간근무표(입력②)를 올렸으면 공정성 점수 칸에 지난달들과 합친 누적 주말·야간이 붙어
-평균보다 3일(주말)·2회(야간) 넘게 쏠린 사람을 올립니다(이번 달 양보가 다음 달 보상으로 이어지는지 보는 자리). 재생성·적용 뒤에는
+<li><b>누적 형평 · 변경 최소성 · 가중치</b> — 연간근무표(입력②)를 올렸으면 공정성 점수 칸에 최근 6개월(파일에 있는 만큼)의
+<b>적정 몫 대비 초과</b>가 붙습니다. 달마다 적정 몫 = 집단이 실제로 선 주말(야간) 총량 × 내 기회(휴가가 아닌 주말 수·가능일) ÷ 집단 기회 합이고,
+초과 = 실제 − 적정 몫을 더한 것이라 긴 휴가·전입·야간 제한이 있는 사람이 "적음"으로 잘못 올라오지 않습니다.
+주말 ±3일·야간 ±2회 넘게 벗어난 사람을 올립니다(이번 달 양보가 다음 달 보상으로 이어지는지 보는 자리). 점수 옆의 <b>가장 낮은 축</b>과
+축마다 붙는 <b>견준 n명·빠짐</b>은 가중 평균에 가려진 축과 비교에서 빠진 사람을 드러내는 것이고, 시도 점수표의 <b>표시점수</b> 열은 시드마다 이 점수를
+같은 산식으로 센 것입니다(시드를 고르는 기준은 그대로이므로 ✓와 다른 줄이 더 높을 수 있고, 그 표에는 대개 필수 위반이 있습니다). 재생성·적용 뒤에는
 고정 칸 밖에서 바뀐 칸 수가 적힙니다. 원티드 축에는 반려가 몰린 사람(신청 2건 이상인데 반영률이 전체보다 20%p 넘게 낮음)과
 사유 없는 반려 수가 붙습니다. '가중치 조정'을 펴면 축 다섯과 피로 셋의 가중치(0~5)를 바꿀 수 있고, 기기에 기억돼 다음 생성에도 쓰입니다.</li>
 <li><b>미달 날 채울 수 있는 사람</b> — 오른쪽 '일별 근무인력'에 미달 날이 있으면, 그날 쉬는 사람 중 그 근무를 설 수 있고
@@ -3711,7 +3715,7 @@ function magazineHtml(trace) {
   const sec5a = fax.length ? `<h2>5-1. 공정성 점수 <span class="sub">종합 <b>${fr.total == null ? "–" : Math.round(fr.total)}</b> / 100 · ${esc(fr.grade ? fr.grade.label : "")}</span></h2><table class="t small"><tr><th>축</th><th>가중</th><th>점수</th><th>등급</th><th>근거</th></tr>${fax.map(a => `<tr>${td(esc(a.name))}${td(a.weight)}${td(`<b>${a.score == null ? "–" : Math.round(a.score)}</b>`)}${td(esc(a.grade ? a.grade.label : ""), a.grade && a.grade.key === "low" ? "bad" : a.grade && a.grade.key === "mid" ? "warn" : "")}${td(esc(a.text || ""))}</tr>`).join("")}</table>` +
     (fr.fatigue_text ? `<p class="small">추가 지표 — ${esc(fr.fatigue_text)}</p>` : "") +
     (fr.change_text ? `<p class="small">변경 최소성: ${esc(fr.change_text)}</p>` : "") +
-    (cu ? `<p class="small"><b>누적 형평</b> ${esc(cu.text || "")}</p>${(cu.items || []).length ? `<ul class="small">${cu.items.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : "<p class='sub'>누적 기준으로 쏠린 사람 없음.</p>"}` : "<p class='sub'>누적 형평은 연간근무표(입력②)를 올렸을 때만 실린다.</p>") +
+    (cu ? `<p class="small"><b>누적 형평</b> ${esc(cu.text || "")}${cu.method ? ` <span class="sub">${esc(cu.method)}</span>` : ""}</p>${(cu.items || []).length ? `<ul class="small">${cu.items.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : "<p class='sub'>누적 기준으로 쏠린 사람 없음.</p>"}` : "<p class='sub'>누적 형평은 연간근무표(입력②)를 올렸을 때만 실린다.</p>") +
     `<p class="sub">${esc(fr.weights_note || "")}</p>` : "";
   const sec5b = (fr.persons || []).length ? `<h2>5-2. 내 달 요약 — 당사자에게 보낼 한 줄</h2><ul class="mine">${fr.persons.map(p => `<li><b>${esc(p.id)}</b> ${esc(p.line)}</li>`).join("")}</ul><p class="sub">주말·D·E의 ±는 같은 조건(가능근무·휴가일수·입사일 등) 집단의 평균 대비. 피로 = 낮→밤 직결×2 + 짧은 회복(밤 뒤 하루만 쉬고 D·E)×3 + 연속 주말×1.</p>` : "";
   // --- 6 원티드
@@ -3725,7 +3729,7 @@ function magazineHtml(trace) {
   const endN = people.filter(s => row(s)[nd - 1] === "N" || row(s)[nd - 1] === "NK").map(s => { let k = nd - 1; while (k > 0 && (row(s)[k - 1] === "N" || row(s)[k - 1] === "NK")) k--; return `${esc(s.id)}(${nd - k}일째)`; });
   const sec8 = `<h2>8. 야간</h2><ul><li>블록 길이 분포: ${hist(r.night_block_hist, "일")}</li><li>블록 간격 분포: ${hist(r.night_gap_hist, "일")} (기준 7일)</li><li>월말 밤으로 끝나는 사람(다음 달 1일로 이어짐): ${endN.length ? endN.join(", ") : "없음"}</li><li>야간전담: ${people.filter(s => s.is_nk).map(s => `${esc(s.id)} ${stats.find(x => x.s === s).b.nights}회`).join(", ") || "없음"}</li></ul>`;
   // --- 9 시도 점수표
-  const sec9 = att.length ? `<h2>9. 시도 점수표</h2><table class="t small"><tr><th>시드</th><th>운영필수</th><th>숙련도</th><th>공평성</th><th>전체 하드</th><th>횟수</th><th>주말</th><th>조구성</th><th>단독</th><th>미반영</th></tr>${att.map(a => `<tr${a.chosen ? ' class="chosen"' : ""}>${td(`${a.seed}${a.chosen ? " ✓" : ""}`)}${td(a.blocking)}${td(a.h15)}${td(`<b>${a.fairness}</b>`)}${td(a.hard)}${td(a.count ?? "–")}${td(a.weekend ?? "–")}${td(a.mix ?? "–")}${td(a.sole ?? "–")}${td(a.wanted ?? "–")}</tr>`).join("")}</table><p class="sub">앞 열부터 견줘 다르면 뒤 열은 보지 않는다(운영 필수 → 숙련도 → 공평성 → 전체 하드). 공평성 = 2×횟수 + 주말 + 조구성 + 단독 + 미반영(낮을수록 고름) — 뒤 다섯 열이 그 구성이다.</p>` : "";
+  const sec9 = att.length ? `<h2>9. 시도 점수표</h2><table class="t small"><tr><th>시드</th><th>운영필수</th><th>숙련도</th><th>공평성</th><th>전체 하드</th><th>횟수</th><th>주말</th><th>조구성</th><th>단독</th><th>미반영</th><th>표시점수</th></tr>${att.map(a => `<tr${a.chosen ? ' class="chosen"' : ""}>${td(`${a.seed}${a.chosen ? " ✓" : ""}`)}${td(a.blocking)}${td(a.h15)}${td(`<b>${a.fairness}</b>`)}${td(a.hard)}${td(a.count ?? "–")}${td(a.weekend ?? "–")}${td(a.mix ?? "–")}${td(a.sole ?? "–")}${td(a.wanted ?? "–")}${td(a.disp == null ? "–" : Math.round(a.disp))}</tr>`).join("")}</table><p class="sub">앞 열부터 견줘 다르면 뒤 열은 보지 않는다(운영 필수 → 숙련도 → 공평성 → 전체 하드). 공평성 = 2×횟수 + 주말 + 조구성 + 단독 + 미반영(낮을수록 고름) — 뒤 다섯 열이 그 구성이다.</p>` : "";
   // --- 10 처리 기록
   const logs = (r.logs || []).filter(l => /\[수리\]|\[균등\]|\[보완\]|\[H2-9\]|\[H5-2\]|\[H1-1\]|\[전입\]/.test(l)).slice(0, 25);
   const sec10 = `<h2>10. 처리 기록(발췌)</h2>${logs.length ? `<pre class="log">${logs.map(esc).join("\n")}</pre>` : "<p>수리·균등 기록 없음.</p>"}<p class="sub">전체 ${(r.logs || []).length}건은 화면 결과창 '처리 로그'에.</p>`;
@@ -4430,13 +4434,15 @@ function renderSide() {
     const thoroughRun = (window.__genMode || "").includes("thorough");
     html += `<div class="side-sec"><h3>시도 점수표 <span class="count-badge">시드 ${rows.length}개</span>` +
       `<span class="tap-hint">줄을 누르면 그 시드의 표로 바뀝니다(다운로드도 그 표)</span></h3>` +
-      `<table class="mini-table attempt-table${attemptTableExpanded ? " expanded" : ""}"><tr><th>시드</th><th title="최소인력·지정·연속근무 등 그날 병동이 못 돌아가는 필수 위반">운영필수</th>` +
+      // 열이 열한 개라 좁은 패널(폰·307px)에서는 넘친다 — 가로 스크롤 상자에 넣는다(표가 잘려 마지막 열이 안 보였다)
+      `<div class="attempt-scroll"><table class="mini-table attempt-table${attemptTableExpanded ? " expanded" : ""}"><tr><th>시드</th><th title="최소인력·지정·연속근무 등 그날 병동이 못 돌아가는 필수 위반">운영필수</th>` +
       '<th title="조에 숙련도 4 이상이 없는 횟수(H1-5)">숙련도</th><th title="2×횟수+주말+조구성+단독+미반영 — 전체 하드보다 먼저 본다">공평성</th><th title="최선노력 규칙까지 포함한 전체 하드 위반">전체</th>' +
       '<th title="같은 조건끼리 D·E·N 횟수가 가능일 비례 목표에서 벗어난 날수의 합(×2로 가장 무겁게)">횟수</th>' +
       '<th title="같은 조건끼리 주말 근무가 평균에서 벗어난 날수">주말</th>' +
       '<th title="날짜·조마다 레벨 띠(1-2·3·4-5) 구성이 병동 비율에서 벗어난 사람 수의 합">조구성</th>' +
       '<th title="혼자 Lv4+인 조에 선 횟수가 고연차 평균에서 벗어난 횟수의 합">단독</th>' +
-      '<th title="반려된 원티드 신청 건수">미반영</th></tr>' +
+      '<th title="반려된 원티드 신청 건수">미반영</th>' +
+      '<th title="화면 공정성 점수와 같은 산식(0~100, 높을수록 고름). 시드 선택 기준이 아니라 읽는 눈금 — 엔진이 고른 ✓와 다른 줄이 더 높을 수 있고, 그 표에는 대개 필수 위반이 있다" class="disp-col">점수</th></tr>' +
       rows.map(a => {
         const cur = a.seed === ST.current_seed;
         const cls = (a.chosen ? "chosen " : "") + (cur ? "current " : "") + (shown.has(a.seed) ? "" : "attempt-fold");
@@ -4444,16 +4450,16 @@ function renderSide() {
         const v = k => (a[k] === undefined ? "–" : a[k]);
         return `<tr class="${cls}" data-seed="${a.seed}" role="button" tabindex="0" ` +
           `title="${escAttr(cur ? "지금 보는 표" : `시드 ${a.seed}의 표로 바꿔 보기`)}"><td>${a.seed}${a.strategy && a.strategy !== "-" ? `<small class="strat" title="${escAttr(STRATEGY_HELP[a.strategy] || a.strategy)}">${a.strategy}</small>` : ""}${mark}</td><td>${a.blocking}</td><td>${a.h15}</td><td><b>${a.fairness}</b></td><td>${a.hard}</td>` +
-          `<td>${v("count")}</td><td>${v("weekend")}</td><td>${v("mix")}</td><td>${v("sole")}</td><td>${v("wanted")}</td></tr>`;
+          `<td>${v("count")}</td><td>${v("weekend")}</td><td>${v("mix")}</td><td>${v("sole")}</td><td>${v("wanted")}</td><td class="disp-col" data-disp="${a.disp == null ? "" : Math.round(a.disp)}">${a.disp == null ? "–" : Math.round(a.disp)}</td></tr>`;
       }).join("") +
-      '</table>' +
+      '</table></div>' +
       (folded ? `<p class="side-note"><button class="linklike attempt-more" data-n="${folded}">${attemptTableExpanded ? "점수 상위 3줄만 보기" : `나머지 ${folded}개 시드 보기`}</button></p>` : "") +
       // 열 제목 설명은 툴팁(마우스 올리기)만으로는 폰에서 볼 수 없다 — 작은 글자로 같은 내용을 둔다.
       `<p class="side-note attempt-cols"><b>열 뜻</b> — 시드: 같은 입력을 다른 출발점으로 돌린 번호(글자 W 주말 몫 우선 · S 고연차 먼저 · B 블록 이어가기 먼저). ` +
       `운영필수: 최소인력·지정·연속근무처럼 그날 병동이 못 돌아가는 필수 위반 수. 숙련도: 조에 숙련도 4 이상이 없는 횟수. ` +
       `공평성: 2×횟수 + 주말 + 조구성 + 단독 + 미반영(사람·일 단위, 낮을수록 고름). 전체: 노란 추가 검토까지 더한 위반 수. ` +
       `횟수: D·E·N 횟수가 목표에서 벗어난 날수 합. 주말: 주말 근무가 평균에서 벗어난 날수. 조구성: 조의 숙련도 띠 구성이 병동 비율에서 벗어난 사람 수. ` +
-      `단독: 혼자 Lv4+인 조에 선 횟수의 쏠림. 미반영: 반려된 원티드 신청 수.</p>` +
+      `단독: 혼자 Lv4+인 조에 선 횟수의 쏠림. 미반영: 반려된 원티드 신청 수. 점수(표시점수): 화면 '공정성 점수'와 같은 0~100 눈금 — 고르는 기준이 아니라 읽는 눈금이라 ✓와 다른 줄이 더 높을 수 있다(그 표에는 대개 필수 위반이 있다).</p>` +
       `<p class="side-note">앞 열부터 견줘 다르면 뒤 열은 보지 않습니다 — 운영 필수 → 숙련도 → 공평성 → 전체. ` +
       `✓ = 점수가 가장 좋은 시드(기본값), ◀ = 지금 보는 표. <b>줄을 누르면 그 시드의 표로 바뀝니다</b>(다운로드도 그 표). ` +
       `${thoroughRun ? `🔍 꼼꼼히 만들기로 근무표 ${rows.length}개를 만들어 골랐습니다${rows.length < THOROUGH_ATTEMPTS ? "(중간에 멈춤)" : ""}. ` : ""}` +
@@ -4566,6 +4572,19 @@ function fairGradeClass(g) { return g === "good" ? "good" : g === "mid" ? "warn-
 // 표 위 상태 띠의 공정성 한 숫자 — 편집 중이면 "원래 → 수정 후"를 같이 보인다(둘 다 엔진이 센 값: fair·fair_edited).
 // 점수가 낮아도 막지 않는다 — 병동 사정은 파트장이 안다. 누르면 오른쪽 '공정성 점수' 칸으로 간다.
 function fairOneNumber(f) { return !f || f.total == null ? "–" : String(Math.round(f.total)); }
+function fairAxisMeta(a) {
+  const ex = a.excluded || {}, parts = [];
+  if (a.key === "wanted") return a.raw_text ? `원값 ${a.raw_text}` : "";
+  if (a.key === "mix") return `견준 조 ${a.compared ?? "–"}개 · 원값 ${a.raw_text || ""}`;
+  parts.push(`견준 ${a.compared ?? a.n_units ?? "–"}명`);
+  const out = [];
+  if (ex.single) out.push(`같은 조건 없음 ${ex.single}`);
+  if (ex.no_target) out.push(`야간 목표 없음 ${ex.no_target}`);
+  if (ex.role) out.push(`야간전담 ${ex.role}`);
+  if (out.length) parts.push(`빠짐 ${out.join(" · ")}`);
+  if (a.raw_text) parts.push(`원값 ${a.raw_text}`);
+  return parts.join(" · ");
+}
 function fairStripItem() {
   const f = ST.fair; if (!f) return "";
   const fe = ST.fair_edited;
@@ -4584,7 +4603,10 @@ function renderFairScore() {
   let html = `<div class="side-sec fair-sec" id="fairSec"><h3>공정성 점수 <span class="count-badge">${esc(f.grade ? f.grade.label : "")}</span></h3>` +
     `<div class="fair-total"><b class="${gcls}" data-fair-total="${total}">${total}</b><span class="fair-total-sub">/ 100 · 종합</span>` +
     (fe ? `<span class="fair-edited">→ 수정 후 <b class="${fairGradeClass(fe.grade && fe.grade.key)}" data-fair-edited-total="${fairOneNumber(fe)}">${fairOneNumber(fe)}</b> <small>(${esc(fe.grade ? fe.grade.label : "")} · 미적용 편집 ${ST.pending.length}칸 반영)</small></span>` : "") +
-    `</div><ul class="fair-axes">`;
+    `</div>` +
+    // 가장 낮은 축 — 가중 평균에 가려진 축을 한 글자로. 견준 사람이 10명 밑이면 '인원 적음'도 함께(백분위는 서도 뜻이 흔들린다).
+    (f.lowest ? `<p class="fair-lowest" data-fair-lowest="${escAttr(f.lowest.key)}">가장 낮은 축: <b class="${fairGradeClass((f.axes.find(a => a.key === f.lowest.key) || {}).grade && f.axes.find(a => a.key === f.lowest.key).grade.key)}">${esc(f.lowest.name)} ${Math.round(f.lowest.score)}</b>${f.few_people ? ` · <span class="warn-text">견준 사람 ${f.people}명 — 인원 적음</span>` : ""}</p>` : "") +
+    `<ul class="fair-axes">`;
   for (const a of f.axes) {
     const sc = a.score == null ? null : Math.round(a.score);
     const cls = fairGradeClass(a.grade && a.grade.key);
@@ -4593,9 +4615,12 @@ function renderFairScore() {
     html += `<li class="fair-axis" data-fair-axis="${escAttr(a.key)}" title="${escAttr(a.unit || "")}">` +
       `<div class="fair-axis-head"><span class="fair-axis-name">${esc(a.name)}${a.weight !== 1 ? ` <small>×${a.weight}</small>` : ""}</span><b class="${cls}">${sc == null ? "–" : sc}${esc2 != null && esc2 !== sc ? ` <span class="fair-edited-axis">→ ${esc2}</span>` : ""}</b></div>` +
       `<div class="fair-bar"><i class="${cls}" style="width:${sc == null ? 0 : sc}%"></i></div>` +
-      `<div class="fair-axis-text">${esc((ea && ea.text) || a.text || "")}</div></li>`;
+      `<div class="fair-axis-text">${esc((ea && ea.text) || a.text || "")}</div>` +
+      // 견준 사람 수와 빠진 사람(1인 집단·역할·목표 없음)·원값 — 점수가 좋다는 말이 "견준 사람끼리만 좋다"로 바뀌지 않게
+      `<div class="fair-axis-meta">${esc(fairAxisMeta(a))}</div></li>`;
   }
   html += `</ul>`;
+  if (f.selection_note) html += `<p class="side-note">${esc(f.selection_note)}</p>`;
   if (f.fatigue_text) html += `<p class="fair-change">추가 지표 — ${esc(f.fatigue_text)}</p>`;
   if (f.note) html += `<p class="side-note fair-note">${esc(f.note)}</p>`;
   // 변경 최소성 — 재생성·적용이 고정 칸 밖에서 바꾼 칸 수(bridge가 직전 표와 대조). 첫 생성에는 없다.
@@ -4604,6 +4629,7 @@ function renderFairScore() {
   const cu = f.cumulative;
   if (cu) {
     html += `<div class="fair-cum" id="fairCum"><b>누적 형평</b> <span>${esc(cu.text || "")}</span>` +
+      (cu.method ? `<div class="side-note" style="margin:4px 0 0">${esc(cu.method)}</div>` : "") +
       ((cu.items || []).length ? `<ul class="burden-list">${cu.items.map(t => `<li>${esc(t)}</li>`).join("")}</ul>`
         : `<p class="side-note">누적 ${cu.n_months}개월 기준으로 주말 ${(f.cum_gap_w || 3)}일·야간 2회 넘게 쏠린 사람이 없습니다.</p>`) + `</div>`;
   } else {

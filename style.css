@@ -1252,3 +1252,8 @@ details.expert-sec > .side-sec { margin-top: 12px; }
 .fair-edited b { font-size: 1.1rem; }
 .fair-edited-axis { font-weight: 600; color: var(--accent); font-size: .74rem; }
 .fair-note { border-left: 3px solid var(--accent-soft); padding-left: 8px; }
+.fair-lowest { font-size: .74rem; color: var(--sub); margin: 0 0 6px; }
+.fair-axis-meta { font-size: .66rem; color: var(--sub); margin-top: 1px; }
+.attempt-table td.disp-col, .attempt-table th.disp-col { color: var(--accent); }
+.attempt-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.attempt-scroll .attempt-table { min-width: 100%; white-space: nowrap; }
