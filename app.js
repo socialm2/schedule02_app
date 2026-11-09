@@ -595,6 +595,10 @@ NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니�
 <li><b>내 달 요약</b> — 이름을 눌러 여정을 열면 맨 아래에 그 사람에게 보낼 한 줄이 있습니다: 주말·D·E가 같은 조건 집단 평균과
 얼마나 다른지(±), 야간/목표, 피로 점수(낮→밤 직결 ×2 · 밤 뒤 하루만 쉬고 D·E ×3 · 연속 주말 ×1), 원티드 반영/미반영과 사유.
 월간 근무 보고 5-2절에 전원이 실리니 복사해 보내면 됩니다.</li>
+<li><b>표 위 상태 띠의 ⚖ 공정성</b> — 100점 만점 한 숫자입니다. 칸을 고치는 동안(미적용 편집)에는 "원래 → 수정 후"가 같이 떠서
+고치면 점수가 어떻게 되는지 바로 보이고, 적용하거나 취소하면 한 숫자로 돌아옵니다. 점수는 참고용이라 낮아도 막지 않습니다 —
+연휴·휴가·교육·개인 요청 같은 병동 사정은 파트장이 알고 있으니 그대로 두거나 고치면 됩니다. 다운로드한 출력① 엑셀(일반·OCS 양식 모두)
+맨 아래와 월간 근무 보고 5-1절에도 같은 점수가 실립니다(엑셀의 값은 내려받은 시점 것이라 파일에서 칸을 고쳐도 바뀌지 않습니다).</li>
 <li><b>누적 형평 · 변경 최소성 · 가중치</b> — 연간근무표(입력②)를 올렸으면 공정성 점수 칸에 지난달들과 합친 누적 주말·야간이 붙어
 평균보다 3일(주말)·2회(야간) 넘게 쏠린 사람을 올립니다(이번 달 양보가 다음 달 보상으로 이어지는지 보는 자리). 재생성·적용 뒤에는
 고정 칸 밖에서 바뀐 칸 수가 적힙니다. 원티드 축에는 반려가 몰린 사람(신청 2건 이상인데 반영률이 전체보다 20%p 넘게 낮음)과
@@ -2768,6 +2772,7 @@ function renderGrid() {
     `<button type="button" class="strip-item ${soft ? "warn" : ""}" data-strip="sideSummary" title="검증 요약으로">🟡 추가 검토 ${soft}</button>` +
     `<button type="button" class="strip-item" data-strip="sideDownload" title="다운로드 버튼으로">⬇ 다운로드</button>` +
     `<button type="button" class="strip-item" data-strip="pendingSec" title="편집 목록으로">✎ 편집${ST.pending && ST.pending.length ? ` ${ST.pending.length}` : ""}</button>` +
+    fairStripItem() +
     `</div>`;
   // 범례는 이달 표에 실제로 나온 코드만 — 20색을 다 늘어놓으면 두 줄을 차지해 표가 17행밖에 안
   // 보였다(2026-10-31 검토 C 1-7). 이름 옆 '지'·'밤' 배지와, 날짜·이름이 눌린다는 것도 여기 적는다
@@ -3704,6 +3709,7 @@ function magazineHtml(trace) {
   const fr = ST.fair || {}, fax = fr.axes || [];
   const cu = fr.cumulative;
   const sec5a = fax.length ? `<h2>5-1. 공정성 점수 <span class="sub">종합 <b>${fr.total == null ? "–" : Math.round(fr.total)}</b> / 100 · ${esc(fr.grade ? fr.grade.label : "")}</span></h2><table class="t small"><tr><th>축</th><th>가중</th><th>점수</th><th>등급</th><th>근거</th></tr>${fax.map(a => `<tr>${td(esc(a.name))}${td(a.weight)}${td(`<b>${a.score == null ? "–" : Math.round(a.score)}</b>`)}${td(esc(a.grade ? a.grade.label : ""), a.grade && a.grade.key === "low" ? "bad" : a.grade && a.grade.key === "mid" ? "warn" : "")}${td(esc(a.text || ""))}</tr>`).join("")}</table>` +
+    (fr.fatigue_text ? `<p class="small">추가 지표 — ${esc(fr.fatigue_text)}</p>` : "") +
     (fr.change_text ? `<p class="small">변경 최소성: ${esc(fr.change_text)}</p>` : "") +
     (cu ? `<p class="small"><b>누적 형평</b> ${esc(cu.text || "")}</p>${(cu.items || []).length ? `<ul class="small">${cu.items.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : "<p class='sub'>누적 기준으로 쏠린 사람 없음.</p>"}` : "<p class='sub'>누적 형평은 연간근무표(입력②)를 올렸을 때만 실린다.</p>") +
     `<p class="sub">${esc(fr.weights_note || "")}</p>` : "";
@@ -4557,22 +4563,41 @@ function renderWeekendRoster() {
 // 기준선 201개 달 가운데 이 달보다 쏠린 달의 비율(백분위)이라 병동 크기·달 길이와 무관하게 읽힌다.
 // 축마다 '왜 그 점수인지' 한 줄(text)을 함께 보인다 — 숫자만 있으면 믿지 않고, 숫자 없이 글만 있으면 견주지 못한다.
 function fairGradeClass(g) { return g === "good" ? "good" : g === "mid" ? "warn-text" : g === "low" ? "bad" : ""; }
+// 표 위 상태 띠의 공정성 한 숫자 — 편집 중이면 "원래 → 수정 후"를 같이 보인다(둘 다 엔진이 센 값: fair·fair_edited).
+// 점수가 낮아도 막지 않는다 — 병동 사정은 파트장이 안다. 누르면 오른쪽 '공정성 점수' 칸으로 간다.
+function fairOneNumber(f) { return !f || f.total == null ? "–" : String(Math.round(f.total)); }
+function fairStripItem() {
+  const f = ST.fair; if (!f) return "";
+  const fe = ST.fair_edited;
+  const cls = f.grade && f.grade.key === "good" ? "ok" : f.grade && f.grade.key === "low" ? "bad" : f.grade && f.grade.key === "mid" ? "warn" : "";
+  const edited = fe ? ` <span class="strip-arrow">→</span> <b data-fair-edited="${fairOneNumber(fe)}">${fairOneNumber(fe)}</b>` : "";
+  return `<button type="button" class="strip-item fair-strip ${cls}" data-strip="fairSec" title="공정성 점수(100점 만점, 참고용)로">⚖ 공정성 <b data-fair-strip="${fairOneNumber(f)}">${fairOneNumber(f)}</b>${edited}<small>/100</small></button>`;
+}
 function renderFairScore() {
   const f = ST.fair;
   if (!f || !Array.isArray(f.axes)) return "";
   const total = f.total == null ? "–" : Math.round(f.total);
   const gcls = fairGradeClass(f.grade && f.grade.key);
+  // 편집 중(미적용)이면 엔진이 편집본으로 다시 센 점수(fair_edited)를 "원래 → 수정 후"로 나란히 — 적용·취소하면 사라진다
+  const fe = ST.fair_edited;
+  const feAxes = fe ? Object.fromEntries((fe.axes || []).map(a => [a.key, a])) : null;
   let html = `<div class="side-sec fair-sec" id="fairSec"><h3>공정성 점수 <span class="count-badge">${esc(f.grade ? f.grade.label : "")}</span></h3>` +
-    `<div class="fair-total"><b class="${gcls}" data-fair-total="${total}">${total}</b><span class="fair-total-sub">/ 100 · 종합</span></div><ul class="fair-axes">`;
+    `<div class="fair-total"><b class="${gcls}" data-fair-total="${total}">${total}</b><span class="fair-total-sub">/ 100 · 종합</span>` +
+    (fe ? `<span class="fair-edited">→ 수정 후 <b class="${fairGradeClass(fe.grade && fe.grade.key)}" data-fair-edited-total="${fairOneNumber(fe)}">${fairOneNumber(fe)}</b> <small>(${esc(fe.grade ? fe.grade.label : "")} · 미적용 편집 ${ST.pending.length}칸 반영)</small></span>` : "") +
+    `</div><ul class="fair-axes">`;
   for (const a of f.axes) {
     const sc = a.score == null ? null : Math.round(a.score);
     const cls = fairGradeClass(a.grade && a.grade.key);
+    const ea = feAxes && feAxes[a.key];
+    const esc2 = ea && ea.score != null ? Math.round(ea.score) : null;
     html += `<li class="fair-axis" data-fair-axis="${escAttr(a.key)}" title="${escAttr(a.unit || "")}">` +
-      `<div class="fair-axis-head"><span class="fair-axis-name">${esc(a.name)}${a.weight > 1 ? ` <small>×${a.weight}</small>` : ""}</span><b class="${cls}">${sc == null ? "–" : sc}</b></div>` +
+      `<div class="fair-axis-head"><span class="fair-axis-name">${esc(a.name)}${a.weight !== 1 ? ` <small>×${a.weight}</small>` : ""}</span><b class="${cls}">${sc == null ? "–" : sc}${esc2 != null && esc2 !== sc ? ` <span class="fair-edited-axis">→ ${esc2}</span>` : ""}</b></div>` +
       `<div class="fair-bar"><i class="${cls}" style="width:${sc == null ? 0 : sc}%"></i></div>` +
-      `<div class="fair-axis-text">${esc(a.text || "")}</div></li>`;
+      `<div class="fair-axis-text">${esc((ea && ea.text) || a.text || "")}</div></li>`;
   }
   html += `</ul>`;
+  if (f.fatigue_text) html += `<p class="fair-change">추가 지표 — ${esc(f.fatigue_text)}</p>`;
+  if (f.note) html += `<p class="side-note fair-note">${esc(f.note)}</p>`;
   // 변경 최소성 — 재생성·적용이 고정 칸 밖에서 바꾼 칸 수(bridge가 직전 표와 대조). 첫 생성에는 없다.
   if (f.change_text) html += `<p class="fair-change" data-fair-change="${f.change ? f.change.cells : ""}">${esc(f.change_text)}</p>`;
   // 누적 형평성 — 연간근무표(입력②)를 올렸을 때만. 이번 달이 들쭉날쭉해도 누적이 고르면 괜찮고, 반대면 경고.

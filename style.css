@@ -1219,9 +1219,9 @@ details.expert-sec > .side-sec { margin-top: 12px; }
 
 
 /* 공정성 점수 — 종합 큰 숫자 + 축 다섯 막대. 색은 등급(good/warn-text/bad)만 쓴다 */
-.fair-total { display: flex; align-items: baseline; gap: 8px; margin: 4px 0 6px; }
-.fair-total b { font-size: 1.9rem; line-height: 1; font-variant-numeric: tabular-nums; }
-.fair-total-sub { font-size: .75rem; color: var(--sub); }
+.fair-total { display: flex; align-items: baseline; gap: 8px; margin: 4px 0 6px; flex-wrap: wrap; }
+.fair-total > b { font-size: 1.9rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.fair-total-sub { font-size: .75rem; color: var(--sub); white-space: nowrap; }
 .fair-axes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
 .fair-axis-head { display: flex; justify-content: space-between; font-size: .78rem; }
 .fair-axis-head b { font-variant-numeric: tabular-nums; }
@@ -1246,3 +1246,9 @@ details.expert-sec > .side-sec { margin-top: 12px; }
 .fair-w-grid input { width: 58px; min-height: 32px; padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--ink); }
 .fair-w-actions { display: flex; gap: 8px; }
 .fair-w-actions button { min-height: 36px; padding: 4px 12px; font-size: .75rem; }
+.result-strip .fair-strip small { font-weight: 400; opacity: .7; margin-left: 2px; }
+.result-strip .fair-strip .strip-arrow { opacity: .7; }
+.fair-edited { font-size: .78rem; color: var(--sub); margin-left: 8px; }
+.fair-edited b { font-size: 1.1rem; }
+.fair-edited-axis { font-weight: 600; color: var(--accent); font-size: .74rem; }
+.fair-note { border-left: 3px solid var(--accent-soft); padding-left: 8px; }
