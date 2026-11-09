@@ -131,13 +131,37 @@ function showUpdateBanner() {
 }
 window.showUpdateBanner = showUpdateBanner;   // 점검 스크립트(tools/ui_smoke.py)가 띠 모양을 확인하는 데 쓴다
 
+// 띠를 띄우기 전에 이 페이지가 정말 옛것인지 확인한다. 화면 파일(index.html·app.js·py_app.zip)은 네트워크 우선이라,
+// 새로 고치면 옛 서비스워커가 제어하는 중에도 페이지는 이미 최신 파일로 뜬다. 그 직후 브라우저가 새 sw.js를 받아
+// 설치·claim하면 controllerchange가 나는데, 예전엔 그것만 보고 띠를 띄워 "최신으로 새로 고쳤는데 또 새로 고치라고
+// 한다"가 됐다(2026-11-10 사용자). 지금 페이지의 빌드시각(.build-time, CI가 배포마다 박는다)과 서버의 index.html을
+// 견줘 같으면 띄우지 않는다. 확인을 못 하면(오프라인 등) 예전처럼 띄운다 — 옛 화면을 최신이라 믿게 두는 쪽이 더 나쁘다.
+function buildStampOf(html) {
+  const m = /<span class="build-time">([^<]*)<\/span>/.exec(html || "");
+  return m ? m[1].trim() : "";
+}
+async function pageIsStale() {
+  const mine = ((document.querySelector(".build-time") || {}).textContent || "").trim();
+  try {
+    const res = await fetch("index.html", { cache: "no-store" });
+    if (!res.ok) return true;
+    const latest = buildStampOf(await res.text());
+    if (!latest || !mine) return true;
+    return latest !== mine;
+  } catch (e) { return true; }
+}
+window.pageIsStale = pageIsStale;   // 점검 스크립트가 "갓 연 최신 페이지는 옛것이 아니다"를 확인한다
+function maybeShowUpdateBanner() {
+  pageIsStale().then((stale) => { if (stale) showUpdateBanner(); });
+}
+
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("sw.js").then((reg) => {
       const watchInstalling = (w) => {
         if (!w) return;
         w.addEventListener("statechange", () => {
-          if (w.state === "installed" && navigator.serviceWorker.controller) showUpdateBanner();
+          if (w.state === "installed" && navigator.serviceWorker.controller) maybeShowUpdateBanner();
         });
       };
       watchInstalling(reg.installing);
@@ -146,7 +170,7 @@ if ("serviceWorker" in navigator) {
     // 제어 워커가 바뀌면(새 sw.js가 claim) 그 순간 화면은 옛 app.js — 띠로 알린다.
     let hadController = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (hadController) showUpdateBanner();
+      if (hadController) maybeShowUpdateBanner();
       hadController = true;
     });
   });

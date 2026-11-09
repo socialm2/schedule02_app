@@ -1534,8 +1534,10 @@ function updateClearButtons() {
       clearBtn.style.display = "";
       if (allBtn) allBtn.style.display = active ? "" : "none";
     } else {
+      // 정상 반영 상태의 '반영 해제'는 숨긴다(2026-11-10 사용자) — 다른 파일을 올리면 통째로 바뀌므로 따로 지울 일이
+      // 드물고, 눌렀다가 명단·신청이 샘플로 돌아가 헷갈렸다. 오류 상태의 '오류 지우기'·'이전 파일도 해제'는 그대로 둔다.
       clearBtn.textContent = "반영 해제";
-      clearBtn.style.display = active ? "" : "none";
+      clearBtn.style.display = "none";
       if (allBtn) allBtn.style.display = "none";
     }
   }
