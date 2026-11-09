@@ -589,7 +589,7 @@ NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니�
 (전월 말에서 이어진 것 포함, 상한을 넘으면 빨강), 야간 횟수/개인 목표(다르면 노랑). 오른쪽 '부담 요약'이
 같은 숫자로 손봐야 할 사람을 추려 줍니다(연간근무표를 올렸으면 지난달 대비 늘어난 사람도). 이 세 열은 화면에만 있고
 다운로드 엑셀에는 없습니다.</li>
-<li><b>공정성 점수</b> — 오른쪽 패널의 0~100 종합과 축 다섯(근무횟수 균등 ×2 · 주말 균등 · 야간 균등 · 원티드 반영 · 숙련 분산).
+<li><b>형평성 점수</b> — 오른쪽 패널의 0~100 종합과 축 다섯(근무횟수 균등 ×2 · 주말 균등 · 야간 균등 · 원티드 반영 · 숙련 분산).
 점수는 "이 앱으로 만든 기준선 201개 달 가운데 이 달보다 쏠린 달의 비율"이라 병동 크기·달 길이와 무관하게 읽힙니다 —
 100이면 어느 달보다 고르고, 50이면 중간, 원티드만 반영률 그대로. 75 이상 좋음 · 40 이상 보통 · 그 아래는 살펴볼 것.
 축마다 근거 한 줄(최대·최소·벗어난 사람 수)이 같이 붙습니다. 시드를 고르는 내부 기준(시도 점수표)은 그대로이고 이 점수는 읽기용입니다.</li>
@@ -598,11 +598,11 @@ NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니�
 월간 근무 보고 5-2절에 전원이 실리니 복사해 보내면 됩니다.</li>
 <li><b>변경 안내 초안</b>은 오른쪽 패널 맨 아래 '자세히 보기'를 펴면 있습니다 — 공지한 판을 기준본으로 두고, 그 뒤 바뀐 사람에게 보낼 문구를 만듭니다.
 <b>원티드 신청</b> 목록은 접혀 있고 배지에 반영·반려 수만 보입니다(펴면 전체).</li>
-<li><b>표 위 상태 띠의 ⚖ 공정성</b> — 100점 만점 한 숫자입니다. 칸을 고치는 동안(미적용 편집)에는 "원래 → 수정 후"가 같이 떠서
+<li><b>표 위 상태 띠의 ⚖ 형평성</b> — 100점 만점 한 숫자입니다. 칸을 고치는 동안(미적용 편집)에는 "원래 → 수정 후"가 같이 떠서
 고치면 점수가 어떻게 되는지 바로 보이고, 적용하거나 취소하면 한 숫자로 돌아옵니다. 점수는 참고용이라 낮아도 막지 않습니다 —
 연휴·휴가·교육·개인 요청 같은 병동 사정은 파트장이 알고 있으니 그대로 두거나 고치면 됩니다. 다운로드한 출력① 엑셀(일반·OCS 양식 모두)
 맨 아래와 월간 근무 보고 5-1절에도 같은 점수가 실립니다(엑셀의 값은 내려받은 시점 것이라 파일에서 칸을 고쳐도 바뀌지 않습니다).</li>
-<li><b>누적 형평 · 변경 최소성 · 가중치</b> — 연간근무표(입력②)를 올렸으면 공정성 점수 칸에 최근 6개월(파일에 있는 만큼)의
+<li><b>누적 형평 · 변경 최소성 · 가중치</b> — 연간근무표(입력②)를 올렸으면 형평성 점수 칸에 최근 6개월(파일에 있는 만큼)의
 <b>적정 몫 대비 초과</b>가 붙습니다. 달마다 적정 몫 = 집단이 실제로 선 주말(야간) 총량 × 내 기회(휴가가 아닌 주말 수·가능일) ÷ 집단 기회 합이고,
 초과 = 실제 − 적정 몫을 더한 것이라 긴 휴가·전입·야간 제한이 있는 사람이 "적음"으로 잘못 올라오지 않습니다.
 주말 ±3일·야간 ±2회 넘게 벗어난 사람을 올립니다(이번 달 양보가 다음 달 보상으로 이어지는지 보는 자리). 점수 옆의 <b>가장 낮은 축</b>과
@@ -2814,7 +2814,6 @@ function renderGrid() {
     `<button type="button" class="strip-item ${rr.hard_count ? "bad" : "ok"}" data-strip="sideSummary" title="검증 요약으로">${rr.hard_count ? "🔴" : "🟢"} 필수 위반 ${rr.hard_count}</button>` +
     `<button type="button" class="strip-item ${soft ? "warn" : ""}" data-strip="sideSummary" title="검증 요약으로">🟡 추가 검토 ${soft}</button>` +
     `<button type="button" class="strip-item" data-strip="sideDownload" title="다운로드 버튼으로">⬇ 다운로드</button>` +
-    `<button type="button" class="strip-item" data-strip="pendingSec" title="편집 목록으로">✎ 편집${ST.pending && ST.pending.length ? ` ${ST.pending.length}` : ""}</button>` +
     fairStripItem() +
     `</div>`;
   // 범례는 이달 표에 실제로 나온 코드만 — 20색을 다 늘어놓으면 두 줄을 차지해 표가 17행밖에 안
@@ -3751,7 +3750,7 @@ function magazineHtml(trace) {
   // --- 5-1 공정성 점수 · 5-2 내 달 요약 — 숫자와 문장 모두 엔진(fairscore.py)이 만든 것(화면 '공정성 점수' 칸과 같다)
   const fr = ST.fair || {}, fax = fr.axes || [];
   const cu = fr.cumulative;
-  const sec5a = fax.length ? `<h2>5-1. 공정성 점수 <span class="sub">종합 <b>${fr.total == null ? "–" : Math.round(fr.total)}</b> / 100 · ${esc(fr.grade ? fr.grade.label : "")}</span></h2><table class="t small"><tr><th>축</th><th>가중</th><th>점수</th><th>등급</th><th>근거</th></tr>${fax.map(a => `<tr>${td(esc(a.name))}${td(a.weight)}${td(`<b>${a.score == null ? "–" : Math.round(a.score)}</b>`)}${td(esc(a.grade ? a.grade.label : ""), a.grade && a.grade.key === "low" ? "bad" : a.grade && a.grade.key === "mid" ? "warn" : "")}${td(esc(a.text || ""))}</tr>`).join("")}</table>` +
+  const sec5a = fax.length ? `<h2>5-1. 형평성 점수 <span class="sub">종합 <b>${fr.total == null ? "–" : Math.round(fr.total)}</b> / 100 · ${esc(fr.grade ? fr.grade.label : "")}</span></h2><table class="t small"><tr><th>축</th><th>가중</th><th>점수</th><th>등급</th><th>근거</th></tr>${fax.map(a => `<tr>${td(esc(a.name))}${td(a.weight)}${td(`<b>${a.score == null ? "–" : Math.round(a.score)}</b>`)}${td(esc(a.grade ? a.grade.label : ""), a.grade && a.grade.key === "low" ? "bad" : a.grade && a.grade.key === "mid" ? "warn" : "")}${td(esc(a.text || ""))}</tr>`).join("")}</table>` +
     (fr.fatigue_text ? `<p class="small">추가 지표 — ${esc(fr.fatigue_text)}</p>` : "") +
     (fr.change_text ? `<p class="small">변경 최소성: ${esc(fr.change_text)}</p>` : "") +
     (cu ? `<p class="small"><b>누적 형평</b> ${esc(cu.text || "")}${cu.method ? ` <span class="sub">${esc(cu.method)}</span>` : ""}</p>${(cu.items || []).length ? `<ul class="small">${cu.items.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : "<p class='sub'>누적 기준으로 쏠린 사람 없음.</p>"}` : "<p class='sub'>누적 형평은 연간근무표(입력②)를 올렸을 때만 실린다.</p>") +
@@ -4323,11 +4322,25 @@ function renderSide() {
   }
   html += "</div>";
 
-  // 편집한 게 없는데 "편집 중"이라고 뜨면 혼선을 주므로, 스테이징된 편집이 있을 때만
-  // 그 제목을 쓰고 평소엔 그냥 "편집"이라고만 표시한다.
+  // 형평성 점수는 위반 바로 아래 — '지켰나' 다음이 '고른가'다(2026-11-09 사용자). 숫자는 전부 엔진(fairscore.py)의 것.
+  html += renderFairScore();
+  // 입력 요약 — 공휴일은 **이 달의 달력**(ST.days)에서 센다. 예전엔 params_summary.holidays(1년치
+  // 표)의 길이를 그대로 찍어 11월에 "공휴일 18개"가 나왔다(2026-10-31 검토 P1). 토·일이 아닌데
+  // 휴일인 날 = 공휴일·대체공휴일. 바로 아래 주말·공휴일 합계와 같은 달력이라 서로 어긋나지 않는다.
+  const ps = ST.params_summary;
+  const satSun = ST.days.filter(d => d.dow === "토" || d.dow === "일").length;
+  const holOnly = ST.days.filter(d => d.weekend && d.dow !== "토" && d.dow !== "일").length;
+  html += `<div class="side-sec"><h3>입력 요약</h3><ul class="issue-list" style="font-size:12px">
+    <li style="background:var(--code-bg)" id="inputSummaryLine">${ST.year}년 ${ST.month}월 · ${ST.staff.length}명 ·
+    월최대야간 ${ps.max_nights}일 · NK ${ps.nk_count}명 · 공휴일 ${holOnly}개(주말 ${satSun}일)</li>` +
+  `</ul></div>`;
+
+
+  // 편집 칸은 고치는 중일 때만 — 평소의 "칸을 누르면 바꿀 수 있습니다" 안내는 필요 없다(2026-11-09 사용자). 띠의 편집
+  // 항목도 뺐다. renderPending은 #pendingBody가 없으면 아무것도 안 한다.
   const hasPending = ST.pending.length > 0;
   html += renderSwap();
-  html += `<div class="side-sec" id="pendingSec"><h3>${hasPending ? "편집 중 (미적용)" : "편집"}</h3><div id="pendingBody"></div></div>`;
+  if (hasPending) html += `<div class="side-sec" id="pendingSec"><h3>편집 중 (미적용)</h3><div id="pendingBody"></div></div>`;
 
   // 파일에도 화면에도 같은 번호를 쓴다 — 받는 파일 이름이 "출력1_월간근무표…"인데
   // 버튼에는 번호가 없어서, 파트장이 "출력②를 입력②로 올리세요"라는 안내를 읽고도
@@ -4355,21 +4368,7 @@ function renderSide() {
     </div>`;
   }
   html += "</div>";
-  // 공정성 점수와 부담 요약을 다운로드 바로 뒤에 — 결과를 읽는 순서(지켰나 → 고른가 → 누구를 손보나)대로.
-  // 숫자는 전부 엔진(fairscore.py)이 보낸 것이고 화면은 그리기만 한다.
-  html += renderFairScore();
   html += renderBurdenSummary();
-
-  // 입력 요약 — 공휴일은 **이 달의 달력**(ST.days)에서 센다. 예전엔 params_summary.holidays(1년치
-  // 표)의 길이를 그대로 찍어 11월에 "공휴일 18개"가 나왔다(2026-10-31 검토 P1). 토·일이 아닌데
-  // 휴일인 날 = 공휴일·대체공휴일. 바로 아래 주말·공휴일 합계와 같은 달력이라 서로 어긋나지 않는다.
-  const ps = ST.params_summary;
-  const satSun = ST.days.filter(d => d.dow === "토" || d.dow === "일").length;
-  const holOnly = ST.days.filter(d => d.weekend && d.dow !== "토" && d.dow !== "일").length;
-  html += `<div class="side-sec"><h3>입력 요약</h3><ul class="issue-list" style="font-size:12px">
-    <li style="background:var(--code-bg)" id="inputSummaryLine">${ST.year}년 ${ST.month}월 · ${ST.staff.length}명 ·
-    월최대야간 ${ps.max_nights}일 · NK ${ps.nk_count}명 · 공휴일 ${holOnly}개(주말 ${satSun}일)</li>` +
-  `</ul></div>`;
 
   // 개인별 — 공정 배분 참고용으로 "야간편차"(일반 간호사 평균 대비, 파트장·NK 제외)를 같이 보여준다.
   const staffById = {};
@@ -4422,10 +4421,6 @@ function renderSide() {
   // 야간블록 히스토그램
   const blockH = Object.entries(r.night_block_hist).map(([k, v]) => `${k}일×${v}`).join(", ") || "없음";
   const gapH = Object.entries(r.night_gap_hist).map(([k, v]) => `${k}일×${v}`).join(", ") || "없음";
-  html += `<div class="side-sec"><h3>야간 패턴</h3><ul class="issue-list" style="font-size:11.5px">
-    <li style="background:var(--code-bg)">블록 길이 분포: ${esc(blockH)}</li>
-    <li style="background:var(--code-bg)">블록 간격 분포: ${esc(gapH)}</li>
-  </ul></div>`;
 
   // 원티드 신청 전체
   if (r.requests_all.length > 0) {
@@ -4449,6 +4444,11 @@ function renderSide() {
   // 변경 안내 초안은 여기(전문가 모드) 안에 — 공지 뒤 변경이 있는 달에만 쓰는 것이라 평소 패널에서는 숨긴다
   // (2026-11-09 사용자). 코드째 걷어내지 않는 이유: 쓰는 길이 남아 있고(자세히 보기 → 변경 안내 초안) 테스트가 본다.
   html += renderNotice();
+  // 야간 패턴(블록 길이·간격 분포)은 엔진 점검용 숫자라 여기로(2026-11-09 사용자: 설명 불필요, 숨겨).
+  html += `<div class="side-sec"><h3>야간 패턴</h3><ul class="issue-list" style="font-size:11.5px">
+    <li style="background:var(--code-bg)">블록 길이 분포: ${esc(blockH)}</li>
+    <li style="background:var(--code-bg)">블록 간격 분포: ${esc(gapH)}</li>
+  </ul></div>`;
   html += `<div class="side-sec"><h3>수정 전 점검 — 건드리면 안 되는 칸</h3><div id="fragileBox"></div></div>`;
 
   // 시도 점수표 — 시드마다 어떤 숫자로 견줘 어느 것을 골랐는지. 앞 열이 다르면 뒤 열은 보지 않는다
@@ -4471,7 +4471,7 @@ function renderSide() {
       '<th title="날짜·조마다 레벨 띠(1-2·3·4-5) 구성이 병동 비율에서 벗어난 사람 수의 합">조구성</th>' +
       '<th title="혼자 Lv4+인 조에 선 횟수가 고연차 평균에서 벗어난 횟수의 합">단독</th>' +
       '<th title="반려된 원티드 신청 건수">미반영</th>' +
-      '<th title="화면 공정성 점수와 같은 산식(0~100, 높을수록 고름). 시드 선택 기준이 아니라 읽는 눈금 — 엔진이 고른 ✓와 다른 줄이 더 높을 수 있고, 그 표에는 대개 필수 위반이 있다" class="disp-col">점수</th></tr>' +
+      '<th title="화면 형평성 점수와 같은 산식(0~100, 높을수록 고름). 시드 선택 기준이 아니라 읽는 눈금 — 엔진이 고른 ✓와 다른 줄이 더 높을 수 있고, 그 표에는 대개 필수 위반이 있다" class="disp-col">점수</th></tr>' +
       rows.map(a => {
         const cur = a.seed === ST.current_seed;
         const cls = (a.chosen ? "chosen " : "") + (cur ? "current " : "") + (shown.has(a.seed) ? "" : "attempt-fold");
@@ -4488,7 +4488,7 @@ function renderSide() {
       `운영필수: 최소인력·지정·연속근무처럼 그날 병동이 못 돌아가는 필수 위반 수. 숙련도: 조에 숙련도 4 이상이 없는 횟수. ` +
       `공평성: 2×횟수 + 주말 + 조구성 + 단독 + 미반영(사람·일 단위, 낮을수록 고름). 전체: 노란 추가 검토까지 더한 위반 수. ` +
       `횟수: D·E·N 횟수가 목표에서 벗어난 날수 합. 주말: 주말 근무가 평균에서 벗어난 날수. 조구성: 조의 숙련도 띠 구성이 병동 비율에서 벗어난 사람 수. ` +
-      `단독: 혼자 Lv4+인 조에 선 횟수의 쏠림. 미반영: 반려된 원티드 신청 수. 점수(표시점수): 화면 '공정성 점수'와 같은 0~100 눈금 — 고르는 기준이 아니라 읽는 눈금이라 ✓와 다른 줄이 더 높을 수 있다(그 표에는 대개 필수 위반이 있다).</p>` +
+      `단독: 혼자 Lv4+인 조에 선 횟수의 쏠림. 미반영: 반려된 원티드 신청 수. 점수(표시점수): 화면 '형평성 점수'와 같은 0~100 눈금 — 고르는 기준이 아니라 읽는 눈금이라 ✓와 다른 줄이 더 높을 수 있다(그 표에는 대개 필수 위반이 있다).</p>` +
       `<p class="side-note">앞 열부터 견줘 다르면 뒤 열은 보지 않습니다 — 운영 필수 → 숙련도 → 공평성 → 전체. ` +
       `✓ = 점수가 가장 좋은 시드(기본값), ◀ = 지금 보는 표. <b>줄을 누르면 그 시드의 표로 바뀝니다</b>(다운로드도 그 표). ` +
       `${thoroughRun ? `🔍 꼼꼼히 만들기로 근무표 ${rows.length}개를 만들어 골랐습니다${rows.length < THOROUGH_ATTEMPTS ? "(중간에 멈춤)" : ""}. ` : ""}` +
@@ -4619,7 +4619,7 @@ function fairStripItem() {
   const fe = ST.fair_edited;
   const cls = f.grade && f.grade.key === "good" ? "ok" : f.grade && f.grade.key === "low" ? "bad" : f.grade && f.grade.key === "mid" ? "warn" : "";
   const edited = fe ? ` <span class="strip-arrow">→</span> <b data-fair-edited="${fairOneNumber(fe)}">${fairOneNumber(fe)}</b>` : "";
-  return `<button type="button" class="strip-item fair-strip ${cls}" data-strip="fairSec" title="공정성 점수(100점 만점, 참고용)로">⚖ 공정성 <b data-fair-strip="${fairOneNumber(f)}">${fairOneNumber(f)}</b>${edited}<small>/100</small></button>`;
+  return `<button type="button" class="strip-item fair-strip ${cls}" data-strip="fairSec" title="형평성 점수(100점 만점, 참고용)로">⚖ 형평성 <b data-fair-strip="${fairOneNumber(f)}">${fairOneNumber(f)}</b>${edited}<small>/100</small></button>`;
 }
 function renderFairScore() {
   const f = ST.fair;
@@ -4629,7 +4629,7 @@ function renderFairScore() {
   // 편집 중(미적용)이면 엔진이 편집본으로 다시 센 점수(fair_edited)를 "원래 → 수정 후"로 나란히 — 적용·취소하면 사라진다
   const fe = ST.fair_edited;
   const feAxes = fe ? Object.fromEntries((fe.axes || []).map(a => [a.key, a])) : null;
-  let html = `<div class="side-sec fair-sec" id="fairSec"><h3>공정성 점수 <span class="count-badge">${esc(f.grade ? f.grade.label : "")}</span></h3>` +
+  let html = `<div class="side-sec fair-sec" id="fairSec"><h3>형평성 점수 <span class="count-badge">${esc(f.grade ? f.grade.label : "")}</span></h3>` +
     `<div class="fair-total"><b class="${gcls}" data-fair-total="${total}">${total}</b><span class="fair-total-sub">/ 100 · 종합</span>` +
     (fe ? `<span class="fair-edited">→ 수정 후 <b class="${fairGradeClass(fe.grade && fe.grade.key)}" data-fair-edited-total="${fairOneNumber(fe)}">${fairOneNumber(fe)}</b> <small>(${esc(fe.grade ? fe.grade.label : "")} · 미적용 편집 ${ST.pending.length}칸 반영)</small></span>` : "") +
     `</div>` +

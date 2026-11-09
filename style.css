@@ -1301,5 +1301,6 @@ details.expert-sec > .side-sec { margin-top: 12px; }
 #sidePane .fair-total > b { font-size: 2.1rem; }
 #sidePane .fair-axes { gap: 9px; }
 #sidePane .fair-bar { height: 6px; }
-#sidePane .side-exp { background: transparent; border: 0; padding: 4px 2px; }
 #sidePane .expert-sec > .side-sec { background: var(--code-bg); border-color: transparent; }
+#sidePane .side-sec h3:last-child { margin-bottom: 0; }   /* 제목만 있는 카드(일별 근무인력 전일 충족)는 아래가 비지 않게 */
+#sidePane .side-exp .side-note { margin: 0; }
