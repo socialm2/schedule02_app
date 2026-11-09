@@ -595,6 +595,10 @@ NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니�
 <li><b>내 달 요약</b> — 이름을 눌러 여정을 열면 맨 아래에 그 사람에게 보낼 한 줄이 있습니다: 주말·D·E가 같은 조건 집단 평균과
 얼마나 다른지(±), 야간/목표, 피로 점수(낮→밤 직결 ×2 · 밤 뒤 하루만 쉬고 D·E ×3 · 연속 주말 ×1), 원티드 반영/미반영과 사유.
 월간 근무 보고 5-2절에 전원이 실리니 복사해 보내면 됩니다.</li>
+<li><b>누적 형평 · 변경 최소성 · 가중치</b> — 연간근무표(입력②)를 올렸으면 공정성 점수 칸에 지난달들과 합친 누적 주말·야간이 붙어
+평균보다 3일(주말)·2회(야간) 넘게 쏠린 사람을 올립니다(이번 달 양보가 다음 달 보상으로 이어지는지 보는 자리). 재생성·적용 뒤에는
+고정 칸 밖에서 바뀐 칸 수가 적힙니다. 원티드 축에는 반려가 몰린 사람(신청 2건 이상인데 반영률이 전체보다 20%p 넘게 낮음)과
+사유 없는 반려 수가 붙습니다. '가중치 조정'을 펴면 축 다섯과 피로 셋의 가중치(0~5)를 바꿀 수 있고, 기기에 기억돼 다음 생성에도 쓰입니다.</li>
 <li><b>미달 날 채울 수 있는 사람</b> — 오른쪽 '일별 근무인력'에 미달 날이 있으면, 그날 쉬는 사람 중 그 근무를 설 수 있고
 넣어도 새 필수 위반이 없는 사람을 날짜마다 적어 줍니다. 추천일 뿐이라 다른 사람을 넣어도 되고(그 칸이 빨강·노랑으로
 표시될 뿐), 위반이 남은 채로 확정·다운로드도 됩니다.</li>
@@ -1739,8 +1743,12 @@ let genDriven = null;   // 꼼꼼히 만들기 진척 {done,total,at,avg} — �
 let genThorough = false;
 function thoroughOn() { const c = $("#thoroughChk"); return !!(c && c.checked); }
 function genOpts() {
-  if (!thoroughOn()) return { method: "POST" };
-  return { method: "POST", body: JSON.stringify({ attempts: THOROUGH_ATTEMPTS }), onProgress: onGenProgress };
+  const body = {};
+  const fw = fairWeightsStored();
+  if (fw) { if (fw.axes) body.fair_weights = fw.axes; if (fw.fatigue) body.fatigue_weights = fw.fatigue; }
+  if (!thoroughOn()) return Object.keys(body).length ? { method: "POST", body: JSON.stringify(body) } : { method: "POST" };
+  body.attempts = THOROUGH_ATTEMPTS;
+  return { method: "POST", body: JSON.stringify(body), onProgress: onGenProgress };
 }
 // attempt_key와 같은 순서(운영 필수 → 숙련도 → 공평성 → 전체 → 앞 시드, 2026-10-30). 화면 표시(지금까지 최선·점수표
 // 접기)에만 쓴다 — 최종 선택은 엔진(choose_attempt) 한 벌이다.
@@ -3311,6 +3319,7 @@ delegateClick(document.getElementById("sidePane"), "button.undo-edit",
   (b) => undoEdit(b.dataset.sid, Number(b.dataset.day)));
 delegateClick(document.getElementById("sidePane"), "button.swap-pick",
   (b) => stageSwap(b.dataset.sid, Number(b.dataset.day), b.dataset.partner));
+delegateClick(document.getElementById("sidePane"), "button[data-fw]", (b) => applyFairWeights(b.dataset.fw === "reset"));
 delegateClick(document.getElementById("sidePane"), "button.notice-set-screen", () => setNoticeFromScreen());
 delegateClick(document.getElementById("sidePane"), "button.notice-set-file", () => $("#baselineInput").click());
 delegateClick(document.getElementById("sidePane"), "button.notice-clear", () => {
@@ -3693,7 +3702,11 @@ function magazineHtml(trace) {
   const sec5 = `<h2>5. 부담 요약</h2>${li.length ? `<ul>${li.join("")}</ul>` : "<p class='good'>주말·야간·연속근무 어느 쪽도 눈에 띄게 쏠린 사람이 없다.</p>"}`;
   // --- 5-1 공정성 점수 · 5-2 내 달 요약 — 숫자와 문장 모두 엔진(fairscore.py)이 만든 것(화면 '공정성 점수' 칸과 같다)
   const fr = ST.fair || {}, fax = fr.axes || [];
-  const sec5a = fax.length ? `<h2>5-1. 공정성 점수 <span class="sub">종합 <b>${fr.total == null ? "–" : Math.round(fr.total)}</b> / 100 · ${esc(fr.grade ? fr.grade.label : "")}</span></h2><table class="t small"><tr><th>축</th><th>가중</th><th>점수</th><th>등급</th><th>근거</th></tr>${fax.map(a => `<tr>${td(esc(a.name))}${td(a.weight)}${td(`<b>${a.score == null ? "–" : Math.round(a.score)}</b>`)}${td(esc(a.grade ? a.grade.label : ""), a.grade && a.grade.key === "low" ? "bad" : a.grade && a.grade.key === "mid" ? "warn" : "")}${td(esc(a.text || ""))}</tr>`).join("")}</table><p class="sub">${esc(fr.weights_note || "")}</p>` : "";
+  const cu = fr.cumulative;
+  const sec5a = fax.length ? `<h2>5-1. 공정성 점수 <span class="sub">종합 <b>${fr.total == null ? "–" : Math.round(fr.total)}</b> / 100 · ${esc(fr.grade ? fr.grade.label : "")}</span></h2><table class="t small"><tr><th>축</th><th>가중</th><th>점수</th><th>등급</th><th>근거</th></tr>${fax.map(a => `<tr>${td(esc(a.name))}${td(a.weight)}${td(`<b>${a.score == null ? "–" : Math.round(a.score)}</b>`)}${td(esc(a.grade ? a.grade.label : ""), a.grade && a.grade.key === "low" ? "bad" : a.grade && a.grade.key === "mid" ? "warn" : "")}${td(esc(a.text || ""))}</tr>`).join("")}</table>` +
+    (fr.change_text ? `<p class="small">변경 최소성: ${esc(fr.change_text)}</p>` : "") +
+    (cu ? `<p class="small"><b>누적 형평</b> ${esc(cu.text || "")}</p>${(cu.items || []).length ? `<ul class="small">${cu.items.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : "<p class='sub'>누적 기준으로 쏠린 사람 없음.</p>"}` : "<p class='sub'>누적 형평은 연간근무표(입력②)를 올렸을 때만 실린다.</p>") +
+    `<p class="sub">${esc(fr.weights_note || "")}</p>` : "";
   const sec5b = (fr.persons || []).length ? `<h2>5-2. 내 달 요약 — 당사자에게 보낼 한 줄</h2><ul class="mine">${fr.persons.map(p => `<li><b>${esc(p.id)}</b> ${esc(p.line)}</li>`).join("")}</ul><p class="sub">주말·D·E의 ±는 같은 조건(가능근무·휴가일수·입사일 등) 집단의 평균 대비. 피로 = 낮→밤 직결×2 + 짧은 회복(밤 뒤 하루만 쉬고 D·E)×3 + 연속 주말×1.</p>` : "";
   // --- 6 원티드
   const rq = r.requests || {}, rejected = rq.rejected || [];
@@ -4559,8 +4572,55 @@ function renderFairScore() {
       `<div class="fair-bar"><i class="${cls}" style="width:${sc == null ? 0 : sc}%"></i></div>` +
       `<div class="fair-axis-text">${esc(a.text || "")}</div></li>`;
   }
-  html += `</ul><p class="side-note">${esc(f.weights_note || "")} 사람별 '내 달 요약'은 이름을 눌러 여정을 열면 맨 아래에 있고, 월간 보고에 전원이 실립니다.</p></div>`;
+  html += `</ul>`;
+  // 변경 최소성 — 재생성·적용이 고정 칸 밖에서 바꾼 칸 수(bridge가 직전 표와 대조). 첫 생성에는 없다.
+  if (f.change_text) html += `<p class="fair-change" data-fair-change="${f.change ? f.change.cells : ""}">${esc(f.change_text)}</p>`;
+  // 누적 형평성 — 연간근무표(입력②)를 올렸을 때만. 이번 달이 들쭉날쭉해도 누적이 고르면 괜찮고, 반대면 경고.
+  const cu = f.cumulative;
+  if (cu) {
+    html += `<div class="fair-cum" id="fairCum"><b>누적 형평</b> <span>${esc(cu.text || "")}</span>` +
+      ((cu.items || []).length ? `<ul class="burden-list">${cu.items.map(t => `<li>${esc(t)}</li>`).join("")}</ul>`
+        : `<p class="side-note">누적 ${cu.n_months}개월 기준으로 주말 ${(f.cum_gap_w || 3)}일·야간 2회 넘게 쏠린 사람이 없습니다.</p>`) + `</div>`;
+  } else {
+    html += `<p class="side-note">연간근무표(입력②)를 올리면 지난달들과 합친 <b>누적 형평</b>(주말·야간)이 여기 붙습니다.</p>`;
+  }
+  html += `<p class="side-note">${esc(f.weights_note || "")} 사람별 '내 달 요약'은 이름을 눌러 여정을 열면 맨 아래에 있고, 월간 보고에 전원이 실립니다.</p>`;
+  // 가중치 조정 — 값은 엔진이 0~5로 고르고 돌려준 것을 그대로 보여 준다(화면이 따로 셈하지 않는다).
+  const W = f.weights || {}, FW = f.fatigue_weights || {}, DW = f.default_weights || {}, DF = f.default_fatigue_weights || {};
+  const FAT_NAMES = { quick_to_night: "낮→밤 직결", short_recovery: "짧은 회복", consecutive_weekends: "연속 주말" };
+  const changed = Object.keys(DW).some(k => W[k] !== DW[k]) || Object.keys(DF).some(k => FW[k] !== DF[k]);
+  html += `<details class="fair-weights" id="fairWeights"${changed ? " open" : ""}><summary>가중치 조정${changed ? ' <span class="count-badge">기본과 다름</span>' : ""}</summary><div class="fair-w-grid">` +
+    f.axes.map(a => `<label><span>${esc(a.name)}</span><input type="number" min="0" max="${f.weight_max || 5}" step="0.5" data-fw-axis="${escAttr(a.key)}" value="${W[a.key] ?? a.weight}"></label>`).join("") +
+    Object.keys(FAT_NAMES).map(k => `<label><span>피로 · ${FAT_NAMES[k]}</span><input type="number" min="0" max="${f.weight_max || 5}" step="0.5" data-fw-fat="${k}" value="${FW[k] ?? ""}"></label>`).join("") +
+    `</div><div class="fair-w-actions"><button type="button" class="btn-sm" data-fw="apply">적용</button><button type="button" class="btn-sm" data-fw="reset">기본값</button></div>` +
+    `<p class="side-note">0은 그 축을 안 봄, 5가 상한. 기기에 기억되고 다음 생성에도 쓰입니다. 시드를 고르는 내부 기준은 바뀌지 않습니다.</p></details></div>`;
   return html;
+}
+
+// 가중치는 기기(localStorage)에 기억하고 생성 요청마다 같이 보낸다 — 새 탭에서도 같은 종합 점수가 나오게.
+const FAIR_W_KEY = "ns_fair_weights_v1";
+function fairWeightsStored() { try { return JSON.parse(localStorage.getItem(FAIR_W_KEY) || "null") || null; } catch (e) { return null; } }
+function fairWeightsRemember(axes, fatigue) {
+  try { if (!axes && !fatigue) localStorage.removeItem(FAIR_W_KEY); else localStorage.setItem(FAIR_W_KEY, JSON.stringify({ axes, fatigue })); } catch (e) { /* 기억만 못 할 뿐 */ }
+}
+async function applyFairWeights(reset) {
+  if (!ST) return;
+  let body;
+  if (reset) {
+    body = { axes: {}, fatigue: {} };
+    fairWeightsRemember(null, null);
+  } else {
+    const axes = {}, fatigue = {};
+    document.querySelectorAll("#fairWeights input[data-fw-axis]").forEach(i => { const v = parseFloat(i.value); if (!Number.isNaN(v)) axes[i.dataset.fwAxis] = v; });
+    document.querySelectorAll("#fairWeights input[data-fw-fat]").forEach(i => { const v = parseFloat(i.value); if (!Number.isNaN(v)) fatigue[i.dataset.fwFat] = v; });
+    body = { axes, fatigue };
+    fairWeightsRemember(axes, fatigue);
+  }
+  try {
+    ST = await api("/api/fair_weights", { method: "POST", body: JSON.stringify(body) });
+    renderSide();
+    showToast(reset ? "가중치를 기본값으로 돌렸습니다" : "가중치를 적용해 점수를 다시 셌습니다");
+  } catch (e) { showToast(`가중치 적용 실패: ${e.message || e}`, true); }
 }
 
 function renderBurdenSummary() {

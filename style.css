@@ -1236,3 +1236,13 @@ details.expert-sec > .side-sec { margin-top: 12px; }
 .fair-axis-text { font-size: .7rem; color: var(--sub); margin-top: 2px; }
 .jour-mine { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,.18); font-size: .72rem; line-height: 1.45; color: #e5e7eb; }
 .jour-mine b { color: #fde68a; margin-right: 4px; }
+.fair-change { font-size: .72rem; color: var(--sub); margin: 6px 0 0; }
+.fair-cum { margin-top: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: .74rem; }
+.fair-cum > b { color: var(--accent); margin-right: 4px; }
+.fair-weights { margin-top: 8px; font-size: .74rem; }
+.fair-weights summary { cursor: pointer; color: var(--sub); }
+.fair-w-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; margin: 8px 0; }
+.fair-w-grid label { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.fair-w-grid input { width: 58px; min-height: 32px; padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--ink); }
+.fair-w-actions { display: flex; gap: 8px; }
+.fair-w-actions button { min-height: 36px; padding: 4px 12px; font-size: .75rem; }
