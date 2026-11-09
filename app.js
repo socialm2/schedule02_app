@@ -596,6 +596,8 @@ NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니�
 <li><b>내 달 요약</b> — 이름을 눌러 여정을 열면 맨 아래에 그 사람에게 보낼 한 줄이 있습니다: 주말·D·E가 같은 조건 집단 평균과
 얼마나 다른지(±), 야간/목표, 피로 점수(낮→밤 직결 ×2 · 밤 뒤 하루만 쉬고 D·E ×3 · 연속 주말 ×1), 원티드 반영/미반영과 사유.
 월간 근무 보고 5-2절에 전원이 실리니 복사해 보내면 됩니다.</li>
+<li><b>변경 안내 초안</b>은 오른쪽 패널 맨 아래 '자세히 보기'를 펴면 있습니다 — 공지한 판을 기준본으로 두고, 그 뒤 바뀐 사람에게 보낼 문구를 만듭니다.
+<b>원티드 신청</b> 목록은 접혀 있고 배지에 반영·반려 수만 보입니다(펴면 전체).</li>
 <li><b>표 위 상태 띠의 ⚖ 공정성</b> — 100점 만점 한 숫자입니다. 칸을 고치는 동안(미적용 편집)에는 "원래 → 수정 후"가 같이 떠서
 고치면 점수가 어떻게 되는지 바로 보이고, 적용하거나 취소하면 한 숫자로 돌아옵니다. 점수는 참고용이라 낮아도 막지 않습니다 —
 연휴·휴가·교육·개인 요청 같은 병동 사정은 파트장이 알고 있으니 그대로 두거나 고치면 됩니다. 다운로드한 출력① 엑셀(일반·OCS 양식 모두)
@@ -4357,7 +4359,6 @@ function renderSide() {
   // 숫자는 전부 엔진(fairscore.py)이 보낸 것이고 화면은 그리기만 한다.
   html += renderFairScore();
   html += renderBurdenSummary();
-  html += renderNotice();
 
   // 입력 요약 — 공휴일은 **이 달의 달력**(ST.days)에서 센다. 예전엔 params_summary.holidays(1년치
   // 표)의 길이를 그대로 찍어 11월에 "공휴일 18개"가 나왔다(2026-10-31 검토 P1). 토·일이 아닌데
@@ -4428,12 +4429,14 @@ function renderSide() {
 
   // 원티드 신청 전체
   if (r.requests_all.length > 0) {
-    html += `<div class="side-sec"><h3>원티드 신청 <span class="count-badge">${r.requests.accepted}/${r.requests.total} 반영</span></h3>` +
+    // 접어 둔다 — 40건이면 표가 한 화면이라 다른 칸이 밀린다. 배지의 반영 수와 반려 수만 보이고, 펴면 전체 목록(2026-11-09 사용자).
+    const rejectedN = r.requests.total - r.requests.accepted;
+    html += `<details class="side-sec" id="wantedSec"><summary><h3 style="display:inline">원티드 신청 <span class="count-badge">${r.requests.accepted}/${r.requests.total} 반영${rejectedN ? ` · 반려 ${rejectedN}` : ""}</span></h3></summary>` +
       '<table class="mini-table"><tr><th>이름</th><th>날짜</th><th>유형</th><th>결과</th></tr>' +
       r.requests_all.map(q => `<tr><td>${esc(q.staff_id)}</td><td>${esc(q.date)}</td><td>${esc(q.type)}</td>` +
         `<td class="${q.accepted ? "badge-ok" : "badge-bad"}">${q.accepted ? "수용" :
           `반려<br><span style="font-weight:400;font-size:10px;color:var(--sub)">${esc(q.reason || "")}</span>`}</td></tr>`).join("") +
-      "</table></div>";
+      "</table></details>";
   }
 
 
@@ -4441,8 +4444,11 @@ function renderSide() {
   // 사용자에게는 소음이고(2026-10-31 검토 §3), 점수표 줄 누르기는 표·다운로드가 바뀌는 큰 동작이다.
   // 펼친 상태는 기억한다(localStorage ns_expert_open) — 매번 여는 사람은 매번 열려 있어야 한다.
   html += `<details class="side-sec expert-sec" id="expertSec"${expertOpen() ? " open" : ""}>` +
-    `<summary><h3 style="display:inline">자세히 보기 <span class="count-badge">점수표 · 처리 로그 · 수정 전 점검</span></h3></summary>` +
+    `<summary><h3 style="display:inline">자세히 보기 <span class="count-badge">변경 안내 · 점수표 · 처리 로그 · 수정 전 점검</span></h3></summary>` +
     `<p class="side-note">표를 고르거나 손 수정을 많이 할 때 보는 자리입니다. 처음 쓸 때는 접어 두어도 됩니다.</p>`;
+  // 변경 안내 초안은 여기(전문가 모드) 안에 — 공지 뒤 변경이 있는 달에만 쓰는 것이라 평소 패널에서는 숨긴다
+  // (2026-11-09 사용자). 코드째 걷어내지 않는 이유: 쓰는 길이 남아 있고(자세히 보기 → 변경 안내 초안) 테스트가 본다.
+  html += renderNotice();
   html += `<div class="side-sec"><h3>수정 전 점검 — 건드리면 안 되는 칸</h3><div id="fragileBox"></div></div>`;
 
   // 시도 점수표 — 시드마다 어떤 숫자로 견줘 어느 것을 골랐는지. 앞 열이 다르면 뒤 열은 보지 않는다
