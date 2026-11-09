@@ -588,6 +588,13 @@ NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니�
 (전월 말에서 이어진 것 포함, 상한을 넘으면 빨강), 야간 횟수/개인 목표(다르면 노랑). 오른쪽 '부담 요약'이
 같은 숫자로 손봐야 할 사람을 추려 줍니다(연간근무표를 올렸으면 지난달 대비 늘어난 사람도). 이 세 열은 화면에만 있고
 다운로드 엑셀에는 없습니다.</li>
+<li><b>공정성 점수</b> — 오른쪽 패널의 0~100 종합과 축 다섯(근무횟수 균등 ×2 · 주말 균등 · 야간 균등 · 원티드 반영 · 숙련 분산).
+점수는 "이 앱으로 만든 기준선 201개 달 가운데 이 달보다 쏠린 달의 비율"이라 병동 크기·달 길이와 무관하게 읽힙니다 —
+100이면 어느 달보다 고르고, 50이면 중간, 원티드만 반영률 그대로. 75 이상 좋음 · 40 이상 보통 · 그 아래는 살펴볼 것.
+축마다 근거 한 줄(최대·최소·벗어난 사람 수)이 같이 붙습니다. 시드를 고르는 내부 기준(시도 점수표)은 그대로이고 이 점수는 읽기용입니다.</li>
+<li><b>내 달 요약</b> — 이름을 눌러 여정을 열면 맨 아래에 그 사람에게 보낼 한 줄이 있습니다: 주말·D·E가 같은 조건 집단 평균과
+얼마나 다른지(±), 야간/목표, 피로 점수(낮→밤 직결 ×2 · 밤 뒤 하루만 쉬고 D·E ×3 · 연속 주말 ×1), 원티드 반영/미반영과 사유.
+월간 근무 보고 5-2절에 전원이 실리니 복사해 보내면 됩니다.</li>
 <li><b>미달 날 채울 수 있는 사람</b> — 오른쪽 '일별 근무인력'에 미달 날이 있으면, 그날 쉬는 사람 중 그 근무를 설 수 있고
 넣어도 새 필수 위반이 없는 사람을 날짜마다 적어 줍니다. 추천일 뿐이라 다른 사람을 넣어도 되고(그 칸이 빨강·노랑으로
 표시될 뿐), 위반이 남은 채로 확정·다운로드도 됩니다.</li>
@@ -3534,7 +3541,9 @@ function drawJourney(now) {
     document.getElementById("jourCard").innerHTML =
       `<div class="jour-day">${JOUR.day + 1}일 <span style="color:${JOUR_C[code] || "#e5e7eb"}">${esc(JOUR_NAME[code] || code || "—")}</span>${ST.days[JOUR.day].weekend ? ' <small>주말·공휴일</small>' : ""}</div>` +
       `<div class="jour-why">${why.length ? why.map(esc).join("<br>") : "입력에서 정해진 칸이거나 쉬는 날입니다."}</div>` +
-      `<div class="jour-sum">이달 밤 ${nights}회 · 주말 ${wk}일 · 쉼 ${offs}일</div>`;
+      `<div class="jour-sum">이달 밤 ${nights}회 · 주말 ${wk}일 · 쉼 ${offs}일</div>` +
+      // 내 달 요약 — 당사자에게 보낼 한 줄(엔진 fairscore.py가 만든 문장 그대로). 집단 평균 대비·피로·원티드.
+      (() => { const p = ((ST.fair || {}).persons || []).find(x => x.id === JOUR.sid); return p ? `<div class="jour-mine" data-mine="${escAttr(JOUR.sid)}"><b>내 달 요약</b> ${esc(p.line)}</div>` : ""; })();
   }
   JOUR.raf = requestAnimationFrame(drawJourney);
 }
@@ -3682,6 +3691,10 @@ function magazineHtml(trace) {
   if (wkUp.length) li.push(`<li>지난달(${esc(prevMonth)})보다 주말이 2일 이상 는 사람: ${wkUp.map(x => `<b>${esc(x.s.id)}</b> ${prev[x.s.id].weekend}→${x.b.weekend}`).join(", ")}</li>`);
   if (nightUp.length) li.push(`<li>지난달보다 야간이 2회 이상 는 사람: ${nightUp.map(x => `<b>${esc(x.s.id)}</b> ${prev[x.s.id].nights}→${x.b.nights}`).join(", ")}</li>`);
   const sec5 = `<h2>5. 부담 요약</h2>${li.length ? `<ul>${li.join("")}</ul>` : "<p class='good'>주말·야간·연속근무 어느 쪽도 눈에 띄게 쏠린 사람이 없다.</p>"}`;
+  // --- 5-1 공정성 점수 · 5-2 내 달 요약 — 숫자와 문장 모두 엔진(fairscore.py)이 만든 것(화면 '공정성 점수' 칸과 같다)
+  const fr = ST.fair || {}, fax = fr.axes || [];
+  const sec5a = fax.length ? `<h2>5-1. 공정성 점수 <span class="sub">종합 <b>${fr.total == null ? "–" : Math.round(fr.total)}</b> / 100 · ${esc(fr.grade ? fr.grade.label : "")}</span></h2><table class="t small"><tr><th>축</th><th>가중</th><th>점수</th><th>등급</th><th>근거</th></tr>${fax.map(a => `<tr>${td(esc(a.name))}${td(a.weight)}${td(`<b>${a.score == null ? "–" : Math.round(a.score)}</b>`)}${td(esc(a.grade ? a.grade.label : ""), a.grade && a.grade.key === "low" ? "bad" : a.grade && a.grade.key === "mid" ? "warn" : "")}${td(esc(a.text || ""))}</tr>`).join("")}</table><p class="sub">${esc(fr.weights_note || "")}</p>` : "";
+  const sec5b = (fr.persons || []).length ? `<h2>5-2. 내 달 요약 — 당사자에게 보낼 한 줄</h2><ul class="mine">${fr.persons.map(p => `<li><b>${esc(p.id)}</b> ${esc(p.line)}</li>`).join("")}</ul><p class="sub">주말·D·E의 ±는 같은 조건(가능근무·휴가일수·입사일 등) 집단의 평균 대비. 피로 = 낮→밤 직결×2 + 짧은 회복(밤 뒤 하루만 쉬고 D·E)×3 + 연속 주말×1.</p>` : "";
   // --- 6 원티드
   const rq = r.requests || {}, rejected = rq.rejected || [];
   const sec6 = `<h2>6. 원티드</h2><p>신청 ${rq.total || 0}건 중 반영 ${rq.accepted || 0}건${rq.total ? ` (${Math.round((rq.accepted || 0) / rq.total * 100)}%)` : ""}.${rejected.length ? ` 반려 ${rejected.length}건:` : " 반려 없음."}</p>
@@ -3720,7 +3733,7 @@ function magazineHtml(trace) {
     <script id="vizSrc" type="text/plain">${magazineVizScript()}</script>
     <script>new Function(document.getElementById("vizSrc").textContent)();</script>`;
   // --- 목차 — 맨 위에서 절로 바로 가는 링크. 절 제목(<h2>N. …)에 id를 붙이고, 같은 제목으로 목차를 만든다.
-  const body = [sec0, sec1, sec2, sec3, sec4, sec5, sec6, sec7, sec8, sec9, sec10, sec11].join("")
+  const body = [sec0, sec1, sec2, sec3, sec4, sec5, sec5a, sec5b, sec6, sec7, sec8, sec9, sec10, sec11].join("")
     .replace(/<h2>(\d+)\. /g, '<h2 id="s$1">$1. ');
   const tocItems = [...body.matchAll(/<h2 id="s(\d+)">\d+\. ([^<]+)/g)].map(m => `<a href="#s${m[1]}"><b>${m[1]}</b> ${m[2].trim()}</a>`);
   tocItems.push(`<a href="#viz-jour" class="vz"><b>▶</b> 여정</a>`, `<a href="#viz-rain" class="vz"><b>▶</b> 비</a>`, `<a href="#viz-orb" class="vz"><b>▶</b> 궤도</a>`);
@@ -3740,7 +3753,7 @@ var sup=(window.CSS&&CSS.supports&&(CSS.supports("position","sticky")||CSS.suppo
 table.t{border-collapse:collapse;width:100%;margin:6px 0 4px}table.t th,table.t td{border:1px solid #e5e7eb;padding:4px 6px;text-align:left;vertical-align:top}table.t th{background:#f9fafb;font-weight:600}table.t.small{font-size:12px}table.t.tiny{font-size:10.5px}table.t.tiny td,table.t.tiny th{padding:3px 2px;text-align:center;white-space:nowrap}
 td.bad{background:#fee2e2;color:#991b1b;font-weight:700}td.warn{background:#fef9c3}td.over{background:#fef3c7}
 tr.sep th,tr.sep td{border-top:2px dashed #9ca3af}tr.tot th,tr.tot td{border-top:1.5px solid #6b7280}tr.other th{color:#6b7280;font-weight:500}tr.lv th{color:#5b21b6}tr.lv1 th,tr.lv1 td{border-top:2px solid #111827}td.we,th.we{background:#fff1f2}td.we.bad{background:#fee2e2}td.we.over{background:#fef3c7}td.we.warn{background:#fef9c3}tr.nk td{color:#6b21a8}tr.chosen td{background:#ecfdf5}
-.bad{color:#dc2626;font-weight:600}.good{color:#16a34a}.sub{color:#6b7280;font-size:11px}.small{font-size:12px}i{font-style:normal;font-size:10px;color:#7c3aed;border:1px solid #c4b5fd;border-radius:3px;padding:0 3px}
+.bad{color:#dc2626;font-weight:600}.good{color:#16a34a}.sub{color:#6b7280;font-size:11px}ul.mine{padding-left:18px;font-size:12px;line-height:1.5}ul.mine li{margin:3px 0}.small{font-size:12px}i{font-style:normal;font-size:10px;color:#7c3aed;border:1px solid #c4b5fd;border-radius:3px;padding:0 3px}
 ul{margin:6px 0;padding-left:18px}li{margin:3px 0}pre.log{font-size:11px;background:#f9fafb;border:1px solid #e5e7eb;padding:8px;white-space:pre-wrap;line-height:1.5}
 .foot{margin-top:28px;font-size:11px;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:8px}.nums-h{margin:14px 0 4px;font-size:13px;color:#374151}
 .brief{border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;margin:10px 0 6px;background:#fafafa}.brief .status{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}.brief .status .tag{flex:0 0 auto;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700}.brief .status.bad .tag{background:#fee2e2;color:#991b1b}.brief .status.ok .tag{background:#dcfce7;color:#166534}.brief .status.warn .tag{background:#fef9c3;color:#854d0e}.brief .status b.t{display:block;font-size:17px}.brief .status .sub{display:block;margin-top:2px}
@@ -4373,6 +4386,9 @@ function renderSide() {
   // 부담 요약 — 파트장이 손봐야 할 사람이 누군지 한눈에. 그리드 오른쪽 부담 열과 같은 숫자를
   // 사람별로 추린다: 주말 근무가 많은 순, 야간이 목표와 다른 사람, D·E가 한쪽으로 쏠린 사람.
   // 숫자는 그리드에서 그 자리에서 세므로 칸을 고치면 재생성 전에도 바뀐다.
+  // 공정성 점수 — 부담 요약이 '누구를 손봐야 하나'라면 이 칸은 '이 달은 고른 달인가'. 숫자는 전부
+  // 엔진(fairscore.py)이 보낸 것이고 화면은 그리기만 한다 — 화면이 따로 세면 보고서·점수표와 어긋난다.
+  html += renderFairScore();
   html += renderBurdenSummary();
 
   // ---- 자세히 보기(전문가 모드) — 시도 점수표·처리 로그·수정 전 점검을 한 접힘 안에 둔다. 셋 다 첫
@@ -4522,6 +4538,29 @@ function renderWeekendRoster() {
   return `<details class="side-sec"><summary><h3 style="display:inline">주말·공휴일 근무자 <span class="count-badge">${days.length}일</span></h3></summary>` +
     '<table class="mini-table weekend-roster"><tr><th>날</th><th>D</th><th>E</th><th>N</th></tr>' + rows + "</table>" +
     '<p class="side-note">인원/최소인력과 이름. 빨강은 미달. 접어 두면 자리를 안 차지합니다.</p></details>';
+}
+
+// 공정성 점수(0~100) — 축 다섯(근무횟수·주말·야간·원티드·숙련)을 막대로, 종합은 큰 숫자로. 점수는
+// 기준선 201개 달 가운데 이 달보다 쏠린 달의 비율(백분위)이라 병동 크기·달 길이와 무관하게 읽힌다.
+// 축마다 '왜 그 점수인지' 한 줄(text)을 함께 보인다 — 숫자만 있으면 믿지 않고, 숫자 없이 글만 있으면 견주지 못한다.
+function fairGradeClass(g) { return g === "good" ? "good" : g === "mid" ? "warn-text" : g === "low" ? "bad" : ""; }
+function renderFairScore() {
+  const f = ST.fair;
+  if (!f || !Array.isArray(f.axes)) return "";
+  const total = f.total == null ? "–" : Math.round(f.total);
+  const gcls = fairGradeClass(f.grade && f.grade.key);
+  let html = `<div class="side-sec fair-sec" id="fairSec"><h3>공정성 점수 <span class="count-badge">${esc(f.grade ? f.grade.label : "")}</span></h3>` +
+    `<div class="fair-total"><b class="${gcls}" data-fair-total="${total}">${total}</b><span class="fair-total-sub">/ 100 · 종합</span></div><ul class="fair-axes">`;
+  for (const a of f.axes) {
+    const sc = a.score == null ? null : Math.round(a.score);
+    const cls = fairGradeClass(a.grade && a.grade.key);
+    html += `<li class="fair-axis" data-fair-axis="${escAttr(a.key)}" title="${escAttr(a.unit || "")}">` +
+      `<div class="fair-axis-head"><span class="fair-axis-name">${esc(a.name)}${a.weight > 1 ? ` <small>×${a.weight}</small>` : ""}</span><b class="${cls}">${sc == null ? "–" : sc}</b></div>` +
+      `<div class="fair-bar"><i class="${cls}" style="width:${sc == null ? 0 : sc}%"></i></div>` +
+      `<div class="fair-axis-text">${esc(a.text || "")}</div></li>`;
+  }
+  html += `</ul><p class="side-note">${esc(f.weights_note || "")} 사람별 '내 달 요약'은 이름을 눌러 여정을 열면 맨 아래에 있고, 월간 보고에 전원이 실립니다.</p></div>`;
+  return html;
 }
 
 function renderBurdenSummary() {
