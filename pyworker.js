@@ -47,6 +47,7 @@ function callBridge(path, opts) {
   opts = opts || {};
   switch (path) {
     case "/api/sample": return bridge.api_sample();
+    case "/api/sample_requests": return bridge.api_sample_requests(opts.body);
     case "/api/upload_wanted": return bridge.api_upload_wanted(opts._fileBytes);
     case "/api/upload_staff_table": return bridge.api_upload_staff_table(opts._fileBytes);
     case "/api/upload_month": return bridge.api_upload_month(opts._fileBytes);

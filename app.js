@@ -248,6 +248,7 @@ let wantedTransferInDates = {};
 let wantedActiveTag = "";
 // 마지막으로 성공한 입력①의 연월 — 화면 연월과 다르면 신청이 전부 다른 달 날짜가 된다.
 let wantedYM = null;     // {year, month} 또는 null
+let wantedSource = null; // "file"(입력① 업로드) | "sample"(기본값의 예시 신청) | null — 떠나기 확인·배지 문구가 가른다
 // 입력①에서 읽은 신청·전입일을 파일의 연월 그대로 둔 원본. 실제로 쓰는 formRequests·
 // wantedTransferInDates는 화면 연월에 맞춰 날짜를 다시 매긴 것이다(아래 rebaseWantedToScreen).
 let wantedRequestsRaw = [];
@@ -699,7 +700,11 @@ function noteYearMonthEdit() {
   if (wantedYM) rebaseWantedToScreen();
   renderSourceBadges();
   const y = $("#f_year").value, m = $("#f_month").value;
-  if (ymMismatch()) {
+  if (wantedSource === "sample") {
+    // 예시 신청은 파일이 아니다 — "입력① 파일의 신청을 옮깁니다" 대신 예시가 그 달로 따라간다고만 알린다
+    showToast(`연월 → ${y}년 ${m}월: 예시 신청 ${formRequests.length}건도 ${m}월 날짜로 옮깁니다` +
+              (wantedDropped.length ? ` (${m}월에 없는 날짜 ${wantedDropped.length}건은 뺌)` : ""));
+  } else if (ymMismatch()) {
     showToast(`연월 → ${y}년 ${m}월: 화면 연월로 만듭니다 — 입력① 파일(${wantedYM.year}년 ${wantedYM.month}월)의 ` +
               `신청 ${formRequests.length}건은 날짜의 '일'만 보고 ${m}월에 적용합니다` +
               (wantedDropped.length ? ` (${m}월에 없는 날짜 ${wantedDropped.length}건은 뺌)` : ""));
@@ -1085,7 +1090,7 @@ function rebaseWantedToScreen() {
 function renderYmNotice() {
   const box = $("#ymNotice");
   if (!box) return;
-  if (!wantedYM || !ymMismatch()) { box.style.display = "none"; box.innerHTML = ""; return; }
+  if (!wantedYM || wantedSource === "sample" || !ymMismatch()) { box.style.display = "none"; box.innerHTML = ""; return; }
   const s = screenYM();
   const dropped = wantedDropped.length
     ? `<p class="ym-notice-sub">⚠ ${s.month}월에 없는 날짜라 뺀 신청 ${wantedDropped.length}건: ${esc(wantedDropped.slice(0, 6).join(", "))}${wantedDropped.length > 6 ? " 외 " + (wantedDropped.length - 6) + "건" : ""}</p>`
@@ -1108,10 +1113,31 @@ function renderYmNotice() {
     showToast(`화면 연월을 입력①과 같은 ${wantedYM.year}년 ${wantedYM.month}월로 맞췄습니다`);
   };
 }
+// 기본값(샘플)의 예시 신청 — /api/sample_requests에서 화면 연월로 받아, 입력①을 올린 것처럼 원본·연월을 들고 있어야
+// 화면 연월을 바꿀 때 같이 옮겨진다. 사용자가 올린 파일은 아니므로 떠나기 확인과 '입력①과 같은 달' 배지는 걸지 않는다
+// (wantedSource="sample"). 입력①을 이미 올렸으면(wantedSource="file") 건드리지 않는다.
+async function loadSampleRequests() {
+  if (wantedSource === "file") return;
+  const s = screenYM();
+  try {
+    const data = await api("/api/sample_requests", { method: "POST", body: JSON.stringify({ year: s.year, month: s.month }) });
+    if (!data || !Array.isArray(data.requests) || !data.requests.length) return;
+    wantedRequestsRaw = data.requests.map(r => ({ ...r, priority: 1 }));
+    wantedYM = { year: data.year, month: data.month };
+    wantedSource = "sample";
+    rebaseWantedToScreen();
+    const st = $("#wantedStatus");
+    if (st) st.textContent = `예시 신청 ${formRequests.length}건(샘플) — 입력①을 올리면 그 파일의 신청으로 바뀝니다`;
+    wantedActiveTag = "샘플";
+    renderSourceBadges();
+    updateClearButtons();
+  } catch (e) { /* 예시 신청은 없어도 된다 — 명단·설정만으로 만들어진다 */ }
+}
+
 function renderSourceBadges() {
   const ym = $("#ymSource");
   if (ym) {
-    if (!wantedYM) { ym.className = "src-badge"; ym.textContent = ""; }
+    if (!wantedYM || wantedSource === "sample") { ym.className = "src-badge"; ym.textContent = ""; }
     else if (ymMismatch()) {
       ym.className = "src-badge warn show";
       ym.textContent = `화면 연월로 만듭니다 — 입력① 파일은 ${wantedYM.year}년 ${wantedYM.month}월`;
@@ -1429,6 +1455,7 @@ async function handleWantedFile(f) {
     wantedTransferredIn = data.transferred_in || [];
     wantedTransferInDatesRaw = data.transfer_in_dates || {};
     wantedYM = { year: data.year, month: data.month };
+    wantedSource = "file";
     rebaseWantedToScreen();
     const staffUpdated = (data.staff || []).length > 0;
     if (staffUpdated) {
@@ -1481,6 +1508,7 @@ function wantedActiveSummary() {
   if (staffOfWanted.length) parts.push(`인원 ${staffOfWanted.length}명`);
   if (formRequests.length) parts.push(`신청 ${formRequests.length}건`);
   if (!parts.length) return "";
+  if (wantedSource === "sample") return `예시 신청(샘플) ${parts.join(", ")}이 그대로 쓰입니다.`;
   return `이전에 올린 입력①${wantedActiveTag ? ` (${wantedActiveTag})` : ""}을 계속 씁니다 — ` +
          `${parts.join(", ")}. 이 값으로 근무표가 만들어집니다.`;
 }
@@ -1535,6 +1563,7 @@ function clearWanted() {
   // 준 명단으로 복원한다.
   formRequests = [];
   wantedRequestsRaw = [];
+  wantedSource = null;
   wantedDropped = [];
   staffOfWanted = [];
   wantedActiveTag = "";
@@ -1994,6 +2023,7 @@ let sampleCfg = null;   // /api/sample 응답 — '샘플 값으로 되돌리기
     useSaved = !!loadSettings();
     fillForm(useSaved ? withSavedSettings(cfg) : cfg);
     settingsSource = useSaved ? "saved" : "sample";
+    await loadSampleRequests();
   } catch (e) {
     showToast("샘플 로드 실패 — 직접 입력해주세요", true);
   }
@@ -2134,6 +2164,7 @@ $("#restoreSampleBtn").onclick = () => {
   settingsReady = true;
   settingsSource = "sample";
   renderSourceBadges();
+  loadSampleRequests();
   showToast("샘플 병동 값으로 되돌렸습니다 — 우리 병동 값으로 고쳐 쓰세요");
 };
 
@@ -2385,7 +2416,7 @@ async function restoreSession() {
 // 새 버전 띠의 '새로 고침'처럼 우리가 시키는 이동은 묻지 않는다(window.__allowUnload).
 function unloadGuardNeeded() {
   if (window.__allowUnload) return false;
-  return !!ST || wantedActive() || staffTableLoaded;
+  return !!ST || (wantedActive() && wantedSource !== "sample") || staffTableLoaded;
 }
 window.addEventListener("beforeunload", (e) => {
   if (!unloadGuardNeeded()) return;
@@ -4234,16 +4265,13 @@ function confirmDownloadWithViolations() {
 function feasibilityBanner(r) {
   const total = r.hard.length;
   if (r.hard_count > 0) {
-    return `<p class="status-banner bad">⚠ 필수 위반 ${r.hard_count}건이 남았습니다 — 이 조건
-      (인원수·근무인력 기준)으로는 전부 만족하는 배정을 찾지 못했습니다. <b>이대로 확정하면
-      안 됩니다.</b> 아래 빨간 목록을 확인해 해당 칸을 직접 고치거나, 인원을 늘리거나 근무인력
-      기준을 낮춘 뒤 다시 생성해 주세요.</p>`;
+    // 두 문장만 — 무엇이 남았고 무엇을 하면 되는지. 규칙 이름 나열은 설명서에(패널의 글이 많아지면 안 읽힌다).
+    return `<p class="status-banner bad">⚠ <b>필수 위반 ${r.hard_count}건</b> — 이대로 확정하면 안 됩니다.
+      아래 빨간 칸을 직접 고치거나, 인원·근무인력 기준을 조정해 다시 생성하세요.</p>`;
   }
   if (total > 0) {
-    return `<p class="status-banner warn">필수 규칙(최소인력·야간 블록·연속근무 등)은 모두
-      지켰습니다. 다만 <b>추가 검토 ${total}건</b>이 남았습니다 — ${BEST_EFFORT_NAMES}처럼
-      지키는 게 원칙이지만 인원 사정상 못 맞출 수 있는 항목입니다. 아래 노란
-      목록을 확인한 뒤 다운로드해 쓰세요.</p>`;
+    return `<p class="status-banner warn">필수 규칙은 모두 지켰습니다. <b>추가 검토 ${total}건</b>은
+      원칙이지만 인원 사정상 못 맞출 수 있는 항목입니다 — 노란 목록을 확인한 뒤 내려받으세요.</p>`;
   }
   return "";
 }
@@ -4325,6 +4353,10 @@ function renderSide() {
     </div>`;
   }
   html += "</div>";
+  // 공정성 점수와 부담 요약을 다운로드 바로 뒤에 — 결과를 읽는 순서(지켰나 → 고른가 → 누구를 손보나)대로.
+  // 숫자는 전부 엔진(fairscore.py)이 보낸 것이고 화면은 그리기만 한다.
+  html += renderFairScore();
+  html += renderBurdenSummary();
   html += renderNotice();
 
   // 입력 요약 — 공휴일은 **이 달의 달력**(ST.days)에서 센다. 예전엔 params_summary.holidays(1년치
@@ -4404,13 +4436,6 @@ function renderSide() {
       "</table></div>";
   }
 
-  // 부담 요약 — 파트장이 손봐야 할 사람이 누군지 한눈에. 그리드 오른쪽 부담 열과 같은 숫자를
-  // 사람별로 추린다: 주말 근무가 많은 순, 야간이 목표와 다른 사람, D·E가 한쪽으로 쏠린 사람.
-  // 숫자는 그리드에서 그 자리에서 세므로 칸을 고치면 재생성 전에도 바뀐다.
-  // 공정성 점수 — 부담 요약이 '누구를 손봐야 하나'라면 이 칸은 '이 달은 고른 달인가'. 숫자는 전부
-  // 엔진(fairscore.py)이 보낸 것이고 화면은 그리기만 한다 — 화면이 따로 세면 보고서·점수표와 어긋난다.
-  html += renderFairScore();
-  html += renderBurdenSummary();
 
   // ---- 자세히 보기(전문가 모드) — 시도 점수표·처리 로그·수정 전 점검을 한 접힘 안에 둔다. 셋 다 첫
   // 사용자에게는 소음이고(2026-10-31 검토 §3), 점수표 줄 누르기는 표·다운로드가 바뀌는 큰 동작이다.

@@ -1272,3 +1272,34 @@ details.expert-sec > .side-sec { margin-top: 12px; }
 #sidePane .fair-meta-list { list-style: none; margin: 6px 0 0; padding: 0; }
 #sidePane .fair-meta-list li { font-size: .68rem; color: var(--sub); margin: 2px 0; }
 #sidePane .fair-meta-list li b { color: var(--ink); font-weight: 600; margin-right: 4px; }
+
+/* 결과 패널 카드형(2026-11-09) — 칸마다 한 장의 카드, 제목은 작은 대문자, 배지는 오른쪽. 글은 적게, 숫자는 크게 */
+#sidePane { background: var(--paper); padding: 12px 12px 24px; }
+#sidePane .side-sec {
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 14px 13px; margin-bottom: 10px;
+}
+#sidePane .side-sec h3 {
+  display: flex; align-items: center; gap: 8px; margin: 0 0 9px;
+  font-size: .6875rem; letter-spacing: .07em; color: var(--sub);
+}
+#sidePane .side-sec h3 .count-badge { margin-left: auto; font-size: .625rem; }
+#sidePane details.side-sec { padding-top: 6px; padding-bottom: 6px; }
+#sidePane details.side-sec[open] { padding-bottom: 13px; }
+#sidePane details.side-sec summary { padding: 6px 0; min-height: 34px; display: flex; align-items: center; }
+#sidePane details.side-sec summary h3 { margin: 0; display: flex; width: 100%; }
+#sidePane .kpi-row { gap: 8px; margin-bottom: 10px; }
+#sidePane .kpi { border-radius: 10px; padding: 10px 8px; background: var(--code-bg); }
+#sidePane .kpi .v { font-size: 1.5rem; line-height: 1.1; }
+#sidePane .kpi .l { margin-top: 2px; }
+#sidePane .issue-list li { border-radius: 8px; padding: 6px 9px; margin: 4px 0; line-height: 1.4; }
+#sidePane .download-row button, #sidePane .reupload-btn, #sidePane button.wide { border-radius: 10px; font-weight: 700; }
+#sidePane .download-row button { padding: 9px 8px; }
+#sidePane .person-table th { font-size: .66rem; letter-spacing: .03em; color: var(--sub); font-weight: 600; }
+#sidePane .person-table tr:nth-child(even) td { background: color-mix(in srgb, var(--code-bg) 55%, transparent); }
+#sidePane .fair-total { margin: 2px 0 8px; }
+#sidePane .fair-total > b { font-size: 2.1rem; }
+#sidePane .fair-axes { gap: 9px; }
+#sidePane .fair-bar { height: 6px; }
+#sidePane .side-exp { background: transparent; border: 0; padding: 4px 2px; }
+#sidePane .expert-sec > .side-sec { background: var(--code-bg); border-color: transparent; }
