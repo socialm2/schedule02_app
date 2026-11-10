@@ -528,6 +528,16 @@ async function apiDownloadWantedTemplate(payload, filename) {
   triggerDownload(bytes, filename, XLSX_MIME);
 }
 
+// 문의 파일(zip) — 현상 글과 기기 정보를 Worker에 보내면 지금 상태·작업 기록·올린 파일을 묶어 돌려준다.
+// 받은 것을 이 기기에 저장할 뿐 어디로도 보내지 않는다(올리는 것은 사용자가 구글 폼에서 직접).
+async function apiDownloadVoc(payload) {
+  const { raw: bytes } = await callWorker("/api/download/voc", { body: JSON.stringify(payload) });
+  if (!bytes) throw new Error("문의 파일을 만들지 못했습니다");
+  const { raw: filename } = await callWorker("/api/download_filename/voc");
+  triggerDownload(bytes, filename, "application/zip");
+  return filename;
+}
+
 // 브라우저 안에서 Python을 돌리므로 화면을 열기 전에 Pyodide를 부팅해야 한다.
 // 실패하면 false를 돌려주고 로딩 화면에 이유를 띄운다 — app.js는 그 뒤를 진행하지 않는다.
 async function bootPlatform() {

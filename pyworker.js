@@ -95,12 +95,18 @@ function callBridge(path, opts) {
       const py = bridge.api_download_wanted_template(opts.body);
       return py ? py.toJs() : null;
     }
+    // 문의 파일(zip) — 현상 글 + 지금 상태 + 작업 기록 + 올린 파일. 생성 전에도 만들어진다.
+    case "/api/download/voc": {
+      const py = bridge.api_download_voc(opts.body);
+      return py ? py.toJs() : null;
+    }
+    case "/api/download_filename/voc": return bridge.api_download_filename_voc();
     default: throw new Error("알 수 없는 경로: " + path);
   }
 }
 
 const BINARY_PATHS = new Set(["/api/download/xlsx", "/api/download/xlsx_ocs", "/api/download/staff_table",
-  "/api/download/wanted_template"]);
+  "/api/download/wanted_template", "/api/download/voc"]);
 
 self.onmessage = async (ev) => {
   const { id, path, opts } = ev.data;

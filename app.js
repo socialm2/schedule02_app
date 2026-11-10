@@ -280,7 +280,13 @@ function summarizeToast(msg) {
   const text = lines.join("\n");
   return text.length > 220 ? text.slice(0, 200) + "… (자세한 내용은 화면 안내)" : text;
 }
+// 문의 파일에 같이 담을 '화면에 떴던 알림' — 최근 것만. 파트장이 "뭐라고 떴는데 사라졌어요"라고 할 때 그 글이다.
+const VOC_TOASTS = [], VOC_JS_ERRORS = [];
+function vocRemember(list, item, max) { list.push(item); if (list.length > max) list.shift(); }
+window.addEventListener("error", (e) => vocRemember(VOC_JS_ERRORS, `${e.message} @ ${(e.filename || "").split("/").pop()}:${e.lineno}`, 20));
+window.addEventListener("unhandledrejection", (e) => vocRemember(VOC_JS_ERRORS, "promise: " + ((e.reason && e.reason.message) || e.reason), 20));
 function showToast(msg, isErr) {
+  vocRemember(VOC_TOASTS, { at: new Date().toTimeString().slice(0, 8), msg: String(msg).slice(0, 600), err: !!isErr }, 30);
   toast.textContent = summarizeToast(msg);
   toast.className = "toast show" + (isErr ? " err" : "");
   clearTimeout(_toastHideTimer);
@@ -3941,6 +3947,88 @@ function frame(now){
 requestAnimationFrame(frame);
 })();`;
 }
+// ================================================================ 문의 파일(VOC, 실험 기능)
+// 파트장이 "이거 이상해요"를 보낼 때: 현상만 적으면 지금 입력·출력·한 일(칸 수정·재생성 순서)을 앱이 zip 하나로
+// 묶어 준다(bridge.api_download_voc). 앱은 아무것도 보내지 않는다 — 받은 파일을 사용자가 구글 폼에 직접 올린다.
+// 구글 폼 주소가 정해지면 여기에 적는다. 비어 있으면 받은 뒤 안내 글만 나오고, 있으면 '구글 폼 열기'가 붙는다.
+const VOC_FORM_URL = "";
+const VOC_TYPES = ["오류가 났어요", "배정이 이상해요", "이렇게 됐으면 해요", "기타"];
+function vocClientInfo() {
+  const now = new Date(), p2 = (n) => String(n).padStart(2, "0");
+  const txt = (sel) => { const el = document.querySelector(sel); return el ? el.textContent.trim() : ""; };
+  return {
+    time_local: `${now.getFullYear()}-${p2(now.getMonth() + 1)}-${p2(now.getDate())} ${p2(now.getHours())}:${p2(now.getMinutes())}`,
+    tz_offset_min: -now.getTimezoneOffset(),
+    version: txt(".version-badge"), build: txt(".build-time"),
+    ua: navigator.userAgent, viewport: `${window.innerWidth}×${window.innerHeight}`,
+    gen_mode: window.__genMode || "", online: navigator.onLine,
+    toasts: VOC_TOASTS.slice(), js_errors: VOC_JS_ERRORS.slice(),
+  };
+}
+function openVocDialog() {
+  let bd = document.getElementById("vocModalBackdrop");
+  if (!bd) {
+    bd = document.createElement("div");
+    bd.className = "modal-backdrop"; bd.id = "vocModalBackdrop";
+    bd.innerHTML = '<div class="modal voc-modal" role="dialog" aria-modal="true" aria-labelledby="vocTitle">' +
+      '<div class="modal-head"><h2 id="vocTitle">문의 파일 만들기</h2><button data-voc="close" aria-label="닫기">✕</button></div>' +
+      '<div class="modal-body voc-body">' +
+      '<div class="voc-row" id="vocTypes" role="radiogroup" aria-label="유형"></div>' +
+      '<div class="voc-row voc-where"><label>누구 <select id="vocStaff"></select></label><label>며칠 <select id="vocDay"></select></label></div>' +
+      '<label class="voc-lab" for="vocText">어떤 일이 있었나요</label><textarea id="vocText" rows="4" placeholder="예: 12일 N이 3명이어야 하는데 2명으로 나와요"></textarea>' +
+      '<label class="voc-lab" for="vocWant">어떻게 되길 바라셨나요 <span class="voc-opt">(선택)</span></label><textarea id="vocWant" rows="2"></textarea>' +
+      '<p class="hint voc-note">지금 입력·근무표(이름 포함)·고친 기록이 파일에 함께 들어갑니다. 이 기기에 저장만 되고 자동으로 보내지지 않습니다.</p>' +
+      '<p class="voc-msg" id="vocMsg" role="status"></p>' +
+      '<div class="voc-actions"><button class="primary" data-voc="make">문의 파일 받기</button><span id="vocAfter"></span></div>' +
+      '</div></div>';
+    document.body.appendChild(bd);
+    bd.addEventListener("click", (e) => { if (e.target === bd) closeVocDialog(); });
+    bd.addEventListener("keydown", (e) => { if (e.key === "Escape") closeVocDialog(); });
+    delegateClick(bd, "button[data-voc]", (b) => { if (b.dataset.voc === "close") closeVocDialog(); else makeVocFile(); });
+    document.getElementById("vocTypes").innerHTML = VOC_TYPES.map((t, i) =>
+      `<label class="voc-type"><input type="radio" name="vocType" value="${escAttr(t)}"${i === 1 ? " checked" : ""}> ${esc(t)}</label>`).join("");
+  }
+  // 명단·날짜는 열 때마다 지금 표에서 — 방금 누른 칸(pickerCell)이 있으면 그 사람·그 날을 미리 골라 둔다.
+  const staffSel = document.getElementById("vocStaff"), daySel = document.getElementById("vocDay");
+  const ids = ST ? ST.staff.map(x => x.id) : [];
+  const last = VOC_LAST_CELL && ST && ST.grid[VOC_LAST_CELL.sid] ? VOC_LAST_CELL : null;
+  staffSel.innerHTML = '<option value="">(해당 없음)</option>' + ids.map(id =>
+    `<option value="${escAttr(id)}"${last && last.sid === id ? " selected" : ""}>${esc(id)}</option>`).join("");
+  daySel.innerHTML = '<option value="">(해당 없음)</option>' + Array.from({ length: ST ? ST.num_days : 0 }, (_, d) =>
+    `<option value="${d}"${last && last.day === d ? " selected" : ""}>${d + 1}일</option>`).join("");
+  document.getElementById("vocMsg").textContent = "";
+  document.getElementById("vocAfter").innerHTML = "";
+  bd.classList.add("show");
+  document.getElementById("vocText").focus();
+}
+function closeVocDialog() {
+  const bd = document.getElementById("vocModalBackdrop");
+  if (bd) bd.classList.remove("show");
+}
+let VOC_LAST_CELL = null;      // 마지막으로 누른 칸 {sid, day} — 문의 창이 '누구·며칠'을 미리 채우는 데 쓴다
+async function makeVocFile() {
+  const msg = document.getElementById("vocMsg"), text = document.getElementById("vocText").value.trim();
+  if (!text) { msg.textContent = "어떤 일이 있었는지 한 줄만 적어 주세요."; document.getElementById("vocText").focus(); return; }
+  const type = document.querySelector('input[name="vocType"]:checked');
+  const day = document.getElementById("vocDay").value;
+  const payload = {
+    report: { type: type ? type.value : "", staff_id: document.getElementById("vocStaff").value || null,
+              day: day === "" ? null : Number(day), text, want: document.getElementById("vocWant").value.trim() },
+    client: vocClientInfo(),
+  };
+  msg.textContent = "만드는 중…";
+  try {
+    const name = await apiDownloadVoc(payload);
+    msg.textContent = `받았습니다 — ${name}`;
+    // 주소는 우리가 적은 상수라 그대로 넣는다(사용자 입력이 아니다).
+    document.getElementById("vocAfter").innerHTML = VOC_FORM_URL
+      ? `<a class="voc-form-link" href="${escAttr(VOC_FORM_URL)}" target="_blank" rel="noopener">구글 폼 열기 ↗</a> 에 이 파일을 올려 주세요.`
+      : "이 파일을 안내받은 구글 폼에 올려 주세요.";
+  } catch (e) {
+    msg.textContent = "문의 파일을 만들지 못했습니다: " + ((e && e.message) || e);
+  }
+}
+
 async function downloadMagazine() {
   if (!ST) return;
   // 11절(시각화)이 재생할 생성 기록 — 고른 시드를 한 번 더 돌리므로 생성 한 번 값의 시간이 든다.
@@ -4145,6 +4233,7 @@ window.openPicker = function (ev, sid, day) {
   if (first) first.focus({ preventScroll: true });
   picker = div;
   pickerCell = td;
+  if (!isTeamB) VOC_LAST_CELL = { sid, day };     // 문의 창의 '누구·며칠' 기본값
   pickerOpenedAt = Date.now();
   td.classList.add("picking");
   ev.stopPropagation();
@@ -4514,7 +4603,9 @@ function renderSide() {
   html += `<div class="side-sec side-exp"><p class="side-note">실험 기능 · <button class="linklike" onclick="if (confirmDownloadWithViolations()) downloadMagazine()" ${ST.pending.length ? "disabled" : ""} title="검증·일별 인원·주말 명단·사람별 집계·부담·원티드·고정 칸·야간·점수표·처리 기록을 한 파일에 — 열어서 인쇄하면 PDF">월간 근무 보고(HTML) 받기</button>${ST.pending.length ? " — 적용 안 한 편집이 있으면 받을 수 없습니다" : ""}` +
     // 생성 중에 무작위로 하나씩 나오는 애니메이션 12가지를 한 화면에 모은 파일(근무표 데이터는 없음 — 예시 기록으로 돈다).
     // 사본은 docs/시각화/모음/만들기.py가 guide/에 굽는다.
-    ` · <a class="linklike" href="guide/gen-animations.html" download="생성화면_애니메이션_12가지.html" title="생성할 때 나오는 애니메이션 12가지를 한 화면에 — 근무표 내용은 들어 있지 않습니다">생성 애니메이션(HTML) 받기</a></p></div>`;
+    ` · <a class="linklike" href="guide/gen-animations.html" download="생성화면_애니메이션_12가지.html" title="생성할 때 나오는 애니메이션 12가지를 한 화면에 — 근무표 내용은 들어 있지 않습니다">생성 애니메이션(HTML) 받기</a>` +
+    // 문의 파일 — 적용 안 한 편집이 있어도 받을 수 있다(그 편집이 곧 문의 내용일 수 있다). 위반 확인도 거치지 않는다.
+    ` · <button class="linklike" id="vocOpenBtn" onclick="openVocDialog()" title="이상한 점을 적으면 지금 입력·출력·고친 기록을 한 파일(zip)로 묶어 줍니다 — 이 기기에 저장만 됩니다">문의 파일 만들기</button></p></div>`;
   sidePane.innerHTML = html;
   renderPending();
   renderNextMonthCard();

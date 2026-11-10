@@ -844,6 +844,21 @@ table.grid th.day-head:hover, table.grid th.day-head:focus-visible { outline: 2p
   border-bottom: 1px solid var(--line);
 }
 .modal-head h2 { font-size: 1rem; margin: 0; }
+/* 문의 파일 만들기(실험 기능) — 적을 칸 둘과 받기 버튼뿐인 작은 창 */
+.modal.voc-modal { max-width: 460px; }
+.voc-body { display: flex; flex-direction: column; gap: 8px; }
+.voc-row { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.voc-type { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; cursor: pointer; }
+.voc-where label { display: inline-flex; align-items: center; gap: 6px; color: var(--sub); }
+.voc-where select { min-height: 36px; max-width: 150px; }
+.voc-lab { font-weight: 700; margin-top: 4px; }
+.voc-opt { font-weight: 400; color: var(--sub); }
+.voc-body textarea { width: 100%; box-sizing: border-box; font: inherit; padding: 8px 10px; border: 1px solid var(--line);
+  border-radius: 8px; background: var(--card); color: var(--ink); resize: vertical; }
+.voc-note { margin: 2px 0 0; }
+.voc-msg { margin: 0; min-height: 1.2em; color: var(--accent); font-weight: 700; overflow-wrap: anywhere; }
+.voc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.voc-actions button { min-height: 40px; padding: 8px 18px; }
 .modal-head button {
   border: none; background: none; font-size: 1.125rem; cursor: pointer; color: var(--sub); padding: 0 6px;
   /* ✕가 26×21이었다 — 손가락 대상 44×44. 디오라마·여정의 ◀ ▶ ✕도 이 규칙을 받는다. */
