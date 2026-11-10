@@ -3952,6 +3952,9 @@ requestAnimationFrame(frame);
 // 묶어 준다(bridge.api_download_voc). 앱은 아무것도 보내지 않는다 — 받은 파일을 사용자가 구글 폼에 직접 올린다.
 // 구글 폼 주소가 정해지면 여기에 적는다. 비어 있으면 받은 뒤 안내 글만 나오고, 있으면 '구글 폼 열기'가 붙는다.
 const VOC_FORM_URL = "";
+// 문의 게시판 — 공개 저장소(schedule02_app)의 이슈 목록. 이름을 가린 문의 글과 답이 승인 뒤에 올라간다(docs/voc/README.md).
+// 앱은 이 주소로 아무것도 보내지 않는다 — 새 탭으로 여는 링크일 뿐이다.
+const VOC_BOARD_URL = "https://github.com/socialm2/schedule02_app/issues?q=is%3Aissue";
 const VOC_TYPES = ["오류가 났어요", "배정이 이상해요", "이렇게 됐으면 해요", "기타"];
 function vocClientInfo() {
   const now = new Date(), p2 = (n) => String(n).padStart(2, "0");
@@ -3977,7 +3980,7 @@ function openVocDialog() {
       '<div class="voc-row voc-where"><label>누구 <select id="vocStaff"></select></label><label>며칠 <select id="vocDay"></select></label></div>' +
       '<label class="voc-lab" for="vocText">어떤 일이 있었나요</label><textarea id="vocText" rows="4" placeholder="예: 12일 N이 3명이어야 하는데 2명으로 나와요"></textarea>' +
       '<label class="voc-lab" for="vocWant">어떻게 되길 바라셨나요 <span class="voc-opt">(선택)</span></label><textarea id="vocWant" rows="2"></textarea>' +
-      '<p class="hint voc-note">지금 입력·근무표(이름 포함)·고친 기록이 파일에 함께 들어갑니다. 이 기기에 저장만 되고 자동으로 보내지지 않습니다.</p>' +
+      '<p class="hint voc-note">지금 입력·근무표(이름 포함)·고친 기록이 파일에 함께 들어갑니다. 이 기기에 저장만 되고 자동으로 보내지지 않습니다. 게시판에는 이름을 가린 글과 답만 올라갑니다.</p>' +
       '<p class="voc-msg" id="vocMsg" role="status"></p>' +
       '<div class="voc-actions"><button class="primary" data-voc="make">문의 파일 받기</button><span id="vocAfter"></span></div>' +
       '</div></div>';
@@ -4019,11 +4022,14 @@ async function makeVocFile() {
   msg.textContent = "만드는 중…";
   try {
     const name = await apiDownloadVoc(payload);
-    msg.textContent = `받았습니다 — ${name}`;
+    // 문의번호는 파일 이름에 들어 있다(문의_K7Q2_…) — 게시판에서 자기 글을 찾는 열쇠라 받은 자리에서 보여 준다.
+    const ticket = (/^문의_([A-Z0-9]{4})_/.exec(name) || [])[1] || "";
+    msg.textContent = ticket ? `받았습니다 — 문의번호 ${ticket}` : `받았습니다 — ${name}`;
     // 주소는 우리가 적은 상수라 그대로 넣는다(사용자 입력이 아니다).
-    document.getElementById("vocAfter").innerHTML = VOC_FORM_URL
+    document.getElementById("vocAfter").innerHTML = (VOC_FORM_URL
       ? `<a class="voc-form-link" href="${escAttr(VOC_FORM_URL)}" target="_blank" rel="noopener">구글 폼 열기 ↗</a> 에 이 파일을 올려 주세요.`
-      : "이 파일을 안내받은 구글 폼에 올려 주세요.";
+      : "이 파일을 안내받은 구글 폼에 올려 주세요.") +
+      ` 답은 <a href="${escAttr(VOC_BOARD_URL)}" target="_blank" rel="noopener">문의 게시판 ↗</a>에 이 번호로 올라옵니다.`;
   } catch (e) {
     msg.textContent = "문의 파일을 만들지 못했습니다: " + ((e && e.message) || e);
   }
@@ -4605,7 +4611,8 @@ function renderSide() {
     // 사본은 docs/시각화/모음/만들기.py가 guide/에 굽는다.
     ` · <a class="linklike" href="guide/gen-animations.html" download="생성화면_애니메이션_12가지.html" title="생성할 때 나오는 애니메이션 12가지를 한 화면에 — 근무표 내용은 들어 있지 않습니다">생성 애니메이션(HTML) 받기</a>` +
     // 문의 파일 — 적용 안 한 편집이 있어도 받을 수 있다(그 편집이 곧 문의 내용일 수 있다). 위반 확인도 거치지 않는다.
-    ` · <button class="linklike" id="vocOpenBtn" onclick="openVocDialog()" title="이상한 점을 적으면 지금 입력·출력·고친 기록을 한 파일(zip)로 묶어 줍니다 — 이 기기에 저장만 됩니다">문의 파일 만들기</button></p></div>`;
+    ` · <button class="linklike" id="vocOpenBtn" onclick="openVocDialog()" title="이상한 점을 적으면 지금 입력·출력·고친 기록을 한 파일(zip)로 묶어 줍니다 — 이 기기에 저장만 됩니다">문의 파일 만들기</button>` +
+    ` · <a class="linklike" id="vocBoardLink" href="${escAttr(VOC_BOARD_URL)}" target="_blank" rel="noopener" title="이름을 가린 문의와 답이 올라오는 게시판 — 새 탭으로 열립니다">문의 게시판</a></p></div>`;
   sidePane.innerHTML = html;
   renderPending();
   renderNextMonthCard();
