@@ -1128,8 +1128,7 @@ async function loadSampleRequests() {
     wantedYM = { year: data.year, month: data.month };
     wantedSource = "sample";
     rebaseWantedToScreen();
-    const st = $("#wantedStatus");
-    if (st) st.textContent = `예시 신청 ${formRequests.length}건(샘플) — 입력①을 올리면 그 파일의 신청으로 바뀝니다`;
+    // 입력① 자리에 안내 문구는 띄우지 않는다(2026-11-10 사용자: "예시 신청 41건 샘플 문구 지워") — 신청은 그대로 실린다.
     wantedActiveTag = "샘플";
     renderSourceBadges();
     updateClearButtons();
