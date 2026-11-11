@@ -4011,9 +4011,10 @@ requestAnimationFrame(frame);
 // ================================================================ 문의 남기기
 // 파트장이 "이거 이상해요"를 보낼 때: 이름과 내용만 적으면 지금 입력·출력·한 일(칸 수정·재생성 순서)을 앱이 zip 하나로
 // 묶어 준다(bridge.api_download_voc). 앱은 아무것도 보내지 않는다 — 받은 파일을 본인이 메일에 붙여 보내고,
-// 읽고 해결하는 것은 사람이 한다. 여는 길은 화면 맨 아래 'SMC Fair Shift'의 **'SMC' 글자**다 — 입출력 화면에 두었던
-// 칸은 당분간 뺐다(사용자 결정 2026-11-11, 아는 사람만 쓰게). 맨 아래 글자는 입력·출력 어느 화면에서나 보이므로
-// 생성 전에도(입력이 반려돼 표를 못 만든 경우) 받을 수 있다.
+// 읽고 해결하는 것은 사람이 한다. 여는 길은 둘이다: 화면 맨 아래 'SMC Fair Shift'의 **'SMC' 글자**, 그리고 출력 패널
+// 맨 아래 **실험 기능 줄의 '문의 남기기'**. 입출력 화면에 크게 두었던 칸은 뺐다(사용자 결정 2026-11-11). 맨 아래 글자는
+// 입력·출력 어느 화면에서나 보이므로 생성 전에도(입력이 반려돼 표를 못 만든 경우) 받을 수 있다 — 실험 기능 줄은 표를
+// 만든 뒤에만 있어서 그 경우에는 못 쓴다.
 function vocClientInfo() {
   const now = new Date(), p2 = (n) => String(n).padStart(2, "0");
   const txt = (sel) => { const el = document.querySelector(sel); return el ? el.textContent.trim() : ""; };
@@ -4096,6 +4097,7 @@ let VOC_VIEW = null;      // 다시 보는 중인 문의 {name, comment, time, t
   if (voc) voc.addEventListener("click", openVocDialog);         // 'SMC' → 문의 남기기
   if (admin) admin.addEventListener("click", openVocGate);       // 'Shift' → 관리자 모드(비밀번호)
 })();
+let vocGateUnlocked = false;      // 이번에 연 비밀번호 창에서 비밀번호가 맞았는가
 function openVocGate() {
   let bd = document.getElementById("vocGateBackdrop");
   if (!bd) {
@@ -4106,32 +4108,48 @@ function openVocGate() {
       '<div class="modal-body voc-body">' +
       '<label class="voc-lab" for="vocGatePw">비밀번호</label><input type="password" id="vocGatePw" autocomplete="off">' +
       '<p class="voc-msg" id="vocGateMsg" role="status"></p>' +
-      '<div class="voc-actions"><button class="primary" data-vocgate="ok">문의 파일 열기</button></div>' +
+      '<div class="voc-actions"><button class="primary" data-vocgate="ok" id="vocGateOk">문의 파일 열기</button></div>' +
       '</div></div>';
     document.body.appendChild(bd);
-    const close = () => bd.classList.remove("show");
-    // 파일 고르기는 사용자의 누름(클릭·Enter) 안에서 바로 열어야 브라우저가 막지 않는다 — 그래서 확인과 열기를 한 동작으로 묶는다.
-    const submit = () => {
+    // 파일 고르기는 사용자의 누름(클릭·Enter)에 이어서 열어야 브라우저가 막지 않는다 — 그래서 확인과 열기를 한 동작으로 묶는다.
+    // 다만 Enter를 누르는 그 순간(keydown 안)에 바로 열면 크롬이 열 번에 한두 번 무시한다(실측 20번 중 3번). 한 박자
+    // 늦추면 거의 다 열리지만(36번 중 35번) 0은 아니라서, 비밀번호가 맞은 뒤에도 창을 닫지 않고 '문의 파일 고르기'
+    // 버튼을 남긴다 — 고르기 창이 안 떴을 때 누를 자리가 있어야 한다(버튼을 직접 누르면 늘 열린다). 파일을 고르면 닫힌다.
+    const submit = (viaKey) => {
       const pw = document.getElementById("vocGatePw");
-      if (pw.value !== VOC_ADMIN_PW) {
-        document.getElementById("vocGateMsg").textContent = "비밀번호가 다릅니다.";
-        pw.value = ""; pw.focus();
-        return;
+      if (!vocGateUnlocked) {
+        if (pw.value !== VOC_ADMIN_PW) {
+          document.getElementById("vocGateMsg").textContent = "비밀번호가 다릅니다.";
+          pw.value = ""; pw.focus();
+          return;
+        }
+        vocGateUnlocked = true;
+        pw.disabled = true;
+        document.getElementById("vocGateMsg").textContent = "확인됐습니다 — 받은 문의 파일(zip)을 골라 주세요.";
+        document.getElementById("vocGateOk").textContent = "문의 파일 고르기";
+        document.getElementById("vocGateOk").focus();
       }
-      close();
-      pickVocFile();
+      if (viaKey) setTimeout(pickVocFile, 0); else pickVocFile();
     };
-    bd.addEventListener("click", (e) => { if (e.target === bd) close(); });
+    bd.addEventListener("click", (e) => { if (e.target === bd) closeVocGate(); });
     bd.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") close();
-      if (e.key === "Enter" && e.target.id === "vocGatePw") { e.preventDefault(); submit(); }
+      if (e.key === "Escape") closeVocGate();
+      if (e.key === "Enter" && e.target.id === "vocGatePw") { e.preventDefault(); submit(true); }
     });
-    delegateClick(bd, "button[data-vocgate]", (b) => { if (b.dataset.vocgate === "close") close(); else submit(); });
+    delegateClick(bd, "button[data-vocgate]", (b) => { if (b.dataset.vocgate === "close") closeVocGate(); else submit(false); });
   }
-  document.getElementById("vocGatePw").value = "";
+  vocGateUnlocked = false;
+  const pw = document.getElementById("vocGatePw");
+  pw.disabled = false; pw.value = "";
   document.getElementById("vocGateMsg").textContent = "";
+  document.getElementById("vocGateOk").textContent = "문의 파일 열기";
   bd.classList.add("show");
-  document.getElementById("vocGatePw").focus();
+  pw.focus();
+}
+function closeVocGate() {
+  const bd = document.getElementById("vocGateBackdrop");
+  if (bd) bd.classList.remove("show");
+  vocGateUnlocked = false;
 }
 function pickVocFile() {
   let inp = document.getElementById("vocLoadInput");
@@ -4139,7 +4157,7 @@ function pickVocFile() {
     inp = document.createElement("input");
     inp.type = "file"; inp.id = "vocLoadInput"; inp.accept = ".zip"; inp.className = "file-input-hidden"; inp.tabIndex = -1;
     inp.setAttribute("aria-hidden", "true");
-    inp.onchange = async () => { const f = inp.files[0]; inp.value = ""; if (f) await loadVocFile(f); };
+    inp.onchange = async () => { const f = inp.files[0]; inp.value = ""; if (f) { closeVocGate(); await loadVocFile(f); } };
     document.body.appendChild(inp);
   }
   inp.click();
@@ -4837,7 +4855,11 @@ function renderSide() {
   html += `<div class="side-sec side-exp"><p class="side-note">실험 기능 · <button class="linklike" onclick="if (confirmDownloadWithViolations()) downloadMagazine()" ${ST.pending.length ? "disabled" : ""} title="검증·일별 인원·주말 명단·사람별 집계·부담·원티드·고정 칸·야간·점수표·처리 기록을 한 파일에 — 열어서 인쇄하면 PDF">월간 근무 보고(HTML) 받기</button>${ST.pending.length ? " — 적용 안 한 편집이 있으면 받을 수 없습니다" : ""}` +
     // 생성 중에 무작위로 하나씩 나오는 애니메이션 12가지를 한 화면에 모은 파일(근무표 데이터는 없음 — 예시 기록으로 돈다).
     // 사본은 docs/시각화/모음/만들기.py가 guide/에 굽는다.
-    ` · <a class="linklike" href="guide/gen-animations.html" download="생성화면_애니메이션_12가지.html" title="생성할 때 나오는 애니메이션 12가지를 한 화면에 — 근무표 내용은 들어 있지 않습니다">생성 애니메이션(HTML) 받기</a></p></div>`;
+    ` · <a class="linklike" href="guide/gen-animations.html" download="생성화면_애니메이션_12가지.html" title="생성할 때 나오는 애니메이션 12가지를 한 화면에 — 근무표 내용은 들어 있지 않습니다">생성 애니메이션(HTML) 받기</a>` +
+    // 문의 남기기·관리자 모드 — 화면 맨 아래 'SMC'·'Shift' 글자와 같은 창을 연다(사용자 요청 2026-11-11: 숨은 길을 실험 기능에도).
+    // 문의는 적용 안 한 편집이 있어도 받을 수 있다(그 편집까지 담긴다). 관리자 모드는 여기서도 비밀번호를 묻는다.
+    ` · <button class="linklike" id="expVocBtn" onclick="openVocDialog()" title="이름과 내용을 적으면 지금 입력·출력·고친 기록이 파일 하나(zip)로 받아집니다 — 이 기기에 저장만 됩니다">문의 남기기</button>` +
+    ` · <button class="linklike" id="expAdminBtn" onclick="openVocGate()" title="받은 문의 파일(zip)을 올려 그 사람이 보던 화면을 다시 봅니다 — 비밀번호가 필요합니다">관리자 모드</button></p></div>`;
   sidePane.innerHTML = html;
   renderPending();
   renderNextMonthCard();
