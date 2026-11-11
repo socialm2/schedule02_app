@@ -928,7 +928,18 @@ details.side-sec[open] summary h3::before { content: "▾ "; }
 .attempt-table tr.current td { background: var(--ok-soft, #e6f4ea); }
 .side-note { font-size: .6875rem; color: var(--sub); margin: 6px 0 0; }
 /* 실험 기능 줄 — 패널 맨 아래, 글자 링크처럼 작게 */
-.side-exp { border-top: 1px dashed var(--line); margin-top: 10px; padding-top: 6px; }
+/* 실험 기능 — 다른 칸과 같은 제목 아래에 기능을 한 줄씩. 한 줄 전체가 누르는 자리(높이 44px)이고 줄 사이는 가는 선. */
+.exp-list { display: flex; flex-direction: column; }
+.exp-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; box-sizing: border-box;
+  min-height: 44px; margin: 0; padding: 8px 4px; border: 0; border-top: 1px solid var(--line); border-radius: 0;
+  background: none; color: var(--ink); font: inherit; font-size: .8125rem; text-align: left; text-decoration: none; cursor: pointer; }
+.exp-item:first-child { border-top: 0; }
+.exp-item:hover:not(:disabled), .exp-item:focus-visible { background: var(--code-bg); color: var(--ink); }
+.exp-item:disabled { color: var(--sub); cursor: default; }
+.exp-name { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.exp-name small { font-size: .6875rem; color: var(--sub); font-weight: 400; }
+.exp-go { flex: none; color: var(--accent); font-size: .9375rem; line-height: 1; }
+.exp-item:disabled .exp-go { color: var(--sub); }
 button.linklike { background: none; border: 0; padding: 8px 0; min-height: 36px; font-size: .6875rem; color: var(--accent); text-decoration: underline; cursor: pointer; }  /* 136×15였다 */
 button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: default; }
 .tap-hint { display: inline-block; font-size: .6875rem; font-weight: 600; color: var(--accent); margin-left: 8px; }
@@ -1344,4 +1355,4 @@ details.expert-sec > .side-sec { margin-top: 12px; }
 #sidePane .fair-bar { height: 6px; }
 #sidePane .expert-sec > .side-sec { background: var(--code-bg); border-color: transparent; }
 #sidePane .side-sec h3:last-child { margin-bottom: 0; }   /* 제목만 있는 카드(일별 근무인력 전일 충족)는 아래가 비지 않게 */
-#sidePane .side-exp .side-note { margin: 0; }
+

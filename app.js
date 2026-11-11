@@ -568,7 +568,7 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 동안 요약 숫자는 <b>마지막으로 적용한 표 기준</b>이고, '재생성 적용' 뒤 다시 계산됩니다.</li>
 <li><b>날짜 머리칸을 누르면</b> 그날 병동(누가 어디서 일하는지)이 뜨고, 거기서 이름을 누르면 그 사람의 한 달 여정이 뜹니다.
 패널 맨 아래 <b>월간 근무 보고(HTML) 받기</b>는 첫 장 요약(확인할 항목·부담 분포)과 검증·일별 인원·원티드·점수표·시각화를
-한 파일로 묶어 줍니다 — 열어서 인쇄하면 PDF. 그 옆 <b>생성 애니메이션(HTML) 받기</b>는 생성할 때 나오는 애니메이션
+한 파일로 묶어 줍니다 — 열어서 인쇄하면 PDF. 그 아래 <b>생성 애니메이션(HTML) 받기</b>는 생성할 때 나오는 애니메이션
 12가지를 한 화면에 모은 파일입니다(근무표 내용은 들어 있지 않습니다).</li>
 <li><b>변경 안내 초안</b> — 근무표를 공지한 뒤 칸이 바뀌면, 오른쪽 패널에서 공지한 판(공지한 출력①을 올리거나 지금
 화면 표)을 기준본으로 정하세요. 그 뒤 바뀐 사람만 모아 "12일(목) E→D" 꼴의 개인별 안내 문구를 만들어 줍니다.
@@ -4851,15 +4851,28 @@ function renderSide() {
   }
   html += `</details>`;   // 자세히 보기 끝
 
-  // 실험 기능 — 눈에 안 띄는 맨 아래. 월간 근무 보고(HTML 한 장)를 받는다. 다운로드 게이트는 출력①②와 같다.
-  html += `<div class="side-sec side-exp"><p class="side-note">실험 기능 · <button class="linklike" onclick="if (confirmDownloadWithViolations()) downloadMagazine()" ${ST.pending.length ? "disabled" : ""} title="검증·일별 인원·주말 명단·사람별 집계·부담·원티드·고정 칸·야간·점수표·처리 기록을 한 파일에 — 열어서 인쇄하면 PDF">월간 근무 보고(HTML) 받기</button>${ST.pending.length ? " — 적용 안 한 편집이 있으면 받을 수 없습니다" : ""}` +
+  // 실험 기능 — 패널 맨 아래 칸. 제목 아래에 기능을 한 줄씩 둔다(사용자 요청 2026-11-11: 작은 글씨 한 문단에 '·'로 이어
+  // 붙였더니 폰에서 줄이 엉뚱한 데서 꺾여 무엇이 버튼인지 알 수 없었다). 한 줄 전체가 누르는 자리다.
+  const pendingNow = ST.pending.length > 0;
+  html += `<div class="side-sec side-exp"><h3>실험 기능</h3><div class="exp-list">` +
+    // 월간 근무 보고(HTML 한 장) — 다운로드 게이트는 출력①②와 같다(적용 안 한 편집이 있으면 못 받고, 필수 위반이 있으면 한 번 묻는다).
+    `<button class="exp-item" id="expMagBtn" onclick="if (confirmDownloadWithViolations()) downloadMagazine()" ${pendingNow ? "disabled" : ""} ` +
+      `title="검증·일별 인원·주말 명단·사람별 집계·부담·원티드·고정 칸·야간·점수표·처리 기록을 한 파일에 — 열어서 인쇄하면 PDF">` +
+      `<span class="exp-name">월간 근무 보고(HTML) 받기${pendingNow ? `<small>적용 안 한 편집이 있으면 받을 수 없습니다</small>` : ""}</span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
     // 생성 중에 무작위로 하나씩 나오는 애니메이션 12가지를 한 화면에 모은 파일(근무표 데이터는 없음 — 예시 기록으로 돈다).
     // 사본은 docs/시각화/모음/만들기.py가 guide/에 굽는다.
-    ` · <a class="linklike" href="guide/gen-animations.html" download="생성화면_애니메이션_12가지.html" title="생성할 때 나오는 애니메이션 12가지를 한 화면에 — 근무표 내용은 들어 있지 않습니다">생성 애니메이션(HTML) 받기</a>` +
-    // 문의 남기기·관리자 모드 — 화면 맨 아래 'SMC'·'Shift' 글자와 같은 창을 연다(사용자 요청 2026-11-11: 숨은 길을 실험 기능에도).
-    // 문의는 적용 안 한 편집이 있어도 받을 수 있다(그 편집까지 담긴다). 관리자 모드는 여기서도 비밀번호를 묻는다.
-    ` · <button class="linklike" id="expVocBtn" onclick="openVocDialog()" title="이름과 내용을 적으면 지금 입력·출력·고친 기록이 파일 하나(zip)로 받아집니다 — 이 기기에 저장만 됩니다">문의 남기기</button>` +
-    ` · <button class="linklike" id="expAdminBtn" onclick="openVocGate()" title="받은 문의 파일(zip)을 올려 그 사람이 보던 화면을 다시 봅니다 — 비밀번호가 필요합니다">관리자 모드</button></p></div>`;
+    `<a class="exp-item" href="guide/gen-animations.html" download="생성화면_애니메이션_12가지.html" ` +
+      `title="생성할 때 나오는 애니메이션 12가지를 한 화면에 — 근무표 내용은 들어 있지 않습니다">` +
+      `<span class="exp-name">생성 애니메이션(HTML) 받기</span><span class="exp-go" aria-hidden="true">⬇</span></a>` +
+    // 문의 남기기·관리자 모드 — 화면 맨 아래 'SMC'·'Shift' 글자와 같은 창을 연다. 문의는 적용 안 한 편집이 있어도 받을 수
+    // 있다(그 편집까지 담긴다). 관리자 모드는 여기서도 비밀번호를 묻는다.
+    `<button class="exp-item" id="expVocBtn" onclick="openVocDialog()" ` +
+      `title="이름과 내용을 적으면 지금 입력·출력·고친 기록이 파일 하나(zip)로 받아집니다 — 이 기기에 저장만 됩니다">` +
+      `<span class="exp-name">문의 남기기</span><span class="exp-go" aria-hidden="true">›</span></button>` +
+    `<button class="exp-item" id="expAdminBtn" onclick="openVocGate()" ` +
+      `title="받은 문의 파일(zip)을 올려 그 사람이 보던 화면을 다시 봅니다 — 비밀번호가 필요합니다">` +
+      `<span class="exp-name">관리자 모드</span><span class="exp-go" aria-hidden="true">›</span></button>` +
+    `</div></div>`;
   sidePane.innerHTML = html;
   renderPending();
   renderNextMonthCard();
