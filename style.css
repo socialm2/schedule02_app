@@ -844,7 +844,9 @@ table.grid th.day-head:hover, table.grid th.day-head:focus-visible { outline: 2p
   border-bottom: 1px solid var(--line);
 }
 .modal-head h2 { font-size: 1rem; margin: 0; }
-/* 문의 남기기 — 이름·내용 두 칸과 받기 버튼뿐인 작은 창, 그리고 입력 화면 아래의 칸 */
+/* 맨 아래 글자의 숨은 길('SMC'·'Shift') — 겉모습은 그대로 두고 손가락이 닿는 자리만 넓힌다(11px 글자는 폰에서 못 누른다) */
+.footer-note span { display: inline-block; padding: 9px 6px; margin: -9px -6px; }
+/* 문의 남기기 — 이름·내용 두 칸과 받기 버튼뿐인 작은 창(맨 아래 'SMC' 글자로 연다) */
 .modal.voc-modal { max-width: 460px; }
 .voc-body { display: flex; flex-direction: column; gap: 6px; }
 .voc-lab { font-weight: 700; margin-top: 4px; }
@@ -855,11 +857,22 @@ table.grid th.day-head:hover, table.grid th.day-head:focus-visible { outline: 2p
 .voc-note { margin: 2px 0 0; }
 .voc-msg { margin: 0; min-height: 1.2em; color: var(--accent); font-weight: 700; overflow-wrap: anywhere; }
 .voc-actions button { min-height: 40px; padding: 8px 18px; }
-.voc-card { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 12px 14px;
-  border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
-.voc-card-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: .875rem; }
-.voc-card button { min-height: 40px; white-space: nowrap; }
-@media (max-width: 560px) { .voc-card { flex-direction: column; align-items: stretch; } }
+/* 관리자 모드(문의 파일 다시 보기) — 창 둘레 초록 테두리, 표 위의 띠, 문의 내용 창.
+   테두리는 화면 위에 덧씌운 틀이라 배치를 밀지 않고 누름도 막지 않는다. */
+body.voc-admin::after { content: ""; position: fixed; inset: 0; border: 5px solid #1E9E5A; pointer-events: none; z-index: 9000; }
+.voc-view-bar { margin: 0 0 10px; padding: 10px 12px; border-radius: 8px; border: 2px solid #1E9E5A;
+  background: var(--ok-soft); color: var(--ink); font-size: .8125rem; line-height: 1.55; }
+.voc-view-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.voc-view-tag { background: #1E9E5A; color: #fff; font-weight: 700; border-radius: 999px; padding: 2px 10px; font-size: .75rem; }
+.voc-view-btns { margin-left: auto; display: inline-flex; gap: 6px; }
+.voc-view-comment { margin: 6px 0 0; font-size: .875rem; font-weight: 600; white-space: pre-wrap; overflow-wrap: anywhere; }
+.voc-view-note { margin: 4px 0 0; color: var(--sub); }
+.modal.voc-view-modal { max-width: 720px; }
+.modal.voc-gate-modal { max-width: 340px; }
+.voc-body input[type="password"] { width: 100%; box-sizing: border-box; font: inherit; padding: 8px 10px; min-height: 40px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); }
+.voc-view-text { margin: 8px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--code-bg); color: var(--ink);
+  font: inherit; font-size: .78125rem; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
 .modal-head button {
   border: none; background: none; font-size: 1.125rem; cursor: pointer; color: var(--sub); padding: 0 6px;
   /* ✕가 26×21이었다 — 손가락 대상 44×44. 디오라마·여정의 ◀ ▶ ✕도 이 규칙을 받는다. */
@@ -930,6 +943,7 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
    걸쳐 나오게 한다(날짜 줄은 쪽마다 반복, 행은 쪽 사이에서 잘리지 않게). 48열이 A4 가로
    277mm에 들어가려면 칸 ≈ 5.7mm — 7.5pt면 들어간다. */
 @media print {
+  body.voc-admin::after, .voc-view-bar { display: none !important; }   /* 관리자 모드 표시는 종이에 찍지 않는다 */
   @page { size: A4 landscape; margin: 8mm; }
   html, body, #app, #main, #gridPane { height: auto !important; min-height: 0 !important; overflow: visible !important; }
   html, body { background: #fff !important; color: #000; }   /* html의 --paper가 마지막 쪽 빈 곳을 회색으로 칠했다 */

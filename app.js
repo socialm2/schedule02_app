@@ -1359,12 +1359,52 @@ function recomputeStaff() {
 
 // 입력①(이번 달 명단)와 입력②(지난달 명단)을 대조해 전입·전출을 화면에 명시한다.
 // 둘 다 올라와 있을 때만 의미가 있다(한쪽만 있으면 비교 대상이 없음).
+// 이름이 비슷한 전입·전출 짝 — 같은 사람의 표기만 다른 것(띄어쓰기·괄호 구분)이거나 한 글자 오타일 수 있다.
+// 그대로 만들면 그 사람이 '전출 1명 + 전입 1명'이 되어 잔휴·연속근무·야간 이력이 끊긴 표가 오류 없이 나온다.
+function similarNamePairs(incoming, outgoing) {
+  const norm = (n) => String(n).normalize("NFC").replace(/[(（][^)）]*[)）]/g, "").replace(/\s+/g, "").toLowerCase();
+  const oneOff = (a, b) => {
+    if (Math.abs(a.length - b.length) > 1 || Math.min(a.length, b.length) < 3) return false;
+    let i = 0, j = 0, diff = 0;
+    while (i < a.length && j < b.length) {
+      if (a[i] === b[j]) { i++; j++; continue; }
+      if (++diff > 1) return false;
+      if (a.length > b.length) i++; else if (a.length < b.length) j++; else { i++; j++; }
+    }
+    return diff + (a.length - i) + (b.length - j) <= 1;
+  };
+  const pairs = [];
+  for (const a of incoming) for (const b of outgoing) {
+    const na = norm(a), nb = norm(b);
+    if (na && (na === nb || oneOff(na, nb))) pairs.push([a, b]);
+  }
+  return pairs;
+}
+let rosterWarnKey = "";      // 같은 경고를 다시 그릴 때마다 토스트로 또 띄우지 않게
+function rosterWarnToast(key, msg) {
+  if (key === rosterWarnKey) return;
+  rosterWarnKey = key;
+  if (key) showToast(msg, true);
+}
 function renderRosterDiff() {
   const box = $("#rosterDiff");
   if (!box) return;
+  // 입력②만 올린 경우 — 이번 달 명단을 줄 입력①이 없다. 말없이 넘어가면 지난달 명단(또는 예시 명단)으로 표가 나온다.
+  if (!staffFromWanted && prevRosterNames.length) {
+    const how = staffOfAnnual.length
+      ? `입력②의 명단 ${staffOfAnnual.length}명으로 만듭니다`
+      : "올린 입력②로는 명단을 정할 수 없어 예시 명단으로 만들어집니다";
+    box.style.display = "";
+    box.className = "roster-diff";
+    box.innerHTML = `<div><b>⚠ 입력①(원티드표)이 없습니다</b> — ${how}.`
+      + `<span class="hint"> 이번 달 명단과 원티드 신청을 넣으려면 입력①을 올려 주세요.</span></div>`;
+    rosterWarnToast("only2:" + staffOfAnnual.length, `입력①(원티드표)이 없습니다 — ${how}`);
+    return;
+  }
   if (!staffFromWanted || !prevRosterNames.length) {
     box.style.display = "none";
     box.innerHTML = "";
+    rosterWarnToast("", "");
     return;
   }
   const prev = new Set(prevRosterNames);
@@ -1377,6 +1417,7 @@ function renderRosterDiff() {
     box.style.display = "";
     box.className = "roster-diff same";
     box.innerHTML = `✓ 인원 변동 없음 — 입력①·② 명단 ${cur.size}명이 모두 일치합니다.`;
+    rosterWarnToast("", "");
     return;
   }
   // 겹치는 이름이 하나도 없으면 전입·전출 수십 명을 나열하는 대신 그 진단 하나만 말한다 —
@@ -1384,12 +1425,23 @@ function renderRosterDiff() {
   if (prev.size && cur.size && !formStaff.some(s => prev.has(s.id))) {
     box.style.display = "";
     box.className = "roster-diff";
-    box.innerHTML = `<div><b>입력①과 입력②의 명단이 하나도 겹치지 않습니다</b>`
+    box.innerHTML = `<div><b>⚠ 입력①과 입력②의 명단이 하나도 겹치지 않습니다</b>`
       + ` (입력① ${cur.size}명 · 입력② ${prev.size}명)`
       + `<span class="hint"> — 다른 병동의 연간근무표가 아닌지 확인해주세요. 같은 병동이 맞다면 이름 표기(띄어쓰기·(A) 같은 구분)를 두 파일에서 같게 맞춰주세요.</span></div>`;
+    rosterWarnToast("none:" + cur.size + ":" + prev.size, "입력①과 입력②의 명단이 하나도 겹치지 않습니다 — 다른 병동의 파일이 아닌지 확인해 주세요");
     return;
   }
   let html = "";
+  const similar = similarNamePairs(incoming, outgoing);
+  if (incoming.length || outgoing.length) {
+    html += `<div><b>⚠ 입력①과 입력②의 명단이 다릅니다 — 전입·전출로 처리합니다.</b>`
+         +  `<span class="hint"> 명단의 기준은 입력①입니다.</span></div>`;
+  }
+  if (similar.length) {
+    html += `<div><b>⚠ 이름이 비슷합니다 — 같은 사람이 아닌지 확인해 주세요:</b> `
+         +  similar.map(([a, b]) => `${esc(a)}(입력①) ↔ ${esc(b)}(입력②)`).join(", ")
+         +  `<span class="hint"> — 같은 사람이면 두 파일의 이름을 똑같이 맞춰 다시 올려 주세요. 그대로 만들면 이 사람의 잔휴·연속근무·야간 이력이 끊깁니다.</span></div>`;
+  }
   if (incoming.length) {
     html += `<div><b>전입 ${incoming.length}명</b> (입력①에만 있음): ${incoming.map(esc).join(", ")}`
          +  `<span class="hint"> — 이월정보(잔휴·연속근무)가 없습니다. 전 병동 근무기록이 있으면 입력②에 행을 추가하고 비고에 '전입'이라 적어 붙여넣으세요. 이름 오타라면 입력①·②를 같게 맞춰주세요.</span></div>`;
@@ -1405,6 +1457,11 @@ function renderRosterDiff() {
   box.style.display = "";
   box.className = "roster-diff";
   box.innerHTML = html;
+  if (incoming.length || outgoing.length) {
+    rosterWarnToast("diff:" + incoming.join(",") + "|" + outgoing.join(","),
+      `입력①과 입력②의 명단이 다릅니다 — 전입 ${incoming.length}명 · 전출 ${outgoing.length}명으로 처리합니다`
+      + (similar.length ? `\n이름이 비슷한 사람이 있습니다(${similar.map(([a, b]) => `${a} ↔ ${b}`).join(", ")}) — 같은 사람이 아닌지 확인해 주세요` : ""));
+  } else rosterWarnToast("", "");
 }
 
 // 업로드 결과 메시지는 세 단계다 — 섞어 보여주면 파트장은 "지금 뭘 해야 하지"에 답을
@@ -1995,6 +2052,7 @@ async function runGenerate(btn, statusEl) {
     }
     ST = await api("/api/generate", genOpts());
     SWAP = null;
+    endVocView();          // 내 입력으로 새로 만든 표다 — 관리자 모드 표시가 남아 있으면 거짓이다
     render();
     showToast(lastConfigWarning || "근무표 생성 완료 — 표 위의 상태 띠에서 필수 위반·다운로드로 바로 갈 수 있습니다", !!lastConfigWarning);
     refreshFragile();
@@ -2330,6 +2388,8 @@ function forgetSessionFile(kind) {
 }
 function saveSessionResult() {
   if (!ST) return;
+  // 문의 파일을 다시 보는 중이면 남기지 않는다 — 복원은 '이 탭에 올린 입력①②로 다시 만들기'인데, 그 표는 남의 입력에서 나왔다.
+  if (VOC_VIEW) { sessionDel(SESSION_RESULT_KEY); return; }
   const val = (sid, d) => (ST.grid[sid] || [])[d];
   const keyOf = k => { const i = k.lastIndexOf(":"); return [k.slice(0, i), Number(k.slice(i + 1))]; };
   const ok = sessionSet(SESSION_RESULT_KEY, {
@@ -2987,6 +3047,7 @@ function renderGrid() {
     updateInfoLabel(false);
     setResultView(false);
     nextMonthCardOn = false;
+    endVocView();
     forgetSessionResult();   // 스스로 돌아갔으면 복원할 것도 없다(입력 파일은 그대로 남긴다)
   };
 }
@@ -3950,8 +4011,9 @@ requestAnimationFrame(frame);
 // ================================================================ 문의 남기기
 // 파트장이 "이거 이상해요"를 보낼 때: 이름과 내용만 적으면 지금 입력·출력·한 일(칸 수정·재생성 순서)을 앱이 zip 하나로
 // 묶어 준다(bridge.api_download_voc). 앱은 아무것도 보내지 않는다 — 받은 파일을 본인이 메일에 붙여 보내고,
-// 읽고 해결하는 것은 사람이 한다. 입력 화면(index.html #vocCardIn)과 출력 패널(#sideVoc) 두 곳에서 연다:
-// 입력이 반려돼 표를 못 만든 경우도 문의감이라 생성 전에도 받을 수 있어야 한다.
+// 읽고 해결하는 것은 사람이 한다. 여는 길은 화면 맨 아래 'SMC Fair Shift'의 **'SMC' 글자**다 — 입출력 화면에 두었던
+// 칸은 당분간 뺐다(사용자 결정 2026-11-11, 아는 사람만 쓰게). 맨 아래 글자는 입력·출력 어느 화면에서나 보이므로
+// 생성 전에도(입력이 반려돼 표를 못 만든 경우) 받을 수 있다.
 function vocClientInfo() {
   const now = new Date(), p2 = (n) => String(n).padStart(2, "0");
   const txt = (sel) => { const el = document.querySelector(sel); return el ? el.textContent.trim() : ""; };
@@ -3964,7 +4026,7 @@ function vocClientInfo() {
     gen_mode: window.__genMode || "", online: navigator.onLine,
     toasts: VOC_TOASTS.slice(), js_errors: VOC_JS_ERRORS.slice(),
     // 화면에 떠 있는 반려·오류 안내 글(업로드 칸 아래·생성 버튼 아래) — 토스트는 사라져도 이건 남아 있다
-    notices: [...document.querySelectorAll(".upload-error, .gen-error")].map(el => el.textContent.trim()).filter(Boolean).slice(0, 12),
+    notices: [...document.querySelectorAll(".upload-error, .gen-error, .roster-diff:not(.same)")].map(el => el.textContent.trim()).filter(Boolean).slice(0, 12),
     form: vocFormSnapshot(),
   };
 }
@@ -4017,6 +4079,147 @@ async function makeVocFile() {
   } catch (e) {
     msg.textContent = "문의 파일을 만들지 못했습니다: " + ((e && e.message) || e);
   }
+}
+
+// ================================================================ 관리자 모드 — 문의 파일 다시 보기(숨은 길)
+// 받은 문의 zip을 올리면 그 사람이 보던 화면을 다시 만든다(bridge.api_voc_load — 기록된 요청을 같은 순서로 다시 밟는다).
+// 문의를 읽는 사람만 쓰는 길이라 버튼을 두지 않았다: 화면 맨 아래 'SMC Fair Shift'의 **'Shift' 글자**를 누르면 비밀번호를 묻고,
+// 맞으면 바로 파일 고르기가 뜬다. 올라가면 '관리자 모드'다 — 창 둘레에 초록 테두리가 서고, 표 위 띠에 보낸 사람과
+// 적은 내용이 보인다. 이 기기의 입력 화면(설정·올린 파일)은 건드리지 않는다 — 남의 병동 설정이 내 브라우저에 저장되면 안 된다.
+// 비밀번호는 실수로 눌린 것을 거르는 정도다(소스에 그대로 있다) — 문의 파일 자체가 없으면 볼 것이 없다.
+const VOC_ADMIN_PW = "my";
+let VOC_VIEW = null;      // 다시 보는 중인 문의 {name, comment, time, text, replay, hadTable}
+(function initVocEgg() {
+  const voc = document.getElementById("eggVoc"), admin = document.getElementById("eggAdmin");
+  if (voc) voc.addEventListener("click", openVocDialog);         // 'SMC' → 문의 남기기
+  if (admin) admin.addEventListener("click", openVocGate);       // 'Shift' → 관리자 모드(비밀번호)
+})();
+function openVocGate() {
+  let bd = document.getElementById("vocGateBackdrop");
+  if (!bd) {
+    bd = document.createElement("div");
+    bd.className = "modal-backdrop"; bd.id = "vocGateBackdrop";
+    bd.innerHTML = '<div class="modal voc-gate-modal" role="dialog" aria-modal="true" aria-labelledby="vocGateTitle">' +
+      '<div class="modal-head"><h2 id="vocGateTitle">관리자 모드</h2><button data-vocgate="close" aria-label="닫기">✕</button></div>' +
+      '<div class="modal-body voc-body">' +
+      '<label class="voc-lab" for="vocGatePw">비밀번호</label><input type="password" id="vocGatePw" autocomplete="off">' +
+      '<p class="voc-msg" id="vocGateMsg" role="status"></p>' +
+      '<div class="voc-actions"><button class="primary" data-vocgate="ok">문의 파일 열기</button></div>' +
+      '</div></div>';
+    document.body.appendChild(bd);
+    const close = () => bd.classList.remove("show");
+    // 파일 고르기는 사용자의 누름(클릭·Enter) 안에서 바로 열어야 브라우저가 막지 않는다 — 그래서 확인과 열기를 한 동작으로 묶는다.
+    const submit = () => {
+      const pw = document.getElementById("vocGatePw");
+      if (pw.value !== VOC_ADMIN_PW) {
+        document.getElementById("vocGateMsg").textContent = "비밀번호가 다릅니다.";
+        pw.value = ""; pw.focus();
+        return;
+      }
+      close();
+      pickVocFile();
+    };
+    bd.addEventListener("click", (e) => { if (e.target === bd) close(); });
+    bd.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") close();
+      if (e.key === "Enter" && e.target.id === "vocGatePw") { e.preventDefault(); submit(); }
+    });
+    delegateClick(bd, "button[data-vocgate]", (b) => { if (b.dataset.vocgate === "close") close(); else submit(); });
+  }
+  document.getElementById("vocGatePw").value = "";
+  document.getElementById("vocGateMsg").textContent = "";
+  bd.classList.add("show");
+  document.getElementById("vocGatePw").focus();
+}
+function pickVocFile() {
+  let inp = document.getElementById("vocLoadInput");
+  if (!inp) {
+    inp = document.createElement("input");
+    inp.type = "file"; inp.id = "vocLoadInput"; inp.accept = ".zip"; inp.className = "file-input-hidden"; inp.tabIndex = -1;
+    inp.setAttribute("aria-hidden", "true");
+    inp.onchange = async () => { const f = inp.files[0]; inp.value = ""; if (f) await loadVocFile(f); };
+    document.body.appendChild(inp);
+  }
+  inp.click();
+}
+async function loadVocFile(file) {
+  if (unloadGuardNeeded() && !confirm(
+      "문의 파일을 열면 지금 화면의 근무표(손으로 고친 칸 포함)는 그 문의의 것으로 바뀝니다.\n" +
+      "입력 화면의 설정과 올린 파일은 그대로 둡니다.\n\n여시겠습니까?")) return;
+  showGenOverlay("문의 파일의 화면을 다시 만드는 중입니다 — 그 사람이 생성한 횟수만큼 다시 계산합니다…");
+  try {
+    const r = await apiUpload("/api/voc_load", file);
+    VOC_VIEW = { name: (r.report && r.report.name) || "(이름 없음)", comment: (r.report && r.report.text) || "",
+                 time: (r.client && r.client.time_local) || "", build: (r.client && r.client.build) || "",
+                 text: r.text || "", replay: r.replay || {}, hadTable: !!r.had_table };
+    window.__genMode = "voc-replay";
+    if (r.state) {
+      const cr = (r.replay && r.replay.cfg_result) || {};
+      lastConfigWarning = cr.warning || null;
+      lastStaffing = cr.staffing || null;
+      ST = r.state;
+      SWAP = null;
+      render();
+      refreshFragile();
+    } else if (ST) {
+      // 표가 없는 문의(생성 전에 받은 것) — 계산 쪽 상태는 이미 그 문의의 것으로 바뀌었으니 내 표를 남겨 두면 거짓이다.
+      ST = null;
+      gridContent.style.display = "none"; gridContent.innerHTML = "";
+      $("#intake").style.display = "block"; sidePane.style.display = "none";
+      updateInfoLabel(false); setResultView(false);
+    }
+    renderVocBar();
+    window.scrollTo(0, 0);
+  } catch (e) {
+    /* 반려 사유는 api()가 토스트로 이미 띄웠다 */
+  } finally {
+    hideGenOverlay();
+  }
+}
+function vocReplayNote() {
+  const r = (VOC_VIEW && VOC_VIEW.replay) || {};
+  if (r.why) return "⚠ " + r.why;
+  if (!VOC_VIEW.hadTable) return "표를 만들기 전에 받은 문의입니다 — '자세히'와 zip 안의 파일을 보세요.";
+  if (r.matched) return `그 사람이 보던 화면 그대로입니다(${r.cells}칸 일치) — 이어서 눌러 볼 수 있습니다.`;
+  if (r.forced) return `⚠ 다시 계산한 표가 ${r.diff_count}칸 달라, 문의에 기록된 표로 맞췄습니다 — 문의를 만든 앱(${VOC_VIEW.build})과 지금 앱의 판이 다를 수 있습니다.`;
+  return `⚠ 표가 ${r.diff_count}칸 다릅니다.`;
+}
+// 관리자 모드의 겉모습 — 창 둘레 초록 테두리(body.voc-admin)와 표 위 띠. 보통 화면과 헷갈리면 남의 표를 내 것으로 안다.
+function renderVocBar() {
+  const bar = document.getElementById("vocViewBar");
+  document.body.classList.toggle("voc-admin", !!VOC_VIEW);
+  if (!bar) return;
+  if (!VOC_VIEW) { bar.style.display = "none"; bar.innerHTML = ""; return; }
+  bar.style.display = "";
+  bar.innerHTML = `<div class="voc-view-head"><span class="voc-view-tag">관리자 모드</span>` +
+    `<span><b>${esc(VOC_VIEW.name)}</b> 님의 문의 · ${esc(VOC_VIEW.time)}</span>` +
+    `<span class="voc-view-btns"><button class="small" data-vocview="open">자세히</button><button class="small" data-vocview="end">끝내기</button></span></div>` +
+    `<p class="voc-view-comment">${esc(VOC_VIEW.comment || "(내용 없음)")}</p>` +
+    `<p class="voc-view-note">${esc(vocReplayNote())}</p>`;
+}
+delegateClick(document.getElementById("vocViewBar"), "button[data-vocview]", (b) => {
+  if (b.dataset.vocview === "open") openVocView(); else endVocView();
+});
+// 끝내기 — 테두리와 띠만 치운다. 표는 그대로 두고(이어서 고쳐 볼 수 있다), 새로 만들려면 '입력으로 돌아가기'.
+function endVocView() { VOC_VIEW = null; renderVocBar(); }
+function openVocView() {
+  if (!VOC_VIEW) return;
+  let bd = document.getElementById("vocViewBackdrop");
+  if (!bd) {
+    bd = document.createElement("div");
+    bd.className = "modal-backdrop"; bd.id = "vocViewBackdrop";
+    bd.innerHTML = '<div class="modal voc-view-modal" role="dialog" aria-modal="true" aria-labelledby="vocViewTitle">' +
+      '<div class="modal-head"><h2 id="vocViewTitle">문의 내용</h2><button data-vocview="close" aria-label="닫기">✕</button></div>' +
+      '<div class="modal-body"><p class="voc-msg" id="vocViewNote"></p><pre class="voc-view-text" id="vocViewText"></pre></div></div>';
+    document.body.appendChild(bd);
+    bd.addEventListener("click", (e) => { if (e.target === bd) bd.classList.remove("show"); });
+    bd.addEventListener("keydown", (e) => { if (e.key === "Escape") bd.classList.remove("show"); });
+    delegateClick(bd, "button[data-vocview]", () => bd.classList.remove("show"));
+  }
+  document.getElementById("vocViewNote").textContent = vocReplayNote();
+  document.getElementById("vocViewText").textContent = VOC_VIEW.text;
+  bd.classList.add("show");
+  bd.querySelector("button[data-vocview]").focus();
 }
 
 async function downloadMagazine() {
@@ -4447,10 +4650,6 @@ function renderSide() {
     </div>`;
   }
   html += "</div>";
-  // 문의 남기기 — 입력 화면(index.html의 #vocCardIn)과 같은 칸. 적용 안 한 편집이 있어도 누를 수 있다(그 편집까지 담긴다).
-  html += `<div class="side-sec voc-sec" id="sideVoc"><h3>문의 남기기</h3>` +
-    `<p class="hint">이상한 점을 적으면 지금 입력·출력·고친 기록이 파일 하나(zip)로 받아집니다. 그 파일을 메일로 보내 주세요.</p>` +
-    `<button class="wide" id="vocOpenBtn" onclick="openVocDialog()">문의 남기기</button></div>`;
   html += renderBurdenSummary();
 
   // 개인별 — 공정 배분 참고용으로 "야간편차"(일반 간호사 평균 대비, 파트장·NK 제외)를 같이 보여준다.

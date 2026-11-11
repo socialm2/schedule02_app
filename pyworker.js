@@ -101,6 +101,8 @@ function callBridge(path, opts) {
       return py ? py.toJs() : null;
     }
     case "/api/download_filename/voc": return bridge.api_download_filename_voc();
+    // 문의 파일 다시 보기 — 받은 zip을 올리면 기록된 요청을 다시 밟아 그 사람이 보던 화면을 만든다.
+    case "/api/voc_load": return bridge.api_voc_load(opts._fileBytes);
     default: throw new Error("알 수 없는 경로: " + path);
   }
 }

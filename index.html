@@ -57,7 +57,7 @@
   <header>
     <!-- 배지·빌드시각은 스크린리더가 제목으로 읽지 않게 감싼다(aria-hidden). .build-time span 자체는
          CI(deploy.yml)가 정규식으로 찾아 바꾸므로 그 태그에는 속성을 더하지 말 것. -->
-    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.87</span><span class="build-time">Updated 2026-11-11 08:37:33</span></span></h1>
+    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.87</span><span class="build-time">Updated 2026-11-11 10:52:17</span></span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
@@ -222,22 +222,20 @@
               <span class="thorough-title"><span aria-hidden="true">🔍</span> 꼼꼼히 만들기</span>
               <span class="hint thorough-hint">근무표를 평소 3개 대신 9개 만들어 가장 좋은 것을 고릅니다. 소요 시간은 일반 생성(40명대 약 10초) 대비 약 3배인 30초이며, 인원이 빠듯한 달은 몇 분이 걸릴 수 있습니다. 필수 위반이 남는 달에 권장합니다.</span>
             </label>
-            <!-- 문의 남기기 — 출력 패널(#sideVoc)과 같은 창을 연다. 입력이 반려돼 표를 못 만든 경우에도 보낼 수 있어야 해서 여기에도 둔다. -->
-            <div class="voc-card" id="vocCardIn">
-              <div class="voc-card-text"><b>문의 남기기</b>
-                <span class="hint">이상한 점을 적으면 지금 입력과 한 일이 파일 하나(zip)로 받아집니다. 그 파일을 메일로 보내 주세요.</span></div>
-              <button type="button" id="vocOpenBtnIn" onclick="openVocDialog()">문의 남기기</button>
-            </div>
           </div>
         </div>
       </div>
       <!-- 생성 후 그리드는 이 컨테이너에 렌더링 (intake와 분리 — 서로 파괴하지 않음) -->
+      <!-- 관리자 모드(문의 파일 다시 보기) 띠 — 맨 아래 'SMC Fair Shift'를 눌러 받은 zip을 열었을 때만 app.js가 채운다 -->
+      <div id="vocViewBar" class="voc-view-bar" style="display:none"></div>
       <div id="gridContent" style="display:none"></div>
     </div>
     <div id="sidePane" style="display:none"></div>
   </div>
   <!-- 홈 화면 추가 안내 — PWA인데 어디에도 적혀 있지 않아 폰 사용자가 매번 주소를 쳤다(2026-10-31 검토 §3) -->
-  <p class="footer-note">SMC Fair Shift</p>
+  <!-- 맨 아래 글자 둘이 숨은 길이다(app.js initVocEgg): 'SMC' = 문의 남기기, 'Shift' = 관리자 모드(비밀번호).
+       문의 남기기 칸은 당분간 화면에서 뺐다(2026-11-11) — 아는 사람만 이 글자로 연다. -->
+  <p class="footer-note"><span id="eggVoc">SMC</span> Fair <span id="eggAdmin">Shift</span></p>
 </div>
 
 <div class="modal-backdrop" id="infoModalBackdrop">
