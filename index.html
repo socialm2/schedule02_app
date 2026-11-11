@@ -57,13 +57,17 @@
   <header>
     <!-- 배지·빌드시각은 스크린리더가 제목으로 읽지 않게 감싼다(aria-hidden). .build-time span 자체는
          CI(deploy.yml)가 정규식으로 찾아 바꾸므로 그 태그에는 속성을 더하지 말 것. -->
-    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.87</span><span class="build-time">Updated 2026-11-11 10:52:17</span></span></h1>
+    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.87</span><span class="build-time">Updated 2026-11-11 11:30:06</span></span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
   </header>
   <p class="security-note"><span aria-hidden="true">🔒</span> 입력 데이터는 <b>서버로 전송되지 않고 현재 브라우저에서 처리</b>됩니다.
   공용 기기, 브라우저 저장 데이터, 화면 공유 및 다운로드 파일의 개인정보 보호에 주의해 주세요.</p>
+
+  <!-- 관리자 모드(문의 파일 다시 보기) 띠 — 맨 아래 'Shift' 글자로 받은 zip을 열었을 때만 app.js가 채운다.
+       스크롤되는 영역(#gridPane) 밖에 둔다: 표를 내려도 그 자리에 있고, 입력·출력 어느 화면에서나 보인다. -->
+  <div id="vocViewBar" class="voc-view-bar" style="display:none"></div>
 
   <div id="main" role="main">
     <div id="gridPane">
@@ -226,8 +230,6 @@
         </div>
       </div>
       <!-- 생성 후 그리드는 이 컨테이너에 렌더링 (intake와 분리 — 서로 파괴하지 않음) -->
-      <!-- 관리자 모드(문의 파일 다시 보기) 띠 — 맨 아래 'SMC Fair Shift'를 눌러 받은 zip을 열었을 때만 app.js가 채운다 -->
-      <div id="vocViewBar" class="voc-view-bar" style="display:none"></div>
       <div id="gridContent" style="display:none"></div>
     </div>
     <div id="sidePane" style="display:none"></div>

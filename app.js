@@ -2052,7 +2052,6 @@ async function runGenerate(btn, statusEl) {
     }
     ST = await api("/api/generate", genOpts());
     SWAP = null;
-    endVocView();          // 내 입력으로 새로 만든 표다 — 관리자 모드 표시가 남아 있으면 거짓이다
     render();
     showToast(lastConfigWarning || "근무표 생성 완료 — 표 위의 상태 띠에서 필수 위반·다운로드로 바로 갈 수 있습니다", !!lastConfigWarning);
     refreshFragile();
@@ -2131,6 +2130,7 @@ function settingsStorageFailed(e, what) {
 
 function saveSettings() {
   if (!settingsReady) return;   // 화면을 채우는 중에 반쪽짜리 값이 저장되는 것을 막는다
+  if (VOC_VIEW) return;         // 관리자 모드의 입력 화면은 남의 병동 값이다 — 내 브라우저에 저장하면 다음 생성이 그 값으로 나간다
   try {
     const cfg = buildCfgFromForm();
     // 못 읽는 칸이 있는 상태를 저장하면, 다음에 앱을 열었을 때 그 잘못된 값이 되살아난다.
@@ -2375,6 +2375,7 @@ function sessionDel(key) { try { sessionStorage.removeItem(key); } catch (e) { /
 // 새로고침하면 입력① 없이 복원됐다(GPT 11/2 보고서 P02). 저장에 실패하면 직전 결과도 지운다: 파일이 빠진
 // 기록으로 '복원'하면 다른 입력으로 다시 만들게 된다.
 async function rememberSessionFile(kind, file) {
+  if (VOC_VIEW) return;         // 관리자 모드에서 올린 파일은 '직전 입력'이 아니다
   let b64;
   try { b64 = await fileToBase64(file); } catch (e) { return; }   // 파일을 못 읽어도 반영 자체는 끝났다
   const files = sessionGet(SESSION_FILES_KEY) || {};
@@ -3047,7 +3048,6 @@ function renderGrid() {
     updateInfoLabel(false);
     setResultView(false);
     nextMonthCardOn = false;
-    endVocView();
     forgetSessionResult();   // 스스로 돌아갔으면 복원할 것도 없다(입력 파일은 그대로 남긴다)
   };
 }
@@ -4084,8 +4084,10 @@ async function makeVocFile() {
 // ================================================================ 관리자 모드 — 문의 파일 다시 보기(숨은 길)
 // 받은 문의 zip을 올리면 그 사람이 보던 화면을 다시 만든다(bridge.api_voc_load — 기록된 요청을 같은 순서로 다시 밟는다).
 // 문의를 읽는 사람만 쓰는 길이라 버튼을 두지 않았다: 화면 맨 아래 'SMC Fair Shift'의 **'Shift' 글자**를 누르면 비밀번호를 묻고,
-// 맞으면 바로 파일 고르기가 뜬다. 올라가면 '관리자 모드'다 — 창 둘레에 초록 테두리가 서고, 표 위 띠에 보낸 사람과
-// 적은 내용이 보인다. 이 기기의 입력 화면(설정·올린 파일)은 건드리지 않는다 — 남의 병동 설정이 내 브라우저에 저장되면 안 된다.
+// 맞으면 바로 파일 고르기가 뜬다. 올라가면 '관리자 모드'다 — 창 둘레에 초록 테두리가 서고, 맨 위 띠에 보낸 사람과
+// 적은 내용이 보인다. 표뿐 아니라 입력 화면도 그 사람의 값으로 채운다(입력으로 돌아가도 관리자 모드는 이어진다).
+// 대신 이 기기에는 아무것도 저장하지 않고(saveSettings·rememberSessionFile·saveSessionResult가 건너뛴다),
+// '끝내기'는 화면을 새로 고쳐 내 값으로 돌아간다.
 // 비밀번호는 실수로 눌린 것을 거르는 정도다(소스에 그대로 있다) — 문의 파일 자체가 없으면 볼 것이 없다.
 const VOC_ADMIN_PW = "my";
 let VOC_VIEW = null;      // 다시 보는 중인 문의 {name, comment, time, text, replay, hadTable}
@@ -4144,47 +4146,81 @@ function pickVocFile() {
 }
 async function loadVocFile(file) {
   if (unloadGuardNeeded() && !confirm(
-      "문의 파일을 열면 지금 화면의 근무표(손으로 고친 칸 포함)는 그 문의의 것으로 바뀝니다.\n" +
-      "입력 화면의 설정과 올린 파일은 그대로 둡니다.\n\n여시겠습니까?")) return;
+      "문의 파일을 열면 지금 화면의 근무표와 입력 화면 값이 그 문의의 것으로 바뀝니다.\n" +
+      "이 브라우저에 저장해 둔 내 설정은 지워지지 않고, 관리자 모드를 끝내면 돌아옵니다.\n\n여시겠습니까?")) return;
   showGenOverlay("문의 파일의 화면을 다시 만드는 중입니다 — 그 사람이 생성한 횟수만큼 다시 계산합니다…");
   try {
     const r = await apiUpload("/api/voc_load", file);
     VOC_VIEW = { name: (r.report && r.report.name) || "(이름 없음)", comment: (r.report && r.report.text) || "",
                  time: (r.client && r.client.time_local) || "", build: (r.client && r.client.build) || "",
-                 text: r.text || "", replay: r.replay || {}, hadTable: !!r.had_table };
+                 text: r.text || "", replay: r.replay || {}, hadTable: !!r.had_table, formNote: "" };
     window.__genMode = "voc-replay";
+    // 입력 화면도 그 사람의 값으로 — 문의를 만든 순간의 입력 화면 값, 없으면(옛 문의 파일) 마지막으로 생성에 쓴 값.
+    const formCfg = r.form_cfg || r.last_cfg;
+    try {
+      if (formCfg) applyVocForm(formCfg, !!r.staff_table_loaded);
+      else VOC_VIEW.formNote = "이 문의 파일에는 입력 화면 값이 없어 입력 화면은 내 값 그대로입니다.";
+    } catch (e) {
+      VOC_VIEW.formNote = "입력 화면 값을 채우지 못했습니다: " + ((e && e.message) || e);
+    }
+    const cr = (r.replay && r.replay.cfg_result) || {};
+    lastConfigWarning = cr.warning || null;
+    lastStaffing = cr.staffing || null;
+    SWAP = null;
     if (r.state) {
-      const cr = (r.replay && r.replay.cfg_result) || {};
-      lastConfigWarning = cr.warning || null;
-      lastStaffing = cr.staffing || null;
       ST = r.state;
-      SWAP = null;
       render();
       refreshFragile();
-    } else if (ST) {
-      // 표가 없는 문의(생성 전에 받은 것) — 계산 쪽 상태는 이미 그 문의의 것으로 바뀌었으니 내 표를 남겨 두면 거짓이다.
+    } else {
+      // 표가 없는 문의(생성 전에 받은 것) — 그 사람도 입력 화면을 보고 있었다.
       ST = null;
       gridContent.style.display = "none"; gridContent.innerHTML = "";
       $("#intake").style.display = "block"; sidePane.style.display = "none";
       updateInfoLabel(false); setResultView(false);
     }
     renderVocBar();
-    window.scrollTo(0, 0);
   } catch (e) {
     /* 반려 사유는 api()가 토스트로 이미 띄웠다 */
   } finally {
     hideGenOverlay();
   }
 }
+// 입력 화면을 문의의 값으로 채운다. cfg는 그 사람 화면의 buildCfgFromForm() 결과라, 채운 뒤 다시 읽으면 같은 값이 나와야 한다
+// (그래야 관리자 모드에서 '근무표 생성'을 눌렀을 때 그 사람과 같은 표가 나온다). 내가 올려 둔 입력①②의 흔적은 걷어낸다.
+function applyVocForm(cfg, staffTableLoaded_) {
+  wantedRequestsRaw = []; wantedDropped = []; wantedSource = null; wantedActiveTag = ""; wantedYM = null;
+  staffOfWanted = []; staffOfAnnual = []; prevRosterNames = []; transferredInNames = [];
+  fillForm(cfg);                                   // 병동·근무정보·근무인력·B팀·명단(cfg.staff)·신청·이월정보
+  $("#f_year").value = cfg.year;
+  $("#f_month").value = cfg.month;
+  const p = cfg.params || {};
+  formHolidays = [...(p.holidays || [])];
+  formSubHolidays = [...(p.substitute_holidays || [])];
+  renderHolidayCalendar();
+  wantedTransferredIn = [...(cfg.wanted_transferred_in || [])];
+  wantedTransferInDates = { ...(cfg.wanted_transfer_in_dates || {}) };
+  wantedTransferInDatesRaw = { ...wantedTransferInDates };
+  staffTableLoaded = !!staffTableLoaded_;
+  for (const id of ["wantedStatus", "staffTableStatus"]) { const el = $("#" + id); if (el) { clearUploadError(el); el.textContent = ""; } }
+  $("#wantedStatus").textContent = `관리자 모드 — 문의 파일의 명단 ${formStaff.length}명 · 신청 ${formRequests.length}건이 들어 있습니다.`;
+  $("#staffTableStatus").textContent = staffTableLoaded
+    ? "관리자 모드 — 문의 파일의 입력②(연간근무표)가 반영돼 있습니다."
+    : "관리자 모드 — 이 문의는 입력②를 올리지 않았습니다.";
+  renderSourceBadges();
+  updateClearButtons();
+  rosterWarnToast("", "");
+}
 function vocReplayNote() {
   const r = (VOC_VIEW && VOC_VIEW.replay) || {};
-  if (r.why) return "⚠ " + r.why;
-  if (!VOC_VIEW.hadTable) return "표를 만들기 전에 받은 문의입니다 — '자세히'와 zip 안의 파일을 보세요.";
-  if (r.matched) return `그 사람이 보던 화면 그대로입니다(${r.cells}칸 일치) — 이어서 눌러 볼 수 있습니다.`;
-  if (r.forced) return `⚠ 다시 계산한 표가 ${r.diff_count}칸 달라, 문의에 기록된 표로 맞췄습니다 — 문의를 만든 앱(${VOC_VIEW.build})과 지금 앱의 판이 다를 수 있습니다.`;
-  return `⚠ 표가 ${r.diff_count}칸 다릅니다.`;
+  const tail = VOC_VIEW.formNote ? " " + VOC_VIEW.formNote : "";
+  if (r.why) return "⚠ " + r.why + tail;
+  if (!VOC_VIEW.hadTable) return "표를 만들기 전에 받은 문의입니다 — 입력 화면이 그 사람의 값으로 채워져 있습니다." + tail;
+  if (r.matched) return `그 사람이 보던 화면 그대로입니다(${r.cells}칸 일치) — 입력 화면도 그 사람의 값이라, 이어서 눌러 보거나 다시 생성해 볼 수 있습니다.` + tail;
+  if (r.forced) return `⚠ 다시 계산한 표가 ${r.diff_count}칸 달라, 문의에 기록된 표로 맞췄습니다 — 문의를 만든 앱(${VOC_VIEW.build})과 지금 앱의 판이 다를 수 있습니다.` + tail;
+  return `⚠ 표가 ${r.diff_count}칸 다릅니다.` + tail;
 }
-// 관리자 모드의 겉모습 — 창 둘레 초록 테두리(body.voc-admin)와 표 위 띠. 보통 화면과 헷갈리면 남의 표를 내 것으로 안다.
+// 관리자 모드의 겉모습 — 창 둘레 초록 테두리(body.voc-admin)와 맨 위 띠. 보통 화면과 헷갈리면 남의 표를 내 것으로 안다.
+// 띠는 스크롤 영역 밖에 있어 표를 내려도, 입력·출력 화면을 오가도 그 자리에 있다.
 function renderVocBar() {
   const bar = document.getElementById("vocViewBar");
   document.body.classList.toggle("voc-admin", !!VOC_VIEW);
@@ -4200,8 +4236,14 @@ function renderVocBar() {
 delegateClick(document.getElementById("vocViewBar"), "button[data-vocview]", (b) => {
   if (b.dataset.vocview === "open") openVocView(); else endVocView();
 });
-// 끝내기 — 테두리와 띠만 치운다. 표는 그대로 두고(이어서 고쳐 볼 수 있다), 새로 만들려면 '입력으로 돌아가기'.
-function endVocView() { VOC_VIEW = null; renderVocBar(); }
+// 끝내기 — 화면을 새로 고쳐 내 입력 화면으로 돌아간다. 관리자 모드에서는 표도 입력 화면도 계산 쪽 상태도 전부 그 문의의
+// 것이라, 띠만 치우면 남의 값이 내 것처럼 남는다. 저장해 둔 내 설정은 건드리지 않았으므로 새로 고치면 그대로 돌아온다.
+function endVocView() {
+  if (!VOC_VIEW) return;
+  if (!confirm("관리자 모드를 끝내면 화면을 새로 고쳐 내 입력 화면으로 돌아갑니다.\n지금 보던 문의의 표는 사라집니다(문의 파일은 그대로 있습니다).\n\n끝낼까요?")) return;
+  window.__allowUnload = true;
+  location.reload();
+}
 function openVocView() {
   if (!VOC_VIEW) return;
   let bd = document.getElementById("vocViewBackdrop");

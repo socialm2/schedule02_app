@@ -859,8 +859,12 @@ table.grid th.day-head:hover, table.grid th.day-head:focus-visible { outline: 2p
 .voc-actions button { min-height: 40px; padding: 8px 18px; }
 /* 관리자 모드(문의 파일 다시 보기) — 창 둘레 초록 테두리, 표 위의 띠, 문의 내용 창.
    테두리는 화면 위에 덧씌운 틀이라 배치를 밀지 않고 누름도 막지 않는다. */
-body.voc-admin::after { content: ""; position: fixed; inset: 0; border: 5px solid #1E9E5A; pointer-events: none; z-index: 9000; }
-.voc-view-bar { margin: 0 0 10px; padding: 10px 12px; border-radius: 8px; border: 2px solid #1E9E5A;
+/* 테두리는 화면에 붙인 틀(position:fixed)이 아니라 #app에 건다. 붙인 틀은 폰에서 주소창이 접히는 동안, 일부 브라우저에서는
+   휠로 내리는 동안 한 박자 늦게 따라왔다("안 따라오다 따라와"). PC에서는 #app이 창 높이 그대로라 늘 창 둘레이고,
+   폰에서는 문서 둘레라 좌우 테두리가 내리는 내내 보인다. */
+body.voc-admin #app { position: relative; }
+body.voc-admin #app::after { content: ""; position: absolute; inset: 0; border: 5px solid #1E9E5A; pointer-events: none; z-index: 9000; }
+.voc-view-bar { flex: none; margin: 0; padding: 8px 18px; border-bottom: 2px solid #1E9E5A;
   background: var(--ok-soft); color: var(--ink); font-size: .8125rem; line-height: 1.55; }
 .voc-view-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .voc-view-tag { background: #1E9E5A; color: #fff; font-weight: 700; border-radius: 999px; padding: 2px 10px; font-size: .75rem; }
@@ -943,7 +947,7 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
    걸쳐 나오게 한다(날짜 줄은 쪽마다 반복, 행은 쪽 사이에서 잘리지 않게). 48열이 A4 가로
    277mm에 들어가려면 칸 ≈ 5.7mm — 7.5pt면 들어간다. */
 @media print {
-  body.voc-admin::after, .voc-view-bar { display: none !important; }   /* 관리자 모드 표시는 종이에 찍지 않는다 */
+  body.voc-admin #app::after, .voc-view-bar { display: none !important; }   /* 관리자 모드 표시는 종이에 찍지 않는다 */
   @page { size: A4 landscape; margin: 8mm; }
   html, body, #app, #main, #gridPane { height: auto !important; min-height: 0 !important; overflow: visible !important; }
   html, body { background: #fff !important; color: #000; }   /* html의 --paper가 마지막 쪽 빈 곳을 회색으로 칠했다 */
