@@ -4091,6 +4091,15 @@ async function makeVocFile() {
 // '끝내기'는 화면을 새로 고쳐 내 값으로 돌아간다.
 // 비밀번호는 실수로 눌린 것을 거르는 정도다(소스에 그대로 있다) — 문의 파일 자체가 없으면 볼 것이 없다.
 const VOC_ADMIN_PW = "my";
+// 같은 두 키를 어떤 상태로 쳐도 받는다(사용자 요청 2026-11-11): 대문자(MY)·소문자, 그리고 한글 자판 상태로 쳤을 때
+// 찍히는 글자(m→ㅡ, y→ㅛ). 비밀번호 칸은 글자가 가려져 있어 한/영·Caps Lock이 켜진 줄 모르고 "맞게 쳤는데 틀리다"가 된다.
+// NFKC로 맞추는 이유: 전각(ｍｙ)과, 자판에 따라 다르게 들어오는 한글 낱자(호환 자모·조합 자모)를 한 모양으로 본다.
+const VOC_ADMIN_PW_KO = "ㅡㅛ";
+function vocPwOk(value) {
+  const norm = (v) => String(v).normalize("NFKC").replace(/\s+/g, "").toLowerCase();
+  const typed = norm(value);
+  return typed !== "" && [VOC_ADMIN_PW, VOC_ADMIN_PW_KO].some(x => norm(x) === typed);
+}
 let VOC_VIEW = null;      // 다시 보는 중인 문의 {name, comment, time, text, replay, hadTable}
 (function initVocEgg() {
   const voc = document.getElementById("eggVoc"), admin = document.getElementById("eggAdmin");
@@ -4118,7 +4127,7 @@ function openVocGate() {
     const submit = (viaKey) => {
       const pw = document.getElementById("vocGatePw");
       if (!vocGateUnlocked) {
-        if (pw.value !== VOC_ADMIN_PW) {
+        if (!vocPwOk(pw.value)) {
           document.getElementById("vocGateMsg").textContent = "비밀번호가 다릅니다.";
           pw.value = ""; pw.focus();
           return;

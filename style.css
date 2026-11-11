@@ -928,17 +928,20 @@ details.side-sec[open] summary h3::before { content: "▾ "; }
 .attempt-table tr.current td { background: var(--ok-soft, #e6f4ea); }
 .side-note { font-size: .6875rem; color: var(--sub); margin: 6px 0 0; }
 /* 실험 기능 줄 — 패널 맨 아래, 글자 링크처럼 작게 */
-/* 실험 기능 — 다른 칸과 같은 제목 아래에 기능을 한 줄씩. 한 줄 전체가 누르는 자리(높이 44px)이고 줄 사이는 가는 선. */
+/* 실험 기능 — 다른 칸과 같은 제목 아래에 기능을 한 줄씩. 한 줄 전체가 누르는 자리(높이 44px)이고 줄 사이는 가는 선.
+   줄의 글씨는 제목과 같은 크기(.6875rem)로 둔다 — .8125rem이었을 때 "제목보다 글씨가 크다"는 말을 들었다(2026-11-11).
+   이 패널의 제목은 일부러 작은 글씨라, 본문을 키우면 제목이 묻힌다. 굵기와 자간은 제목만 갖는다. */
 .exp-list { display: flex; flex-direction: column; }
 .exp-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; box-sizing: border-box;
   min-height: 44px; margin: 0; padding: 8px 4px; border: 0; border-top: 1px solid var(--line); border-radius: 0;
-  background: none; color: var(--ink); font: inherit; font-size: .8125rem; text-align: left; text-decoration: none; cursor: pointer; }
+  background: none; color: var(--ink); font: inherit; font-size: .6875rem; text-align: left; text-decoration: none; cursor: pointer; }
 .exp-item:first-child { border-top: 0; }
 .exp-item:hover:not(:disabled), .exp-item:focus-visible { background: var(--code-bg); color: var(--ink); }
 .exp-item:disabled { color: var(--sub); cursor: default; }
 .exp-name { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.exp-name small { font-size: .6875rem; color: var(--sub); font-weight: 400; }
-.exp-go { flex: none; color: var(--accent); font-size: .9375rem; line-height: 1; }
+.exp-name small { font-size: .625rem; color: var(--sub); font-weight: 400; }
+.exp-go { flex: none; color: var(--accent); font-size: .8125rem; line-height: 1; }
+#sidePane .side-exp h3 { margin-bottom: 4px; }
 .exp-item:disabled .exp-go { color: var(--sub); }
 button.linklike { background: none; border: 0; padding: 8px 0; min-height: 36px; font-size: .6875rem; color: var(--accent); text-decoration: underline; cursor: pointer; }  /* 136×15였다 */
 button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: default; }
