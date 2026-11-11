@@ -76,6 +76,8 @@ function callBridge(path, opts) {
     case "/api/fill_hints": return bridge.api_fill_hints();
     case "/api/trace": return bridge.api_trace();
     case "/api/regenerate": return bridge.api_regenerate(opts.body);
+    case "/api/night_stage": return bridge.api_night_stage(opts.body);
+    case "/api/confirm_nights": return bridge.api_confirm_nights(opts.body);
     case "/api/download_filename/xlsx": return bridge.download_filename_schedule();
     case "/api/download_filename/xlsx_ocs": return bridge.download_filename_schedule_ocs();
     case "/api/download_filename/staff_table": return bridge.download_filename_staff_table();

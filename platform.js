@@ -314,7 +314,7 @@ async function generateParallel(path, opts) {
   PAR.busy++;
   const helperRuns = PAR.helpers.slice(0, helperSeeds.length).map((w, i) =>
     rpc(w, "/api/generate_attempt",
-        { body: JSON.stringify({ cfg: plan.cfg, fixed: plan.fixed, seed: helperSeeds[i] }) })
+        { body: JSON.stringify({ cfg: plan.cfg, fixed: plan.fixed, seed: helperSeeds[i], nights_fixed: plan.nights_fixed }) })
       .then(raw => JSON.parse(raw)));
   let main;
   try {
@@ -379,7 +379,7 @@ async function generateDriven(path, attempts, onProgress) {
   const drain = async (call) => {
     while (queue.length && !stop.requested) {
       const seed = queue.shift();
-      const st = JSON.parse(await call(JSON.stringify({ cfg: plan.cfg, fixed: plan.fixed, seed })));
+      const st = JSON.parse(await call(JSON.stringify({ cfg: plan.cfg, fixed: plan.fixed, seed, nights_fixed: plan.nights_fixed })));
       if (st.error) throw new Error(st.error);
       stats.push(st); report();
     }

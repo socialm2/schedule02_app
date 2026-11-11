@@ -57,7 +57,7 @@
   <header>
     <!-- 배지·빌드시각은 스크린리더가 제목으로 읽지 않게 감싼다(aria-hidden). .build-time span 자체는
          CI(deploy.yml)가 정규식으로 찾아 바꾸므로 그 태그에는 속성을 더하지 말 것. -->
-    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.87</span><span class="build-time">Updated 2026-11-12 08:14:33</span></span></h1>
+    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.87</span><span class="build-time">Updated 2026-11-12 08:29:20</span></span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
@@ -226,6 +226,14 @@
               <span class="thorough-title"><span aria-hidden="true">🔍</span> 꼼꼼히 만들기</span>
               <span class="hint thorough-hint">근무표를 평소 3개 대신 9개 만들어 가장 좋은 것을 고릅니다. 소요 시간은 일반 생성(40명대 약 10초) 대비 약 3배인 30초이며, 인원이 빠듯한 달은 몇 분이 걸릴 수 있습니다. 필수 위반이 남는 달에 권장합니다.</span>
             </label>
+            <!-- 만드는 방법 — 기본은 지금처럼 한 번에. '야간 먼저'는 야간만 보여 주고, 파트장이 고쳐 확정하면
+                 그 야간을 그대로 두고 나머지(D·E·prn·OFF)를 짠다(bridge.api_night_stage·api_confirm_nights). -->
+            <fieldset class="gen-mode-opt">
+              <legend>만드는 방법</legend>
+              <label><input type="radio" name="genMode" id="genModeAll" value="all" checked> 전체 한 번에</label>
+              <label><input type="radio" name="genMode" id="genModeNight" value="night"> 🌙 야간 먼저(N only)</label>
+              <span class="hint">야간 먼저: 야간만 먼저 보여 줍니다. 야간을 고쳐 확정하면 그 야간은 그대로 두고 나머지 근무를 짭니다.</span>
+            </fieldset>
           </div>
         </div>
       </div>

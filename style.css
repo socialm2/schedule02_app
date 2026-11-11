@@ -748,6 +748,16 @@ button.small { font-size: .75rem; padding: 5px 11px; margin-top: 6px; }
 .generate-row > .hint:empty { display: none; }
 /* 꼼꼼히 찾기 토글 — 생성 버튼 바로 아래, 한 줄. 폰에서는 설명이 다음 줄로 내려간다. */
 /* 체크박스·제목 한 줄, 설명은 제목 아래 같은 들여쓰기 — 가로 모드에서 설명이 제목 옆에 붙어 줄이 어긋나던 것 */
+.gen-mode-opt { border: 1px solid var(--line); border-radius: 8px; margin: 10px 0 0; padding: 6px 10px 8px; font-size: .8125rem; display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; }
+.gen-mode-opt legend { font-size: .75rem; padding: 0 4px; }
+.gen-mode-opt label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.gen-mode-opt input { margin: 0; accent-color: var(--accent); }
+.gen-mode-opt .hint { flex-basis: 100%; }
+.night-stage-bar { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 0 0 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--code-bg); font-size: .8125rem; }
+.night-stage-bar b { margin-right: 4px; }
+.night-stage-bar .grow { flex: 1 1 260px; }
+table.grid.night-only td.cell.night-dim { background: var(--card) !important; color: transparent; }
+table.grid.night-only td.cell.night-dim span { visibility: hidden; }
 .thorough-opt { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; row-gap: 2px; align-items: center; margin-top: 10px; font-size: .8125rem; cursor: pointer; }
 .thorough-opt input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); grid-row: 1; }
 .thorough-opt .thorough-title { grid-column: 2; grid-row: 1; }

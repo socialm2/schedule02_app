@@ -564,6 +564,10 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 돌려 운영 필수 → 숙련도 → 공평성 → 전체 위반 순으로 견줘 가장 좋은 표를 보여줍니다. 점수표 줄을 누르면 그 시드의 표로
 바뀝니다(다운로드도 그 표). <b>🔍 꼼꼼히 만들기</b>를 켜고 생성하면 평소 3개 만들어 고르던 것을 9개 만들어 고릅니다 — 위반이 남는 달에
 켜 보세요(일반 생성 약 10초 대비 약 3배인 30초, 빠듯한 달은 몇 분. 진행 중 '여기까지 결과로 멈추기' 가능).</li>
+<li><b>🌙 야간 먼저(N only)</b> — 생성 버튼 아래 '만드는 방법'에서 고르면 두 단계로 만듭니다. 1단계는 야간(N·NK)만 보이고,
+위반 숫자·검증 요약도 야간 관련 항목만, 형평성은 '야간 균등'만 셉니다. 야간을 고친 뒤 표 위의 <b>야간 확정 → 나머지 짜기</b>를
+누르면 야간과 그 뒤 쉬는 이틀·수면오프(S/)를 고정하고 나머지를 짭니다. 확정 뒤에는 재생성·편집 적용에도 야간이 그대로이고,
+지워서 모자란 야간은 다른 사람으로 메우지 않고 빨간 필수 위반으로 남습니다('야간 다시 고치기'로 돌아가 직접 채웁니다).</li>
 <li><b>검증 요약의 항목을 누르면</b> 그 칸(사람이 없는 항목은 그날 열)으로 이동해 잠깐 깜빡입니다. 수정 대기 칸이 있는
 동안 요약 숫자는 <b>마지막으로 적용한 표 기준</b>이고, '재생성 적용' 뒤 다시 계산됩니다.</li>
 <li><b>날짜 머리칸을 누르면</b> 그날 병동(누가 어디서 일하는지)이 뜨고, 거기서 이름을 누르면 그 사람의 한 달 여정이 뜹니다.
@@ -2051,9 +2055,15 @@ async function runGenerate(btn, statusEl) {
       showToast(lastStaffing.designated.message, true);
     }
     ST = await api("/api/generate", genOpts());
+    // 야간 먼저: 같은 생성 결과를 야간만 보이게 연다. 생성 자체는 같다 — 1단계 야간은 엔진이 평소에 놓는 그 야간이다.
+    const nightFirst = !!($("#genModeNight") && $("#genModeNight").checked);
+    if (nightFirst) ST = await api("/api/night_stage", { method: "POST", body: JSON.stringify({ on: true }) });
     SWAP = null;
     render();
-    showToast(lastConfigWarning || "근무표 생성 완료 — 표 위의 상태 띠에서 필수 위반·다운로드로 바로 갈 수 있습니다", !!lastConfigWarning);
+    showToast(nightFirst
+      ? "🌙 야간만 먼저 보여 드립니다 — 야간을 고친 뒤 표 위의 [야간 확정 → 나머지 짜기]를 누르세요"
+      : (lastConfigWarning || "근무표 생성 완료 — 표 위의 상태 띠에서 필수 위반·다운로드로 바로 갈 수 있습니다"),
+      !nightFirst && !!lastConfigWarning);
     refreshFragile();
     noteFirstUse("gen");
   } catch (e) {
@@ -2887,6 +2897,7 @@ function renderGrid() {
   // 범례는 이달 표에 실제로 나온 코드만 — 20색을 다 늘어놓으면 두 줄을 차지해 표가 17행밖에 안
   // 보였다(2026-10-31 검토 C 1-7). 이름 옆 '지'·'밤' 배지와, 날짜·이름이 눌린다는 것도 여기 적는다
   // (툴팁은 폰에서 볼 수 없다, A-17).
+  html += nightStageBar();
   html += '<div class="legend">';
   const legendColor = {D:"#BDD7EE", E:"#F8CBAD", N:"#1F3864", NK:"#7030A0", prn:"#C6E0B4", "8A":"#D9D9D9", "9A":"#BFBFBF",
                        "10A":"#A6A6A6", T:"#B4C7E7", "연차":"#FFE699", "연1":"#FFF2CC", "연2":"#FFF2CC", "연3":"#FFF2CC",
@@ -2917,7 +2928,7 @@ function renderGrid() {
   // 모바일에서 페이지 전체를 옆으로 밀어버려(#gridPane이 모바일 화면에서는 overflow:visible이라
   // 표 폭이 그대로 새어나감) 사용법 팝업 같은 position:fixed 요소의 위치가 틀어지는 부작용이 있었다.
   const holCount = ST.days.filter(d => d.weekend).length;
-  html += '<div class="grid-scroll"><table class="grid"><thead><tr><th class="nm">이름</th>' +
+  html += `<div class="grid-scroll"><table class="grid${ST.night_stage ? " night-only" : ""}"><thead><tr><th class="nm">이름</th>` +
     '<th class="stat-col">잔휴<br>전월</th><th class="stat-col">잔휴<br>이후</th>';
   ST.days.forEach((d, i) => { html += `<th class="day-head ${d.weekend ? "we" : ""}" data-day="${i}" role="button" tabindex="0" title="누르면 그날 병동 보기">${d.n}<br>${d.dow}</th>`; });
   // 듀티별 횟수 — D·E·N만이 아니라 이 달 표에 나온 모든 근무 코드를 열로 붙인다.
@@ -2967,6 +2978,7 @@ function renderGrid() {
       if (lockedSet.has(key)) cls.push("locked");
       if (pendingSet.has(key)) cls.push("pending");
       if (isWanted) cls.push("wanted");
+      if (ST.night_stage && !NIGHT_CODES.has(v)) cls.push("night-dim");
       const viol = violMap.get(key);
       let title = "";
       if (viol) {
@@ -3063,6 +3075,59 @@ function setResultView(on) {
   note.innerHTML = on ? "🔒 입력 데이터는 서버로 가지 않고 이 브라우저에서만 처리됩니다 — 화면 공유·다운로드 파일의 개인정보에 주의하세요." : securityNoteFull;
 }
 // 상태 띠 — 누르면 오른쪽 패널의 그 자리로(폰에서는 아래로 스크롤). 값은 data-*에, 클릭은 위임으로.
+// ================================================================ 야간 먼저(N only)
+// 1단계(night_stage): 야간(N·NK) 말고는 칸을 비워 그린다 — 값은 그대로라 눌러서 바꿀 수 있다.
+// 2단계: [야간 확정 → 나머지 짜기] = confirm_nights(야간·그 뒤 휴식·S/ 고정) 다음 regenerate. 확정 뒤에는
+// 서버가 nights_fixed라 어떤 재생성으로도 새 야간이 생기지 않는다. 버튼 값은 data-night에만(인라인 핸들러 금지).
+const NIGHT_CODES = new Set(["N", "NK"]);
+
+function nightStageBar() {
+  if (ST.night_stage) {
+    const pend = (ST.pending || []).length;
+    return `<div class="night-stage-bar" id="nightStageBar"><span class="grow"><b>🌙 야간 먼저 — 1단계</b>` +
+      `야간만 보입니다. 칸을 눌러 야간을 넣고·빼고·옮긴 뒤 확정하세요.` +
+      `${pend ? ` 고친 칸 ${pend}개는 확정할 때 함께 고정됩니다.` : ""}` +
+      ` 야간이 모자란 날은 2단계에서 채우지 않고 빨강(필수 위반)으로 남습니다.` +
+      ` 위 위반 숫자·검증 요약은 <b>야간 관련 규칙만</b> 셉니다` +
+      `${ST.report && ST.report.hidden_count ? `(주간 등 나머지 ${ST.report.hidden_count}건은 나머지를 짠 뒤 다시 셉니다)` : ""}.</span>` +
+      `<button type="button" class="primary small" data-night="confirm">야간 확정 → 나머지 짜기</button>` +
+      `<button type="button" class="small" data-night="all">전체 보기로(확정 안 함)</button></div>`;
+  }
+  if (ST.nights_fixed) {
+    return `<div class="night-stage-bar" id="nightStageBar"><span class="grow"><b>🌙 야간 확정됨</b>` +
+      `재생성·편집 적용을 해도 야간은 그대로이고, 새 야간이 생기지 않습니다.</span>` +
+      `<button type="button" class="small" data-night="back">야간 다시 고치기</button></div>`;
+  }
+  return "";
+}
+
+async function confirmNightsThenFill() {
+  showGenOverlay("확정한 야간은 두고 나머지 근무를 짜는 중입니다…", thoroughOn(), true);
+  try {
+    const conf = await api("/api/confirm_nights", { method: "POST" });
+    ST = conf;
+    ST = await api("/api/regenerate", genOpts());
+    SWAP = null;
+    render();
+    showToast(`야간 ${conf.confirmed_night_cells}칸을 확정하고 나머지를 짰습니다 — ${ST.round}회차`);
+    refreshFragile();
+  } catch (e) {
+    // 오류 문구는 api()가 이미 띄웠다. 확정은 됐는데 짜기가 실패했을 수 있어 지금 상태로 다시 그린다.
+    try { ST = await api("/api/state", {}); render({ keepScroll: true }); } catch (_) { /* 상태도 못 받으면 그대로 둔다 */ }
+  } finally {
+    hideGenOverlay();
+  }
+}
+
+delegateClick(document.getElementById("gridContent"), "#nightStageBar button[data-night]", async (b) => {
+  const what = b.dataset.night;
+  if (what === "confirm") return confirmNightsThenFill();
+  try {
+    ST = await api("/api/night_stage", { method: "POST", body: JSON.stringify({ on: what === "back" }) });
+    render({ keepScroll: true });
+  } catch (e) { /* 오류 문구는 api()가 띄웠다 */ }
+});
+
 delegateClick(document.getElementById("gridContent"), ".result-strip button[data-strip]", (b) => {
   const target = document.getElementById(b.dataset.strip);
   if (!target) return;
@@ -4982,8 +5047,20 @@ function fairAxisMeta(a) {
   if (a.raw_text) parts.push(`원값 ${a.raw_text}`);
   return parts.join(" · ");
 }
+// 1단계(야간만 보기)에서는 종합 점수 대신 '야간 균등' 축 하나만 — 종합에는 주말·근무횟수처럼 2단계에서 다시
+// 짜일 주간 몫이 섞여 있어, 야간을 아무리 고쳐도 엉뚱하게 오르내린다.
+function nightAxis(f) { return f && Array.isArray(f.axes) ? f.axes.find(a => a.key === "night") : null; }
+
 function fairStripItem() {
   const f = ST.fair; if (!f) return "";
+  if (ST.night_stage) {
+    const a = nightAxis(f); if (!a || a.score == null) return "";   // 야간 대상이 없으면 견줄 수 없음
+    const ae0 = nightAxis(ST.fair_edited), ae = ae0 && ae0.score != null ? ae0 : null;
+    const k = a.grade && a.grade.key;
+    const cls = k === "good" ? "ok" : k === "low" ? "bad" : k === "mid" ? "warn" : "";
+    const edited = ae ? ` <span class="strip-arrow">→</span> <b data-fair-edited="${Math.round(ae.score)}">${Math.round(ae.score)}</b>` : "";
+    return `<button type="button" class="strip-item fair-strip ${cls}" data-strip="fairSec" title="야간 균등(100점 만점) — 야간 단계에서는 이 축만 봅니다">🌙 야간 균등 <b data-fair-strip="${Math.round(a.score)}">${Math.round(a.score)}</b>${edited}<small>/100</small></button>`;
+  }
   const fe = ST.fair_edited;
   const cls = f.grade && f.grade.key === "good" ? "ok" : f.grade && f.grade.key === "low" ? "bad" : f.grade && f.grade.key === "mid" ? "warn" : "";
   const edited = fe ? ` <span class="strip-arrow">→</span> <b data-fair-edited="${fairOneNumber(fe)}">${fairOneNumber(fe)}</b>` : "";
@@ -4992,6 +5069,14 @@ function fairStripItem() {
 function renderFairScore() {
   const f = ST.fair;
   if (!f || !Array.isArray(f.axes)) return "";
+  if (ST.night_stage) {
+    const a = nightAxis(f); if (!a || a.score == null) return "";   // 야간 대상이 없으면 견줄 수 없음
+    const ae0 = nightAxis(ST.fair_edited), ae = ae0 && ae0.score != null ? ae0 : null;
+    return `<div class="side-sec fair-sec" id="fairSec"><h3>야간 균등 <span class="count-badge">${esc(a.grade ? a.grade.label : "")}</span></h3>` +
+      `<div class="fair-total"><b class="${fairGradeClass(a.grade && a.grade.key)}" data-fair-total="${Math.round(a.score)}">${Math.round(a.score)}</b><span class="fair-total-sub">/ 100 · ${esc(a.unit || "")}</span>` +
+      (ae ? `<span class="fair-edited">→ 수정 후 <b class="${fairGradeClass(ae.grade && ae.grade.key)}">${Math.round(ae.score)}</b></span>` : "") + `</div>` +
+      `<p class="hint">야간 단계에서는 야간 균등만 봅니다. 종합 형평성 점수(근무횟수·주말·원티드·숙련 분산)는 나머지를 짠 뒤에 나옵니다.</p></div>`;
+  }
   const total = f.total == null ? "–" : Math.round(f.total);
   const gcls = fairGradeClass(f.grade && f.grade.key);
   // 편집 중(미적용)이면 엔진이 편집본으로 다시 센 점수(fair_edited)를 "원래 → 수정 후"로 나란히 — 적용·취소하면 사라진다
