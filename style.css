@@ -863,14 +863,21 @@ table.grid th.day-head:hover, table.grid th.day-head:focus-visible { outline: 2p
    휠로 내리는 동안 한 박자 늦게 따라왔다("안 따라오다 따라와"). PC에서는 #app이 창 높이 그대로라 늘 창 둘레이고,
    폰에서는 문서 둘레라 좌우 테두리가 내리는 내내 보인다. */
 body.voc-admin #app { position: relative; }
-body.voc-admin #app::after { content: ""; position: absolute; inset: 0; border: 5px solid #1E9E5A; pointer-events: none; z-index: 9000; }
-.voc-view-bar { flex: none; margin: 0; padding: 8px 18px; border-bottom: 2px solid #1E9E5A;
-  background: var(--ok-soft); color: var(--ink); font-size: .8125rem; line-height: 1.55; }
+/* 겉모습(사용자가 고른 시안 A, 2026-11-11): 굵은 선 대신 가는 선에 안쪽으로 번지는 초록빛, 띠는 청록→초록으로 흐르는
+   진한 바탕에 흰 글씨. 테두리는 가늘어졌지만 띠가 진해져서 '보통 화면이 아니다'는 것은 더 분명하다.
+   색은 밝은·어두운 화면 어디서나 같은 값을 쓴다 — 진한 초록 위의 흰 글씨라 바탕색(테마)의 영향을 받지 않는다. */
+body.voc-admin #app::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 9000;
+  box-shadow: inset 0 0 0 2px rgba(30, 158, 90, .95), inset 0 0 34px rgba(30, 158, 90, .30); }
+.voc-view-bar { flex: none; margin: 0; padding: 10px 18px; font-size: .8125rem; line-height: 1.55;
+  background: linear-gradient(90deg, #0F6E6B 0%, #1E9E5A 100%); color: #fff; }
 .voc-view-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
-.voc-view-tag { background: #1E9E5A; color: #fff; font-weight: 700; border-radius: 999px; padding: 2px 10px; font-size: .75rem; }
+.voc-view-tag { background: rgba(255, 255, 255, .18); color: #fff; border: 1px solid rgba(255, 255, 255, .55);
+  font-weight: 700; border-radius: 999px; padding: 2px 10px; font-size: .75rem; }
 .voc-view-btns { margin-left: auto; display: inline-flex; gap: 6px; }
+.voc-view-bar button.small { background: rgba(255, 255, 255, .14); color: #fff; border-color: rgba(255, 255, 255, .5); }
+.voc-view-bar button.small:hover { background: rgba(255, 255, 255, .26); color: #fff; }
 .voc-view-comment { margin: 6px 0 0; font-size: .875rem; font-weight: 600; white-space: pre-wrap; overflow-wrap: anywhere; }
-.voc-view-note { margin: 4px 0 0; color: var(--sub); }
+.voc-view-note { margin: 4px 0 0; color: rgba(255, 255, 255, .85); }
 .modal.voc-view-modal { max-width: 720px; }
 .modal.voc-gate-modal { max-width: 340px; }
 .voc-body input[type="password"] { width: 100%; box-sizing: border-box; font: inherit; padding: 8px 10px; min-height: 40px;
