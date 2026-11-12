@@ -2267,11 +2267,14 @@ $("#restoreSampleBtn").onclick = () => {
 const SESSION_NOTICE_KEY = "ns_session_notice_v1";
 let NOTICE = null;   // {year, month, label, at, grid, teamB, sent:{sid: fingerprint}}
 function loadNotice() {
+  // 관리자 모드의 표는 남의 것이다. 이 탭에 둔 내 기준본을 그 표에 얹으면 '내 공지 ↔ 남의 표'의 변경 안내가 뜨고,
+  // 달이 다르면 아래 줄이 내 기준본을 지워 버린다(2026-11-12 시나리오 검증). 읽지도 지우지도 않는다.
+  if (VOC_VIEW) return;
   const n = sessionGet(SESSION_NOTICE_KEY);
   NOTICE = (n && ST && n.year === ST.year && n.month === ST.month) ? n : null;
   if (n && !NOTICE) sessionDel(SESSION_NOTICE_KEY);
 }
-function saveNotice() { if (NOTICE) { if (!sessionSet(SESSION_NOTICE_KEY, NOTICE)) showToast("기준본을 이 탭에 보관하지 못했습니다 — 새로고침하면 다시 정해야 합니다", true); } else sessionDel(SESSION_NOTICE_KEY); }
+function saveNotice() { if (VOC_VIEW) return; if (NOTICE) { if (!sessionSet(SESSION_NOTICE_KEY, NOTICE)) showToast("기준본을 이 탭에 보관하지 못했습니다 — 새로고침하면 다시 정해야 합니다", true); } else sessionDel(SESSION_NOTICE_KEY); }
 const noticeCode = v => (v === "/" ? "OFF" : (v || "빈칸"));
 function noticeDiff() {
   if (!NOTICE || !ST) return null;
@@ -4073,11 +4076,11 @@ function frame(now){
 requestAnimationFrame(frame);
 })();`;
 }
-// ================================================================ 문의 남기기
+// ================================================================ 문의 파일 받기
 // 파트장이 "이거 이상해요"를 보낼 때: 이름과 내용만 적으면 지금 입력·출력·한 일(칸 수정·재생성 순서)을 앱이 zip 하나로
 // 묶어 준다(bridge.api_download_voc). 앱은 아무것도 보내지 않는다 — 받은 파일을 본인이 메일에 붙여 보내고,
 // 읽고 해결하는 것은 사람이 한다. 여는 길은 둘이다: 화면 맨 아래 'SMC Fair Shift'의 **'SMC' 글자**, 그리고 출력 패널
-// 맨 아래 **실험 기능 줄의 '문의 남기기'**. 입출력 화면에 크게 두었던 칸은 뺐다(사용자 결정 2026-11-11). 맨 아래 글자는
+// 맨 아래 **실험 기능 줄의 '문의 파일 받기'**. 입출력 화면에 크게 두었던 칸은 뺐다(사용자 결정 2026-11-11). 맨 아래 글자는
 // 입력·출력 어느 화면에서나 보이므로 생성 전에도(입력이 반려돼 표를 못 만든 경우) 받을 수 있다 — 실험 기능 줄은 표를
 // 만든 뒤에만 있어서 그 경우에는 못 쓴다.
 function vocClientInfo() {
@@ -4101,7 +4104,10 @@ function vocClientInfo() {
 function vocFormSnapshot() {
   try {
     const cfg = buildCfgFromForm();
-    return { cfg, unreadable: minStaffErrors.slice() };
+    // opts: 생성 버튼 옆의 선택. cfg에는 없지만 결과를 바꾼다(꼼꼼히는 9회, 야간 먼저는 두 단계) — 이게 빠지면
+    // 관리자 모드의 입력 화면에서 다시 생성했을 때 보낸 사람과 다른 표가 나온다.
+    const night = document.getElementById("genModeNight");
+    return { cfg, unreadable: minStaffErrors.slice(), opts: { thorough: thoroughOn(), night_first: !!(night && night.checked) } };
   } catch (e) {
     return { error: String((e && e.message) || e) };
   }
@@ -4112,7 +4118,7 @@ function openVocDialog() {
     bd = document.createElement("div");
     bd.className = "modal-backdrop"; bd.id = "vocModalBackdrop";
     bd.innerHTML = '<div class="modal voc-modal" role="dialog" aria-modal="true" aria-labelledby="vocTitle">' +
-      '<div class="modal-head"><h2 id="vocTitle">문의 남기기</h2><button data-voc="close" aria-label="닫기">✕</button></div>' +
+      '<div class="modal-head"><h2 id="vocTitle">문의 파일 받기</h2><button data-voc="close" aria-label="닫기">✕</button></div>' +
       '<div class="modal-body voc-body">' +
       '<label class="voc-lab" for="vocName">이름</label><input type="text" id="vocName" autocomplete="off" maxlength="40" placeholder="보내는 분 이름">' +
       '<label class="voc-lab" for="vocText">내용</label><textarea id="vocText" rows="6" placeholder="예: 12일 N이 3명이어야 하는데 2명으로 나와요"></textarea>' +
@@ -4168,7 +4174,7 @@ function vocPwOk(value) {
 let VOC_VIEW = null;      // 다시 보는 중인 문의 {name, comment, time, text, replay, hadTable}
 (function initVocEgg() {
   const voc = document.getElementById("eggVoc"), admin = document.getElementById("eggAdmin");
-  if (voc) voc.addEventListener("click", openVocDialog);         // 'SMC' → 문의 남기기
+  if (voc) voc.addEventListener("click", openVocDialog);         // 'SMC' → 문의 파일 받기
   if (admin) admin.addEventListener("click", openVocGate);       // 'Shift' → 관리자 모드(비밀번호)
 })();
 let vocGateUnlocked = false;      // 이번에 연 비밀번호 창에서 비밀번호가 맞았는가
@@ -4249,8 +4255,9 @@ async function loadVocFile(file) {
     window.__genMode = "voc-replay";
     // 입력 화면도 그 사람의 값으로 — 문의를 만든 순간의 입력 화면 값, 없으면(옛 문의 파일) 마지막으로 생성에 쓴 값.
     const formCfg = r.form_cfg || r.last_cfg;
+    NOTICE = null;                 // 내 공지 기준본을 남의 표에 얹지 않는다(이 탭에 보관해 둔 것은 그대로 둔다)
     try {
-      if (formCfg) applyVocForm(formCfg, !!r.staff_table_loaded);
+      if (formCfg) applyVocForm(formCfg, !!r.staff_table_loaded, r.form_opts);
       else VOC_VIEW.formNote = "이 문의 파일에는 입력 화면 값이 없어 입력 화면은 내 값 그대로입니다.";
     } catch (e) {
       VOC_VIEW.formNote = "입력 화면 값을 채우지 못했습니다: " + ((e && e.message) || e);
@@ -4279,7 +4286,7 @@ async function loadVocFile(file) {
 }
 // 입력 화면을 문의의 값으로 채운다. cfg는 그 사람 화면의 buildCfgFromForm() 결과라, 채운 뒤 다시 읽으면 같은 값이 나와야 한다
 // (그래야 관리자 모드에서 '근무표 생성'을 눌렀을 때 그 사람과 같은 표가 나온다). 내가 올려 둔 입력①②의 흔적은 걷어낸다.
-function applyVocForm(cfg, staffTableLoaded_) {
+function applyVocForm(cfg, staffTableLoaded_, opts) {
   wantedRequestsRaw = []; wantedDropped = []; wantedSource = null; wantedActiveTag = ""; wantedYM = null;
   staffOfWanted = []; staffOfAnnual = []; prevRosterNames = []; transferredInNames = [];
   fillForm(cfg);                                   // 병동·근무정보·근무인력·B팀·명단(cfg.staff)·신청·이월정보
@@ -4293,6 +4300,14 @@ function applyVocForm(cfg, staffTableLoaded_) {
   wantedTransferInDates = { ...(cfg.wanted_transfer_in_dates || {}) };
   wantedTransferInDatesRaw = { ...wantedTransferInDates };
   staffTableLoaded = !!staffTableLoaded_;
+  // 만드는 방법 — 문의에 적혀 있을 때만(2026-11-12 이전 문의에는 없다: 그때는 내 선택 그대로 두고 띠에 알린다)
+  if (opts && typeof opts === "object") {
+    const chk = $("#thoroughChk"), all = $("#genModeAll"), night = $("#genModeNight");
+    if (chk) chk.checked = !!opts.thorough;
+    if (night && all) { night.checked = !!opts.night_first; all.checked = !opts.night_first; }
+  } else if (VOC_VIEW) {
+    VOC_VIEW.formNote = "이 문의 파일에는 '꼼꼼히 만들기'·'야간 먼저' 선택이 적혀 있지 않아 그 둘은 내 선택 그대로입니다.";
+  }
   for (const id of ["wantedStatus", "staffTableStatus"]) { const el = $("#" + id); if (el) { clearUploadError(el); el.textContent = ""; } }
   $("#wantedStatus").textContent = `관리자 모드 — 문의 파일의 명단 ${formStaff.length}명 · 신청 ${formRequests.length}건이 들어 있습니다.`;
   $("#staffTableStatus").textContent = staffTableLoaded
@@ -4956,11 +4971,11 @@ function renderSide() {
     `<a class="exp-item" href="guide/gen-animations.html" download="생성화면_애니메이션_12가지.html" ` +
       `title="생성할 때 나오는 애니메이션 12가지를 한 화면에 — 근무표 내용은 들어 있지 않습니다">` +
       `<span class="exp-name">생성 애니메이션(HTML) 받기</span><span class="exp-go" aria-hidden="true">⬇</span></a>` +
-    // 문의 남기기·관리자 모드 — 화면 맨 아래 'SMC'·'Shift' 글자와 같은 창을 연다. 문의는 적용 안 한 편집이 있어도 받을 수
+    // 문의 파일 받기·관리자 모드 — 화면 맨 아래 'SMC'·'Shift' 글자와 같은 창을 연다. 문의는 적용 안 한 편집이 있어도 받을 수
     // 있다(그 편집까지 담긴다). 관리자 모드는 여기서도 비밀번호를 묻는다.
     `<button class="exp-item" id="expVocBtn" onclick="openVocDialog()" ` +
       `title="이름과 내용을 적으면 지금 입력·출력·고친 기록이 파일 하나(zip)로 받아집니다 — 이 기기에 저장만 됩니다">` +
-      `<span class="exp-name">문의 남기기</span><span class="exp-go" aria-hidden="true">›</span></button>` +
+      `<span class="exp-name">문의 파일 받기</span><span class="exp-go" aria-hidden="true">›</span></button>` +
     `<button class="exp-item" id="expAdminBtn" onclick="openVocGate()" ` +
       `title="받은 문의 파일(zip)을 올려 그 사람이 보던 화면을 다시 봅니다 — 비밀번호가 필요합니다">` +
       `<span class="exp-name">관리자 모드</span><span class="exp-go" aria-hidden="true">›</span></button>` +

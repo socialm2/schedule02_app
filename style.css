@@ -856,7 +856,7 @@ table.grid th.day-head:hover, table.grid th.day-head:focus-visible { outline: 2p
 .modal-head h2 { font-size: 1rem; margin: 0; }
 /* 맨 아래 글자의 숨은 길('SMC'·'Shift') — 겉모습은 그대로 두고 손가락이 닿는 자리만 넓힌다(11px 글자는 폰에서 못 누른다) */
 .footer-note span { display: inline-block; padding: 9px 6px; margin: -9px -6px; }
-/* 문의 남기기 — 이름·내용 두 칸과 받기 버튼뿐인 작은 창(맨 아래 'SMC' 글자로 연다) */
+/* 문의 파일 받기 — 이름·내용 두 칸과 받기 버튼뿐인 작은 창(맨 아래 'SMC' 글자로 연다) */
 .modal.voc-modal { max-width: 460px; }
 .voc-body { display: flex; flex-direction: column; gap: 6px; }
 .voc-lab { font-weight: 700; margin-top: 4px; }
