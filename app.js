@@ -564,7 +564,7 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 돌려 운영 필수 → 숙련도 → 공평성 → 전체 위반 순으로 견줘 가장 좋은 표를 보여줍니다. 점수표 줄을 누르면 그 시드의 표로
 바뀝니다(다운로드도 그 표). <b>🔍 꼼꼼히 만들기</b>를 켜고 생성하면 평소 3개 만들어 고르던 것을 9개 만들어 고릅니다 — 위반이 남는 달에
 켜 보세요(일반 생성 약 10초 대비 약 3배인 30초, 빠듯한 달은 몇 분. 진행 중 '여기까지 결과로 멈추기' 가능).</li>
-<li><b>🌙 야간 먼저(N only)</b> — 생성 버튼 아래 '만드는 방법'에서 고르면 두 단계로 만듭니다. 1단계는 야간(N·NK)만 보이고,
+<li><b>🌙 야간 먼저(N only)</b> — 생성 버튼 아래 '만드는 방법'에서 고르면 두 단계로 만듭니다. 1단계는 야간(N·NK)만 보이고 야간을 넣거나 빼는 것만 됩니다(다른 근무로 바꾸기·맞교환은 확정 뒤에).
 위반 숫자·검증 요약도 야간 관련 항목만, 형평성은 '야간 균등'만 셉니다. 야간을 고친 뒤 표 위의 <b>야간 확정 → 나머지 짜기</b>를
 누르면 야간과 그 뒤 쉬는 이틀·수면오프(S/)를 고정하고 나머지를 짭니다. 확정 뒤에는 재생성·편집 적용에도 야간이 그대로이고,
 지워서 모자란 야간은 다른 사람으로 메우지 않고 빨간 필수 위반으로 남습니다('야간 다시 고치기'로 돌아가 직접 채웁니다).</li>
@@ -1824,7 +1824,7 @@ const GEN_TIME_BUDGET_TIGHT_SEC = 45;
 // 로직이 계속 돈다). 틀린 원인을 알려주면 파트장이 엉뚱한 조치를 한다.
 const GEN_SUB_DEFAULT = "보통 몇 초면 끝납니다. 창을 닫지 말고 잠시만 기다려주세요.";
 const GEN_SUB_TIGHT = "인원이 빠듯한 달은 맞는 배치를 찾기 어려워 오래 걸립니다" +
-  "(기기에 따라 10~40초). 새로고침하면 처음부터 다시 하니 그대로 기다려주세요.";
+  "(1분이 넘기도 하고, 꼼꼼히 만들기는 몇 분까지). 새로고침하면 처음부터 다시 하니 그대로 기다려주세요.";
 let genProgressTimer = null;
 let genProgressT0 = 0;
 let genProgressBudget = GEN_TIME_BUDGET_SEC;
@@ -3085,7 +3085,7 @@ function nightStageBar() {
   if (ST.night_stage) {
     const pend = (ST.pending || []).length;
     return `<div class="night-stage-bar" id="nightStageBar"><span class="grow"><b>🌙 야간 먼저 — 1단계</b>` +
-      `야간만 보입니다. 칸을 눌러 야간을 넣고·빼고·옮긴 뒤 확정하세요.` +
+      `야간만 보입니다. 칸을 눌러 야간을 넣고·빼고·옮긴 뒤 확정하세요(다른 근무로 바꾸기는 확정 뒤에).` +
       `${pend ? ` 고친 칸 ${pend}개는 확정할 때 함께 고정됩니다.` : ""}` +
       ` 야간이 모자란 날은 2단계에서 채우지 않고 빨강(필수 위반)으로 남습니다.` +
       ` 위 위반 숫자·검증 요약은 <b>야간 관련 규칙만</b> 셉니다` +
@@ -4481,6 +4481,18 @@ window.openPicker = function (ev, sid, day) {
     for (const k of PARTJANG_BLOCK) allowed.delete(k);
   }
   const cur = isTeamB ? ((ST.team_b_grid[sid] || [])[day] || "") : ST.grid[sid][day];
+  // 야간 먼저 1단계 — 야간을 넣거나(N·NK) 야간을 빼는(OFF) 것만. 가려진 주간 칸을 바꾸면 확정 때 함께 잠겨
+  // "야간만 확정했다"는 생각과 어긋난다. 서버(_night_stage_edit_problem)도 같은 기준으로 막는다.
+  const nightStage = !isTeamB && ST.night_stage;
+  if (nightStage) {
+    for (const k of [...allowed]) {
+      if (!(NIGHT_CODES.has(k) || (k === "OFF" && NIGHT_CODES.has(cur)))) allowed.delete(k);
+    }
+    if (!allowed.size) {
+      showToast(`${sid}님은 야간을 설 수 없는 분이라 야간 단계에서는 고칠 것이 없습니다 — 다른 근무는 '야간 확정 → 나머지 짜기' 뒤에 고쳐 주세요`, true);
+      return;
+    }
+  }
   const rect = td.getBoundingClientRect();
 
   const div = document.createElement("div");
@@ -4509,7 +4521,13 @@ window.openPicker = function (ev, sid, day) {
   }
   // 맞교환 줄 — 그 날 그 근무를 가진 사람과 둘의 하루만 바꾼다(두 칸). 파트장·신입은
   // 엔진 인원에 안 들어가므로 바꿀 상대가 없다.
-  if (!isTeamB && !staff.is_partjang) {
+  if (nightStage) {
+    const note = document.createElement("div");
+    note.className = "picker-why";
+    note.textContent = "야간 단계에서는 야간을 넣거나 빼는 것만 됩니다. 맞교환·다른 근무는 '야간 확정 → 나머지 짜기' 뒤에.";
+    div.appendChild(note);
+  }
+  if (!isTeamB && !staff.is_partjang && !nightStage) {
     const sep = document.createElement("div");
     sep.className = "picker-sep";
     sep.textContent = "맞교환 상대 찾기 (두 칸만 바뀜)";
