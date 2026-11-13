@@ -568,7 +568,7 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 위반 숫자·'필수 위반'·'추가 검토' 탭도 야간 관련 항목만, 형평성은 '야간 균등'만 셉니다. 야간을 고친 뒤 표 위의 <b>야간 확정 → 나머지 짜기</b>를
 누르면 야간과 그 뒤 쉬는 이틀·수면오프(S/)를 고정하고 나머지를 짭니다. 확정 뒤에는 재생성·편집 적용에도 야간이 그대로이고,
 지워서 모자란 야간은 다른 사람으로 메우지 않고 빨간 필수 위반으로 남습니다('야간 다시 고치기'로 돌아가 직접 채웁니다).</li>
-<li><b>오른쪽 패널은 탭 넷</b> — 형평성 · 필수 위반 · 추가 검토 · 상세 자료. 맨 위에 붙어 있고 누르면 그 내용이 나타납니다(폰은 표 위에도 같은 넷).
+<li><b>오른쪽 패널은 탭 다섯</b> — 형평성 · 필수 위반 · 추가 검토 · 원티드 · 상세 자료. 맨 위에 붙어 있고 누르면 그 내용이 나타납니다(폰은 표 위에도 같은 다섯).
 필수 위반이 있는 표는 처음에 그 탭이 열려 있습니다. <b>'필수 위반'·'추가 검토' 탭의 항목을 누르면</b> 그 칸(사람이 없는 항목은 그날 열)으로 이동해 잠깐 깜빡입니다. 수정 대기 칸이 있는
 동안 요약 숫자는 <b>마지막으로 적용한 표 기준</b>이고, '재생성 적용' 뒤 다시 계산됩니다.</li>
 <li><b>날짜 머리칸을 누르면</b> 그날 병동(누가 어디서 일하는지)이 뜨고, 거기서 이름을 누르면 그 사람의 한 달 여정이 뜹니다.
@@ -607,7 +607,7 @@ NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니�
 얼마나 다른지(±), 야간/목표, 피로 점수(낮→밤 직결 ×2 · 밤 뒤 하루만 쉬고 D·E ×3 · 연속 주말 ×1), 원티드 반영/미반영과 사유.
 월간 근무 보고 5-2절에 전원이 실리니 복사해 보내면 됩니다.</li>
 <li><b>변경 안내 초안</b>은 '상세 자료' 탭의 '상세 도구'를 펴면 있습니다 — 공지한 판을 기준본으로 두고, 그 뒤 바뀐 사람에게 보낼 문구를 만듭니다.
-<b>원티드 결과</b>는 '상세 자료' 탭에 접혀 있고 배지에 반영·미반영 수만 보입니다(펴면 미반영부터 전체).</li>
+<b>원티드 결과</b>는 따로 '원티드' 탭에 있습니다 — 단추에 반영/전체 건수가 보이고, 누르면 미반영부터 사유와 함께 전체가 나옵니다.</li>
 <li><b>'형평성' 탭 단추의 숫자</b> — 100점 만점 한 숫자입니다. 칸을 고치는 동안(미적용 편집)에는 "원래 → 수정 후"가 같이 떠서
 고치면 점수가 어떻게 되는지 바로 보이고, 적용하거나 취소하면 한 숫자로 돌아옵니다. 점수는 참고용이라 낮아도 막지 않습니다 —
 연휴·휴가·교육·개인 요청 같은 병동 사정은 파트장이 알고 있으니 그대로 두거나 고치면 됩니다. 다운로드한 출력① 엑셀(일반·OCS 양식 모두)
@@ -2827,7 +2827,7 @@ function renderGrid() {
   }
   // 표 위 상태 띠 — 폰에서는 '확인할 문제'(옛 검증 요약)가 표 40행 아래(약 1,900px)라 생성 직후 보이는 것이
   // 표 머리뿐이었다(2026-10-31 검토 A-11). 누르면 그 자리로 간다. PC에서도 같은 자리에 둔다.
-  // 폰 전용이다(PC에서는 같은 단추 넷이 오른쪽 패널 맨 위에 고정돼 있어 CSS로 숨긴다). 누르면 패널의 그 탭이 열린다.
+  // 폰 전용이다(PC에서는 같은 단추들이 오른쪽 패널 맨 위에 고정돼 있어 CSS로 숨긴다). 누르면 패널의 그 탭이 열린다.
   html += `<div class="result-strip" id="resultStrip">${sideTabsHtml()}</div>`;
   // 범례는 이달 표에 실제로 나온 코드만 — 20색을 다 늘어놓으면 두 줄을 차지해 표가 17행밖에 안
   // 보였다(2026-10-31 검토 C 1-7). 이름 옆 '지'·'밤' 배지와, 날짜·이름이 눌린다는 것도 여기 적는다
@@ -3060,9 +3060,9 @@ delegateClick(document.getElementById("gridContent"), "#nightStageBar button[dat
   } catch (e) { /* 오류 문구는 api()가 띄웠다 */ }
 });
 
-// ---------------------------------------------------------------- 패널 탭 — 형평성 · 필수 위반 · 추가 검토 · 상세 자료
-// 오른쪽 패널 맨 위에 넷이 고정돼 있고, 누르면 그 내용만 나타난다(사용자 2026-11-13: "우측 맨 위로 고정, 클릭하면 짠").
-// 예전에는 네 묶음이 한 줄로 길게 이어져 있어 아래 것을 보려면 패널을 끝까지 내려야 했다. 숫자는 탭 단추에 늘 보이므로
+// ---------------------------------------------------------------- 패널 탭 — 형평성 · 필수 위반 · 추가 검토 · 원티드 · 상세 자료
+// 오른쪽 패널 맨 위에 다섯이 고정돼 있고(처음엔 넷 — 원티드는 같은 날 따로 뺐다), 누르면 그 내용만 나타난다(사용자 2026-11-13: "우측 맨 위로 고정, 클릭하면 짠").
+// 예전에는 묶음들이 한 줄로 길게 이어져 있어 아래 것을 보려면 패널을 끝까지 내려야 했다. 숫자는 탭 단추에 늘 보이므로
 // 다른 탭을 보고 있어도 필수 위반 수는 가려지지 않는다 — 그리고 필수 위반이 있는 표는 처음에 그 탭이 열려 있다.
 // 안 보이는 탭의 내용도 DOM에는 그대로 있다(채울 사람 찾기·빗금 비율처럼 나중에 채워지는 칸이 id로 찾아 쓴다).
 let SIDE_TAB = null;
@@ -3083,7 +3083,8 @@ function sideTabItems() {
     const fe = ST.fair_edited, ae = night && fe ? nightAxis(fe) : null;
     const edited = night ? (ae && ae.score != null ? Math.round(ae.score) : null) : (fe ? fairOneNumber(fe) : null);
     if (base != null) {
-      fair.v = `<b data-fair-strip="${base}">${base}</b>` + (edited != null ? `<span class="strip-arrow">→</span><b data-fair-edited="${edited}">${edited}</b>` : "");
+      // 숫자 뒤에 작은 '점' — 옆 단추들의 수는 건수라, 단위가 없으면 이것만 점수라는 것이 안 읽힌다(사용자 2026-11-13).
+      fair.v = `<b data-fair-strip="${base}">${base}</b>` + (edited != null ? `<span class="strip-arrow">→</span><b data-fair-edited="${edited}">${edited}</b>` : "") + `<small class="st-u">점</small>`;
       fair.cls = k === "good" ? "ok" : k === "low" ? "bad" : k === "mid" ? "warn" : "";
       if (night) fair.title = "야간 균등(100점 만점) — 야간 단계에서는 이 축만 봅니다";
     }
@@ -3092,7 +3093,12 @@ function sideTabItems() {
     { tab: "fair", extra: " fair-strip", ...fair },
     { tab: "hard", label: "필수 위반", v: String(r.hard_count), cls: r.hard_count ? "bad" : "ok", title: "필수 위반과 인력 미달" },
     { tab: "soft", label: "추가 검토", v: String(soft), cls: soft ? "warn" : "", title: "원칙이지만 인원 사정상 못 맞출 수 있는 항목" },
-    { tab: "more", label: "상세 자료", v: "⋯", cls: "", title: "직원별 집계 · 주말 근무자 · 원티드 결과 · 적용 조건 · 상세 도구 · 도움말" },
+    // 원티드 — 신청 중 몇 건이 반영됐나(반영/전체). '상세 자료' 안에 접혀 있던 것을 따로 뺐다(사용자 2026-11-13: "중요해") —
+    // 파트장이 표를 받고 가장 먼저 답해야 하는 질문이 "내 신청 들어갔어요?"인데 탭을 열고 또 펴야 보였다.
+    { tab: "wanted", label: "원티드", v: (r.requests && r.requests.total) ? `${r.requests.accepted}<span class="st-of">/${r.requests.total}</span>` : "–",
+      cls: (r.requests && r.requests.total) ? (r.requests.accepted < r.requests.total ? "warn" : "ok") : "",
+      title: "원티드 신청 결과 — 반영된 건수/전체 신청 건수. 누르면 미반영부터 사유와 함께 나옵니다" },
+    { tab: "more", label: "상세 자료", v: "⋯", cls: "", title: "직원별 집계 · 주말 근무자 · 적용 조건 · 상세 도구 · 도움말" },
   ];
 }
 function sideTabsHtml() {
@@ -3101,6 +3107,8 @@ function sideTabsHtml() {
     `<button type="button" role="tab" class="side-tab ${t.cls}${t.extra || ""}${t.tab === cur ? " on" : ""}" data-tab="${t.tab}" ` +
     `aria-selected="${t.tab === cur}" title="${escAttr(t.title)}"><span class="st-l">${t.label}</span><span class="st-v">${t.v}</span></button>`).join("");
 }
+// '2026-09-01' → '9/1'. 그 꼴이 아니면 그대로 둔다(범위·글자 날짜).
+function shortDate(d) { const m = /^\d{4}-(\d{2})-(\d{2})$/.exec(String(d || "")); return m ? `${Number(m[1])}/${Number(m[2])}` : String(d || ""); }
 // pop: 사람이 눌러 바꿀 때만 '짠' 하고 나타난다 — 칸을 고칠 때마다 패널을 다시 그리는데 그때마다 튀면 정신없다.
 function showSideTab(name, pop) {
   SIDE_TAB = name;
@@ -4697,7 +4705,7 @@ function renderSide() {
   sidePane.querySelectorAll("details[id]").forEach(d => { wasOpen[d.id] = d.open; });
   const hardList = r.hard.filter(v => !v.best_effort), softList = r.hard.filter(v => v.best_effort);
 
-  // ── 맨 위: 탭 넷(고정). 그 아래 '편집 중'은 고치는 중일 때만, 어느 탭에서나 — 표에는 편집본이 보이고 검사는
+  // ── 맨 위: 탭 다섯(고정). 그 아래 '편집 중'은 고치는 중일 때만, 어느 탭에서나 — 표에는 편집본이 보이고 검사는
   // 적용본 기준이라는 것을 먼저 안다.
   const hasPending = ST.pending.length > 0;
   let top = `<div class="side-tabs" id="sideTabs" role="tablist" aria-label="결과 살펴보기">${sideTabsHtml()}</div>` + renderSwap();
@@ -4799,17 +4807,23 @@ function renderSide() {
   const blockH = Object.entries(r.night_block_hist).map(([k, v]) => `${k}일×${v}`).join(", ") || "없음";
   const gapH = Object.entries(r.night_gap_hist).map(([k, v]) => `${k}일×${v}`).join(", ") || "없음";
 
-  // 원티드 결과 — 접어 둔다. 머리줄에는 반영 수와 미반영 수만, 펴면 미반영부터 전체 목록.
+  // 원티드 결과 — 자기 탭('원티드')에 펼쳐서. 미반영부터 사유와 함께, 그 뒤에 반영된 것. 신청이 없는 달에도 탭은 있다(없다고 적는다).
+  let wantedHtml = `<div class="side-sec" id="wantedSec">`;
   if (r.requests_all.length > 0) {
     const rejectedN = r.requests.total - r.requests.accepted;
     const ordered = r.requests_all.filter(q => !q.accepted).concat(r.requests_all.filter(q => q.accepted));
-    html += `<details class="side-sec" id="wantedSec"><summary><h3 style="display:inline">원티드 결과 <span class="count-badge${rejectedN ? " bad" : ""}">반영 ${r.requests.accepted}/${r.requests.total}${rejectedN ? ` · 미반영 ${rejectedN}` : ""}</span></h3></summary>` +
-      '<table class="mini-table"><tr><th>이름</th><th>날짜</th><th>유형</th><th>결과</th></tr>' +
-      ordered.map(q => `<tr><td>${esc(q.staff_id)}</td><td>${esc(q.date)}</td><td>${esc(q.type)}</td>` +
+    wantedHtml += `<h3>원티드 결과 <span class="count-badge${rejectedN ? " bad" : ""}">반영 ${r.requests.accepted}/${r.requests.total}${rejectedN ? ` · 미반영 ${rejectedN}` : ""}</span></h3>` + scopeNote +
+      (rejectedN ? `<p class="side-note">미반영 ${rejectedN}건이 위에 있습니다 — 왜 안 됐는지는 '반려' 아래에 적혀 있습니다.</p>` : `<p class="side-note all-clear">신청 ${r.requests.total}건이 모두 반영됐습니다.</p>`) +
+      // 이름·날짜·유형은 줄바꿈하지 않는다 — 반려 사유가 길면 좁은 패널에서 이름이 한 글자씩 세로로 쌓였다. 날짜는 그 달 것뿐이라 '9/1'로 줄인다.
+      '<table class="mini-table wanted-table"><tr><th>이름</th><th>날짜</th><th>유형</th><th>결과</th></tr>' +
+      ordered.map(q => `<tr><td>${esc(q.staff_id)}</td><td title="${escAttr(q.date)}">${esc(shortDate(q.date))}</td><td>${esc(q.type)}</td>` +
         `<td class="${q.accepted ? "badge-ok" : "badge-bad"}">${q.accepted ? "수용" :
           `반려<br><span style="font-weight:400;font-size:10px;color:var(--sub)">${esc(q.reason || "")}</span>`}</td></tr>`).join("") +
-      "</table></details>";
+      "</table>";
+  } else {
+    wantedHtml += `<h3>원티드 결과 <span class="count-badge">0건</span></h3><p class="side-note">이 달 입력①에 원티드 신청이 없습니다.</p>`;
   }
+  wantedHtml += "</div>";
 
   // 적용 조건(예전 '입력 요약') — 이 표를 만들 때 쓴 값. 공휴일은 **이 달의 달력**(ST.days)에서 센다. 예전엔
   // params_summary.holidays(1년치 표)의 길이를 그대로 찍어 11월에 "공휴일 18개"가 나왔다(2026-10-31 검토 P1).
@@ -4913,7 +4927,7 @@ function renderSide() {
     `</div></div>`;
   const cur = sideTab();
   const pane = (name, inner) => `<div class="tab-pane${name === cur ? " on" : ""}" data-pane="${name}" role="tabpanel">${inner}</div>`;
-  sidePane.innerHTML = top + pane("fair", fairHtml) + pane("hard", hardHtml) + pane("soft", softHtml) + pane("more", html);
+  sidePane.innerHTML = top + pane("fair", fairHtml) + pane("hard", hardHtml) + pane("soft", softHtml) + pane("wanted", wantedHtml) + pane("more", html);
   // 다시 그리기 전에 펴 두었던(또는 닫아 둔) 칸은 그대로 — 기본값은 처음 한 번만 쓴다.
   sidePane.querySelectorAll("details[id]").forEach(d => { if (d.id in wasOpen) d.open = wasOpen[d.id]; });
   renderPending();
