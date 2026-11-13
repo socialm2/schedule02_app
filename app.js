@@ -662,7 +662,8 @@ D·E에는 이 예외가 없습니다.</li>
 <li><b>D 고연차/저연차 · E 고연차/저연차 · N 고연차/저연차</b> — <b>그 근무조에</b> 숙련도 4~5인 분(고연차)과 1~3인 분(저연차)이
 각각 몇 명인지입니다. <b>2/7</b>이면 그날 그 조에 고연차 2명, 저연차 7명입니다. 예전엔 D·E·N을 섞은 그날 전체 인원
 두 줄(Lv4-5·Lv1-3)이었는데, 섞으면 "오늘 E에 고연차가 몇 명인가"가 안 보여서 조별로 바꿨습니다. 사람 수로 세므로
-(반일 근무도 1명) 두 수를 더한 값이 위 'D 인원' 줄과 다른 날이 있을 수 있습니다. 고연차가 0명이면 평균 줄과 함께 빨개집니다.</li>
+(반일 근무도 1명) 두 수를 더한 값이 위 'D 인원' 줄과 다른 날이 있을 수 있습니다. 앞 수(고연차)는 진한 색, 뒤 수(저연차)는 흐린 색으로 적습니다.
+칸 색은 위 인원 줄과 같은 빨강·노랑입니다 — <b>빨강</b>은 고연차가 없는 조(필수 위반, 평균 줄도 함께 빨개집니다), <b>노랑</b>은 고연차가 1명뿐인 조(그 한 명이 빠지면 위반 — 밤 조를 야간리더로 채운 날도 노랑).</li>
 </ul>
 <p>같은 줄이 <b>월간근무표</b> 맨 아래에도 붙습니다(기준 미달은 거기서도 빨갛게 표시됩니다).
 <b>연간근무표</b>에도 숫자는 들어가지만 빨간 칠은 없습니다 — 그 파일은 다음 달 입력②로 다시
@@ -3436,6 +3437,22 @@ function computeLevelShortFlags() {
   return out;
 }
 
+// 그 날 그 조에 고연차가 한 명뿐인지 — '고연차/저연차' 칸을 노랗게 칠할지 판단용(사용자 2026-11-13: 위 인원 줄처럼
+// 이 줄에도 빨강·노랑을 칠해 달라). 빨강(고연차 없음 = 필수 위반)보다 한 단계 약한 경고다: 규칙은 지켰지만 그 한 명이
+// 빠지면 바로 위반이 된다. 밤 조에 고연차 없이 야간리더로 충족한 날('0/n'인데 빨강이 아닌 날)도 같은 노랑이다.
+// 평균 줄은 칠하지 않는다 — 평균은 한 명뿐인지와 상관없는 숫자다.
+function computeLevelThinFlags() {
+  const lv = computeDailyLevelStats();
+  const out = {};
+  for (const k of ["D", "E", "N"]) out[`${k} 고연차/저연차`] = lv.map(d => d.cnt[k][1] > 0 && !d.short[k] && d.cnt[k][0] <= 1);
+  return out;
+}
+// 'D 고연차/저연차'와 그 값 '2/7' — 앞(고연차)은 진하게, 뒤(저연차)는 흐리게 써서 어느 수가 어느 쪽인지 색으로 읽히게 한다
+// (같은 색·굵기로 '2/7'만 적으니 구분이 안 됐다 — 사용자 2026-11-13). 줄 이름도 같은 색이라 범례 노릇을 한다.
+function levelPairHtml(a, b) {
+  return `<span class="lv-hi">${esc(a)}</span><span class="lv-sl">/</span><span class="lv-lo">${esc(b)}</span>`;
+}
+
 function renderDailyStaffCountRows(foot) {
   const specs = dailyDutyRowSpecs();
   const vals = computeDailyDutyRows(specs);
@@ -3471,29 +3488,37 @@ function renderDailyStaffCountRows(foot) {
 function renderDailyLevelFootRows() {
   const foot = computeFootValues();
   const shortFlags = computeLevelShortFlags();
+  const thinFlags = computeLevelThinFlags();
   const blankTail = blankTailCells();
   const blankHead = '<td class="stat-col">–</td><td class="stat-col">–</td>';
   // 레벨 줄(평균·고연차/저연차)도 인원 행과 똑같이 다룬다. 근무를 하나 바꾸면 그날 누가
   // 서 있는지가 바뀌므로 이 셋도 같이 움직이는데, 표시가 없으면 조용히 달라진다 —
   // 레벨 균형은 파트장이 근무를 고칠 때 실제로 보는 값이라 놓치면 안 된다.
-  const rowHtml = (label) =>
-    `<tr class="level-foot-row"><td class="nm">${label}</td>${blankHead}` +
+  const rowHtml = (label) => {
+    const isCnt = label.endsWith("저연차"), duty = label.slice(0, 1);
+    const nameHtml = isCnt ? `${duty} ${levelPairHtml("고연차", "저연차")}` : label;
+    return `<tr class="level-foot-row"><td class="nm">${nameHtml}</td>${blankHead}` +
     foot[label].map((v, d) => {
       const moved = BASE_FOOT && BASE_FOOT[label] && BASE_FOOT[label][d] !== v;
       const isShort = shortFlags[label] && shortFlags[label][d];
-      const duty = label.slice(0, 1), isCnt = label.endsWith("저연차");
+      const isThin = !isShort && thinFlags[label] && thinFlags[label][d];
+      const pair = isCnt && v !== "–" ? v.split("/") : null;
       const tip = (isShort ? `${d + 1}일 ${duty}조에 숙련도 4 이상이 없습니다`
-                   : (isCnt && v !== "–" ? `${d + 1}일 ${duty} — 고연차(숙련도 4~5) ${v.split("/")[0]}명 / 저연차(숙련도 1~3) ${v.split("/")[1]}명` : ""))
-        + (moved ? `${isShort || (isCnt && v !== "–") ? " · " : ""}${d + 1}일 ${label} 수정 전 ${BASE_FOOT[label][d]} → 지금 ${v}` : "");
+                   : isThin ? (pair[0] === "0" ? `${d + 1}일 ${duty}조에 고연차가 없습니다 — 야간리더로 충족(저연차 ${pair[1]}명)`
+                                               : `${d + 1}일 ${duty}조 고연차가 1명뿐입니다 — 이 한 명이 빠지면 필수 위반(저연차 ${pair[1]}명)`)
+                   : (pair ? `${d + 1}일 ${duty} — 고연차(숙련도 4~5) ${pair[0]}명 / 저연차(숙련도 1~3) ${pair[1]}명` : ""))
+        + (moved ? `${isShort || pair ? " · " : ""}${d + 1}일 ${label} 수정 전 ${BASE_FOOT[label][d]} → 지금 ${v}` : "");
       const title = tip ? ` title="${escAttr(tip)}"` : "";
       // 빨강은 인원 줄과 같은 .stat-short다. 예전엔 여기만 클래스가 "short"였는데 그 이름의 스타일이 없어서,
       // 도움말은 "숙련도 4 이상이 없는 조는 빨개집니다"라는데 실제로는 한 번도 빨개지지 않았다(2026-11-13에 발견).
-      return `<td class="stat-col${moved ? " count-changed" : ""}${isShort ? " stat-short" : ""}" ` +
-             `data-stat="${label}" data-day="${d}"${title}>${v}</td>`;
+      // 노랑(.stat-thin)은 인원 줄의 '초과' 노랑과 같은 색이다 — 뜻은 다르다(고연차 1명뿐). 표 머리 설명 줄에 적혀 있다.
+      return `<td class="stat-col${moved ? " count-changed" : ""}${isShort ? " stat-short" : isThin ? " stat-thin" : ""}" ` +
+             `data-stat="${label}" data-day="${d}"${title}>${pair ? levelPairHtml(pair[0], pair[1]) : v}</td>`;
     }).join("") + `${blankTail}</tr>`;
+  };
   // B팀 구분행과 같은 스타일로, 통계 3행 위에도 제목 행을 붙인다.
   const totalCols = 3 + ST.num_days + tailStatCount();  // 이름 + 잔휴2 + 날짜 + 계산열
-  const divider = `<tr class="team-b-divider"><td colspan="${totalCols}">통계 · 날짜별 인원(파트장 제외) — 빨강 미달 · 노랑 초과 · 점선 아래는 최소인력에 안 세는 코드</td></tr>`;
+  const divider = `<tr class="team-b-divider"><td colspan="${totalCols}">통계 · 날짜별 인원(파트장 제외) — 빨강 미달 · 노랑 초과 · 점선 아래는 최소인력에 안 세는 코드 · 고연차/저연차 줄은 빨강 고연차 없음 · 노랑 고연차 1명뿐</td></tr>`;
   return divider +
     renderDailyStaffCountRows(foot) +
     LEVEL_FOOT_LABELS.map(rowHtml).join("");
