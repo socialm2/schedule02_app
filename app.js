@@ -518,7 +518,7 @@ D/E/N·®·ⓡ·금월·T연·R연·부서 칸은 읽지 않습니다. 표기는
 있으면 자동으로 막힙니다.</p>
 <ol>
 <li>출력②(연간근무표)를 받아 엽니다.</li>
-<li><b>기존 인원 목록 바로 아래</b>(맨 아래 'D 인원'~'N Lv4-5' 통계 줄보다 위)에 행을 추가합니다 —
+<li><b>기존 인원 목록 바로 아래</b>(맨 아래 'D 인원'~'N 고연차/저연차' 통계 줄보다 위)에 행을 추가합니다 —
 통계 줄 뒤에 넣으면 읽히지 않습니다(넣으면 경고로 알려드립니다).</li>
 <li><b>'전입' 칸에서 '전입'을 고릅니다</b>(드롭다운).</li>
 <li><b>월중에 온 사람이면 '전입일' 칸에 날짜</b>를 넣습니다(날짜 셀). 비우면 1일자 전입.
@@ -652,17 +652,17 @@ prn으로 잡혀 못 채운 날이 채운 날처럼 보입니다.</li>
 '추가 검토'에도 같은 날이 뜹니다). 칸에 마우스를 올리면 "3일 N+NK 5명 (기준 6명 — 미달)"처럼
 실제 인원과 기준이 같이 뜹니다. 평일·토요일·일요일·공휴일마다 기준이 다르므로, 같은 숫자라도
 어떤 날은 빨갛고 어떤 날은 아닙니다.</li>
-<li><b>D 레벨 · E 레벨 · N 레벨</b> — <b>근무조마다</b> 그날 선 사람들의 평균 숙련도입니다.
+<li><b>D 평균 · E 평균 · N 평균</b> — <b>근무조마다</b> 그날 선 사람들의 평균 숙련도입니다.
 예전엔 전체를 섞은 '레벨평균' 한 줄이었는데, 섞으면 어느 조가 얇은지 안 보입니다 —
 평균이 3.1이어도 그날 E조는 전원 저연차일 수 있어서요. <b>숙련도 4 이상이 한 명도 없는
 조는 칸이 빨개집니다</b>(필수 규칙). 아무도 안 선 조는 <b>–</b>입니다.
 <b>N 줄에는 예외가 하나 있습니다</b> — 입력① '야간리더' 칸에 O를 적은 분이 그 밤에 서 있으면
 숙련도와 상관없이 충족으로 보므로 빨개지지 않습니다(평균 숫자는 실제 숙련도 그대로입니다).
 D·E에는 이 예외가 없습니다.</li>
-<li><b>D Lv4-5 · E Lv4-5 · N Lv4-5</b> — <b>그 근무조에</b> 숙련도 4~5인 분이 몇 명인지를 <b>"고연차/그 조 인원"</b>으로
-적습니다. <b>2/9</b>면 그날 그 조 9명 중 2명이 숙련도 4~5입니다(나머지 7명이 1~3). 예전엔 D·E·N을 섞은 그날 전체 인원
-두 줄(Lv4-5·Lv1-3)이었는데, 섞으면 "오늘 E에 고연차가 몇 명인가"가 안 보여서 조별로 바꿨습니다. 인원은 사람 수로 세므로
-(반일 근무도 1명) 위 'D 인원' 줄과 숫자가 다른 날이 있을 수 있습니다. 0명이면 평균 줄과 함께 빨개집니다.</li>
+<li><b>D 고연차/저연차 · E 고연차/저연차 · N 고연차/저연차</b> — <b>그 근무조에</b> 숙련도 4~5인 분(고연차)과 1~3인 분(저연차)이
+각각 몇 명인지입니다. <b>2/7</b>이면 그날 그 조에 고연차 2명, 저연차 7명입니다. 예전엔 D·E·N을 섞은 그날 전체 인원
+두 줄(Lv4-5·Lv1-3)이었는데, 섞으면 "오늘 E에 고연차가 몇 명인가"가 안 보여서 조별로 바꿨습니다. 사람 수로 세므로
+(반일 근무도 1명) 두 수를 더한 값이 위 'D 인원' 줄과 다른 날이 있을 수 있습니다. 고연차가 0명이면 평균 줄과 함께 빨개집니다.</li>
 </ul>
 <p>같은 줄이 <b>월간근무표</b> 맨 아래에도 붙습니다(기준 미달은 거기서도 빨갛게 표시됩니다).
 <b>연간근무표</b>에도 숫자는 들어가지만 빨간 칠은 없습니다 — 그 파일은 다음 달 입력②로 다시
@@ -3189,7 +3189,7 @@ function computeDailyLevelStats() {
                E: byKey.E.length > 0 && !byKey.E.some(l => l >= 4),
                N: byKey.N.length > 0 && !byKey.N.some(l => l >= 4)
                   && !nightLeaderOn },
-      // 듀티별 [Lv4-5 인원, 그 듀티 인원] — 'D Lv4-5' 줄의 "2/9". 사람 단위로 센다(반일도 1명).
+      // 듀티별 [고연차(Lv4-5) 인원, 그 듀티 인원] — 'D 고연차/저연차' 줄의 "2/7"(저연차 = 인원 − 고연차). 사람 단위로 센다(반일도 1명).
       // 예전엔 그날 전체(D·E·N·prn을 섞은)의 Lv4-5·Lv1-3 인원 두 줄이었다 — "오늘 E에 고연차가 몇 명인가"가
       // 안 보여 듀티별로 쪼갰다(사용자 지적 2026-11-13). Lv1-3은 인원에서 빼면 나오므로 따로 줄을 두지 않는다.
       cnt: { D: [byKey.D.filter(l => l >= 4).length, byKey.D.length],
@@ -3342,7 +3342,8 @@ function dutyNeedState(sp, d, c) {
 
 // 하단 통계(날짜별 인원 줄 + 듀티별 레벨 줄 여섯)의 '화면에 보이는 값' 한 벌.
 // 레벨 줄의 라벨과 글자는 엑셀(excel_export._daily_level_cells · models.STAFF_TABLE_LEVEL_ROW_LABELS)과 같아야 한다.
-const LEVEL_FOOT_LABELS = ["D 레벨", "D Lv4-5", "E 레벨", "E Lv4-5", "N 레벨", "N Lv4-5"];
+// 줄 이름은 사용자가 정했다(2026-11-13): 'D 레벨'·'D Lv4-5'가 아니라 'D 평균'·'D 고연차/저연차'.
+const LEVEL_FOOT_LABELS = ["D 평균", "D 고연차/저연차", "E 평균", "E 고연차/저연차", "N 평균", "N 고연차/저연차"];
 // 숫자가 아니라 글자로 두는 이유는 레벨평균 때문이다 — 소수 한 자리로 반올림해 보여주므로
 // 숫자로 비교하면 눈에는 똑같은 3.4인데 "바뀌었다"고 표시하게 된다.
 function computeFootValues() {
@@ -3352,8 +3353,8 @@ function computeFootValues() {
   const out = {};
   specs.forEach((sp, i) => { out[sp.label] = vals[i].map(String); });
   for (const k of ["D", "E", "N"]) {
-    out[`${k} 레벨`] = lv.map(d => (d[k] === null ? "–" : d[k].toFixed(1)));
-    out[`${k} Lv4-5`] = lv.map(d => (d.cnt[k][1] ? `${d.cnt[k][0]}/${d.cnt[k][1]}` : "–"));
+    out[`${k} 평균`] = lv.map(d => (d[k] === null ? "–" : d[k].toFixed(1)));
+    out[`${k} 고연차/저연차`] = lv.map(d => (d.cnt[k][1] ? `${d.cnt[k][0]}/${d.cnt[k][1] - d.cnt[k][0]}` : "–"));
   }
   return out;
 }
@@ -3362,8 +3363,8 @@ function computeFootValues() {
 function computeLevelShortFlags() {
   const lv = computeDailyLevelStats();
   const out = {};
-  // 평균 줄과 'Lv4-5/인원' 줄을 같이 칠한다 — "0/7"이 빨간 것이 평균 2.1이 빨간 것보다 바로 읽힌다.
-  for (const k of ["D", "E", "N"]) out[`${k} 레벨`] = out[`${k} Lv4-5`] = lv.map(d => d.short[k]);
+  // 평균 줄과 '고연차/저연차' 줄을 같이 칠한다 — "0/7"이 빨간 것이 평균 2.1이 빨간 것보다 바로 읽힌다.
+  for (const k of ["D", "E", "N"]) out[`${k} 평균`] = out[`${k} 고연차/저연차`] = lv.map(d => d.short[k]);
   return out;
 }
 
@@ -3404,7 +3405,7 @@ function renderDailyLevelFootRows() {
   const shortFlags = computeLevelShortFlags();
   const blankTail = blankTailCells();
   const blankHead = '<td class="stat-col">–</td><td class="stat-col">–</td>';
-  // 레벨 줄(평균·Lv4-5/인원)도 인원 행과 똑같이 다룬다. 근무를 하나 바꾸면 그날 누가
+  // 레벨 줄(평균·고연차/저연차)도 인원 행과 똑같이 다룬다. 근무를 하나 바꾸면 그날 누가
   // 서 있는지가 바뀌므로 이 셋도 같이 움직이는데, 표시가 없으면 조용히 달라진다 —
   // 레벨 균형은 파트장이 근무를 고칠 때 실제로 보는 값이라 놓치면 안 된다.
   const rowHtml = (label) =>
@@ -3412,9 +3413,9 @@ function renderDailyLevelFootRows() {
     foot[label].map((v, d) => {
       const moved = BASE_FOOT && BASE_FOOT[label] && BASE_FOOT[label][d] !== v;
       const isShort = shortFlags[label] && shortFlags[label][d];
-      const duty = label.slice(0, 1), isCnt = label.endsWith("Lv4-5");
+      const duty = label.slice(0, 1), isCnt = label.endsWith("저연차");
       const tip = (isShort ? `${d + 1}일 ${duty}조에 숙련도 4 이상이 없습니다`
-                   : (isCnt && v !== "–" ? `${d + 1}일 ${duty} — 숙련도 4~5인 사람 ${v.split("/")[0]}명 / 그 근무 ${v.split("/")[1]}명` : ""))
+                   : (isCnt && v !== "–" ? `${d + 1}일 ${duty} — 고연차(숙련도 4~5) ${v.split("/")[0]}명 / 저연차(숙련도 1~3) ${v.split("/")[1]}명` : ""))
         + (moved ? `${isShort || (isCnt && v !== "–") ? " · " : ""}${d + 1}일 ${label} 수정 전 ${BASE_FOOT[label][d]} → 지금 ${v}` : "");
       const title = tip ? ` title="${escAttr(tip)}"` : "";
       // 빨강은 인원 줄과 같은 .stat-short다. 예전엔 여기만 클래스가 "short"였는데 그 이름의 스타일이 없어서,
