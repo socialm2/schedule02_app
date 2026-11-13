@@ -509,20 +509,31 @@ td.sn.fragile-day span, td.sk.fragile-day span, td.sjo.fragile-day span { backgr
 .output-title { font-size: 1.0625rem; margin: 0; }
 .output-subtitle { font-size: .78125rem; color: var(--sub); margin: 0; font-weight: 600; }
 /* 표 위 한 줄 — 왼쪽에 제목·병동·연월·인원·회차, 오른쪽에 파일 작업줄. 좁으면 작업줄이 아래로 내려간다. */
-.out-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin: 0 0 8px; }
+/* 표 위 머리줄 — 제목 + 파일 줄(되올리기 · 입력으로 | 출력① · 출력②).
+   넓으면 한 줄(제목 왼쪽, 단추 넷 오른쪽). 좁아서 단추 넷이 한 줄에 안 들어가면 **두 줄 두 칸**으로, 칸 너비를 똑같이 해서 선다.
+   그냥 flex-wrap에 맡기면 너비가 제각각인 단추가 되는 대로 넘어가 줄마다 길이가 달랐다(폰 세로·가로 모두 — 사용자 2026-11-13).
+   기준은 창 너비가 아니라 **이 머리줄의 너비**다(@container): 폰을 눕히면 창은 넓어도 표 영역은 오른쪽 패널만큼 좁다.
+   옛 브라우저(컨테이너 쿼리 없음)는 아래 @media 한 벌로 폰 세로에서만 두 줄 두 칸이 된다. */
+.out-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin: 0 0 8px; container-type: inline-size; }
 .out-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; }
 .file-bar-wrap { margin-left: auto; min-width: 0; max-width: 100%; }
 .file-bar { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
 .file-bar .file-btn { min-height: 26px; padding: 2px 10px; border-radius: 8px; font-weight: 700; font-size: .75rem; line-height: 1.2;
-  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; margin: 0; }
 .file-bar .file-btn.sub { font-weight: 600; background: var(--card); color: var(--ink); border-color: var(--line); }
 .file-bar-note { margin: 4px 0 0; text-align: right; }
 .file-bar-wrap .upload-branch { max-width: 360px; margin-left: auto; }
 .file-bar-wrap #nextMonthCard:not(:empty) { max-width: 420px; margin: 6px 0 0 auto; }
+@container (max-width: 620px) {
+  .file-bar-wrap { margin-left: 0; width: 100%; }
+  .file-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .file-bar .file-btn { min-height: 34px; min-width: 0; }
+  .file-bar-note { text-align: left; }
+}
 @media (max-width: 680px) {
   .file-bar-wrap { margin-left: 0; width: 100%; }
-  .file-bar { justify-content: flex-start; }
-  .file-bar .file-btn { min-height: 34px; flex: 1 1 auto; justify-content: center; }
+  .file-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .file-bar .file-btn { min-height: 34px; min-width: 0; }
   .file-bar-note { text-align: left; }
 }
 /* 표 보기 옵션(빗금·집계 열 전체·그 밖 코드 줄)과 접힌 범례 — 한 줄에 작은 글씨로. */
