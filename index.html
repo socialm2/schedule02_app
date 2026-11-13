@@ -57,7 +57,7 @@
   <header>
     <!-- 배지·빌드시각은 스크린리더가 제목으로 읽지 않게 감싼다(aria-hidden). .build-time span 자체는
          CI(deploy.yml)가 정규식으로 찾아 바꾸므로 그 태그에는 속성을 더하지 말 것. -->
-    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.88</span><span class="build-time">Updated 2026-11-13 19:22:46</span></span></h1>
+    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.88</span><span class="build-time">Updated 2026-11-13 20:17:56</span></span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
@@ -200,7 +200,7 @@
               <div class="upload-row">
                 <input type="file" id="staffTableInput" accept=".xlsx" class="file-input-hidden" tabindex="-1">
                 <button type="button" class="upload-btn" data-target="staffTableInput" aria-label="입력② 연간근무표 업로드">업로드</button>
-                <button type="button" class="upload-btn format-btn" data-href="templates/입력2_연간근무표_2026-08.xlsx" data-download="입력2_연간근무표_예시_2026-08.xlsx" aria-label="입력② 연간근무표 예시 파일 다운로드" title="열 구성을 보는 예시 파일입니다(2026년 8월분) — 실제로는 지난달 출력②를 올립니다">예시(다운로드)</button>
+                <button type="button" class="upload-btn format-btn" id="staffTableExampleBtn" aria-label="입력② 연간근무표 예시 파일 다운로드" title="화면 연월에 맞는 예시 파일을 받습니다(그 달의 바로 전달까지 이어진 연간근무표) — 실제로는 지난달 출력②를 올립니다">예시(다운로드)</button>
               </div>
               <button id="staffTableClearBtn" class="small" style="display:none">반영 해제</button>
               <button id="staffTableClearAllBtn" class="small" style="display:none">이전 파일도 해제</button>

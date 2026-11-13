@@ -20,7 +20,7 @@
 // index.html의 빌드시각만 새것으로 바뀌니 "최신 버전인데 고친 게 하나도 안 보인다"가
 // 된다. 하루치 수정이 통째로 안 보인 채 나갔었다.
 
-const CACHE_NAME = "ns-sched-20261113-192246-90b4d44";
+const CACHE_NAME = "ns-sched-20261113-201756-10bf317";
 
 // py_app.zip은 엔진 코드라 배포마다 바뀌므로 APP_FILES(네트워크 우선)로 둔다 —
 // HEAVY_FILES(캐시 우선)에 있으면, 서비스워커가 갱신되는 그 페이지 로드에서조차
@@ -37,6 +37,23 @@ const CACHE_NAME = "ns-sched-20261113-192246-90b4d44";
 const APP_FILES = ["./", "index.html", "app.js", "platform.js", "a11y.js", "genviz.js", "style.css", "pyworker.js",
                    "manifest.json", "py_app.zip",
                    "templates/입력2_연간근무표_2026-08.xlsx",
+                   // 입력② 달별 예시(tools/make_input2_examples.py) — 화면의 '예시(다운로드)'가 화면 연월에 맞는 것을 내준다
+                   "templates/입력2_연간근무표_예시_2026-09.xlsx",
+                   "templates/입력2_연간근무표_예시_2026-10.xlsx",
+                   "templates/입력2_연간근무표_예시_2026-11.xlsx",
+                   "templates/입력2_연간근무표_예시_2026-12.xlsx",
+                   "templates/입력2_연간근무표_예시_2027-01.xlsx",
+                   "templates/입력2_연간근무표_예시_2027-02.xlsx",
+                   "templates/입력2_연간근무표_예시_2027-03.xlsx",
+                   "templates/입력2_연간근무표_예시_2027-04.xlsx",
+                   "templates/입력2_연간근무표_예시_2027-05.xlsx",
+                   "templates/입력2_연간근무표_예시_2027-06.xlsx",
+                   "templates/입력2_연간근무표_예시_2027-07.xlsx",
+                   "templates/입력2_연간근무표_예시_2027-08.xlsx",
+                   "templates/입력2_연간근무표_예시_2027-09.xlsx",
+                   "templates/입력2_연간근무표_예시_2027-10.xlsx",
+                   "templates/입력2_연간근무표_예시_2027-11.xlsx",
+                   "templates/입력2_연간근무표_예시_2027-12.xlsx",
                    "templates/입력1_원티드표_샘플.xlsx",
                    "guide/quick-start.html", "guide/one-pager.html", "guide/security.html"];
 

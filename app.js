@@ -1372,21 +1372,36 @@ document.querySelectorAll(".upload-btn[data-target]").forEach(btn => {
   btn.onclick = () => $("#" + btn.dataset.target).click();
 });
 
-// "양식(다운로드)" — <a download>였던 걸 <button>으로 바꿨으니, 클릭 시 임시 <a>를
-// 만들어 다운로드를 대신 트리거한다(파일명 지정 등 기존 동작은 그대로 유지).
-document.querySelectorAll(".upload-btn[data-href]").forEach(btn => {
-  btn.onclick = () => {
-    const a = document.createElement("a");
-    a.href = btn.dataset.href;
-    // 입력② 예시는 고정 파일(2026년 8월까지의 연간근무표)이다. 한때 받는 이름만 화면 연월로 붙였는데(2026-10-31 검토 A-15),
-    // 그러면 '입력2_연간근무표_2026-12.xlsx'라는 이름의 8월분 파일이 나간다 — 받은 사람이 그대로 올렸다가 "11월이 이어져 있지
-    // 않다"는 경고를 받았다(사용자 2026-11-13). 이름은 내용을 말해야 한다: 예시라는 것과 몇 월분인지.
-    a.download = btn.dataset.download || "";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  };
-});
+// ---------------------------------------------------------------- 입력② 예시 — 화면 연월에 맞는 파일을 내준다
+// 입력②는 '만드는 달의 바로 전달까지' 이어진 연간근무표여야 이월정보를 쓴다. 예시가 2026년 8월분 하나뿐이던 때에는 12월
+// 화면에서 받아 그대로 올리면 "11월이 이어져 있지 않다"는 경고가 떴다. 달마다 한 개씩 미리 만들어 두고(사용자 2026-11-13:
+// "미래 1년치 만들어 놓고 그 달에 맞게 각각 바꿔 줘") 화면이 12월이면 11월까지의 예시를 준다 — 받아서 그대로 올리면 이어진다.
+// 파일은 tools/make_input2_examples.py가 앱과 같은 길(입력② → 생성 → 출력②)로 한 달씩 실제로 만들어 이은 것이다.
+// 범위(첫 달·끝 달 = 파일의 마지막 달)는 templates/의 파일과 같아야 한다 — tests/test_pyodide_sync.py가 대조한다.
+// 범위 밖의 달에는 가장 가까운 예시가 나가고(이름에 몇 월분인지 있다), 올리면 renderStaffTableYmNote가 알린다.
+const INPUT2_EXAMPLES = { first: [2026, 8], last: [2027, 12] };
+function input2ExampleFor(y, mo) {
+  const key = ([a, b]) => a * 12 + b;
+  let want = (y > 0 && mo >= 1 && mo <= 12) ? (mo === 1 ? [y - 1, 12] : [y, mo - 1]) : INPUT2_EXAMPLES.first;
+  let exact = y > 0 && mo >= 1 && mo <= 12;
+  if (key(want) < key(INPUT2_EXAMPLES.first)) { want = INPUT2_EXAMPLES.first; exact = false; }
+  if (key(want) > key(INPUT2_EXAMPLES.last)) { want = INPUT2_EXAMPLES.last; exact = false; }
+  const ym = `${want[0]}-${String(want[1]).padStart(2, "0")}`;
+  // 2026-08은 예전부터 있던 고정 예시다(테스트·도구가 그 이름으로 쓴다) — 받는 이름만 다른 달과 같은 꼴로 맞춘다.
+  return { y: want[0], m: want[1], exact, name: `입력2_연간근무표_예시_${ym}.xlsx`,
+           file: ym === "2026-08" ? "templates/입력2_연간근무표_2026-08.xlsx" : `templates/입력2_연간근무표_예시_${ym}.xlsx` };
+}
+$("#staffTableExampleBtn").onclick = async () => {
+  const y = parseInt($("#f_year").value, 10), mo = parseInt($("#f_month").value, 10);
+  const ex = input2ExampleFor(y, mo);
+  let got = ex, ok = await downloadAppFile(ex.file, ex.name);
+  // 그 달 예시를 못 받으면(오프라인 — 달별 예시는 처음 누를 때 받는다) 늘 기기에 있는 2026년 8월분으로 물러선다.
+  if (!ok && (ex.y !== 2026 || ex.m !== 8)) { got = { ...input2ExampleFor(2026, 9), exact: false }; ok = await downloadAppFile(got.file, got.name); }
+  if (!ok) { showToast("예시 파일을 받지 못했습니다 — 인터넷 연결을 확인하고 다시 눌러 주세요", true); return; }
+  showToast(got.exact
+    ? `${got.y}년 ${got.m}월까지의 예시를 받았습니다 — ${y}년 ${mo}월 근무표를 만들 때 입력②로 올리는 파일입니다`
+    : `화면 연월에 맞는 예시가 없어 ${got.y}년 ${got.m}월까지의 예시를 받았습니다 — 그대로 올리면 이월정보 없이 만들어집니다`, !got.exact);
+};
 
 // 실제로 쓸 인원 명단을 한 곳에서 정한다 — 입력①(이번 달 명단) > 입력②(지난달 명단)
 // > 샘플 순. 파일을 올리거나 반영을 해제할 때마다 이 함수만 부르면 되고,
@@ -1666,7 +1681,7 @@ function renderStaffTableYmNote() {
   el.innerHTML = `⚠ 올린 입력②는 <b>${ly}년 ${lm}월까지</b>의 근무표입니다 — 화면은 ${y}년 ${mo}월이라 바로 전달(${py}년 ${pm}월)이 아닙니다. ` +
     `이대로 만들면 이월정보(잔휴·연속근무·야간 간격)를 쓰지 못합니다. ` +
     `<b>${pm}월분 출력②</b>(없으면 OCS ${pm}월 근무표)를 올리거나, 처음 쓰는 달이면 '반영 해제'하고 만드세요. ` +
-    `이 파일은 ${ny}년 ${nm}월 근무표를 만들 때 맞습니다(옆의 '예시' 파일은 2026년 8월분입니다).`;
+    `이 파일은 ${ny}년 ${nm}월 근무표를 만들 때 맞습니다. 써 보는 중이면 옆의 '예시(다운로드)'를 다시 누르세요 — 화면 연월에 맞는 예시를 받습니다.`;
 }
 
 $("#wantedClearBtn").onclick = () => {
