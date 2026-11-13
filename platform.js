@@ -123,7 +123,10 @@ function showUpdateBanner() {
     '<button type="button" id="updateLaterBtn" class="small">나중에</button>';
   document.body.appendChild(bar);
   document.getElementById("updateReloadBtn").onclick = () => {
-    // 표가 있으면 app.js가 세션에 남겨 두므로 새로 고친 뒤 '직전 근무표 복원'으로 돌아올 수 있다.
+    // 새로 고치면 화면의 근무표와 올린 입력①②는 사라진다(되살리는 길은 없다) — 표나 올린 파일이 있으면 먼저 묻는다.
+    // 브라우저의 '사이트를 나가시겠습니까'는 무엇을 잃는지 말해 주지 않아서 우리 말로 묻고, 그 뒤에는 한 번 더 묻지 않게 한다.
+    if (typeof unloadGuardNeeded === "function" && unloadGuardNeeded() && !confirm(
+        "새로 고치면 지금 화면의 근무표와 올린 파일이 사라집니다.\n쓸 근무표는 먼저 출력①·②로 내려받아 두세요.\n\n지금 새로 고칠까요?")) return;
     window.__allowUnload = true;
     location.reload();
   };

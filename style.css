@@ -175,10 +175,18 @@ input[type=file] { font-size: .78125rem; max-width: 220px; }
    가장 가까운 스크롤 조상이어야 한다. 예전엔 .grid-scroll{overflow-x:auto}가 (overflow-y도
    auto로 계산돼) 스크롤 상자가 되는데 세로 스크롤은 그 바깥(#gridPane)에서 일어나, 내려가면
    날짜 줄이 그대로 사라졌다 — 40명 표의 17행 아래는 며칠인지 알 수 없었다(검토 C 1-2).
-   데스크톱: #gridPane 하나가 가로·세로 스크롤을 다 맡고 .grid-scroll은 스크롤 상자가 아니다.
-   (제목·범례가 가로 스크롤에 따라 옆으로 밀리는 건 감수 — 머리칸·이름 열은 붙어 있다.)
-   폰(≤680)은 #gridPane이 스크롤하지 않으므로 .grid-scroll이 높이 상한을 갖고 스스로 스크롤한다.
-   (규칙 자체는 아래 .grid-scroll 바로 뒤에 — 같은 특이성이라 앞에 두면 overflow-x:auto에 진다.) */
+   데스크톱(출력 화면, #gridPane.out-on): **표(.grid-scroll)만** 가로·세로로 스크롤하고 제목·파일 줄·표 보기는
+   제자리에 있다(사용자 2026-11-13: "표를 제외하고는 고정 — 표 움직여도 보이게"). 그 전에는 #gridPane 하나가
+   다 맡아서 표를 옆으로 밀면 제목과 파일 줄도 같이 밀려 나갔다. #gridPane은 세로로 쌓는 상자가 되고
+   .grid-scroll이 남은 높이를 차지한다 — 높이가 정해져 있어야 머리칸이 붙는다.
+   입력 화면은 예전대로 #gridPane이 스크롤한다(out-on이 없다).
+   폰(≤680)은 #gridPane이 스크롤하지 않으므로 .grid-scroll이 높이 상한을 갖고 스스로 스크롤한다. */
+@media (min-width: 681px) {
+  #gridPane.out-on { overflow: hidden; display: flex; flex-direction: column; }
+  #gridPane.out-on #gridContent { display: flex !important; flex-direction: column; flex: 1; min-height: 0; }
+  #gridPane.out-on #gridContent > * { flex: none; }
+  #gridPane.out-on #gridContent > .grid-scroll { flex: 1 1 0; min-height: 120px; }
+}
 #sidePane {
   width: 340px; flex: none; border-left: 1px solid var(--line); background: var(--card);
   overflow-y: auto; padding: 14px 16px;
@@ -192,7 +200,7 @@ input[type=file] { font-size: .78125rem; max-width: 220px; }
 
 .grid-scroll { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch;
   overflow-anchor: none; }
-@media (min-width: 681px) { .grid-scroll { overflow: visible; max-width: none; } }   /* #gridPane 주석 참고 */
+@media (min-width: 681px) { .grid-scroll { overflow: auto; } }   /* #gridPane 주석 참고 — PC에서는 이 상자만 스크롤한다 */
 table.grid { border-collapse: collapse; font-size: .75rem; font-variant-numeric: tabular-nums; }
 table.grid th {
   position: sticky; top: 0; background: var(--card); padding: 3px 4px; text-align: center;
@@ -211,13 +219,9 @@ table.grid td.nm {
   position: sticky; left: 0; background: var(--card); cursor: default; z-index: 1;
   border-right: 2px solid var(--line);
 }
-@media (min-width: 681px) {
-  /* sticky의 0은 스크롤 상자의 padding 안쪽이라 #gridPane padding(14px)만큼 떠서 붙고, 그 틈으로
-     밑의 행·열이 비쳐 보였다 — padding만큼 당겨 상자 가장자리에 붙인다(#gridPane padding과 짝).
-     위의 top:0·left:0 규칙보다 뒤에 있어야 한다(같은 특이성). */
-  table.grid th { top: -14px; }
-  table.grid td.nm, table.grid th.nm { left: -14px; }
-}
+/* 예전에는 PC에서 top·left를 -14px로 당겼다 — 그때는 #gridPane(padding 14px)이 스크롤 상자였고, sticky의 0은 스크롤 상자의
+   padding 안쪽이라 그만큼 떠서 붙어 틈으로 밑의 행·열이 비쳤다. 지금은 여백 없는 .grid-scroll이 스크롤 상자라 0이 곧
+   가장자리다(당긴 채로 두면 머리칸·이름 열이 14px 잘린다). */
 table.grid td.nm .role { color: var(--sub); font-weight: 400; font-size: .6875rem; margin-left: 4px; }
 /* 지정 가능자 표시 — 이름 옆 작은 배지. .role과 달리 폰에서도 숨기지 않는다(아래
    미디어쿼리에 없다): 하단 '지정 인원' 행이 빨개졌을 때 누구를 넣으면 되는지 찾을
@@ -494,11 +498,11 @@ td.sn.fragile-day span, td.sk.fragile-day span, td.sjo.fragile-day span { backgr
 .output-title { font-size: 1.0625rem; margin: 0; }
 .output-subtitle { font-size: .78125rem; color: var(--sub); margin: 0; font-weight: 600; }
 /* 표 위 한 줄 — 왼쪽에 제목·병동·연월·인원·회차, 오른쪽에 파일 작업줄. 좁으면 작업줄이 아래로 내려간다. */
-.out-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 16px; margin: 0 0 8px; }
-.out-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; padding-top: 5px; }
+.out-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin: 0 0 8px; }
+.out-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; }
 .file-bar-wrap { margin-left: auto; min-width: 0; max-width: 100%; }
 .file-bar { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
-.file-bar .file-btn { min-height: 34px; padding: 5px 11px; border-radius: 9px; font-weight: 700; font-size: .78125rem;
+.file-bar .file-btn { min-height: 26px; padding: 2px 10px; border-radius: 8px; font-weight: 700; font-size: .75rem; line-height: 1.2;
   display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .file-bar .file-btn.sub { font-weight: 600; background: var(--card); color: var(--ink); border-color: var(--line); }
 .file-bar-note { margin: 4px 0 0; text-align: right; }
@@ -507,7 +511,7 @@ td.sn.fragile-day span, td.sk.fragile-day span, td.sjo.fragile-day span { backgr
 @media (max-width: 680px) {
   .file-bar-wrap { margin-left: 0; width: 100%; }
   .file-bar { justify-content: flex-start; }
-  .file-bar .file-btn { min-height: 40px; flex: 1 1 auto; justify-content: center; }
+  .file-bar .file-btn { min-height: 34px; flex: 1 1 auto; justify-content: center; }
   .file-bar-note { text-align: left; }
 }
 /* 표 보기 옵션(빗금·집계 열 전체·그 밖 코드 줄)과 접힌 범례 — 한 줄에 작은 글씨로. */
@@ -1001,6 +1005,8 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
   header { border-bottom: 1px solid #000; padding: 0 0 4px; background: none; }
   #main { display: block; }
   #gridPane { padding: 0; contain: none; }
+  #gridPane.out-on, #gridPane.out-on #gridContent { display: block !important; }   /* 화면용 '표만 스크롤' 배치는 인쇄에서 푼다 */
+  .result-strip { display: none !important; }
   .grid-scroll { overflow: visible !important; max-height: none !important; max-width: none; }
   table.grid { font-size: 7.5pt; }
   table.grid th, table.grid td { position: static !important; }   /* sticky는 쪽마다 겹쳐 찍힌다 */
@@ -1200,23 +1206,35 @@ header #infoBtn, header .sign-out {
 /* '저장한 설정 지우기'는 보조 톤 — 첫 사용자가 처음 만나는 버튼이 위험해 보이지 않았다(A-10) */
 #resetSettingsBtn { font-weight: 500; color: var(--sub); }
 
-/* 직전 근무표 복원 카드 — 입력 화면 맨 위 */
-.restore-card {
-  border: 1px solid var(--warn); background: var(--warn-soft); border-radius: 10px; padding: 10px 14px;
-  margin: 0 auto 12px; max-width: 1100px; font-size: 12.5px; line-height: 1.55;
-}
-.restore-card .hint { display: block; margin: 2px 0 0; }
-.restore-card .restore-actions { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
-.restore-card .restore-actions button { margin-top: 0; }
-
-/* 표 위 상태 띠 — 필수·추가 검토·다운로드·편집으로 바로 가는 단추들 */
-.result-strip { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 8px; }
-.result-strip .strip-item { font-size: 12px; padding: 4px 10px; border-radius: 999px; font-weight: 600; }
-.result-strip .strip-item.ok { border-color: var(--ok); color: var(--ok); background: var(--ok-soft); }
-.result-strip .strip-item.bad { border-color: var(--hard); color: var(--hard); background: var(--hard-soft); }
-.result-strip .strip-item.warn { border-color: var(--warn); color: var(--warn); background: var(--warn-soft); }
+/* 패널 탭 — 형평성 · 필수 위반 · 추가 검토 · 상세 자료. 같은 단추가 두 자리에 있다:
+   ① 오른쪽 패널 맨 위(.side-tabs) — 패널을 내려도 붙어 있다. ② 표 위 띠(.result-strip) — 폰 전용(패널이 표 아래 멀리 있다). */
+.side-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 0;
+  padding: 5px 2px 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); cursor: pointer; }
+.side-tab .st-l { font-size: .6875rem; font-weight: 600; color: var(--sub); white-space: nowrap; }
+.side-tab .st-v { font-size: 1.0625rem; font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.side-tab .st-v b { font-weight: 800; }
+.side-tab .strip-arrow { opacity: .7; margin: 0 2px; font-weight: 400; }
+.side-tab.ok .st-v { color: var(--ok); }
+.side-tab.bad .st-v { color: var(--hard); }
+.side-tab.warn .st-v { color: var(--warn); }
+.side-tab.bad { border-color: var(--hard); background: var(--hard-soft); }
+.side-tab.on { border-color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); }
+.side-tab.on .st-l { color: var(--ink); }
+.side-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+/* 패널의 안쪽 여백(12px)만큼 밖으로 빼서, 붙어 있을 때 뒤로 지나가는 내용이 옆·위로 비치지 않게 한다.
+   top도 -12px — sticky의 0은 스크롤 상자의 padding 안쪽이라 0으로 두면 그만큼 떠서 붙는다. */
+#sidePane .side-tabs { position: sticky; top: -12px; z-index: 4; background: var(--paper);
+  margin: -12px -12px 10px; padding: 10px 12px 8px; border-bottom: 1px solid var(--line); }
+.tab-pane { display: none; }
+.tab-pane.on { display: block; }
+.tab-pane.pop { animation: tab-pop .24s cubic-bezier(.2, .9, .3, 1.25); transform-origin: 50% 0; }
+@keyframes tab-pop { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .tab-pane.pop { animation: none; } }
+.result-strip { display: none; }
 @media (max-width: 680px) {
-  .result-strip { position: sticky; top: 0; z-index: 5; background: var(--paper); padding: 6px 0; margin: 0 0 6px; }
+  .result-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px;
+    position: sticky; top: 0; z-index: 5; background: var(--paper); padding: 6px 0; margin: 0 0 6px; }
+  #sidePane .side-tabs { position: static; }
 }
 .legend .legend-tap { flex-basis: 100%; color: var(--sub); }
 .legend .desig-mark {
@@ -1327,8 +1345,6 @@ details.expert-sec > .side-sec { margin-top: 12px; }
 .fair-w-grid input { width: 58px; min-height: 32px; padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--ink); }
 .fair-w-actions { display: flex; gap: 8px; }
 .fair-w-actions button { min-height: 36px; padding: 4px 12px; font-size: .75rem; }
-.result-strip .fair-strip small { font-weight: 400; opacity: .7; margin-left: 2px; }
-.result-strip .fair-strip .strip-arrow { opacity: .7; }
 .fair-edited { font-size: .78rem; color: var(--sub); margin-left: 8px; }
 .fair-edited b { font-size: 1.1rem; }
 .fair-edited-axis { font-weight: 600; color: var(--accent); font-size: .74rem; }

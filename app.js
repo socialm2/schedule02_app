@@ -411,8 +411,8 @@ const INFO_HTML_INPUT = `
 한 번 확인한 뒤 기억해둔 값을 지우고 모든 칸을 비웁니다. 샘플 값으로 돌아가려면 바로 아래 <b>샘플 값으로 되돌리기</b>.</p>
 <p>저장하는 것은 <b>근무정보와 근무인력</b>뿐입니다 — 인원 명단·원티드 신청·전입은 저장하지
 않습니다. 지난달 것이 남아 있으면 오류 하나 없이 틀린 근무표가 나오기 때문입니다.</p>
-<p>방금 만든 근무표와 올린 입력①·②는 <b>그 탭 안에만</b> 잠시 남습니다(새로고침해도 입력 화면 맨 위의
-<b>직전 근무표 복원</b>으로 되살릴 수 있음). 탭이나 브라우저를 닫으면 사라집니다.</p>
+<p>방금 만든 근무표와 올린 입력①·②는 어디에도 저장되지 않습니다 — 새로고침하거나 탭을 닫으면 사라지니,
+쓸 근무표는 출력①·②로 내려받아 두세요(떠나기 전에 브라우저가 한 번 묻습니다).</p>
 <ul>
 <li><b>병동명 / 연월</b> — 이번에 만들 근무표의 병동과 연·월입니다.</li>
 <li><b>월 최대야간</b> — 한 사람이 한 달에 설 수 있는 야간(N) 최대 횟수입니다.</li>
@@ -541,7 +541,7 @@ ${INFO_MORE}
 `;
 
 const INFO_HTML_OUTPUT = `
-<p class="walk-link"><a href="walkthrough.html#out" target="_blank" rel="noopener">▶ 화면 따라하기 — 출력 편</a> — 결과 띠·확인할 문제·칸 고치기·다운로드·되올리기·변경 안내를 실제 화면에서 순서대로 보여 줍니다.</p>
+<p class="walk-link"><a href="walkthrough.html#out" target="_blank" rel="noopener">▶ 화면 따라하기 — 출력 편</a> — 패널 탭·칸 고치기·다운로드·되올리기·변경 안내를 실제 화면에서 순서대로 보여 줍니다.</p>
 <h3>근무표가 만들어졌습니다</h3>
 <ul>
 <li><b>편집</b> — 그리드에서 칸을 클릭해 근무를 바꾸면 오른쪽 목록에 '적용 대기'로 쌓입니다(주황 점선 테두리).
@@ -550,7 +550,7 @@ const INFO_HTML_OUTPUT = `
 B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 쌓이지 않습니다.</li>
 <li><b>재생성 적용</b> — 적용 대기 중인 편집을 고정한 채 나머지를 다시 배정합니다. 고정된 칸은 빨간
 실선 테두리로 표시되고, <b>이후 몇 번을 더 수정해도 이전 고정은 계속 유지됩니다.</b> 고친 칸이
-적용 대기로 남아 있는 동안(재생성 적용 전)에는 표 위 파일 줄의 출력①②·월간 보고서가 잠시 비활성화됩니다 — 재생성
+적용 대기로 남아 있는 동안(재생성 적용 전)에는 표 위 파일 줄의 출력①②가 잠시 비활성화됩니다 — 재생성
 적용으로 확정한 뒤 다시 눌러야 받을 수 있습니다.</li>
 <li><b>다운로드</b> — 표 위 파일 줄에서 받습니다. <b>월간근무표</b>(병원 OCS 형식, 부서 배포·기록용)와 <b>연간근무표</b>(다음 달
 입력②로 바로 재사용 — 이월정보·형평성 지표가 여기 하나로 이어짐) 두 파일을 꼭 둘 다 받아 보관하세요.</li>
@@ -565,15 +565,15 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 바뀝니다(다운로드도 그 표). <b>🔍 꼼꼼히 만들기</b>를 켜고 생성하면 평소 3개 만들어 고르던 것을 9개 만들어 고릅니다 — 위반이 남는 달에
 켜 보세요(일반 생성보다 오래 걸리고, 빠듯한 달은 1~2분. 진행 중 '여기까지 결과로 멈추기' 가능).</li>
 <li><b>🌙 야간 먼저(N only)</b> — 생성 버튼 아래 '만드는 방법'에서 고르면 두 단계로 만듭니다. 1단계는 야간(N·NK)만 보이고 야간을 넣거나 빼는 것만 됩니다(다른 근무로 바꾸기·맞교환은 확정 뒤에).
-위반 숫자·'확인할 문제'도 야간 관련 항목만, 형평성은 '야간 균등'만 셉니다. 야간을 고친 뒤 표 위의 <b>야간 확정 → 나머지 짜기</b>를
+위반 숫자·'필수 위반'·'추가 검토' 탭도 야간 관련 항목만, 형평성은 '야간 균등'만 셉니다. 야간을 고친 뒤 표 위의 <b>야간 확정 → 나머지 짜기</b>를
 누르면 야간과 그 뒤 쉬는 이틀·수면오프(S/)를 고정하고 나머지를 짭니다. 확정 뒤에는 재생성·편집 적용에도 야간이 그대로이고,
 지워서 모자란 야간은 다른 사람으로 메우지 않고 빨간 필수 위반으로 남습니다('야간 다시 고치기'로 돌아가 직접 채웁니다).</li>
-<li><b>오른쪽 '확인할 문제'의 항목을 누르면</b> 그 칸(사람이 없는 항목은 그날 열)으로 이동해 잠깐 깜빡입니다. 수정 대기 칸이 있는
+<li><b>오른쪽 패널은 탭 넷</b> — 형평성 · 필수 위반 · 추가 검토 · 상세 자료. 맨 위에 붙어 있고 누르면 그 내용이 나타납니다(폰은 표 위에도 같은 넷).
+필수 위반이 있는 표는 처음에 그 탭이 열려 있습니다. <b>'필수 위반'·'추가 검토' 탭의 항목을 누르면</b> 그 칸(사람이 없는 항목은 그날 열)으로 이동해 잠깐 깜빡입니다. 수정 대기 칸이 있는
 동안 요약 숫자는 <b>마지막으로 적용한 표 기준</b>이고, '재생성 적용' 뒤 다시 계산됩니다.</li>
 <li><b>날짜 머리칸을 누르면</b> 그날 병동(누가 어디서 일하는지)이 뜨고, 거기서 이름을 누르면 그 사람의 한 달 여정이 뜹니다.
-표 위 파일 줄의 <b>월간 보고서</b>는 첫 장 요약(확인할 항목·부담 분포)과 검증·일별 인원·원티드·점수표를
-한 파일로 묶어 줍니다 — 열어서 인쇄하면 PDF. 패널 맨 아래 '도움말 · 기타'의 <b>생성 애니메이션(HTML) 받기</b>는 생성할 때 나오는 애니메이션
-12가지를 한 화면에 모은 파일입니다(근무표 내용은 들어 있지 않습니다).</li>
+'상세 자료' 탭 맨 아래 '도움말 · 기타'의 <b>월간 보고서 받기</b>(실험 기능)는 첫 장 요약(확인할 항목·부담 분포)과 검증·일별 인원·원티드·점수표를
+한 파일로 묶어 줍니다 — 열어서 인쇄하면 PDF.</li>
 <li><b>변경 안내 초안</b> — 근무표를 공지한 뒤 칸이 바뀌면, 오른쪽 패널에서 공지한 판(공지한 출력①을 올리거나 지금
 화면 표)을 기준본으로 정하세요. 그 뒤 바뀐 사람만 모아 "12일(목) E→D" 꼴의 개인별 안내 문구를 만들어 줍니다.
 복사해서 직접 보내고 '전달함'을 표시합니다(받았는지는 알 수 없습니다). 기준본은 이 탭 안에만 남습니다.</li>
@@ -596,19 +596,19 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 <li><b>D / E / N … (듀티별 횟수)</b> — 이번 달에 그 근무 코드가 적힌 날 수입니다. D·E·N은 항상 보이고,
 NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니다. 다운로드 엑셀의 '듀티별 횟수' 블록과 같은 값입니다.</li>
 <li><b>주말 / 연속 / 야간</b> — 사람별 부담입니다. 주말·공휴일 근무 날 수, 이번 달 가장 길게 이어진 연속근무
-(전월 말에서 이어진 것 포함, 상한을 넘으면 빨강), 야간 횟수/개인 목표(다르면 노랑). 오른쪽 '조정 참고'가
+(전월 말에서 이어진 것 포함, 상한을 넘으면 빨강), 야간 횟수/개인 목표(다르면 노랑). '형평성' 탭의 '조정 참고'가
 같은 숫자로 손봐야 할 사람을 추려 줍니다(연간근무표를 올렸으면 지난달 대비 늘어난 사람도). 이 세 열은 화면에만 있고
 다운로드 엑셀에는 없습니다.</li>
-<li><b>형평성 점수</b> — 오른쪽 패널의 0~100 종합과 축 다섯(근무횟수 균등 ×2 · 주말 균등 · 야간 균등 · 원티드 반영 · 숙련 분산).
+<li><b>형평성 점수</b> — '형평성' 탭의 0~100 종합과 축 다섯(근무횟수 균등 ×2 · 주말 균등 · 야간 균등 · 원티드 반영 · 숙련 분산).
 점수는 "이 앱으로 만든 기준선 201개 달 가운데 이 달보다 쏠린 달의 비율"이라 병동 크기·달 길이와 무관하게 읽힙니다 —
 100이면 어느 달보다 고르고, 50이면 중간, 원티드만 반영률 그대로. 75 이상 좋음 · 40 이상 보통 · 그 아래는 살펴볼 것.
 축마다 근거 한 줄(최대·최소·벗어난 사람 수)이 같이 붙습니다. 시드를 고르는 내부 기준(시도 점수표)은 그대로이고 이 점수는 읽기용입니다.</li>
 <li><b>내 달 요약</b> — 이름을 눌러 여정을 열면 맨 아래에 그 사람에게 보낼 한 줄이 있습니다: 주말·D·E가 같은 조건 집단 평균과
 얼마나 다른지(±), 야간/목표, 피로 점수(낮→밤 직결 ×2 · 밤 뒤 하루만 쉬고 D·E ×3 · 연속 주말 ×1), 원티드 반영/미반영과 사유.
 월간 근무 보고 5-2절에 전원이 실리니 복사해 보내면 됩니다.</li>
-<li><b>변경 안내 초안</b>은 오른쪽 패널 아래쪽 '상세 도구'를 펴면 있습니다 — 공지한 판을 기준본으로 두고, 그 뒤 바뀐 사람에게 보낼 문구를 만듭니다.
-<b>원티드 결과</b>는 '상세 자료'에 접혀 있고 배지에 반영·미반영 수만 보입니다(펴면 미반영부터 전체).</li>
-<li><b>표 위 상태 띠의 ⚖ 형평성</b> — 100점 만점 한 숫자입니다. 칸을 고치는 동안(미적용 편집)에는 "원래 → 수정 후"가 같이 떠서
+<li><b>변경 안내 초안</b>은 '상세 자료' 탭의 '상세 도구'를 펴면 있습니다 — 공지한 판을 기준본으로 두고, 그 뒤 바뀐 사람에게 보낼 문구를 만듭니다.
+<b>원티드 결과</b>는 '상세 자료' 탭에 접혀 있고 배지에 반영·미반영 수만 보입니다(펴면 미반영부터 전체).</li>
+<li><b>'형평성' 탭 단추의 숫자</b> — 100점 만점 한 숫자입니다. 칸을 고치는 동안(미적용 편집)에는 "원래 → 수정 후"가 같이 떠서
 고치면 점수가 어떻게 되는지 바로 보이고, 적용하거나 취소하면 한 숫자로 돌아옵니다. 점수는 참고용이라 낮아도 막지 않습니다 —
 연휴·휴가·교육·개인 요청 같은 병동 사정은 파트장이 알고 있으니 그대로 두거나 고치면 됩니다. 다운로드한 출력① 엑셀(일반·OCS 양식 모두)
 맨 아래와 월간 근무 보고 5-1절에도 같은 점수가 실립니다(엑셀의 값은 내려받은 시점 것이라 파일에서 칸을 고쳐도 바뀌지 않습니다).</li>
@@ -622,10 +622,10 @@ NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니�
 반영률이 전체보다 20%p 넘게 낮음), 사유 없는 반려 수가 붙습니다. 누적 초과를 다음 달 배정에서 하루까지 갚아 주는 기능은
 12개월 실험에서 이번 달 균등을 깎는 만큼의 이득이 없어 켜지 않았습니다(누적 초과는 숫자로 보여 주고, 조정은 파트장이 합니다).
 변경 안내 초안 머리에는 영향 인원·바뀐 칸·휴무→근무 수가 붙습니다. '가중치 조정'을 펴면 축 다섯과 피로 셋의 가중치(0~5)를 바꿀 수 있고, 기기에 기억돼 다음 생성에도 쓰입니다.</li>
-<li><b>미달 날 채울 수 있는 사람</b> — 오른쪽 '확인할 문제'의 '인력 미달'에 날이 있으면, 그날 쉬는 사람 중 그 근무를 설 수 있고
+<li><b>미달 날 채울 수 있는 사람</b> — '필수 위반' 탭의 '인력 미달'에 날이 있으면, 그날 쉬는 사람 중 그 근무를 설 수 있고
 넣어도 새 필수 위반이 없는 사람을 날짜마다 적어 줍니다. 추천일 뿐이라 다른 사람을 넣어도 되고(그 칸이 빨강·노랑으로
 표시될 뿐), 위반이 남은 채로 확정·다운로드도 됩니다.</li>
-<li><b>주말·공휴일 근무자</b> — 오른쪽 '상세 자료'에 접힌 표로, 주말마다 D·E·N에 누가 서는지와 최소인력 대비 인원을 보여줍니다.</li>
+<li><b>주말·공휴일 근무자</b> — '상세 자료' 탭에 접힌 표로, 주말마다 D·E·N에 누가 서는지와 최소인력 대비 인원을 보여줍니다.</li>
 <li><b>® / ⓡ</b> — 병원 HR 전용 항목이라 이 앱은 값을 몰라 항상 빈칸입니다(다운로드 파일과 동일).</li>
 <li><b>금월</b> — 이번 달 휴일수(전 직원 공통) · <b>Lv</b> — 직급입니다.</li>
 </ul>
@@ -1543,8 +1543,8 @@ $("#wantedInput").onchange = async () => {
   try { await handleWantedFile(f); } finally { $("#wantedInput").value = ""; }
 };
 
-// 입력① 파일 하나를 읽어 화면 상태에 반영한다. 파일 칸(onchange)과 '직전 근무표 복원'(세션에
-// 남긴 바이트)이 같은 길을 쓴다 — 둘로 적으면 한쪽만 고쳐지는 것이 이 저장소의 반복 사고다.
+// 입력① 파일 하나를 읽어 화면 상태에 반영한다. 파일 칸(onchange)이 부른다 — 올린 파일을 반영하는 길은 이 함수 하나로 둔다
+// (둘로 적으면 한쪽만 고쳐지는 것이 이 저장소의 반복 사고다. 예전엔 '직전 근무표 복원'도 이 길을 썼다 — 2026-11-13에 뺐다).
 async function handleWantedFile(f) {
   const statusEl = $("#wantedStatus");
   try {
@@ -1594,7 +1594,6 @@ async function handleWantedFile(f) {
       `${teamB.length ? `, B팀 ${teamB.length}명` : ""}을 자동으로 채웠습니다`,
       !!data.warning);
     noteFirstUse("wanted");
-    rememberSessionFile("wanted", f);
   } catch (e) {
     // 업로드가 반려돼도(값은 그대로) 화면엔 오류 문구가 계속 남으므로, 지울 방법이
     // 있어야 한다. 반려됐다는 사실만 알려주면 "그럼 지금 뭐가 쓰이지?"에 답이 없다 —
@@ -1688,7 +1687,6 @@ function clearWanted() {
     : "반영 해제했습니다 — 현재 인원 명단이 없습니다.";
   updateClearButtons();
   renderSourceBadges();
-  forgetSessionFile("wanted");
   showToast("입력① 반영을 해제했습니다");
 }
 
@@ -1736,7 +1734,6 @@ async function clearStaffTable() {
     staffOfAnnual = [];
     recomputeStaff();
     statusEl.textContent = "반영 해제했습니다 — 이번 생성은 처음부터 시작합니다.";
-    forgetSessionFile("annual");
     showToast("연간근무표 반영을 해제했습니다");
   } catch (e) {}
 }
@@ -1747,7 +1744,7 @@ $("#staffTableInput").onchange = async () => {
   try { await handleStaffTableFile(f); } finally { $("#staffTableInput").value = ""; }
 };
 
-// 입력② 파일 하나를 읽어 반영한다 — 파일 칸과 '직전 근무표 복원'이 같은 길을 쓴다(입력①과 같은 이유).
+// 입력② 파일 하나를 읽어 반영한다 — 반영하는 길은 이 함수 하나다(입력①과 같은 이유).
 async function handleStaffTableFile(f) {
   const statusEl = $("#staffTableStatus");
   try {
@@ -1817,7 +1814,6 @@ async function handleStaffTableFile(f) {
       showToast(`전월잔휴가 비어 있는 인원 ${noBal.length}명은 0으로 보고 진행합니다 — 확인해주세요`, true);
     }
     await refreshStaffTableStatus();
-    rememberSessionFile("annual", f);
     showToast(fromPrevMonth
       ? "지난달 근무표에서 전월 이월정보를 불러왔습니다 (누적 통계는 이번 달부터 쌓입니다)"
       : (staffFromWanted
@@ -2155,8 +2151,6 @@ let sampleCfg = null;   // /api/sample 응답 — '샘플 값으로 되돌리기
   // 처음 연 기기(저장된 설정 없음)에는 세 단계 체크리스트를 띄운다 — 배포톡의 "① 그대로 생성 ②
   // 양식 받아 명단 ③ 우리 값"을 화면 안으로 옮긴 것. 저장된 설정이 있으면 이미 쓰는 사람이다.
   initFirstUseCard(!useSaved);
-  // 같은 탭에서 새로고침·뒤로가기로 날아간 직전 결과가 있으면 복원 카드를 띄운다.
-  renderRestoreCard();
 })();
 
 
@@ -2417,128 +2411,22 @@ async function setNoticeFromFile(f) {
     saveNotice(); renderSide();
     const n = noticeDiff().length;
     showToast(n ? `공지한 출력①을 기준본으로 정했습니다 — 바뀐 사람 ${n}명` : "공지한 출력①을 기준본으로 정했습니다 — 지금 표와 같습니다");
-    const sec = $("#noticeSec"); if (sec) sec.scrollIntoView({ block: "nearest" });
+    revealInSide($("#noticeSec"));
   } catch (e) { /* apiUpload가 이유를 토스트로 띄운다 */ }
 }
 
-const SESSION_RESULT_KEY = "ns_session_result_v1";
-const SESSION_FILES_KEY = "ns_session_files_v1";
 function sessionGet(key) { try { return JSON.parse(sessionStorage.getItem(key) || "null"); } catch (e) { return null; } }
-// 저장 성공 여부를 돌려준다 — 예전엔 실패를 삼켜, 저장이 안 됐는데도 그 전 회차 기록이 '직전 근무표'로
-// 남아 복원 카드가 옛 표를 내밀었다(GPT 11/2 보고서 P01).
+// 저장 성공 여부를 돌려준다 — 실패를 삼키면 보관이 안 됐는데도 된 것처럼 보인다(변경 안내 기준본이 쓴다).
 function sessionSet(key, val) { try { sessionStorage.setItem(key, JSON.stringify(val)); return true; } catch (e) { return false; } }
 function sessionDel(key) { try { sessionStorage.removeItem(key); } catch (e) { /* 없는 것과 같다 */ } }
 
-// 파일 변환(await)이 끝난 '뒤에' 저장 목록을 읽어 합친다. 예전엔 먼저 읽고 변환을 기다렸다가 써서, 입력①·②가
-// 거의 동시에 저장되면(복원 버튼이 둘을 연달아 다시 올릴 때) 늦게 끝난 쪽이 먼저 쓴 쪽을 지웠다 — 한 번 더
-// 새로고침하면 입력① 없이 복원됐다(GPT 11/2 보고서 P02). 저장에 실패하면 직전 결과도 지운다: 파일이 빠진
-// 기록으로 '복원'하면 다른 입력으로 다시 만들게 된다.
-async function rememberSessionFile(kind, file) {
-  if (VOC_VIEW) return;         // 관리자 모드에서 올린 파일은 '직전 입력'이 아니다
-  let b64;
-  try { b64 = await fileToBase64(file); } catch (e) { return; }   // 파일을 못 읽어도 반영 자체는 끝났다
-  const files = sessionGet(SESSION_FILES_KEY) || {};
-  files[kind] = { name: file.name, b64 };
-  if (!sessionSet(SESSION_FILES_KEY, files)) sessionDel(SESSION_RESULT_KEY);
-}
-function forgetSessionFile(kind) {
-  const files = sessionGet(SESSION_FILES_KEY) || {};
-  delete files[kind];
-  if (Object.keys(files).length) sessionSet(SESSION_FILES_KEY, files); else sessionDel(SESSION_FILES_KEY);
-}
-function saveSessionResult() {
-  if (!ST) return;
-  // 문의 파일을 다시 보는 중이면 남기지 않는다 — 복원은 '이 탭에 올린 입력①②로 다시 만들기'인데, 그 표는 남의 입력에서 나왔다.
-  if (VOC_VIEW) { sessionDel(SESSION_RESULT_KEY); return; }
-  const val = (sid, d) => (ST.grid[sid] || [])[d];
-  const keyOf = k => { const i = k.lastIndexOf(":"); return [k.slice(0, i), Number(k.slice(i + 1))]; };
-  const ok = sessionSet(SESSION_RESULT_KEY, {
-    at: Date.now(), year: ST.year, month: ST.month, ward: ST.ward_id || "", staffCount: ST.staff.length,
-    round: ST.round, thorough: thoroughOn(), grid: ST.grid, seed: ST.current_seed ?? null,
-    locked: (ST.locked || []).map(k => { const [sid, d] = keyOf(k); return { sid, day: d, v: val(sid, d) }; }),
-    pending: (ST.pending || []).map(k => { const [sid, d] = keyOf(k); return { sid, day: d, v: val(sid, d) }; }),
-    teamB: ST.team_b_grid || {},
-  });
-  // 저장 실패면 그 전 회차 기록을 지운다 — 남겨 두면 복원 카드가 옛 표를 '직전 근무표'라고 내민다(P01)
-  if (!ok) { sessionDel(SESSION_RESULT_KEY); renderRestoreCard(); }
-}
-function forgetSessionResult() { sessionDel(SESSION_RESULT_KEY); renderRestoreCard(); }
-
-function renderRestoreCard() {
-  const box = $("#restoreCard");
-  if (!box) return;
-  const saved = sessionGet(SESSION_RESULT_KEY);
-  if (!saved || ST) { box.style.display = "none"; box.innerHTML = ""; return; }
-  const files = sessionGet(SESSION_FILES_KEY) || {};
-  const fileNote = [files.wanted ? "입력①" : "", files.annual ? "입력②" : ""].filter(Boolean).join("·");
-  const edits = saved.locked.length + saved.pending.length;
-  box.style.display = "";
-  box.innerHTML =
-    `<b>직전 근무표가 있습니다</b> — ${saved.year}년 ${saved.month}월 · ${saved.staffCount}명 · ${saved.round}회차` +
-    `${edits ? ` · 손으로 고친 칸 ${edits}개` : ""}${fileNote ? ` · 올렸던 ${fileNote} 포함` : ""}` +
-    `<span class="hint"> 새로고침·뒤로가기로 사라진 표를 다시 만듭니다(같은 입력으로 다시 짜므로 생성 시간이 듭니다). 이 탭을 닫으면 없어집니다.</span>` +
-    `<div class="restore-actions"><button type="button" class="primary small" id="restoreSessionBtn">직전 근무표 복원</button>` +
-    `<button type="button" class="small" id="restoreDismissBtn">지우기</button></div>`;
-  $("#restoreSessionBtn").onclick = restoreSession;
-  $("#restoreDismissBtn").onclick = () => { sessionDel(SESSION_RESULT_KEY); sessionDel(SESSION_FILES_KEY); renderRestoreCard(); showToast("직전 근무표 기록을 지웠습니다"); };
-}
-
-async function restoreSession() {
-  const saved = sessionGet(SESSION_RESULT_KEY);
-  if (!saved) return;
-  const btn = $("#restoreSessionBtn");
-  if (btn) { btn.disabled = true; btn.textContent = "복원하는 중…"; }
-  try {
-    setFormYearMonth(saved.year, saved.month);
-    const files = sessionGet(SESSION_FILES_KEY) || {};
-    if (files.wanted) await handleWantedFile(base64ToFile(files.wanted.b64, files.wanted.name));
-    if (files.annual) await handleStaffTableFile(base64ToFile(files.annual.b64, files.annual.name));
-    const chk = $("#thoroughChk");
-    if (chk) chk.checked = !!saved.thorough;
-    await runGenerate($("#generateBtn"), $("#genStatus"));
-    if (!ST) throw new Error("생성이 끝나지 않았습니다");
-    // 점수표에서 다른 근무표(시드)를 골라 쓰던 중이었으면 그 표로 돌린다 — 예전엔 기본 선택으로 돌아가
-    // 칸이 통째로 달라졌다(GPT 11/2 보고서 P03). 고정 칸·편집은 그 표 위에 다시 올린다.
-    if (saved.seed != null && saved.seed !== ST.current_seed && (ST.attempt_table || []).some(a => a.seed === saved.seed)) {
-      showGenOverlay(`직전에 고른 시드 ${saved.seed}의 근무표로 바꾸는 중입니다…`);
-      try { ST = await api("/api/select_attempt", { method: "POST", body: JSON.stringify({ seed: saved.seed }) }); render(); }
-      finally { hideGenOverlay(); }
-    }
-    // 고정 칸(재생성 때 잠근 것·되올린 수정본)은 편집으로 다시 올려 한 번 적용한다.
-    if (saved.locked.length) {
-      showGenOverlay(`고정 칸 ${saved.locked.length}개를 다시 적용하는 중입니다…`);
-      try {
-        for (const c of saved.locked) {
-          if (!ST.grid[c.sid]) continue;
-          ST = await api("/api/edit", { method: "POST", body: JSON.stringify({ staff_id: c.sid, day: c.day, shift: c.v }) });
-        }
-        ST = await api("/api/apply", genOpts());
-        render();
-        refreshFragile();
-      } finally { hideGenOverlay(); }
-    }
-    for (const c of saved.pending) {
-      if (!ST.grid[c.sid]) continue;
-      ST = await api("/api/edit", { method: "POST", body: JSON.stringify({ staff_id: c.sid, day: c.day, shift: c.v }) });
-    }
-    for (const [name, row] of Object.entries(saved.teamB || {})) {
-      for (let d = 0; d < row.length; d++) if (row[d]) ST = await api("/api/edit/team_b", { method: "POST", body: JSON.stringify({ staff_id: name, day: d, shift: row[d] }) });
-    }
-    if (saved.pending.length || Object.keys(saved.teamB || {}).length) { render({ keepScroll: true }); refreshFeedback(); }
-    // 직전과 같은지 — 저장된 사람만이 아니라 지금 표의 사람(새로 생긴 줄)과 B팀까지 본다(GPT 11/2 보고서 P04)
-    let diff = 0;
-    const rowDiff = (a = [], b = []) => { let n = 0; for (let i = 0; i < Math.max(a.length, b.length); i++) if ((a[i] || "") !== (b[i] || "")) n++; return n; };
-    for (const sid of new Set([...Object.keys(saved.grid), ...Object.keys(ST.grid)])) diff += rowDiff(saved.grid[sid], ST.grid[sid]);
-    const tbNow = ST.team_b_grid || {}, tbSaved = saved.teamB || {};
-    for (const sid of new Set([...Object.keys(tbSaved), ...Object.keys(tbNow)])) diff += rowDiff(tbSaved[sid], tbNow[sid]);
-    showToast(diff === 0
-      ? "직전 근무표를 그대로 복원했습니다"
-      : `입력은 그대로 복원했지만 표가 직전과 ${diff}칸 다릅니다 — 내려받아 두신 출력①이 있으면 '엑셀 수정본 되올리기'로 올리면 그 표가 됩니다`, diff !== 0);
-  } catch (e) {
-    showToast("직전 근무표를 복원하지 못했습니다 — 입력①②를 다시 올리고 생성해주세요", true);
-    renderRestoreCard();
-  }
-}
+// '직전 근무표가 있습니다' 카드(새로고침 뒤 입력 화면 맨 위에 뜨던 복원 안내)는 뺐다(사용자 결정 2026-11-13).
+// 카드가 그 기능의 유일한 입구였으므로 카드만 숨기지 않고 복원 길 전체 — 표와 올린 입력①②를 탭 세션에 적어 두기,
+// 다시 올려 다시 만들기 — 를 같이 걷어냈다(숨긴 코드는 테스트가 초록이어도 아무도 못 쓴다). 복원은 '같은 입력으로 다시
+// 만들기'라 야간 확정을 거친 표처럼 그대로 돌아오지 않는 경우도 있었다. 이제 새로고침하면 표는 사라진다 — 떠나기 전에
+// 브라우저가 한 번 묻는 것(platform.js beforeunload)과 출력①②가 보관 수단이다.
+// 이미 열려 있던 탭에는 옛 판이 적어 둔 명단·근무표가 세션에 남아 있을 수 있어 한 번 지운다.
+sessionDel("ns_session_result_v1"); sessionDel("ns_session_files_v1");
 
 // 새로고침·뒤로가기·탭 닫기 전에 한 번 묻는다 — 표가 있거나, 손으로 고친 칸이 있거나, 입력①②를 올린
 // 상태면. 폰에서 뒤로가기를 습관적으로 누르는 사람이 10초 걸린 표를 통째로 잃었다(2026-10-31 검토 P13).
@@ -2829,6 +2717,7 @@ function render(opts) {
   if (!(ST.pending && ST.pending.length)) BASE_FOOT = computeFootValues();
   $("#intake").style.display = "none";
   gridContent.style.display = "block";
+  gridPane.classList.add("out-on");   // PC: 표만 스크롤하고 나머지(제목·파일 줄·표 보기)는 제자리 — style.css #gridPane.out-on
   sidePane.style.display = "block";
   updateInfoLabel(true);
   setResultView(true);
@@ -2836,8 +2725,6 @@ function render(opts) {
   renderSide();
   paintFragile();
   restorePendingFocus();
-  saveSessionResult();   // 새로고침·뒤로가기로 날아가도 같은 탭에서는 되살릴 수 있게
-  renderRestoreCard();   // 표가 있으면 복원 카드는 숨긴다(복원 직후 남아 있었다)
   if (pos) {
     restoreScroll(pos);
     // 표가 커서 레이아웃이 한 박자 늦게 끝나거나(40명 × 31일), 브라우저의 스크롤
@@ -2940,13 +2827,8 @@ function renderGrid() {
   }
   // 표 위 상태 띠 — 폰에서는 '확인할 문제'(옛 검증 요약)가 표 40행 아래(약 1,900px)라 생성 직후 보이는 것이
   // 표 머리뿐이었다(2026-10-31 검토 A-11). 누르면 그 자리로 간다. PC에서도 같은 자리에 둔다.
-  const rr = ST.report || { hard_count: 0, hard: [] };
-  const soft = rr.hard.length - rr.hard_count;
-  html += `<div class="result-strip" id="resultStrip">` +
-    `<button type="button" class="strip-item ${rr.hard_count ? "bad" : "ok"}" data-strip="sideSummary" title="확인할 문제로">${rr.hard_count ? "🔴" : "🟢"} 필수 위반 ${rr.hard_count}</button>` +
-    `<button type="button" class="strip-item ${soft ? "warn" : ""}" data-strip="sideSummary" title="확인할 문제로">🟡 추가 검토 ${soft}</button>` +
-    fairStripItem() +
-    `</div>`;
+  // 폰 전용이다(PC에서는 같은 단추 넷이 오른쪽 패널 맨 위에 고정돼 있어 CSS로 숨긴다). 누르면 패널의 그 탭이 열린다.
+  html += `<div class="result-strip" id="resultStrip">${sideTabsHtml()}</div>`;
   // 범례는 이달 표에 실제로 나온 코드만 — 20색을 다 늘어놓으면 두 줄을 차지해 표가 17행밖에 안
   // 보였다(2026-10-31 검토 C 1-7). 이름 옆 '지'·'밤' 배지와, 날짜·이름이 눌린다는 것도 여기 적는다
   // (툴팁은 폰에서 볼 수 없다, A-17).
@@ -3110,12 +2992,13 @@ function renderGrid() {
     ST = null;
     gridContent.style.display = "none";
     gridContent.innerHTML = "";
+    gridPane.classList.remove("out-on");
     $("#intake").style.display = "block";
     sidePane.style.display = "none";
     updateInfoLabel(false);
     setResultView(false);
     nextMonthCardOn = false;
-    forgetSessionResult();   // 스스로 돌아갔으면 복원할 것도 없다(입력 파일은 그대로 남긴다)
+    SIDE_TAB = null;   // 다음 표는 기본 탭부터(필수 위반이 있으면 그 탭)
   };
 }
 
@@ -3137,7 +3020,7 @@ function nightStageBar() {
       `야간만 보입니다. 칸을 눌러 야간을 넣고·빼고·옮긴 뒤 확정하세요(다른 근무로 바꾸기는 확정 뒤에).` +
       `${pend ? ` 고친 칸 ${pend}개는 확정할 때 함께 고정됩니다.` : ""}` +
       ` 야간이 모자란 날은 2단계에서 채우지 않고 빨강(필수 위반)으로 남습니다.` +
-      ` 위 위반 숫자·'확인할 문제'는 <b>야간 관련 규칙만</b> 셉니다` +
+      ` 위반 숫자와 '필수 위반'·'추가 검토' 탭은 <b>야간 관련 규칙만</b> 셉니다` +
       `${ST.report && ST.report.hidden_count ? `(주간 등 나머지 ${ST.report.hidden_count}건은 나머지를 짠 뒤 다시 셉니다)` : ""}.</span>` +
       `<button type="button" class="primary small" data-night="confirm">야간 확정 → 나머지 짜기</button>` +
       `<button type="button" class="small" data-night="all">전체 보기로(확정 안 함)</button></div>`;
@@ -3177,14 +3060,77 @@ delegateClick(document.getElementById("gridContent"), "#nightStageBar button[dat
   } catch (e) { /* 오류 문구는 api()가 띄웠다 */ }
 });
 
-delegateClick(document.getElementById("gridContent"), ".result-strip button[data-strip]", (b) => {
-  const target = document.getElementById(b.dataset.strip);
-  if (!target) return;
-  const ex = target.closest("details");
-  if (ex && !ex.open) ex.open = true;
-  target.scrollIntoView({ block: "start", behavior: "smooth" });
-  target.classList.remove("flash-change"); void target.offsetWidth; target.classList.add("flash-change");
-  setTimeout(() => target.classList.remove("flash-change"), 3200);
+// ---------------------------------------------------------------- 패널 탭 — 형평성 · 필수 위반 · 추가 검토 · 상세 자료
+// 오른쪽 패널 맨 위에 넷이 고정돼 있고, 누르면 그 내용만 나타난다(사용자 2026-11-13: "우측 맨 위로 고정, 클릭하면 짠").
+// 예전에는 네 묶음이 한 줄로 길게 이어져 있어 아래 것을 보려면 패널을 끝까지 내려야 했다. 숫자는 탭 단추에 늘 보이므로
+// 다른 탭을 보고 있어도 필수 위반 수는 가려지지 않는다 — 그리고 필수 위반이 있는 표는 처음에 그 탭이 열려 있다.
+// 안 보이는 탭의 내용도 DOM에는 그대로 있다(채울 사람 찾기·빗금 비율처럼 나중에 채워지는 칸이 id로 찾아 쓴다).
+let SIDE_TAB = null;
+function sideTab() {
+  if (!SIDE_TAB) SIDE_TAB = (ST && ST.report && ST.report.hard_count) ? "hard" : "fair";
+  return SIDE_TAB;
+}
+function sideTabItems() {
+  const r = (ST && ST.report) || { hard_count: 0, hard: [] };
+  const soft = r.hard.length - r.hard_count;
+  // 형평성 — 야간 단계에서는 '야간 균등' 한 축만 본다. 칸을 고치는 동안은 "원래 → 수정 후".
+  const f = ST && ST.fair;
+  let fair = { label: ST && ST.night_stage ? "야간 균등" : "형평성", v: "–", cls: "", title: "형평성 점수(100점 만점, 참고용)" };
+  if (f) {
+    const night = !!ST.night_stage, a = night ? nightAxis(f) : null;
+    const base = night ? (a && a.score != null ? Math.round(a.score) : null) : fairOneNumber(f);
+    const grade = night ? (a && a.grade) : f.grade, k = grade && grade.key;
+    const fe = ST.fair_edited, ae = night && fe ? nightAxis(fe) : null;
+    const edited = night ? (ae && ae.score != null ? Math.round(ae.score) : null) : (fe ? fairOneNumber(fe) : null);
+    if (base != null) {
+      fair.v = `<b data-fair-strip="${base}">${base}</b>` + (edited != null ? `<span class="strip-arrow">→</span><b data-fair-edited="${edited}">${edited}</b>` : "");
+      fair.cls = k === "good" ? "ok" : k === "low" ? "bad" : k === "mid" ? "warn" : "";
+      if (night) fair.title = "야간 균등(100점 만점) — 야간 단계에서는 이 축만 봅니다";
+    }
+  }
+  return [
+    { tab: "fair", extra: " fair-strip", ...fair },
+    { tab: "hard", label: "필수 위반", v: String(r.hard_count), cls: r.hard_count ? "bad" : "ok", title: "필수 위반과 인력 미달" },
+    { tab: "soft", label: "추가 검토", v: String(soft), cls: soft ? "warn" : "", title: "원칙이지만 인원 사정상 못 맞출 수 있는 항목" },
+    { tab: "more", label: "상세 자료", v: "⋯", cls: "", title: "직원별 집계 · 주말 근무자 · 원티드 결과 · 적용 조건 · 상세 도구 · 도움말" },
+  ];
+}
+function sideTabsHtml() {
+  const cur = sideTab();
+  return sideTabItems().map(t =>
+    `<button type="button" role="tab" class="side-tab ${t.cls}${t.extra || ""}${t.tab === cur ? " on" : ""}" data-tab="${t.tab}" ` +
+    `aria-selected="${t.tab === cur}" title="${escAttr(t.title)}"><span class="st-l">${t.label}</span><span class="st-v">${t.v}</span></button>`).join("");
+}
+// pop: 사람이 눌러 바꿀 때만 '짠' 하고 나타난다 — 칸을 고칠 때마다 패널을 다시 그리는데 그때마다 튀면 정신없다.
+function showSideTab(name, pop) {
+  SIDE_TAB = name;
+  document.querySelectorAll(".side-tab").forEach(b => {
+    const on = b.dataset.tab === name;
+    b.classList.toggle("on", on); b.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  sidePane.querySelectorAll(".tab-pane").forEach(p => {
+    const on = p.dataset.pane === name;
+    p.classList.toggle("on", on); p.classList.remove("pop");
+    if (on && pop) { void p.offsetWidth; p.classList.add("pop"); }
+  });
+}
+// 패널 안의 어떤 칸으로 데려갈 때 — 그 칸이 든 탭을 먼저 열고, 접힌 칸이면 편다.
+function revealInSide(el) {
+  if (!el) return;
+  const pane = el.closest(".tab-pane");
+  if (pane && pane.dataset.pane !== SIDE_TAB) showSideTab(pane.dataset.pane, false);
+  for (let d = el.closest("details"); d; d = d.parentElement && d.parentElement.closest("details")) d.open = true;
+  el.scrollIntoView({ block: "nearest" });
+}
+// 패널 맨 위 탭: 그 내용이 위에서부터 보이게 패널을 맨 위로 올린다(PC — 패널이 따로 스크롤한다).
+delegateClick(sidePane, ".side-tabs .side-tab", (b) => {
+  showSideTab(b.dataset.tab, true);
+  if (sidePane.scrollHeight > sidePane.clientHeight + 1) sidePane.scrollTop = 0;
+});
+// 표 위 띠(폰): 패널은 표 아래 멀리 있으므로 탭을 열고 그 자리로 내려간다.
+delegateClick(document.getElementById("gridContent"), ".result-strip .side-tab", (b) => {
+  showSideTab(b.dataset.tab, true);
+  sidePane.scrollIntoView({ block: "start", behavior: "smooth" });
 });
 
 // 날짜별 레벨 통계 — 그 날 실제로 근무(D/E/N(NK 포함)/prn(8A 포함))에 배정된 사람들의
@@ -3327,17 +3273,17 @@ gridContent.addEventListener("change", (e) => {
   if (t && t.matches && t.matches("input[data-view]")) setViewOpt(t.dataset.view, t.checked);
 });
 
-// 표 위 파일 작업줄 — 출력①②·엑셀 수정본 되올리기·월간 보고서·입력으로. 예전엔 오른쪽 패널 세 번째 화면쯤에 있어
-// 스크롤해야 나왔고, 표 위 띠의 '⬇ 다운로드'는 그 자리로 데려다 줄 뿐이었다. 파일 동작은 한 곳에 둔다(GPT UI 검토 §03).
-// 번호는 그대로다 — 출력②가 다음 달 입력②다. 적용 안 한 편집이 있으면 못 받는 것도 그대로.
+// 표 위 파일 작업줄 — 엑셀 수정본 되올리기 · 출력① · 출력② · 입력으로. 예전엔 오른쪽 패널 세 번째 화면쯤에 있어
+// 스크롤해야 나왔다. 파일 동작은 한 곳에 둔다(GPT UI 검토 §03). 번호는 그대로다 — 출력②가 다음 달 입력②다.
+// 되올리기가 맨 앞이고(사용자 2026-11-13), 월간 보고서는 실험 기능이라 여기 두지 않고 패널 '도움말 · 기타'에 둔다(같은 날).
+// 단추 높이는 옆의 제목 글자 줄에 맞춘다 — 두 줄 높이 상자가 제목보다 커서 머리줄이 표를 밀었다.
+// 적용 안 한 편집이 있으면 못 받는 것은 그대로.
 function fileBarHtml() {
   const hasPending = (ST.pending || []).length > 0, dis = hasPending ? " disabled" : "";
-  let html = `<div class="file-bar-wrap"><div class="file-bar" id="sideDownload" role="group" aria-label="파일 받기 · 되올리기">` +
+  let html = `<div class="file-bar-wrap"><div class="file-bar" id="sideDownload" role="group" aria-label="되올리기 · 파일 받기">` +
+    `<button class="file-btn sub" onclick="uploadMonth()" title="엑셀에서 고친 출력①(월간근무표)을 올리면 그 값으로 반영되고 바뀐 칸은 고정됩니다">엑셀 수정본 되올리기</button>` +
     `<button class="file-btn" onclick="if (confirmDownloadWithViolations()) downloadXlsxOcs()"${dis} title="이번 달 근무표 — 엑셀에서 고쳐 되올릴 수 있습니다"><span class="io-tag">출력①</span>월간근무표</button>` +
     `<button class="file-btn" onclick="if (confirmDownloadWithViolations()) downloadStaffTable()"${dis} title="다음 달 입력②로 올리는 파일"><span class="io-tag">출력②</span>연간근무표</button>` +
-    `<button class="file-btn sub" onclick="uploadMonth()" title="엑셀에서 고친 출력①(월간근무표)을 올리면 그 값으로 반영되고 바뀐 칸은 고정됩니다">엑셀 수정본 되올리기</button>` +
-    `<button class="file-btn sub" id="expMagBtn" onclick="if (confirmDownloadWithViolations()) downloadMagazine()"${dis} ` +
-      `title="검증·일별 인원·주말 명단·사람별 집계·부담·원티드·고정 칸·야간·점수표·처리 기록을 한 파일(HTML)에 — 열어서 인쇄하면 PDF">월간 보고서</button>` +
     `<button id="backToInputBtn" class="file-btn sub" title="입력 화면으로 돌아가 새로 만듭니다">← 입력으로</button></div>` +
     (hasPending ? `<p class="hint file-bar-note">적용 안 한 편집이 있어 파일을 받을 수 없습니다 — '재생성 적용' 뒤에 받을 수 있습니다.</p>` : "") +
     `<div id="nextMonthCard"></div>`;
@@ -3646,7 +3592,7 @@ document.getElementById("sidePane").addEventListener("change", (ev) => {
   const e = (noticeDiff() || [])[Number(ev.target.dataset.k)]; if (!e) return;
   NOTICE.sent = NOTICE.sent || {};
   if (ev.target.checked) NOTICE.sent[e.sid] = noticeFp(e); else delete NOTICE.sent[e.sid];
-  saveNotice(); renderSide(); const sec = $("#noticeSec"); if (sec) sec.scrollIntoView({ block: "nearest" });
+  saveNotice(); renderSide(); revealInSide($("#noticeSec"));
 });
 $("#baselineInput").onchange = async () => {
   const el = $("#baselineInput"), f = el.files[0];
@@ -4151,7 +4097,7 @@ async function makeVocFile() {
 // **'관리자 모드'**를 누르면 비밀번호를 묻고,
 // 맞으면 바로 파일 고르기가 뜬다. 올라가면 '관리자 모드'다 — 창 둘레에 초록 테두리가 서고, 맨 위 띠에 보낸 사람과
 // 적은 내용이 보인다. 표뿐 아니라 입력 화면도 그 사람의 값으로 채운다(입력으로 돌아가도 관리자 모드는 이어진다).
-// 대신 이 기기에는 아무것도 저장하지 않고(saveSettings·rememberSessionFile·saveSessionResult가 건너뛴다),
+// 대신 이 기기에는 아무것도 저장하지 않고(saveSettings·saveNotice가 건너뛴다),
 // '끝내기'는 화면을 새로 고쳐 내 값으로 돌아간다.
 // 비밀번호는 실수로 눌린 것을 거르는 정도다(소스에 그대로 있다) — 문의 파일 자체가 없으면 볼 것이 없다.
 const VOC_ADMIN_PW = "my";
@@ -4272,7 +4218,7 @@ async function loadVocFile(file) {
     } else {
       // 표가 없는 문의(생성 전에 받은 것) — 그 사람도 입력 화면을 보고 있었다.
       ST = null;
-      gridContent.style.display = "none"; gridContent.innerHTML = "";
+      gridContent.style.display = "none"; gridContent.innerHTML = ""; gridPane.classList.remove("out-on"); SIDE_TAB = null;
       $("#intake").style.display = "block"; sidePane.style.display = "none";
       updateInfoLabel(false); setResultView(false);
     }
@@ -4558,7 +4504,7 @@ window.openPicker = function (ev, sid, day) {
     if (why.lines.length) {
       const box = document.createElement("div");
       box.className = "picker-why";
-      box.innerHTML = `<b>이 칸은</b> ` + why.lines.map(esc).join(" ") + ` <span class="dim">(이 칸만 본 판정 — 전체 검사는 오른쪽 '확인할 문제')</span>`;
+      box.innerHTML = `<b>이 칸은</b> ` + why.lines.map(esc).join(" ") + ` <span class="dim">(이 칸만 본 판정 — 전체 검사는 '필수 위반'·'추가 검토' 탭)</span>`;
       div.appendChild(box);
       showRipple(why.cells);
     }
@@ -4717,7 +4663,7 @@ function feasibilityBanner(r) {
   }
   if (total > 0) {
     // 예전엔 여기서 "추가 검토 N건은 원칙이지만…"까지 한 문단이었다 — 같은 수와 같은 설명이 바로 아래 '추가 검토' 머리줄에 있다.
-    return `<p class="side-note all-clear">필수 규칙은 모두 지켰습니다. 아래 추가 검토를 확인한 뒤 내려받으세요.</p>`;
+    return `<p class="side-note all-clear">필수 규칙은 모두 지켰습니다. '추가 검토' 탭을 확인한 뒤 내려받으세요.</p>`;
   }
   return "";
 }
@@ -4751,40 +4697,38 @@ function renderSide() {
   sidePane.querySelectorAll("details[id]").forEach(d => { wasOpen[d.id] = d.open; });
   const hardList = r.hard.filter(v => !v.best_effort), softList = r.hard.filter(v => v.best_effort);
 
-  let html = "";
-  // ── 편집 중: 고치는 중일 때만, 맨 위. 표에는 편집본이 보이고 아래 검사는 적용본 기준이라는 것을 여기서 먼저 안다.
+  // ── 맨 위: 탭 넷(고정). 그 아래 '편집 중'은 고치는 중일 때만, 어느 탭에서나 — 표에는 편집본이 보이고 검사는
+  // 적용본 기준이라는 것을 먼저 안다.
   const hasPending = ST.pending.length > 0;
-  html += renderSwap();
-  if (hasPending) html += `<div class="side-sec" id="pendingSec"><h3>편집 중 <span class="count-badge">미적용 ${ST.pending.length}칸</span></h3><div id="pendingBody"></div></div>`;
+  let top = `<div class="side-tabs" id="sideTabs" role="tablist" aria-label="결과 살펴보기">${sideTabsHtml()}</div>` + renderSwap();
+  if (hasPending) top += `<div class="side-sec" id="pendingSec"><h3>편집 중 <span class="count-badge">미적용 ${ST.pending.length}칸</span></h3><div id="pendingBody"></div></div>`;
+  // 표에는 수정 대기 칸이 보이지만 아래 목록은 마지막으로 적용한 표 기준이다 — 둘의 기준이 다른
+  // 것을 적어 두지 않으면 "고쳤는데 왜 위반이 그대로냐"가 된다(10/30 GPT 검토 U06, 재현됨).
+  const scopeNote = hasPending
+    ? `<p class="hint scope-note">📌 아래는 <b>마지막으로 적용한 표 기준</b>입니다 — 수정 대기 ${ST.pending.length}칸은 '재생성 적용' 뒤에 반영됩니다.</p>` : "";
 
-  // ── 확인할 문제
-  html += `<div class="side-sec" id="sideSummary"><h3>확인할 문제 <span class="count-badge${r.hard_count ? " bad" : ""}">필수 ${r.hard_count} · 추가 검토 ${softList.length}</span></h3>`;
-  if (hasPending) {
-    // 표에는 수정 대기 칸이 보이지만 아래 목록은 마지막으로 적용한 표 기준이다 — 둘의 기준이 다른
-    // 것을 적어 두지 않으면 "고쳤는데 왜 위반이 그대로냐"가 된다(10/30 GPT 검토 U06, 재현됨).
-    html += `<p class="hint scope-note">📌 아래는 <b>마지막으로 적용한 표 기준</b>입니다 — 수정 대기 ${ST.pending.length}칸은 '재생성 적용' 뒤에 반영됩니다.</p>`;
-  }
+  // ── 탭 '필수 위반' — 필수 위반 목록과 인력 미달(같은 사건을 날짜별 숫자로 본 것)
+  let hardHtml = `<div class="side-sec" id="sideSummary"><h3>필수 위반 <span class="count-badge${r.hard_count ? " bad" : ""}">${r.hard_count}건</span></h3>` + scopeNote;
   if (r.timed_out) {
     // 시도는 시드 0·1·2(전략 -,W,S)로 고정이라 같은 입력이면 같은 결과다. 예전 문구는 "무작위 재시도라
     // 다시 누르면 달라질 수 있다"였는데 사실이 아니어서, 같은 버튼을 계속 누르게 만들었다.
     // 시간 제한에 걸리는 건 기기가 느릴 때라, 빠른 기기에서는 끝까지 시도한다.
-    html += `<p class="status-banner warn">⏱ 시간 제한(30초)으로 시도를 다 마치지 못하고
+    hardHtml += `<p class="status-banner warn">⏱ 시간 제한(30초)으로 시도를 다 마치지 못하고
       멈췄습니다 — 지금 결과는 그 안에서 찾은 최선입니다. 같은 입력으로 다시 눌러도 결과는
       같습니다. 더 빠른 기기(PC)에서 열면 끝까지 시도합니다.</p>`;
   }
-  html += feasibilityBanner(r);
+  hardHtml += feasibilityBanner(r);
   // 잠긴 칸(손으로 고친 칸·되올린 수정본) 때문에 재생성으로 못 푸는 위반이 있으면 그 사실을
   // 배너 바로 아래에 적는다. 안 적으면 33초짜리 재생성을 몇 번이고 다시 누르게 된다(리뷰 F-20).
-  if (r.locked_note) html += `<p class="hint locked-note">🔒 ${esc(r.locked_note)}</p>`;
-  if (!r.hard.length) html += `<p class="side-note all-clear">필수 위반도 추가 검토 항목도 없습니다.</p>`;
+  if (r.locked_note) hardHtml += `<p class="hint locked-note">🔒 ${esc(r.locked_note)}</p>`;
+  if (!r.hard.length) hardHtml += `<p class="side-note all-clear">필수 위반도 추가 검토 항목도 없습니다.</p>`;
   // 필수 위반은 전부, 늘 펼쳐서 — 줄이거나 접지 않는다.
-  if (hardList.length) html += `<ul class="issue-list issue-list-scroll" id="hardIssues">${hardList.map(issueLi).join("")}</ul>`;
-  // 인력 미달 — 같은 사건(최소인력 미달)을 날짜별 숫자로 본 것이라 필수 위반 바로 아래 둔다. 미달이 없으면 칸 자체가 없다
-  // (예전엔 "전일 충족"만 적힌 빈 카드가 늘 떠 있었다).
+  if (hardList.length) hardHtml += `<ul class="issue-list issue-list-scroll" id="hardIssues">${hardList.map(issueLi).join("")}</ul>`;
+  // 인력 미달 — 미달이 없으면 칸 자체가 없다(예전엔 "전일 충족"만 적힌 빈 카드가 늘 떠 있었다).
   if (r.bad_days_count > 0) {
     // 아래 그리드 통계와 같은 이름으로 — 엔진의 N은 NK를 더한 값이고, prn은 prn 계열 합계(반일 0.5)다.
     const nLabel = ST.staff.some(s => s.is_nk && !s.is_partjang) ? "N+NK" : "N";
-    html += `<h4 class="sub-h">인력 미달 <span class="count-badge bad">${r.bad_days_count}일</span> <small>배정/필요</small></h4>` +
+    hardHtml += `<h4 class="sub-h">인력 미달 <span class="count-badge bad">${r.bad_days_count}일</span> <small>배정/필요</small></h4>` +
       `<table class="mini-table"><tr><th>일</th><th>D</th><th>E</th><th>${nLabel}</th><th title="prn 계열 합계(반일 0.5명)">prn 합계</th></tr>` +
       r.daily.filter(d => !d.ok).map(d =>
         `<tr><td>${d.day}</td><td class="${d.counts.D < d.min.D ? "badge-bad" : ""}">${d.counts.D}/${d.min.D}</td>` +
@@ -4795,24 +4739,30 @@ function renderSide() {
       // 미달 (날짜, 근무)마다 "누구를 넣으면 채워지나" — 생성 뒤 Worker에 따로 물어 채운다
       '<div id="fillHintsBox" class="side-note">채울 수 있는 사람을 찾는 중…</div>';
   }
-  // 추가 검토 — 종류별로 묶어 접는다. 몇 건 안 되면(6건 이하) 펴 둔다.
+  hardHtml += "</div>";
+
+  // ── 탭 '추가 검토' — 종류별로 묶어 접는다. 몇 건 안 되면(6건 이하) 펴 둔다.
+  let softHtml = `<div class="side-sec" id="softSec"><h3>추가 검토 <span class="count-badge">${softList.length}건</span></h3>` + scopeNote;
   if (softList.length) {
     const groups = new Map();
     for (const v of softList) { if (!groups.has(v.rule)) groups.set(v.rule, []); groups.get(v.rule).push(v); }
-    html += `<h4 class="sub-h">추가 검토 <span class="count-badge">${softList.length}건</span> <small>원칙이지만 인원 사정상 못 맞출 수 있는 항목</small></h4>`;
+    softHtml += `<p class="side-note soft-lead">지키는 게 원칙이지만 인원 사정상 못 맞출 수 있는 항목입니다. 한 번 보고 넘어가면 됩니다.</p>`;
     for (const [rule, list] of groups) {
-      html += `<details class="issue-group" id="softGroup-${escAttr(rule)}"${softList.length <= 6 ? " open" : ""}>` +
+      softHtml += `<details class="issue-group" id="softGroup-${escAttr(rule)}"${softList.length <= 6 ? " open" : ""}>` +
         `<summary>${esc(SOFT_GROUP_NAMES[rule] || rule)} <span class="count-badge">${list.length}건</span></summary>` +
         `<ul class="issue-list">${list.map(issueLi).join("")}</ul></details>`;
     }
+  } else {
+    softHtml += `<p class="side-note all-clear">추가 검토 항목이 없습니다.</p>`;
   }
-  html += "</div>";
+  softHtml += "</div>";
 
-  // ── 형평성 — 종합과 가장 낮은 축만. 축별 막대·누적·산식은 접힘 안에(renderFairScore).
-  html += renderFairScore();
-  // ── 조정 참고 — 세 가지까지, 나머지는 접힘
-  html += renderBurdenSummary();
+  // ── 탭 '형평성' — 종합과 가장 낮은 축(축별 막대·누적·산식은 접힘 안에) + 조정 참고(세 가지까지, 나머지는 접힘)
+  const fairHtml = (renderFairScore() + renderBurdenSummary()) ||
+    `<div class="side-sec"><p class="side-note">형평성 점수를 낼 수 없는 표입니다(견줄 사람이 없습니다).</p></div>`;
 
+  // ── 탭 '상세 자료' — 여기서부터 끝까지(html)
+  let html = "";
   // ── 상세 자료 — 필요할 때 펴 보는 것들. 전부 접혀 있다.
   // 직원별 집계: 공정 배분 참고용으로 "야간편차"(일반 간호사 평균 대비, 파트장·NK 제외)를 같이 보여준다.
   const staffById = {};
@@ -4945,9 +4895,13 @@ function renderSide() {
   }
   html += `</details>`;   // 상세 도구 끝
 
-  // 도움말 · 기타 — 패널 맨 아래. 한 줄 전체가 누르는 자리다(작은 글씨 한 문단에 '·'로 이어 붙였더니 폰에서 무엇이 버튼인지
-  // 알 수 없었다, 2026-11-11). 월간 보고서는 표 위 파일 작업줄로 옮겼다 — 파일 받는 곳은 한 군데다.
+  // 도움말 · 기타 — '상세 자료' 탭 맨 아래. 한 줄 전체가 누르는 자리다(작은 글씨 한 문단에 '·'로 이어 붙였더니 폰에서 무엇이
+  // 버튼인지 알 수 없었다, 2026-11-11). 월간 보고서는 실험 기능이라 표 위 파일 줄이 아니라 여기 둔다(사용자 2026-11-13 —
+  // 한나절 파일 줄에 있었다). 적용 안 한 편집이 있으면 못 받는 것은 출력①②와 같다.
   html += `<div class="side-sec side-exp"><h3>도움말 · 기타</h3><div class="exp-list">` +
+    `<button class="exp-item" id="expMagBtn" onclick="if (confirmDownloadWithViolations()) downloadMagazine()"${hasPending ? " disabled" : ""} ` +
+      `title="검증·일별 인원·주말 명단·사람별 집계·부담·원티드·고정 칸·야간·점수표·처리 기록을 한 파일(HTML)에 — 열어서 인쇄하면 PDF">` +
+      `<span class="exp-name">월간 보고서 받기 <small>실험 기능</small></span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
     // 문의 파일 받기·관리자 모드 — 설명서(📘) 창 맨 아래 '도움' 줄과 같은 창을 연다. 문의는 적용 안 한 편집이 있어도 받을 수
     // 있다(그 편집까지 담긴다). 관리자 모드는 여기서도 비밀번호를 묻는다.
     `<button class="exp-item" id="expVocBtn" onclick="openVocDialog()" ` +
@@ -4956,13 +4910,10 @@ function renderSide() {
     `<button class="exp-item" id="expAdminBtn" onclick="openVocGate()" ` +
       `title="받은 문의 파일(zip)을 올려 그 사람이 보던 화면을 다시 봅니다 — 비밀번호가 필요합니다">` +
       `<span class="exp-name">관리자 모드</span><span class="exp-go" aria-hidden="true">›</span></button>` +
-    // 생성 중에 무작위로 하나씩 나오는 애니메이션 12가지를 한 화면에 모은 파일(근무표 데이터는 없음 — 예시 기록으로 돈다).
-    // 사본은 docs/시각화/모음/만들기.py가 guide/에 굽는다.
-    `<a class="exp-item" href="guide/gen-animations.html" download="생성화면_애니메이션_12가지.html" ` +
-      `title="생성할 때 나오는 애니메이션 12가지를 한 화면에 — 근무표 내용은 들어 있지 않습니다">` +
-      `<span class="exp-name">생성 애니메이션(HTML) 받기</span><span class="exp-go" aria-hidden="true">⬇</span></a>` +
     `</div></div>`;
-  sidePane.innerHTML = html;
+  const cur = sideTab();
+  const pane = (name, inner) => `<div class="tab-pane${name === cur ? " on" : ""}" data-pane="${name}" role="tabpanel">${inner}</div>`;
+  sidePane.innerHTML = top + pane("fair", fairHtml) + pane("hard", hardHtml) + pane("soft", softHtml) + pane("more", html);
   // 다시 그리기 전에 펴 두었던(또는 닫아 둔) 칸은 그대로 — 기본값은 처음 한 번만 쓴다.
   sidePane.querySelectorAll("details[id]").forEach(d => { if (d.id in wasOpen) d.open = wasOpen[d.id]; });
   renderPending();
@@ -5068,21 +5019,6 @@ function fairAxisMeta(a) {
 // 짜일 주간 몫이 섞여 있어, 야간을 아무리 고쳐도 엉뚱하게 오르내린다.
 function nightAxis(f) { return f && Array.isArray(f.axes) ? f.axes.find(a => a.key === "night") : null; }
 
-function fairStripItem() {
-  const f = ST.fair; if (!f) return "";
-  if (ST.night_stage) {
-    const a = nightAxis(f); if (!a || a.score == null) return "";   // 야간 대상이 없으면 견줄 수 없음
-    const ae0 = nightAxis(ST.fair_edited), ae = ae0 && ae0.score != null ? ae0 : null;
-    const k = a.grade && a.grade.key;
-    const cls = k === "good" ? "ok" : k === "low" ? "bad" : k === "mid" ? "warn" : "";
-    const edited = ae ? ` <span class="strip-arrow">→</span> <b data-fair-edited="${Math.round(ae.score)}">${Math.round(ae.score)}</b>` : "";
-    return `<button type="button" class="strip-item fair-strip ${cls}" data-strip="fairSec" title="야간 균등(100점 만점) — 야간 단계에서는 이 축만 봅니다">🌙 야간 균등 <b data-fair-strip="${Math.round(a.score)}">${Math.round(a.score)}</b>${edited}<small>/100</small></button>`;
-  }
-  const fe = ST.fair_edited;
-  const cls = f.grade && f.grade.key === "good" ? "ok" : f.grade && f.grade.key === "low" ? "bad" : f.grade && f.grade.key === "mid" ? "warn" : "";
-  const edited = fe ? ` <span class="strip-arrow">→</span> <b data-fair-edited="${fairOneNumber(fe)}">${fairOneNumber(fe)}</b>` : "";
-  return `<button type="button" class="strip-item fair-strip ${cls}" data-strip="fairSec" title="형평성 점수(100점 만점, 참고용)로">⚖ 형평성 <b data-fair-strip="${fairOneNumber(f)}">${fairOneNumber(f)}</b>${edited}<small>/100</small></button>`;
-}
 function renderFairScore() {
   const f = ST.fair;
   if (!f || !Array.isArray(f.axes)) return "";
