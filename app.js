@@ -3847,8 +3847,8 @@ function drawJourney(now) {
 // 확정 뒤 파트장이 받는 한 장짜리 보고서 — 화면 오른쪽 패널에 흩어진 것(검증·일별 인원·주말 명단·사람별
 // 집계·부담·원티드·고정 칸·야간 분포·점수표·로그)을 한 파일에 모아 인쇄·전달할 수 있게. 숫자는 전부
 // 화면과 같은 계산(burdenOf·dutyColumns·report)이라 따로 맞춰 볼 필요가 없다. 파일 하나(HTML)라 카톡으로
-// 보내도 열리고, 브라우저에서 인쇄하면 PDF가 된다. 여는 자리는 표 위 파일 줄의 '월간 보고서'(2026-11-13 — 그 전에는
-// 패널 맨 아래 '실험 기능' 작은 글씨였는데, 받는 파일이 두 군데로 흩어져 있어 한 줄로 모았다).
+// 보내도 열리고, 브라우저에서 인쇄하면 PDF가 된다. 여는 자리는 패널 '상세 자료' 탭 맨 아래 '도움말 · 기타'의 '월간 보고서 받기'다
+// (2026-11-13에 표 위 파일 줄로 올렸다가 같은 날 사용자가 되돌렸다 — 실험 기능이라 파일 줄에 둘 것이 아니다).
 function magazineHtml() {
   const r = ST.report || {}, days = ST.days, nd = ST.num_days;
   const row = s => ST.grid[s.id] || [];
@@ -4940,15 +4940,17 @@ function renderSide() {
   html += `<div class="side-sec side-exp"><h3>도움말 · 기타</h3><div class="exp-list">` +
     `<button class="exp-item" id="expMagBtn" onclick="if (confirmDownloadWithViolations()) downloadMagazine()"${hasPending ? " disabled" : ""} ` +
       `title="검증·일별 인원·주말 명단·사람별 집계·부담·원티드·고정 칸·야간·점수표·처리 기록을 한 파일(HTML)에 — 열어서 인쇄하면 PDF">` +
-      `<span class="exp-name">월간 보고서 받기 <small>실험 기능</small></span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
+      `<span class="exp-name">월간 보고서 받기</span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
     // 문의 파일 받기·관리자 모드 — 설명서(📘) 창 맨 아래 '도움' 줄과 같은 창을 연다. 문의는 적용 안 한 편집이 있어도 받을 수
     // 있다(그 편집까지 담긴다). 관리자 모드는 여기서도 비밀번호를 묻는다.
     `<button class="exp-item" id="expVocBtn" onclick="openVocDialog()" ` +
       `title="이름과 내용을 적으면 지금 입력·출력·고친 기록이 파일 하나(zip)로 받아집니다 — 이 기기에 저장만 됩니다">` +
-      `<span class="exp-name">문의 파일 받기</span><span class="exp-go" aria-hidden="true">›</span></button>` +
+      // 줄 끝 표시는 그 줄이 하는 일을 말한다(사용자 2026-11-13): 받는 것(월간 보고서·문의 파일)은 ⬇, 관리자 모드는 표시 없음 —
+      // 꺾쇠(›)는 '다음 화면으로'로 읽히는데 문의 파일은 파일이 내려오고, 관리자 모드는 비밀번호를 묻는 숨은 길이라 이끌 것이 없다.
+      `<span class="exp-name">문의 파일 받기</span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
     `<button class="exp-item" id="expAdminBtn" onclick="openVocGate()" ` +
       `title="받은 문의 파일(zip)을 올려 그 사람이 보던 화면을 다시 봅니다 — 비밀번호가 필요합니다">` +
-      `<span class="exp-name">관리자 모드</span><span class="exp-go" aria-hidden="true">›</span></button>` +
+      `<span class="exp-name">관리자 모드</span></button>` +
     `</div></div>`;
   const cur = sideTab();
   const pane = (name, inner) => `<div class="tab-pane${name === cur ? " on" : ""}" data-pane="${name}" role="tabpanel">${inner}</div>`;
