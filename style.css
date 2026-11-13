@@ -139,24 +139,6 @@ header #infoBtn {
    (파일 끝 'header #infoBtn, header .sign-out')보다 위에 있어도 이기게 button 태그로 특이성을 올렸다. */
 header button#infoBtn, header button.sign-out { height: 32px; }
 @media (max-width: 680px) { header button#infoBtn, header button.sign-out { height: 36px; } }
-/* 앱 이름(헤더) 바로 아래, 전체 폭 띠 — 여러 줄로 자연스럽게 줄바꿈되는 일반 문단.
-   (이전엔 inline-flex + 알약 모양이었는데, 여러 줄 문단엔 안 맞아 줄바꿈이 이상하게 깨졌음) */
-.security-note {
-  display: block; font-size: .75rem; font-weight: 600; line-height: 1.6;
-  color: var(--ok); background: var(--ok-soft); padding: 8px 18px; margin: 0;
-  border-bottom: 1px solid var(--line);
-}
-/* 화면 맨 아래 마무리 줄 — 맨 위 보안 안내와 같은 자리·같은 두께의 띠지만,
-   내용을 읽히려는 게 아니라 "여기가 끝"이라는 신호가 목적이라 무채색으로 죽인다
-   (초록은 위쪽 보안 안내에만 쓴다 — 색이 두 군데면 어느 쪽도 눈에 안 띈다).
-   #app이 세로 flex(#main이 flex:1)라 데스크톱에서는 화면 맨 아래에 붙고,
-   폰(≤680px, #app height:auto)에서는 문서 맨 끝에 온다. */
-.footer-note {
-  display: block; text-align: center; margin: 0;
-  font-size: .6875rem; font-weight: 500; letter-spacing: .02em; line-height: 1.6;
-  color: var(--sub); background: var(--card);   /* opacity .75는 대비 3.42 — 뺐다 */
-  padding: 9px 18px; border-top: 1px solid var(--line);
-}
 
 button {
   appearance: none; -webkit-appearance: none;
@@ -509,8 +491,37 @@ td.sn.fragile-day span, td.sk.fragile-day span, td.sjo.fragile-day span { backgr
 .intake-box > *:last-child { margin-bottom: 0; }
 .intake-box { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 26px; }
 .intake-box h2 { font-size: 1.0625rem; margin: 0 0 6px; }
-.output-title { font-size: 1.0625rem; margin: 0 0 2px; }
-.output-subtitle { font-size: .78125rem; color: var(--sub); margin: 0 0 12px; font-weight: 600; }
+.output-title { font-size: 1.0625rem; margin: 0; }
+.output-subtitle { font-size: .78125rem; color: var(--sub); margin: 0; font-weight: 600; }
+/* 표 위 한 줄 — 왼쪽에 제목·병동·연월·인원·회차, 오른쪽에 파일 작업줄. 좁으면 작업줄이 아래로 내려간다. */
+.out-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 16px; margin: 0 0 8px; }
+.out-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; padding-top: 5px; }
+.file-bar-wrap { margin-left: auto; min-width: 0; max-width: 100%; }
+.file-bar { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.file-bar .file-btn { min-height: 34px; padding: 5px 11px; border-radius: 9px; font-weight: 700; font-size: .78125rem;
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.file-bar .file-btn.sub { font-weight: 600; background: var(--card); color: var(--ink); border-color: var(--line); }
+.file-bar-note { margin: 4px 0 0; text-align: right; }
+.file-bar-wrap .upload-branch { max-width: 360px; margin-left: auto; }
+.file-bar-wrap #nextMonthCard:not(:empty) { max-width: 420px; margin: 6px 0 0 auto; }
+@media (max-width: 680px) {
+  .file-bar-wrap { margin-left: 0; width: 100%; }
+  .file-bar { justify-content: flex-start; }
+  .file-bar .file-btn { min-height: 40px; flex: 1 1 auto; justify-content: center; }
+  .file-bar-note { text-align: left; }
+}
+/* 표 보기 옵션(빗금·집계 열 전체·그 밖 코드 줄)과 접힌 범례 — 한 줄에 작은 글씨로. */
+.view-row { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 14px; margin: 2px 0 2px; font-size: .75rem; color: var(--sub); }
+.view-row .view-row-t { font-weight: 700; }
+.view-row label { display: inline-flex; align-items: center; gap: 5px; min-height: 30px; cursor: pointer; }
+.view-row input { margin: 0; }
+.legend.legend-fold { margin: 2px 0 8px; }
+#gridContent:not(.legend-on) .legend-fold { display: none; }
+/* 보기 옵션이 꺼져 있을 때 숨기는 것 — 나머지 집계 열(col-x), 최소인력에 안 세는 코드 줄(duty-other), 빗금 */
+#gridContent:not(.cols-all) .col-x { display: none; }
+#gridContent:not(.rows-all) tr.duty-other { display: none; }
+#gridContent:not(.hatch-on) td.fragile-row span, #gridContent:not(.hatch-on) td.fragile-day span { background-image: none !important; }
+@media (max-width: 680px) { .view-row label { min-height: 36px; } }
 .carry-warning { font-size: .8125rem; color: var(--hard); background: var(--hard-soft);
   border-radius: 8px; padding: 8px 12px; margin: 0 0 12px; font-weight: 600; }
 .status-banner { font-size: .78125rem; border-radius: 8px; padding: 8px 12px;
@@ -854,8 +865,10 @@ table.grid th.day-head:hover, table.grid th.day-head:focus-visible { outline: 2p
   border-bottom: 1px solid var(--line);
 }
 .modal-head h2 { font-size: 1rem; margin: 0; }
-/* 맨 아래 글자의 숨은 길('SMC'·'Shift') — 겉모습은 그대로 두고 손가락이 닿는 자리만 넓힌다(11px 글자는 폰에서 못 누른다) */
-.footer-note span { display: inline-block; padding: 9px 6px; margin: -9px -6px; }
+/* 설명서 창 맨 아래 '도움' 줄 — 문의 파일 받기·관리자 모드의 입구(맨 아래 'SMC'·'Shift' 글자를 빼면서 옮겼다) */
+.info-help { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; padding: 10px 18px;
+  border-top: 1px solid var(--line); font-size: .75rem; color: var(--sub); }
+.info-help button.linklike { min-height: 32px; padding: 4px 2px; }
 /* 문의 파일 받기 — 이름·내용 두 칸과 받기 버튼뿐인 작은 창(맨 아래 'SMC' 글자로 연다) */
 .modal.voc-modal { max-width: 460px; }
 .voc-body { display: flex; flex-direction: column; gap: 6px; }
@@ -983,7 +996,7 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
   html, body, #app, #main, #gridPane { height: auto !important; min-height: 0 !important; overflow: visible !important; }
   html, body { background: #fff !important; color: #000; }   /* html의 --paper가 마지막 쪽 빈 곳을 회색으로 칠했다 */
   #authGate, #loadingOverlay, #genOverlay, .toast, .picker, .modal-backdrop,
-  header button, header .spacer, .security-note, .footer-note, #sidePane, #backToInputBtn,
+  header button, header .spacer, #sidePane, #backToInputBtn, .file-bar-wrap, .view-row, .legend-fold,
   .carry-warning, .tap-hint, #monthInput { display: none !important; }
   header { border-bottom: 1px solid #000; padding: 0 0 4px; background: none; }
   #main { display: block; }
@@ -1372,3 +1385,32 @@ details.expert-sec > .side-sec { margin-top: 12px; }
 #sidePane .expert-sec > .side-sec { background: var(--code-bg); border-color: transparent; }
 #sidePane .side-sec h3:last-child { margin-bottom: 0; }   /* 제목만 있는 카드(일별 근무인력 전일 충족)는 아래가 비지 않게 */
 
+
+/* ---- 오른쪽 패널 재배치(2026-11-13) — 확인할 문제 → 형평성 → 조정 참고 → 상세 자료(접힘) → 상세 도구 ---- */
+#sidePane h4.sub-h { font-size: .78125rem; font-weight: 700; margin: 12px 0 6px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+#sidePane h4.sub-h small { font-weight: 400; color: var(--sub); font-size: .6875rem; }
+#sidePane .count-badge.bad { background: var(--hard-soft); color: var(--hard); }
+#sidePane .all-clear { color: var(--ok); font-weight: 600; }
+#sidePane details.issue-group { margin: 0 0 6px; border: 1px solid var(--line); border-radius: 9px; background: var(--card); }
+#sidePane details.issue-group > summary { cursor: pointer; padding: 8px 10px; font-size: .78125rem; font-weight: 600; min-height: 38px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; list-style: none; word-break: keep-all; }
+#sidePane details.issue-group > summary::-webkit-details-marker { display: none; }
+#sidePane details.issue-group > summary::before { content: "▸"; color: var(--sub); }
+#sidePane details.issue-group[open] > summary::before { content: "▾"; }
+#sidePane details.issue-group > summary .count-badge { margin-left: auto; }
+#sidePane details.issue-group > .issue-list { margin: 0; padding: 0 8px 8px; max-height: 240px; overflow-y: auto; }
+#sidePane h3.side-group { font-size: .71875rem; font-weight: 700; color: var(--sub); margin: 18px 4px 6px; letter-spacing: 0; }
+#sidePane details.fair-detail, #sidePane details.burden-more { margin: 8px 0 0; }
+#sidePane details.fair-detail > summary, #sidePane details.burden-more > summary { cursor: pointer; font-size: .75rem; font-weight: 600;
+  color: var(--accent); min-height: 34px; display: inline-flex; align-items: center; }
+#sidePane .fair-ref { margin: 4px 0 0; }
+#sidePane .burden-list li b { font-weight: 700; }
+#sidePane .person-table td.dev-far { font-weight: 800; }
+#sidePane .burden-list .burden-who { display: block; margin-top: 2px; }
+
+/* ---- 입력 화면: 접힌 칸의 값 요약과 생성 직전 한 줄(2026-11-13) ---- */
+details.form-sec > summary .sec-sum { font-weight: 400; font-size: .75rem; color: var(--sub); margin-left: 8px; word-break: keep-all; }
+details.form-sec[open] > summary .sec-sum { display: none; }
+.gen-summary { margin: 10px 0 6px; font-size: .78125rem; font-weight: 600; color: var(--ink); word-break: keep-all; }
+.gen-summary.warn { color: var(--warn); }
+.gen-summary:empty { display: none; }

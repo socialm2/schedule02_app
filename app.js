@@ -541,7 +541,7 @@ ${INFO_MORE}
 `;
 
 const INFO_HTML_OUTPUT = `
-<p class="walk-link"><a href="walkthrough.html#out" target="_blank" rel="noopener">▶ 화면 따라하기 — 출력 편</a> — 결과 띠·검증 요약·칸 고치기·다운로드·되올리기·변경 안내를 실제 화면에서 순서대로 보여 줍니다.</p>
+<p class="walk-link"><a href="walkthrough.html#out" target="_blank" rel="noopener">▶ 화면 따라하기 — 출력 편</a> — 결과 띠·확인할 문제·칸 고치기·다운로드·되올리기·변경 안내를 실제 화면에서 순서대로 보여 줍니다.</p>
 <h3>근무표가 만들어졌습니다</h3>
 <ul>
 <li><b>편집</b> — 그리드에서 칸을 클릭해 근무를 바꾸면 오른쪽 목록에 '적용 대기'로 쌓입니다(주황 점선 테두리).
@@ -550,11 +550,11 @@ const INFO_HTML_OUTPUT = `
 B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 쌓이지 않습니다.</li>
 <li><b>재생성 적용</b> — 적용 대기 중인 편집을 고정한 채 나머지를 다시 배정합니다. 고정된 칸은 빨간
 실선 테두리로 표시되고, <b>이후 몇 번을 더 수정해도 이전 고정은 계속 유지됩니다.</b> 고친 칸이
-적용 대기로 남아 있는 동안(재생성 적용 전)에는 아래 두 다운로드 버튼이 잠시 비활성화됩니다 — 재생성
+적용 대기로 남아 있는 동안(재생성 적용 전)에는 표 위 파일 줄의 출력①②·월간 보고서가 잠시 비활성화됩니다 — 재생성
 적용으로 확정한 뒤 다시 눌러야 받을 수 있습니다.</li>
-<li><b>다운로드</b> — <b>월간근무표</b>(병원 OCS 형식, 부서 배포·기록용)와 <b>연간근무표</b>(다음 달
+<li><b>다운로드</b> — 표 위 파일 줄에서 받습니다. <b>월간근무표</b>(병원 OCS 형식, 부서 배포·기록용)와 <b>연간근무표</b>(다음 달
 입력②로 바로 재사용 — 이월정보·형평성 지표가 여기 하나로 이어짐) 두 파일을 꼭 둘 다 받아 보관하세요.</li>
-<li><b>수정 엑셀 파일 업로드</b> — 내려받은 <b>출력① 월간근무표</b>를 엑셀에서 고쳐 그대로 올리면
+<li><b>엑셀 수정본 되올리기</b>(표 위 파일 줄) — 내려받은 <b>출력① 월간근무표</b>를 엑셀에서 고쳐 그대로 올리면
 <b>다시 계산하지 않고</b> 그 값이 화면에 들어옵니다(엑셀에서 손으로 맞춘 배치를 재생성이
 갈아엎지 않게). 바뀐 칸은 확정(고정)으로 잠기고, 규칙 위반이 생겨도 막지 않고 표시만 합니다.
 행을 지우거나 더하지 말고 <b>근무 칸만</b> 고쳐주세요 — 다른 달·다른 명단 파일은 반려됩니다.
@@ -563,16 +563,16 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 <li><b>시도 점수표</b> — 같은 입력을 시드 여러 개(찾는 규칙이 조금씩 다름: 시드 옆 글자 W 주말 몫 우선·S 고연차 먼저·B 블록 이어가기 먼저, 둘이 붙으면 둘 다)로
 돌려 운영 필수 → 숙련도 → 공평성 → 전체 위반 순으로 견줘 가장 좋은 표를 보여줍니다. 점수표 줄을 누르면 그 시드의 표로
 바뀝니다(다운로드도 그 표). <b>🔍 꼼꼼히 만들기</b>를 켜고 생성하면 평소 3개 만들어 고르던 것을 9개 만들어 고릅니다 — 위반이 남는 달에
-켜 보세요(일반 생성 약 10초 대비 약 3배인 30초, 빠듯한 달은 몇 분. 진행 중 '여기까지 결과로 멈추기' 가능).</li>
+켜 보세요(일반 생성보다 오래 걸리고, 빠듯한 달은 1~2분. 진행 중 '여기까지 결과로 멈추기' 가능).</li>
 <li><b>🌙 야간 먼저(N only)</b> — 생성 버튼 아래 '만드는 방법'에서 고르면 두 단계로 만듭니다. 1단계는 야간(N·NK)만 보이고 야간을 넣거나 빼는 것만 됩니다(다른 근무로 바꾸기·맞교환은 확정 뒤에).
-위반 숫자·검증 요약도 야간 관련 항목만, 형평성은 '야간 균등'만 셉니다. 야간을 고친 뒤 표 위의 <b>야간 확정 → 나머지 짜기</b>를
+위반 숫자·'확인할 문제'도 야간 관련 항목만, 형평성은 '야간 균등'만 셉니다. 야간을 고친 뒤 표 위의 <b>야간 확정 → 나머지 짜기</b>를
 누르면 야간과 그 뒤 쉬는 이틀·수면오프(S/)를 고정하고 나머지를 짭니다. 확정 뒤에는 재생성·편집 적용에도 야간이 그대로이고,
 지워서 모자란 야간은 다른 사람으로 메우지 않고 빨간 필수 위반으로 남습니다('야간 다시 고치기'로 돌아가 직접 채웁니다).</li>
-<li><b>검증 요약의 항목을 누르면</b> 그 칸(사람이 없는 항목은 그날 열)으로 이동해 잠깐 깜빡입니다. 수정 대기 칸이 있는
+<li><b>오른쪽 '확인할 문제'의 항목을 누르면</b> 그 칸(사람이 없는 항목은 그날 열)으로 이동해 잠깐 깜빡입니다. 수정 대기 칸이 있는
 동안 요약 숫자는 <b>마지막으로 적용한 표 기준</b>이고, '재생성 적용' 뒤 다시 계산됩니다.</li>
 <li><b>날짜 머리칸을 누르면</b> 그날 병동(누가 어디서 일하는지)이 뜨고, 거기서 이름을 누르면 그 사람의 한 달 여정이 뜹니다.
-패널 맨 아래 <b>월간 근무 보고(HTML) 받기</b>는 첫 장 요약(확인할 항목·부담 분포)과 검증·일별 인원·원티드·점수표를
-한 파일로 묶어 줍니다 — 열어서 인쇄하면 PDF. 그 아래 <b>생성 애니메이션(HTML) 받기</b>는 생성할 때 나오는 애니메이션
+표 위 파일 줄의 <b>월간 보고서</b>는 첫 장 요약(확인할 항목·부담 분포)과 검증·일별 인원·원티드·점수표를
+한 파일로 묶어 줍니다 — 열어서 인쇄하면 PDF. 패널 맨 아래 '도움말 · 기타'의 <b>생성 애니메이션(HTML) 받기</b>는 생성할 때 나오는 애니메이션
 12가지를 한 화면에 모은 파일입니다(근무표 내용은 들어 있지 않습니다).</li>
 <li><b>변경 안내 초안</b> — 근무표를 공지한 뒤 칸이 바뀌면, 오른쪽 패널에서 공지한 판(공지한 출력①을 올리거나 지금
 화면 표)을 기준본으로 정하세요. 그 뒤 바뀐 사람만 모아 "12일(목) E→D" 꼴의 개인별 안내 문구를 만들어 줍니다.
@@ -596,7 +596,7 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 <li><b>D / E / N … (듀티별 횟수)</b> — 이번 달에 그 근무 코드가 적힌 날 수입니다. D·E·N은 항상 보이고,
 NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니다. 다운로드 엑셀의 '듀티별 횟수' 블록과 같은 값입니다.</li>
 <li><b>주말 / 연속 / 야간</b> — 사람별 부담입니다. 주말·공휴일 근무 날 수, 이번 달 가장 길게 이어진 연속근무
-(전월 말에서 이어진 것 포함, 상한을 넘으면 빨강), 야간 횟수/개인 목표(다르면 노랑). 오른쪽 '부담 요약'이
+(전월 말에서 이어진 것 포함, 상한을 넘으면 빨강), 야간 횟수/개인 목표(다르면 노랑). 오른쪽 '조정 참고'가
 같은 숫자로 손봐야 할 사람을 추려 줍니다(연간근무표를 올렸으면 지난달 대비 늘어난 사람도). 이 세 열은 화면에만 있고
 다운로드 엑셀에는 없습니다.</li>
 <li><b>형평성 점수</b> — 오른쪽 패널의 0~100 종합과 축 다섯(근무횟수 균등 ×2 · 주말 균등 · 야간 균등 · 원티드 반영 · 숙련 분산).
@@ -606,8 +606,8 @@ NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니�
 <li><b>내 달 요약</b> — 이름을 눌러 여정을 열면 맨 아래에 그 사람에게 보낼 한 줄이 있습니다: 주말·D·E가 같은 조건 집단 평균과
 얼마나 다른지(±), 야간/목표, 피로 점수(낮→밤 직결 ×2 · 밤 뒤 하루만 쉬고 D·E ×3 · 연속 주말 ×1), 원티드 반영/미반영과 사유.
 월간 근무 보고 5-2절에 전원이 실리니 복사해 보내면 됩니다.</li>
-<li><b>변경 안내 초안</b>은 오른쪽 패널 맨 아래 '자세히 보기'를 펴면 있습니다 — 공지한 판을 기준본으로 두고, 그 뒤 바뀐 사람에게 보낼 문구를 만듭니다.
-<b>원티드 신청</b> 목록은 접혀 있고 배지에 반영·반려 수만 보입니다(펴면 전체).</li>
+<li><b>변경 안내 초안</b>은 오른쪽 패널 아래쪽 '상세 도구'를 펴면 있습니다 — 공지한 판을 기준본으로 두고, 그 뒤 바뀐 사람에게 보낼 문구를 만듭니다.
+<b>원티드 결과</b>는 '상세 자료'에 접혀 있고 배지에 반영·미반영 수만 보입니다(펴면 미반영부터 전체).</li>
 <li><b>표 위 상태 띠의 ⚖ 형평성</b> — 100점 만점 한 숫자입니다. 칸을 고치는 동안(미적용 편집)에는 "원래 → 수정 후"가 같이 떠서
 고치면 점수가 어떻게 되는지 바로 보이고, 적용하거나 취소하면 한 숫자로 돌아옵니다. 점수는 참고용이라 낮아도 막지 않습니다 —
 연휴·휴가·교육·개인 요청 같은 병동 사정은 파트장이 알고 있으니 그대로 두거나 고치면 됩니다. 다운로드한 출력① 엑셀(일반·OCS 양식 모두)
@@ -622,10 +622,10 @@ NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니�
 반영률이 전체보다 20%p 넘게 낮음), 사유 없는 반려 수가 붙습니다. 누적 초과를 다음 달 배정에서 하루까지 갚아 주는 기능은
 12개월 실험에서 이번 달 균등을 깎는 만큼의 이득이 없어 켜지 않았습니다(누적 초과는 숫자로 보여 주고, 조정은 파트장이 합니다).
 변경 안내 초안 머리에는 영향 인원·바뀐 칸·휴무→근무 수가 붙습니다. '가중치 조정'을 펴면 축 다섯과 피로 셋의 가중치(0~5)를 바꿀 수 있고, 기기에 기억돼 다음 생성에도 쓰입니다.</li>
-<li><b>미달 날 채울 수 있는 사람</b> — 오른쪽 '일별 근무인력'에 미달 날이 있으면, 그날 쉬는 사람 중 그 근무를 설 수 있고
+<li><b>미달 날 채울 수 있는 사람</b> — 오른쪽 '확인할 문제'의 '인력 미달'에 날이 있으면, 그날 쉬는 사람 중 그 근무를 설 수 있고
 넣어도 새 필수 위반이 없는 사람을 날짜마다 적어 줍니다. 추천일 뿐이라 다른 사람을 넣어도 되고(그 칸이 빨강·노랑으로
 표시될 뿐), 위반이 남은 채로 확정·다운로드도 됩니다.</li>
-<li><b>주말·공휴일 근무자</b> — 오른쪽에 접힌 표로, 주말마다 D·E·N에 누가 서는지와 최소인력 대비 인원을 보여줍니다.</li>
+<li><b>주말·공휴일 근무자</b> — 오른쪽 '상세 자료'에 접힌 표로, 주말마다 D·E·N에 누가 서는지와 최소인력 대비 인원을 보여줍니다.</li>
 <li><b>® / ⓡ</b> — 병원 HR 전용 항목이라 이 앱은 값을 몰라 항상 빈칸입니다(다운로드 파일과 동일).</li>
 <li><b>금월</b> — 이번 달 휴일수(전 직원 공통) · <b>Lv</b> — 직급입니다.</li>
 </ul>
@@ -671,7 +671,7 @@ D·E에는 이 예외가 없습니다.</li>
 
 ${INFO_SHIFT_LEGEND}
 
-<h3>"개인별 OFF·야간·근무일" 표의 야간편차</h3>
+<h3>'직원별 집계' 표의 야간편차</h3>
 <p>일반 간호사 평균(파트장·NK 제외) 야간근무 대비 편차를 보여줍니다. ±2일 이상이면 색으로
 강조되니, 다음 달 야간 배정을 공평하게 나눌 때 참고하세요.</p>
 
@@ -1177,7 +1177,42 @@ function renderSourceBadges() {
     ms.classList.toggle("screen", msEdited);
   }
   renderStaffSummary();
+  renderFormSummaries();
 }
+// 근무정보·근무인력 머리줄의 값 요약과, 생성 버튼 위 한 줄. 접혀 있어도 "지금 어떤 값으로 만드는지"가 보여야 한다 —
+// 파일을 올리면 설정도 따라올 거라 믿고 화면 값을 안 본 채 생성한 사고가 있었다(연속근무제한 2).
+function renderFormSummaries() {
+  const val = (id) => { const el = document.getElementById(id); return el && el.value !== "" ? el.value : "–"; };
+  const info = $("#infoSum");
+  if (info) {
+    const ward = ($("#f_ward") && $("#f_ward").value.trim()) || "";
+    info.textContent = `${ward ? ward + " · " : ""}${val("f_year")}년 ${val("f_month")}월 · 월 최대야간 ${val("f_maxnights")} · ` +
+      `연속근무제한 ${val("f_maxconsecutive")} · 야간목표 ${val("f_nightquota_low")}~${val("f_nightquota_high")}`;
+  }
+  const ms = $("#msSum");
+  if (ms) {
+    const wk = minStaffWeekdayExpanded ? "요일별" : ["D", "E", "N"].map(k => `${k}${val(`ms_${k}_weekday`)}`).join("·");
+    const sat = ["D", "E", "N"].map(k => `${k}${val(`ms_${k}_saturday`)}`).join("·");
+    const sun = ["D", "E", "N"].map(k => `${k}${val(`ms_${k}_sunday_holiday`)}`).join("·");
+    ms.textContent = `평일 ${wk} · 토 ${sat} · 공휴일 ${sun}`;
+  }
+  renderGenSummary();
+}
+function renderGenSummary() {
+  try { renderGenSummaryInner(); } catch (e) { /* 부팅 중 일찍 불린 경우 — 다음 갱신에서 채워진다 */ }
+}
+function renderGenSummaryInner() {
+  const el = $("#genSummary");
+  if (!el) return;
+  const y = $("#f_year") ? $("#f_year").value : "", m = $("#f_month") ? $("#f_month").value : "";
+  const in1 = staffFromWanted || wantedSource === "file" ? "입력① 반영" : "입력① 없음(예시 명단)";
+  const in2 = staffTableLoaded ? "입력② 반영(전월 연결)" : "입력② 없음";
+  const warn = ymMismatch() ? ` · ⚠ 입력① 파일은 ${wantedYM.year}년 ${wantedYM.month}월` : "";
+  el.textContent = `${y}년 ${m}월 · ${formStaff.length}명 · ${in1} · ${in2}${warn}`;
+  el.classList.toggle("warn", !!warn);
+}
+document.getElementById("intake")?.addEventListener("input", () => renderFormSummaries());
+document.getElementById("intake")?.addEventListener("change", () => renderFormSummaries());
 function noteScreenEdit(el) {
   const label = fieldLabel(el);
   if (!label) return;
@@ -1610,6 +1645,7 @@ function updateClearButtons() {
       if (allBtn) allBtn.style.display = "none";
     }
   }
+  renderGenSummary();
 }
 let staffTableLoaded = false;   // 입력②가 Worker에 반영돼 있는가(refreshStaffTableStatus가 갱신)
 
@@ -1850,7 +1886,7 @@ const STRATEGY_HELP = {
   B: "블록 이어가기 먼저 — 1~2일째 주간 블록을 모든 날에서 먼저 이어 짧은 블록을 줄임",
 };
 const GEN_SUB_THOROUGH = `평소에는 근무표 3개를 만들어 고르는데, 지금은 ${THOROUGH_ATTEMPTS}개를 만들어 고릅니다. ` +
-  "일반 생성(40명대 약 10초) 대비 약 3배인 30초가 걸리고, 인원이 빠듯한 달은 몇 분이 걸릴 수 있습니다. 창을 닫지 말고 기다려주세요.";
+  "일반 생성보다 오래 걸리고, 인원이 빠듯한 달은 1~2분이 걸릴 수 있습니다. 창을 닫지 말고 기다려주세요.";
 let genDriven = null;   // 꼼꼼히 만들기 진척 {done,total,at,avg} — 게이지를 시간 추정 대신 시도 수로 그린다
 let genThorough = false;
 function thoroughOn() { const c = $("#thoroughChk"); return !!(c && c.checked); }
@@ -2028,6 +2064,8 @@ async function runGenerate(btn, statusEl) {
     parts.push(...others);
     const msg = `근무인력·설정 칸을 확인해주세요 — ${parts.join(" / ")}`;
     showGenError(statusEl, msg);
+    // 접혀 있던 칸이면 편다 — 고칠 칸이 안 보이는 채로 "확인해주세요"만 뜨면 안 된다.
+    for (const id of ["infoSec", "msSec"]) { const d = document.getElementById(id); if (d) d.open = true; }
     const first = empties.length ? document.getElementById(empties[0].id) : null;
     if (first) {
       const sec = first.closest("details");
@@ -2065,7 +2103,7 @@ async function runGenerate(btn, statusEl) {
     render();
     showToast(nightFirst
       ? "🌙 야간만 먼저 보여 드립니다 — 야간을 고친 뒤 표 위의 [야간 확정 → 나머지 짜기]를 누르세요"
-      : (lastConfigWarning || "근무표 생성 완료 — 표 위의 상태 띠에서 필수 위반·다운로드로 바로 갈 수 있습니다"),
+      : (lastConfigWarning || "근무표 생성 완료 — 파일은 표 위에서 받고, 확인할 문제는 오른쪽(폰은 아래)에 있습니다"),
       !nightFirst && !!lastConfigWarning);
     refreshFragile();
     noteFirstUse("gen");
@@ -2108,6 +2146,11 @@ let sampleCfg = null;   // /api/sample 응답 — '샘플 값으로 되돌리기
   }
   settingsReady = true;
   renderSourceBadges();
+  // 지난번에 맞춰 둔 값으로 열렸으면 근무정보·근무인력은 접어 둔다 — 매달 같은 값을 다시 훑게 하지 않는다. 값은 머리줄에
+  // 한 줄로 보이고, 눌러서 펴면 고칠 수 있다. 처음 쓰는 기기(샘플 값)에서는 펴 둔다 — 그때는 고쳐야 할 칸이다.
+  if (settingsSource === "saved" && !VOC_VIEW) {
+    for (const id of ["infoSec", "msSec"]) { const d = document.getElementById(id); if (d) d.open = false; }
+  }
   refreshStaffTableStatus();
   // 처음 연 기기(저장된 설정 없음)에는 세 단계 체크리스트를 띄운다 — 배포톡의 "① 그대로 생성 ②
   // 양식 받아 명단 ③ 우리 값"을 화면 안으로 옮긴 것. 저장된 설정이 있으면 이미 쓰는 사람이다.
@@ -2336,7 +2379,7 @@ function renderNotice() {
   // '재생성 적용'은 고정하지 않은 칸을 다시 짜서 공지 뒤 한두 칸 고친 것이 수십 명의 변경이 된다 — 안내가
   // 길어진 이유를 알려 주고, 고친 칸만 바뀌는 길(엑셀에서 고쳐 되올리기)을 알려 준다.
   if (diff.length > 5) html += `<p class="hint">바뀐 사람이 많습니다 — '재생성 적용'은 고정하지 않은 칸을 다시 짭니다.
-    공지 뒤 몇 칸만 고치려면 출력①을 엑셀에서 고쳐 <b>수정 엑셀 파일 업로드</b>로 올리세요(고친 칸만 바뀝니다).</p>`;
+    공지 뒤 몇 칸만 고치려면 출력①을 엑셀에서 고쳐 표 위 <b>엑셀 수정본 되올리기</b>로 올리세요(고친 칸만 바뀝니다).</p>`;
   if (pendN) html += `<p class="hint warn-text">적용 안 한 편집 ${pendN}칸이 섞여 있습니다(＊ 표시) — '재생성 적용' 뒤에 다시 보세요.</p>`;
   html += '<ul class="notice-list">';
   diff.forEach((e, k) => {
@@ -2490,7 +2533,7 @@ async function restoreSession() {
     for (const sid of new Set([...Object.keys(tbSaved), ...Object.keys(tbNow)])) diff += rowDiff(tbSaved[sid], tbNow[sid]);
     showToast(diff === 0
       ? "직전 근무표를 그대로 복원했습니다"
-      : `입력은 그대로 복원했지만 표가 직전과 ${diff}칸 다릅니다 — 내려받아 두신 출력①이 있으면 '수정 엑셀 파일 업로드'로 올리면 그 표가 됩니다`, diff !== 0);
+      : `입력은 그대로 복원했지만 표가 직전과 ${diff}칸 다릅니다 — 내려받아 두신 출력①이 있으면 '엑셀 수정본 되올리기'로 올리면 그 표가 됩니다`, diff !== 0);
   } catch (e) {
     showToast("직전 근무표를 복원하지 못했습니다 — 입력①②를 다시 올리고 생성해주세요", true);
     renderRestoreCard();
@@ -2869,9 +2912,14 @@ function renderGrid() {
     ent.msgs.push(`${v.rule} ${v.message}`);
   }
 
-  let html = '<h2 class="output-title">2. 근무표 출력</h2>';
+  // 표 위 한 줄 — 제목 · 병동·연월·인원·회차 · 파일 받기. 예전엔 제목, 연월, 상태 띠, 범례 두 줄, 안내 글, 돌아가기 버튼이
+  // 차례로 쌓여 폰에서는 화면 절반을 지나서야 표가 시작됐다(사용자: "출력 쪽 너무 지저분하다", 2026-11-13).
+  // 회차는 오른쪽 패널의 큰 숫자에서 여기로 내렸다 — 위반 수와 같은 무게로 볼 숫자가 아니다(GPT UI 검토 §04).
   const wardLabel = ST.ward_id ? `${esc(ST.ward_id)} · ` : "";
-  html += `<p class="output-subtitle">${wardLabel}${ST.year}년 ${ST.month}월</p>`;
+  let html = `<div class="out-head"><div class="out-title"><h2 class="output-title">2. 근무표 출력</h2>` +
+    `<p class="output-subtitle">${wardLabel}${ST.year}년 ${ST.month}월 · ${ST.staff.length}명 · ` +
+    `<span title="이 입력으로 표를 짠 횟수 — 재생성 적용마다 1씩 늘고, 내려받는 파일 이름 끝에 _r2처럼 붙습니다">${ST.round}회차</span></p></div>` +
+    fileBarHtml() + `</div>`;
   if (lastConfigWarning) {
     html += `<p class="carry-warning">⚠ ${esc(lastConfigWarning)}</p>`;
   }
@@ -2890,21 +2938,23 @@ function renderGrid() {
   if (lastStaffing && lastStaffing.bounds && lastStaffing.bounds.message) {
     html += `<p class="carry-warning">⚠ ${esc(lastStaffing.bounds.message)}</p>`;
   }
-  // 표 위 상태 띠 — 폰에서는 검증 요약·다운로드가 표 40행 아래(약 1,900px)라 생성 직후 보이는 것이
+  // 표 위 상태 띠 — 폰에서는 '확인할 문제'(옛 검증 요약)가 표 40행 아래(약 1,900px)라 생성 직후 보이는 것이
   // 표 머리뿐이었다(2026-10-31 검토 A-11). 누르면 그 자리로 간다. PC에서도 같은 자리에 둔다.
   const rr = ST.report || { hard_count: 0, hard: [] };
   const soft = rr.hard.length - rr.hard_count;
   html += `<div class="result-strip" id="resultStrip">` +
-    `<button type="button" class="strip-item ${rr.hard_count ? "bad" : "ok"}" data-strip="sideSummary" title="검증 요약으로">${rr.hard_count ? "🔴" : "🟢"} 필수 위반 ${rr.hard_count}</button>` +
-    `<button type="button" class="strip-item ${soft ? "warn" : ""}" data-strip="sideSummary" title="검증 요약으로">🟡 추가 검토 ${soft}</button>` +
-    `<button type="button" class="strip-item" data-strip="sideDownload" title="다운로드 버튼으로">⬇ 다운로드</button>` +
+    `<button type="button" class="strip-item ${rr.hard_count ? "bad" : "ok"}" data-strip="sideSummary" title="확인할 문제로">${rr.hard_count ? "🔴" : "🟢"} 필수 위반 ${rr.hard_count}</button>` +
+    `<button type="button" class="strip-item ${soft ? "warn" : ""}" data-strip="sideSummary" title="확인할 문제로">🟡 추가 검토 ${soft}</button>` +
     fairStripItem() +
     `</div>`;
   // 범례는 이달 표에 실제로 나온 코드만 — 20색을 다 늘어놓으면 두 줄을 차지해 표가 17행밖에 안
   // 보였다(2026-10-31 검토 C 1-7). 이름 옆 '지'·'밤' 배지와, 날짜·이름이 눌린다는 것도 여기 적는다
   // (툴팁은 폰에서 볼 수 없다, A-17).
   html += nightStageBar();
-  html += '<div class="legend">';
+  // 표 보기 옵션 넷(기기에 기억): 범례·빗금(고치면 깨지는 칸 표시)·집계 열 전체·그 밖 코드 줄. 전부 기본은 꺼짐 —
+  // 범례는 색 18가지가 두 줄을 차지해 표를 밀어냈고, 나머지는 늘 켜 두면 표가 그 표시에 묻힌다.
+  html += viewRowHtml();
+  html += `<div class="legend legend-fold" id="legendFold">`;
   const legendColor = {D:"#BDD7EE", E:"#F8CBAD", N:"#1F3864", NK:"#7030A0", prn:"#C6E0B4", "8A":"#D9D9D9", "9A":"#BFBFBF",
                        "10A":"#A6A6A6", T:"#B4C7E7", "연차":"#FFE699", "연1":"#FFF2CC", "연2":"#FFF2CC", "연3":"#FFF2CC",
                        "연4":"#FFF2CC", "S/":"#9DC3E6", TW:"#A9D18E", "군":"#C9C9C9", "조":"#808080", "경":"#F4B6C2",
@@ -2921,7 +2971,6 @@ function renderGrid() {
   html += `<span class="sw"><span class="box fragile-day-swatch"></span>빗금 옅음 = 맞교환으로만</span>`;
   if (ST.staff.some(s => s.is_designated)) html += `<span class="sw"><span class="desig-mark">지</span>지정 가능자</span>`;
   if (ST.staff.some(s => s.is_night_leader)) html += `<span class="sw"><span class="desig-mark nl-mark">밤</span>야간리더</span>`;
-  html += `<button id="backToInputBtn" class="small" style="margin-left:auto">← 입력으로 돌아가기(새로 만들기)</button>`;
   html += `<span class="sw legend-tap">날짜를 누르면 그날 병동 · 이름을 누르면 한 달 여정 · 칸을 누르면 근무 바꾸기</span>`;
   html += "</div>";
 
@@ -2941,15 +2990,15 @@ function renderGrid() {
   // 다운로드 엑셀의 '듀티별 횟수' 블록과 같은 순서·같은 셈법(코드가 적힌 날 수)이다.
   const dutyCols = dutyColumns();
   for (const code of dutyCols) {
-    html += `<th class="stat-col" title="${escAttr(`이번 달 ${code} 횟수(코드가 적힌 날 수)`)}">${esc(code)}</th>`;
+    html += `<th class="stat-col${tailX(code)}" title="${escAttr(`이번 달 ${code} 횟수(코드가 적힌 날 수)`)}">${esc(code)}</th>`;
   }
   html += '<th class="stat-col burden" title="주말·공휴일에 근무한 날 수">주말</th>' +
     '<th class="stat-col burden" title="이번 달 가장 길게 이어진 연속근무 일수(전월 말에서 이어진 것 포함). 상한을 넘으면 빨강">연속</th>' +
     '<th class="stat-col burden" title="야간 횟수 / 개인 목표(4 또는 6, 야간전담 15). 목표와 다르면 노랑">야간</th>';
   html +=
-    '<th class="stat-col" title="병원 HR 전용 항목 — 이 앱은 값을 추적하지 않아 항상 빈칸입니다">®</th>' +
-    '<th class="stat-col" title="병원 HR 전용 항목 — 이 앱은 값을 추적하지 않아 항상 빈칸입니다">ⓡ</th>' +
-    '<th class="stat-col">금월</th><th class="stat-col">Lv</th>';
+    '<th class="stat-col col-x" title="병원 HR 전용 항목 — 이 앱은 값을 추적하지 않아 항상 빈칸입니다">®</th>' +
+    '<th class="stat-col col-x" title="병원 HR 전용 항목 — 이 앱은 값을 추적하지 않아 항상 빈칸입니다">ⓡ</th>' +
+    '<th class="stat-col col-x">금월</th><th class="stat-col col-x">Lv</th>';
   html += "</tr></thead><tbody>";
 
   for (const s of ST.staff) {
@@ -3003,7 +3052,7 @@ function renderGrid() {
               ` data-pick="1" tabindex="0" role="button" aria-label="${escAttr(aria)}">` +
               `<span>${esc(shiftText(v, isWanted))}</span></td>`;
     }
-    html += dutyCols.map(code => `<td class="stat-col">${dutyCnt[code]}</td>`).join("");
+    html += dutyCols.map(code => `<td class="stat-col${tailX(code)}">${dutyCnt[code]}</td>`).join("");
     if (s.is_partjang) {
       html += '<td class="stat-col">–</td><td class="stat-col">–</td><td class="stat-col">–</td>';
     } else {
@@ -3019,8 +3068,8 @@ function renderGrid() {
         `<td class="stat-col burden${runCls}" data-burden="run" title="${escAttr(`최장 연속근무 ${b.maxRun}일 (상한 ${maxC}일)`)}">${b.maxRun}</td>` +
         `<td class="stat-col burden${nightCls}" data-burden="night" title="${escAttr((tgt == null ? `야간 ${b.nights}회` : `야간 ${b.nights}회 / 목표 ${tgt}회`) + (pv ? ` (지난달 ${pv.nights}회)` : ""))}">${nightTxt}</td>`;
     }
-    html += `<td class="stat-col">–</td><td class="stat-col">–</td>` +
-      `<td class="stat-col">${holCount}</td><td class="stat-col">${s.level}</td>`;
+    html += `<td class="stat-col col-x">–</td><td class="stat-col col-x">–</td>` +
+      `<td class="stat-col col-x">${holCount}</td><td class="stat-col col-x">${s.level}</td>`;
     html += "</tr>";
   }
   // B팀(신입) — 스케줄링에는 전혀 관여하지 않는 이름뿐인 목록이라 서버 grid에 없다.
@@ -3070,15 +3119,9 @@ function renderGrid() {
   };
 }
 
-// 결과 화면에서는 머리의 보안 띠를 한 줄로 줄인다 — 범례·띠·제목이 표 위 250px를 차지해 표가
-// 17행만 보였다(2026-10-31 검토 C 1-7). 글은 그대로 두고 짧은 요약으로 바꾸며, 돌아가면 복원한다.
-let securityNoteFull = null;
+// 결과 화면 표시(body.result-view). 예전엔 여기서 머리의 보안 띠 글을 한 줄로 줄였다 — 그 띠는 2026-11-13에 뺐다.
 function setResultView(on) {
   document.body.classList.toggle("result-view", on);
-  const note = document.querySelector(".security-note");
-  if (!note) return;
-  if (securityNoteFull === null) securityNoteFull = note.innerHTML;
-  note.innerHTML = on ? "🔒 입력 데이터는 서버로 가지 않고 이 브라우저에서만 처리됩니다 — 화면 공유·다운로드 파일의 개인정보에 주의하세요." : securityNoteFull;
 }
 // 상태 띠 — 누르면 오른쪽 패널의 그 자리로(폰에서는 아래로 스크롤). 값은 data-*에, 클릭은 위임으로.
 // ================================================================ 야간 먼저(N only)
@@ -3094,7 +3137,7 @@ function nightStageBar() {
       `야간만 보입니다. 칸을 눌러 야간을 넣고·빼고·옮긴 뒤 확정하세요(다른 근무로 바꾸기는 확정 뒤에).` +
       `${pend ? ` 고친 칸 ${pend}개는 확정할 때 함께 고정됩니다.` : ""}` +
       ` 야간이 모자란 날은 2단계에서 채우지 않고 빨강(필수 위반)으로 남습니다.` +
-      ` 위 위반 숫자·검증 요약은 <b>야간 관련 규칙만</b> 셉니다` +
+      ` 위 위반 숫자·'확인할 문제'는 <b>야간 관련 규칙만</b> 셉니다` +
       `${ST.report && ST.report.hidden_count ? `(주간 등 나머지 ${ST.report.hidden_count}건은 나머지를 짠 뒤 다시 셉니다)` : ""}.</span>` +
       `<button type="button" class="primary small" data-night="confirm">야간 확정 → 나머지 짜기</button>` +
       `<button type="button" class="small" data-night="all">전체 보기로(확정 안 함)</button></div>`;
@@ -3239,7 +3282,78 @@ function burdenOf(s, row) {
   }
   return { weekend, maxRun, nights };
 }
-function blankTailCells() { return '<td class="stat-col">–</td>'.repeat(tailStatCount()); }
+function blankTailCells() {
+  return dutyColumns().map(c => `<td class="stat-col${tailX(c)}">–</td>`).join("") +
+    '<td class="stat-col">–</td>'.repeat(BURDEN_COLS.length) + '<td class="stat-col col-x">–</td>'.repeat(4);
+}
+// 오른쪽 집계 열 가운데 기본으로 보이는 것 — D·E·N·NK·OFF 횟수와 부담 셋(주말·연속·야간). 그 밖의 코드 횟수와
+// ®·ⓡ·금월·Lv는 '집계 열 전체'를 켰을 때만(col-x). 21열이 늘 떠 있으면 날짜 31열보다 통계가 더 눈에 띈다.
+const TAIL_BASIC = new Set(["D", "E", "N", "NK", "OFF"]);
+function tailX(code) { return TAIL_BASIC.has(code) ? "" : " col-x"; }
+
+// ---------------------------------------------------------------- 표 보기 옵션(기기에 기억)
+// 범례 펼침·빗금·집계 열 전체·그 밖 코드 줄. 값은 localStorage 한 칸에 두고, 표를 다시 그려도(칸을 고칠 때마다 그린다)
+// 그대로다. 표를 다시 짜지 않고 #gridContent의 클래스만 바꾼다 — 보기만 바뀌는 것이라 스크롤이 튀면 안 된다.
+const VIEW_KEY = "ns_view_opts_v1";
+const VIEW_OPTS = [
+  ["legend", "범례", "근무 색과 표시(고정·미적용 편집·원티드·위반)의 뜻, 누르는 법을 표 위에 펼칩니다"],
+  ["hatch", "빗금", "고치면 다른 규칙이 깨지는 칸을 빗금으로 표시합니다 — 진한 빗금은 바꿀 수 없는 칸, 옅은 빗금은 맞교환으로만 바꿀 수 있는 칸"],
+  ["cols", "집계 열 전체", "오른쪽 집계에 8A·prn·연차 같은 나머지 근무 코드 횟수와 ®·ⓡ·금월·Lv 열까지 보입니다"],
+  ["rows", "그 밖 코드 줄", "맨 아래 통계에 최소인력에 안 세는 코드(OFF·연차·교육 등)의 날짜별 인원 줄까지 보입니다"],
+];
+function viewOpts() { try { return JSON.parse(localStorage.getItem(VIEW_KEY) || "{}") || {}; } catch (e) { return {}; } }
+function viewOpt(k) { return !!viewOpts()[k]; }
+function setViewOpt(k, on) {
+  const o = viewOpts(); o[k] = !!on;
+  try { localStorage.setItem(VIEW_KEY, JSON.stringify(o)); } catch (e) { /* 기억만 못 할 뿐 */ }
+  applyViewOpts();
+}
+function applyViewOpts() {
+  const o = viewOpts();
+  gridContent.classList.toggle("legend-on", !!o.legend);
+  gridContent.classList.toggle("hatch-on", !!o.hatch);
+  gridContent.classList.toggle("cols-all", !!o.cols);
+  gridContent.classList.toggle("rows-all", !!o.rows);
+}
+function viewRowHtml() {
+  const o = viewOpts();
+  return `<div class="view-row" id="viewRow"><span class="view-row-t">표 보기</span>` +
+    VIEW_OPTS.map(([k, name, tip]) => `<label title="${escAttr(tip)}"><input type="checkbox" data-view="${k}"${o[k] ? " checked" : ""}> ${name}</label>`).join("") +
+    `</div>`;
+}
+applyViewOpts();
+gridContent.addEventListener("change", (e) => {
+  const t = e.target;
+  if (t && t.matches && t.matches("input[data-view]")) setViewOpt(t.dataset.view, t.checked);
+});
+
+// 표 위 파일 작업줄 — 출력①②·엑셀 수정본 되올리기·월간 보고서·입력으로. 예전엔 오른쪽 패널 세 번째 화면쯤에 있어
+// 스크롤해야 나왔고, 표 위 띠의 '⬇ 다운로드'는 그 자리로 데려다 줄 뿐이었다. 파일 동작은 한 곳에 둔다(GPT UI 검토 §03).
+// 번호는 그대로다 — 출력②가 다음 달 입력②다. 적용 안 한 편집이 있으면 못 받는 것도 그대로.
+function fileBarHtml() {
+  const hasPending = (ST.pending || []).length > 0, dis = hasPending ? " disabled" : "";
+  let html = `<div class="file-bar-wrap"><div class="file-bar" id="sideDownload" role="group" aria-label="파일 받기 · 되올리기">` +
+    `<button class="file-btn" onclick="if (confirmDownloadWithViolations()) downloadXlsxOcs()"${dis} title="이번 달 근무표 — 엑셀에서 고쳐 되올릴 수 있습니다"><span class="io-tag">출력①</span>월간근무표</button>` +
+    `<button class="file-btn" onclick="if (confirmDownloadWithViolations()) downloadStaffTable()"${dis} title="다음 달 입력②로 올리는 파일"><span class="io-tag">출력②</span>연간근무표</button>` +
+    `<button class="file-btn sub" onclick="uploadMonth()" title="엑셀에서 고친 출력①(월간근무표)을 올리면 그 값으로 반영되고 바뀐 칸은 고정됩니다">엑셀 수정본 되올리기</button>` +
+    `<button class="file-btn sub" id="expMagBtn" onclick="if (confirmDownloadWithViolations()) downloadMagazine()"${dis} ` +
+      `title="검증·일별 인원·주말 명단·사람별 집계·부담·원티드·고정 칸·야간·점수표·처리 기록을 한 파일(HTML)에 — 열어서 인쇄하면 PDF">월간 보고서</button>` +
+    `<button id="backToInputBtn" class="file-btn sub" title="입력 화면으로 돌아가 새로 만듭니다">← 입력으로</button></div>` +
+    (hasPending ? `<p class="hint file-bar-note">적용 안 한 편집이 있어 파일을 받을 수 없습니다 — '재생성 적용' 뒤에 받을 수 있습니다.</p>` : "") +
+    `<div id="nextMonthCard"></div>`;
+  if (monthUploadJustApplied()) {
+    // 올린 직후에만 두 갈래를 띄운다. 평소에 늘 떠 있으면 '재생성'이 눌리기 쉬운데,
+    // 그건 고정 칸 말고는 표 전체를 다시 짜는 동작이라 되돌릴 수 없다.
+    html += `<div class="upload-branch">
+      <p class="branch-title">수정본이 반영되었습니다 — 어떻게 할까요?</p>
+      <button class="wide" onclick="downloadBothOutputs()">① 그대로 다운로드</button>
+      <p class="hint">다시 계산하지 않습니다.</p>
+      <button class="wide" onclick="regenerateThenDownload()">② 재생성 후 다운로드</button>
+      <p class="hint">고친 칸은 두고 나머지를 다시 짭니다 — 고정하지 않은 칸은 바뀔 수 있습니다.</p>
+    </div>`;
+  }
+  return html + `</div>`;
+}
 
 // 날짜별 인원(듀티별) — 이달 표에 나온 코드마다 한 줄. 오른쪽 '듀티별 횟수' 열과 같은 코드 목록을
 // 눕힌 것이다(열 = 사람별 횟수, 줄 = 날짜별 인원). 예전엔 D·E·N·prn 네 줄뿐이라 N 줄에 NK가,
@@ -3750,11 +3864,12 @@ function drawJourney(now) {
   JOUR.raf = requestAnimationFrame(drawJourney);
 }
 
-// ================================================================ 월간 보고(파트장용, 실험 기능)
+// ================================================================ 월간 보고(파트장용)
 // 확정 뒤 파트장이 받는 한 장짜리 보고서 — 화면 오른쪽 패널에 흩어진 것(검증·일별 인원·주말 명단·사람별
 // 집계·부담·원티드·고정 칸·야간 분포·점수표·로그)을 한 파일에 모아 인쇄·전달할 수 있게. 숫자는 전부
 // 화면과 같은 계산(burdenOf·dutyColumns·report)이라 따로 맞춰 볼 필요가 없다. 파일 하나(HTML)라 카톡으로
-// 보내도 열리고, 브라우저에서 인쇄하면 PDF가 된다. 실험 기능이라 패널 맨 아래 작은 글씨로만 연다.
+// 보내도 열리고, 브라우저에서 인쇄하면 PDF가 된다. 여는 자리는 표 위 파일 줄의 '월간 보고서'(2026-11-13 — 그 전에는
+// 패널 맨 아래 '실험 기능' 작은 글씨였는데, 받는 파일이 두 군데로 흩어져 있어 한 줄로 모았다).
 function magazineHtml() {
   const r = ST.report || {}, days = ST.days, nd = ST.num_days;
   const row = s => ST.grid[s.id] || [];
@@ -3950,15 +4065,16 @@ ul{margin:6px 0;padding-left:18px}li{margin:3px 0}pre.log{font-size:11px;backgro
 @media print{body{background:#fff}.pg{box-shadow:none;margin:0;max-width:none;padding:0}h2{break-after:avoid}table{break-inside:auto}tr{break-inside:avoid}.toc,.brief-print-hide{display:none}}</style></head><body><div class="pg">
 ${head}${toc}
 ${body}
-<div class="foot">SMC Fair Shift · 화면과 같은 계산 · 실험 기능 — 인쇄하면 PDF로 저장할 수 있다</div></div></body></html>`;
+<div class="foot">SMC Fair Shift · 화면과 같은 계산 — 인쇄하면 PDF로 저장할 수 있다</div></div></body></html>`;
 }
 // ================================================================ 문의 파일 받기
 // 파트장이 "이거 이상해요"를 보낼 때: 이름과 내용만 적으면 지금 입력·출력·한 일(칸 수정·재생성 순서)을 앱이 zip 하나로
 // 묶어 준다(bridge.api_download_voc). 앱은 아무것도 보내지 않는다 — 받은 파일을 본인이 메일에 붙여 보내고,
-// 읽고 해결하는 것은 사람이 한다. 여는 길은 둘이다: 화면 맨 아래 'SMC Fair Shift'의 **'SMC' 글자**, 그리고 출력 패널
-// 맨 아래 **실험 기능 줄의 '문의 파일 받기'**. 입출력 화면에 크게 두었던 칸은 뺐다(사용자 결정 2026-11-11). 맨 아래 글자는
-// 입력·출력 어느 화면에서나 보이므로 생성 전에도(입력이 반려돼 표를 못 만든 경우) 받을 수 있다 — 실험 기능 줄은 표를
-// 만든 뒤에만 있어서 그 경우에는 못 쓴다.
+// 읽고 해결하는 것은 사람이 한다. 여는 길은 둘이다: 설명서(📘) 창 맨 아래 **'도움' 줄의 '문의 파일 받기'**, 그리고 출력 패널
+// 맨 아래 **'도움말 · 기타'의 '문의 파일 받기'**. 입출력 화면에 크게 두었던 칸은 뺐다(사용자 결정 2026-11-11). 설명서 창은
+// 입력·출력 어느 화면에서나 열리므로 생성 전에도(입력이 반려돼 표를 못 만든 경우) 받을 수 있다 — 패널 줄은 표를
+// 만든 뒤에만 있어서 그 경우에는 못 쓴다. 예전에는 화면 맨 아래 'SMC Fair Shift' 글자가 그 길이었는데, 맨 아래 글자를
+// 빼면서(사용자 결정 2026-11-13) 설명서 창으로 옮겼다 — 숨은 글자보다 이름이 적힌 줄이 찾기도 쉽다.
 function vocClientInfo() {
   const now = new Date(), p2 = (n) => String(n).padStart(2, "0");
   const txt = (sel) => { const el = document.querySelector(sel); return el ? el.textContent.trim() : ""; };
@@ -4031,7 +4147,8 @@ async function makeVocFile() {
 
 // ================================================================ 관리자 모드 — 문의 파일 다시 보기(숨은 길)
 // 받은 문의 zip을 올리면 그 사람이 보던 화면을 다시 만든다(bridge.api_voc_load — 기록된 요청을 같은 순서로 다시 밟는다).
-// 문의를 읽는 사람만 쓰는 길이라 버튼을 두지 않았다: 화면 맨 아래 'SMC Fair Shift'의 **'Shift' 글자**를 누르면 비밀번호를 묻고,
+// 문의를 읽는 사람만 쓰는 길이라 화면에 크게 두지 않았다: 설명서(📘) 창 맨 아래 '도움' 줄(또는 출력 패널 맨 아래 '도움말 · 기타')의
+// **'관리자 모드'**를 누르면 비밀번호를 묻고,
 // 맞으면 바로 파일 고르기가 뜬다. 올라가면 '관리자 모드'다 — 창 둘레에 초록 테두리가 서고, 맨 위 띠에 보낸 사람과
 // 적은 내용이 보인다. 표뿐 아니라 입력 화면도 그 사람의 값으로 채운다(입력으로 돌아가도 관리자 모드는 이어진다).
 // 대신 이 기기에는 아무것도 저장하지 않고(saveSettings·rememberSessionFile·saveSessionResult가 건너뛴다),
@@ -4050,8 +4167,10 @@ function vocPwOk(value) {
 let VOC_VIEW = null;      // 다시 보는 중인 문의 {name, comment, time, text, replay, hadTable}
 (function initVocEgg() {
   const voc = document.getElementById("eggVoc"), admin = document.getElementById("eggAdmin");
-  if (voc) voc.addEventListener("click", openVocDialog);         // 'SMC' → 문의 파일 받기
-  if (admin) admin.addEventListener("click", openVocGate);       // 'Shift' → 관리자 모드(비밀번호)
+  // 설명서(📘) 창 맨 아래 '도움' 줄 — 누르면 설명서 창을 닫고 그 창을 연다(창 위에 창이 겹치지 않게).
+  const closeInfo = () => { const bd = document.getElementById("infoModalBackdrop"); if (bd) bd.classList.remove("show"); };
+  if (voc) voc.addEventListener("click", () => { closeInfo(); openVocDialog(); });       // 문의 파일 받기
+  if (admin) admin.addEventListener("click", () => { closeInfo(); openVocGate(); });     // 관리자 모드(비밀번호)
 })();
 let vocGateUnlocked = false;      // 이번에 연 비밀번호 창에서 비밀번호가 맞았는가
 function openVocGate() {
@@ -4439,7 +4558,7 @@ window.openPicker = function (ev, sid, day) {
     if (why.lines.length) {
       const box = document.createElement("div");
       box.className = "picker-why";
-      box.innerHTML = `<b>이 칸은</b> ` + why.lines.map(esc).join(" ") + ` <span class="dim">(이 칸만 본 판정 — 전체 검사는 오른쪽 검증 요약)</span>`;
+      box.innerHTML = `<b>이 칸은</b> ` + why.lines.map(esc).join(" ") + ` <span class="dim">(이 칸만 본 판정 — 전체 검사는 오른쪽 '확인할 문제')</span>`;
       div.appendChild(box);
       showRipple(why.cells);
     }
@@ -4597,23 +4716,53 @@ function feasibilityBanner(r) {
       아래 빨간 칸을 직접 고치거나, 인원·근무인력 기준을 조정해 다시 생성하세요.</p>`;
   }
   if (total > 0) {
-    return `<p class="status-banner warn">필수 규칙은 모두 지켰습니다. <b>추가 검토 ${total}건</b>은
-      원칙이지만 인원 사정상 못 맞출 수 있는 항목입니다 — 노란 목록을 확인한 뒤 내려받으세요.</p>`;
+    // 예전엔 여기서 "추가 검토 N건은 원칙이지만…"까지 한 문단이었다 — 같은 수와 같은 설명이 바로 아래 '추가 검토' 머리줄에 있다.
+    return `<p class="side-note all-clear">필수 규칙은 모두 지켰습니다. 아래 추가 검토를 확인한 뒤 내려받으세요.</p>`;
   }
   return "";
 }
 
+// 추가 검토(최선노력 규칙)의 묶음 이름 — 같은 종류 수십 줄을 한 줄씩 늘어놓지 않고 종류별로 접는다. 건수는 묶음마다
+// 그대로 적고, 펴면 전부 나온다(요약하되 빠뜨리지 않는다 — 예전에 앞 8건만 보여 줘 뒤쪽 위반이 안 보인 적이 있다).
+const SOFT_GROUP_NAMES = {
+  "H1-4": "기준보다 인원이 많은 날(과배치)",
+  "H6-1": "근무 블록 길이가 3~4일이 아님",
+  "H6-4": "월 야간 횟수가 목표와 다름",
+  "H4-1": "월 휴무일 수 부족",
+  "H4-2": "원하지 않은 5일 이상 연속 휴무",
+  "H7-1": "야간 6회 이상인데 수면오프(S/) 없음",
+};
+function issueLi(v) {
+  // 항목을 누르면 그 칸(사람·날)으로, 사람이 없는 항목(최소인력·숙련도·지정)은 그날 열로 간다. 값은 data-*에만 두고
+  // 클릭은 sidePane에서 위임받는다. 규칙 번호는 문장 뒤에 작게(설명서·보고서와 맞춰 보는 용도).
+  return `<li class="${v.best_effort ? "soft" : "hard"}"${v.day ? ` data-day="${v.day - 1}"` : ""}${v.staff_id ? ` data-sid="${escAttr(v.staff_id)}"` : ""}` +
+    `${v.day ? ' role="button" tabindex="0" title="누르면 그 칸으로 이동"' : ""}>${esc(humanizeMsg(v.message))}${ruleTag(v.rule)}</li>`;
+}
+
+// 오른쪽 패널 — 위에서부터 '지금 확인하고 판단할 일' 순서다(GPT UI 검토 261113 + 사용자 "출력 쪽 너무 지저분하다"):
+//   편집 중(있을 때만) → 확인할 문제(필수 위반·인력 미달·추가 검토) → 형평성(종합·가장 낮은 축) → 조정 참고(3가지까지)
+//   → 상세 자료(직원별 집계·주말 근무자·원티드 결과·적용 조건 — 전부 접힘) → 상세 도구 → 도움말·기타.
+// 예전에는 18칸이 화면 네 장 분량으로 이어졌고, 위반 수가 세 군데·직원별 표가 두 군데(표 오른쪽 열과 같은 숫자)에 있었다.
+// 파일 받기는 표 위 작업줄(fileBarHtml)로 갔다. 숫자와 목록은 전부 그대로다 — 순서와 기본 펼침만 바꿨다.
 function renderSide() {
   const r = ST.report;
-  const hardCls = r.hard_count === 0 ? "ok" : "bad";
+  // 접힌 칸의 열림 상태는 다시 그려도 그대로 — 칸을 고칠 때마다 패널을 다시 그리는데, 그때마다 펴 둔 표가 닫히면 못 쓴다.
+  const wasOpen = {};
+  sidePane.querySelectorAll("details[id]").forEach(d => { wasOpen[d.id] = d.open; });
+  const hardList = r.hard.filter(v => !v.best_effort), softList = r.hard.filter(v => v.best_effort);
 
   let html = "";
-  html += `<div class="side-sec" id="sideSummary"><h3>검증 요약</h3>`;
-  if (ST.pending && ST.pending.length) {
-    // 표에는 수정 대기 칸이 보이지만 아래 숫자는 마지막으로 적용한 표 기준이다 — 둘의 기준이 다른
+  // ── 편집 중: 고치는 중일 때만, 맨 위. 표에는 편집본이 보이고 아래 검사는 적용본 기준이라는 것을 여기서 먼저 안다.
+  const hasPending = ST.pending.length > 0;
+  html += renderSwap();
+  if (hasPending) html += `<div class="side-sec" id="pendingSec"><h3>편집 중 <span class="count-badge">미적용 ${ST.pending.length}칸</span></h3><div id="pendingBody"></div></div>`;
+
+  // ── 확인할 문제
+  html += `<div class="side-sec" id="sideSummary"><h3>확인할 문제 <span class="count-badge${r.hard_count ? " bad" : ""}">필수 ${r.hard_count} · 추가 검토 ${softList.length}</span></h3>`;
+  if (hasPending) {
+    // 표에는 수정 대기 칸이 보이지만 아래 목록은 마지막으로 적용한 표 기준이다 — 둘의 기준이 다른
     // 것을 적어 두지 않으면 "고쳤는데 왜 위반이 그대로냐"가 된다(10/30 GPT 검토 U06, 재현됨).
-    html += `<p class="hint scope-note">📌 아래는 <b>마지막으로 적용한 표 기준</b> 검사입니다 — 수정 대기 ${ST.pending.length}칸은 아직 반영되지 않았습니다.
-      칸별 영향은 '편집 중' 목록의 관련 규칙으로, 전체는 '재생성 적용' 뒤 다시 계산됩니다.</p>`;
+    html += `<p class="hint scope-note">📌 아래는 <b>마지막으로 적용한 표 기준</b>입니다 — 수정 대기 ${ST.pending.length}칸은 '재생성 적용' 뒤에 반영됩니다.</p>`;
   }
   if (r.timed_out) {
     // 시도는 시드 0·1·2(전략 -,W,S)로 고정이라 같은 입력이면 같은 결과다. 예전 문구는 "무작위 재시도라
@@ -4627,109 +4776,16 @@ function renderSide() {
   // 잠긴 칸(손으로 고친 칸·되올린 수정본) 때문에 재생성으로 못 푸는 위반이 있으면 그 사실을
   // 배너 바로 아래에 적는다. 안 적으면 33초짜리 재생성을 몇 번이고 다시 누르게 된다(리뷰 F-20).
   if (r.locked_note) html += `<p class="hint locked-note">🔒 ${esc(r.locked_note)}</p>`;
-  html += `<div class="kpi-row">
-    <div class="kpi"><div class="v ${hardCls}">${r.hard_count}</div><div class="l">필수 위반</div></div>
-    <div class="kpi"><div class="v">${r.hard.length - r.hard_count}</div><div class="l">추가 검토</div></div>
-    <div class="kpi" title="이 입력으로 표를 짠 횟수 — 재생성 적용마다 1씩 늘고, 내려받는 파일 이름 끝에 _r2처럼 붙습니다"><div class="v">${ST.round}</div><div class="l">회차(짠 횟수)</div></div>
-  </div>`;
-  if (r.hard.length > 0) {
-    // 정말 못 채운 것(빨강)과 최선노력 규칙만 남은 것(노랑)을 구분해서 보여준다 —
-    // 둘 다 같은 class="hard"로만 나가서 구분이 안 되던 것을 고침.
-    // 예전엔 slice(0,8)로 앞 8건만 보여줘서, 위반이 많은 달엔 뒤쪽(특히 날짜순 정렬상
-    // 뒤로 밀리는 H6-1 등)이 아무 표시 없이 통째로 안 보였다 — 파트장이 "이건 위반이
-    // 아닌가 보다"로 오해할 수 있어, 전부 보여주되 스크롤로 감당한다.
-    // 항목을 누르면 그 칸(사람·날)으로, 사람이 없는 항목(최소인력·숙련도·지정)은 그날 열로 간다 — 목록과 표를
-    // 오가며 찾던 것을 없앤다(10/30 GPT 검토 U04). 값은 data-*에만 두고 클릭은 sidePane에서 위임받는다.
-    // 규칙 번호(H1-4 …)는 문장 뒤에 작게 — 앞에 굵게 오면 첫 사용자가 가장 먼저 읽는 글자가
-    // 내부 번호가 된다(2026-10-31 검토 A-12). 번호는 설명서·보고서와 맞춰 보는 용도라 남긴다.
-    html += '<ul class="issue-list issue-list-scroll">' + r.hard.map(v =>
-      `<li class="${v.best_effort ? "soft" : "hard"}"${v.day ? ` data-day="${v.day - 1}"` : ""}${v.staff_id ? ` data-sid="${escAttr(v.staff_id)}"` : ""}` +
-      `${v.day ? ' role="button" tabindex="0" title="누르면 그 칸으로 이동"' : ""}>${esc(humanizeMsg(v.message))}${ruleTag(v.rule)}</li>`).join("") + "</ul>";
-  }
-  html += "</div>";
-
-  // 형평성 점수는 위반 바로 아래 — '지켰나' 다음이 '고른가'다(2026-11-09 사용자). 숫자는 전부 엔진(fairscore.py)의 것.
-  html += renderFairScore();
-  // 입력 요약 — 공휴일은 **이 달의 달력**(ST.days)에서 센다. 예전엔 params_summary.holidays(1년치
-  // 표)의 길이를 그대로 찍어 11월에 "공휴일 18개"가 나왔다(2026-10-31 검토 P1). 토·일이 아닌데
-  // 휴일인 날 = 공휴일·대체공휴일. 바로 아래 주말·공휴일 합계와 같은 달력이라 서로 어긋나지 않는다.
-  const ps = ST.params_summary;
-  const satSun = ST.days.filter(d => d.dow === "토" || d.dow === "일").length;
-  const holOnly = ST.days.filter(d => d.weekend && d.dow !== "토" && d.dow !== "일").length;
-  html += `<div class="side-sec"><h3>입력 요약</h3><ul class="issue-list" style="font-size:12px">
-    <li style="background:var(--code-bg)" id="inputSummaryLine">${ST.year}년 ${ST.month}월 · ${ST.staff.length}명 ·
-    월최대야간 ${ps.max_nights}일 · NK ${ps.nk_count}명 · 공휴일 ${holOnly}개(주말 ${satSun}일)</li>` +
-  `</ul></div>`;
-
-
-  // 편집 칸은 고치는 중일 때만 — 평소의 "칸을 누르면 바꿀 수 있습니다" 안내는 필요 없다(2026-11-09 사용자). 띠의 편집
-  // 항목도 뺐다. renderPending은 #pendingBody가 없으면 아무것도 안 한다.
-  const hasPending = ST.pending.length > 0;
-  html += renderSwap();
-  if (hasPending) html += `<div class="side-sec" id="pendingSec"><h3>편집 중 (미적용)</h3><div id="pendingBody"></div></div>`;
-
-  // 파일에도 화면에도 같은 번호를 쓴다 — 받는 파일 이름이 "출력1_월간근무표…"인데
-  // 버튼에는 번호가 없어서, 파트장이 "출력②를 입력②로 올리세요"라는 안내를 읽고도
-  // 어느 버튼인지 되짚어야 했다. 번호가 곧 다음 달 입력 번호다(출력② → 입력②).
-  // 내려받기와 되올리기는 한 흐름이라 한 칸에 둔다. 설명은 한 줄 — 패널의 글이 많아지면 아무것도 안 읽힌다
-  // (2026-11-09 사용자: "투머치 글씨는 나띵"). 긴 설명은 출력정보 설명서에 있다.
-  html += `<div class="side-sec" id="sideDownload"><h3>다운로드 · 되올리기</h3><div class="download-row">
-    <button onclick="if (confirmDownloadWithViolations()) downloadXlsxOcs()" ${hasPending ? "disabled" : ""}><span class="io-tag">출력①</span>월간근무표</button>
-    <button onclick="if (confirmDownloadWithViolations()) downloadStaffTable()" ${hasPending ? "disabled" : ""}><span class="io-tag">출력②</span>연간근무표</button>
-  </div>
-  <button class="wide reupload-btn" onclick="uploadMonth()">엑셀에서 고친 출력① 되올리기</button>
-  <p class="hint">${hasPending
-    ? '적용 안 한 편집이 있습니다 — "재생성 적용" 뒤에 받을 수 있습니다.'
-    : '출력②는 다음 달 입력②로. 되올린 출력①은 그 값으로 반영되고 바뀐 칸은 고정됩니다.'}</p>
-  <div id="nextMonthCard"></div>`;
-  if (monthUploadJustApplied()) {
-    // 올린 직후에만 두 갈래를 띄운다. 평소에 늘 떠 있으면 '재생성'이 눌리기 쉬운데,
-    // 그건 고정 칸 말고는 표 전체를 다시 짜는 동작이라 되돌릴 수 없다.
-    html += `<div class="upload-branch">
-      <p class="branch-title">수정본이 반영되었습니다 — 어떻게 할까요?</p>
-      <button class="wide" onclick="downloadBothOutputs()">① 그대로 다운로드</button>
-      <p class="hint">다시 계산하지 않습니다.</p>
-      <button class="wide" onclick="regenerateThenDownload()">② 재생성 후 다운로드</button>
-      <p class="hint">고친 칸은 두고 나머지를 다시 짭니다 — 고정하지 않은 칸은 바뀔 수 있습니다.</p>
-    </div>`;
-  }
-  html += "</div>";
-  html += renderBurdenSummary();
-
-  // 개인별 — 공정 배분 참고용으로 "야간편차"(일반 간호사 평균 대비, 파트장·NK 제외)를 같이 보여준다.
-  const staffById = {};
-  for (const s of ST.staff) staffById[s.id] = s;
-  const nightPool = r.per_person.filter(p => {
-    const s = staffById[p.id];
-    return s && !s.is_partjang && !s.is_nk;
-  });
-  const avgNights = nightPool.length
-    ? nightPool.reduce((sum, p) => sum + p.nights, 0) / nightPool.length : 0;
-
-  html += '<div class="side-sec"><h3>개인별 OFF·야간·근무일</h3>' +
-    `<p class="hint">야간편차: 일반 간호사 평균 ${avgNights.toFixed(1)}일 대비(파트장·NK 제외). ±2 이상은 다음 달 참고.</p>` +
-    '<div style="overflow-x:auto"><table class="person-table"><tr><th>이름</th><th>OFF</th><th>야간</th><th>야간편차</th><th>근무</th></tr>' +
-    r.per_person.map(p => {
-      const s = staffById[p.id];
-      const inPool = s && !s.is_partjang && !s.is_nk;
-      let devText = "—", devCls = "";
-      if (inPool) {
-        const dev = Math.round((p.nights - avgNights) * 10) / 10;
-        devText = dev > 0 ? `+${dev}` : `${dev}`;
-        if (dev >= 2) devCls = "badge-bad";
-        else if (dev <= -2) devCls = "badge-ok";
-      }
-      return `<tr class="${p.off_ok ? "" : "warn-row"}"><td>${esc(p.id)}</td><td>${p.off}</td>` +
-        `<td>${p.nights}</td><td class="${devCls}">${devText}</td><td>${p.workdays}</td></tr>`;
-    }).join("") +
-    "</table></div></div>";
-
-  // 일별 근무인력
-  html += `<div class="side-sec"><h3>일별 근무인력 <span class="count-badge">${r.bad_days_count === 0 ? "전일 충족" : r.bad_days_count + "일 미달"}</span></h3>`;
+  if (!r.hard.length) html += `<p class="side-note all-clear">필수 위반도 추가 검토 항목도 없습니다.</p>`;
+  // 필수 위반은 전부, 늘 펼쳐서 — 줄이거나 접지 않는다.
+  if (hardList.length) html += `<ul class="issue-list issue-list-scroll" id="hardIssues">${hardList.map(issueLi).join("")}</ul>`;
+  // 인력 미달 — 같은 사건(최소인력 미달)을 날짜별 숫자로 본 것이라 필수 위반 바로 아래 둔다. 미달이 없으면 칸 자체가 없다
+  // (예전엔 "전일 충족"만 적힌 빈 카드가 늘 떠 있었다).
   if (r.bad_days_count > 0) {
     // 아래 그리드 통계와 같은 이름으로 — 엔진의 N은 NK를 더한 값이고, prn은 prn 계열 합계(반일 0.5)다.
     const nLabel = ST.staff.some(s => s.is_nk && !s.is_partjang) ? "N+NK" : "N";
-    html += `<table class="mini-table"><tr><th>일</th><th>D</th><th>E</th><th>${nLabel}</th><th title="prn 계열 합계(반일 0.5명)">prn 합계</th></tr>` +
+    html += `<h4 class="sub-h">인력 미달 <span class="count-badge bad">${r.bad_days_count}일</span> <small>배정/필요</small></h4>` +
+      `<table class="mini-table"><tr><th>일</th><th>D</th><th>E</th><th>${nLabel}</th><th title="prn 계열 합계(반일 0.5명)">prn 합계</th></tr>` +
       r.daily.filter(d => !d.ok).map(d =>
         `<tr><td>${d.day}</td><td class="${d.counts.D < d.min.D ? "badge-bad" : ""}">${d.counts.D}/${d.min.D}</td>` +
         `<td class="${d.counts.E < d.min.E ? "badge-bad" : ""}">${d.counts.E}/${d.min.E}</td>` +
@@ -4739,7 +4795,52 @@ function renderSide() {
       // 미달 (날짜, 근무)마다 "누구를 넣으면 채워지나" — 생성 뒤 Worker에 따로 물어 채운다
       '<div id="fillHintsBox" class="side-note">채울 수 있는 사람을 찾는 중…</div>';
   }
+  // 추가 검토 — 종류별로 묶어 접는다. 몇 건 안 되면(6건 이하) 펴 둔다.
+  if (softList.length) {
+    const groups = new Map();
+    for (const v of softList) { if (!groups.has(v.rule)) groups.set(v.rule, []); groups.get(v.rule).push(v); }
+    html += `<h4 class="sub-h">추가 검토 <span class="count-badge">${softList.length}건</span> <small>원칙이지만 인원 사정상 못 맞출 수 있는 항목</small></h4>`;
+    for (const [rule, list] of groups) {
+      html += `<details class="issue-group" id="softGroup-${escAttr(rule)}"${softList.length <= 6 ? " open" : ""}>` +
+        `<summary>${esc(SOFT_GROUP_NAMES[rule] || rule)} <span class="count-badge">${list.length}건</span></summary>` +
+        `<ul class="issue-list">${list.map(issueLi).join("")}</ul></details>`;
+    }
+  }
   html += "</div>";
+
+  // ── 형평성 — 종합과 가장 낮은 축만. 축별 막대·누적·산식은 접힘 안에(renderFairScore).
+  html += renderFairScore();
+  // ── 조정 참고 — 세 가지까지, 나머지는 접힘
+  html += renderBurdenSummary();
+
+  // ── 상세 자료 — 필요할 때 펴 보는 것들. 전부 접혀 있다.
+  // 직원별 집계: 공정 배분 참고용으로 "야간편차"(일반 간호사 평균 대비, 파트장·NK 제외)를 같이 보여준다.
+  const staffById = {};
+  for (const s of ST.staff) staffById[s.id] = s;
+  const nightPool = r.per_person.filter(p => {
+    const s = staffById[p.id];
+    return s && !s.is_partjang && !s.is_nk;
+  });
+  const avgNights = nightPool.length
+    ? nightPool.reduce((sum, p) => sum + p.nights, 0) / nightPool.length : 0;
+  html += `<h3 class="side-group">상세 자료</h3>`;
+  html += `<details class="side-sec" id="personSec"><summary><h3 style="display:inline">직원별 집계 <span class="count-badge">${r.per_person.length}명</span></h3></summary>` +
+    `<p class="hint">야간편차: 일반 간호사 평균 ${avgNights.toFixed(1)}일 대비(파트장·NK 제외). ±2 이상은 굵게 — 많고 적음이지 좋고 나쁨이 아닙니다.</p>` +
+    '<div style="overflow-x:auto"><table class="person-table"><tr><th>이름</th><th>OFF</th><th>야간</th><th>야간편차</th><th>근무</th></tr>' +
+    r.per_person.map(p => {
+      const s = staffById[p.id];
+      const inPool = s && !s.is_partjang && !s.is_nk;
+      let devText = "—", devCls = "";
+      if (inPool) {
+        const dev = Math.round((p.nights - avgNights) * 10) / 10;
+        devText = dev > 0 ? `+${dev}` : `${dev}`;
+        // 예전엔 적은 쪽을 초록, 많은 쪽을 빨강으로 칠해 "적으면 좋다"로 읽혔다 — 방향에는 색을 쓰지 않고 차이가 큰 것만 굵게.
+        if (Math.abs(dev) >= 2) devCls = "dev-far";
+      }
+      return `<tr class="${p.off_ok ? "" : "warn-row"}"><td>${esc(p.id)}</td><td>${p.off}</td>` +
+        `<td>${p.nights}</td><td class="${devCls}">${devText}</td><td>${p.workdays}</td></tr>`;
+    }).join("") +
+    "</table></div></details>";
 
   // 주말·공휴일 근무자 명단 — "이번 주말에 누가 서나"를 그리드를 훑지 않고 본다
   html += renderWeekendRoster();
@@ -4748,34 +4849,43 @@ function renderSide() {
   const blockH = Object.entries(r.night_block_hist).map(([k, v]) => `${k}일×${v}`).join(", ") || "없음";
   const gapH = Object.entries(r.night_gap_hist).map(([k, v]) => `${k}일×${v}`).join(", ") || "없음";
 
-  // 원티드 신청 전체
+  // 원티드 결과 — 접어 둔다. 머리줄에는 반영 수와 미반영 수만, 펴면 미반영부터 전체 목록.
   if (r.requests_all.length > 0) {
-    // 접어 둔다 — 40건이면 표가 한 화면이라 다른 칸이 밀린다. 배지의 반영 수와 반려 수만 보이고, 펴면 전체 목록(2026-11-09 사용자).
     const rejectedN = r.requests.total - r.requests.accepted;
-    html += `<details class="side-sec" id="wantedSec"><summary><h3 style="display:inline">원티드 신청 <span class="count-badge">${r.requests.accepted}/${r.requests.total} 반영${rejectedN ? ` · 반려 ${rejectedN}` : ""}</span></h3></summary>` +
+    const ordered = r.requests_all.filter(q => !q.accepted).concat(r.requests_all.filter(q => q.accepted));
+    html += `<details class="side-sec" id="wantedSec"><summary><h3 style="display:inline">원티드 결과 <span class="count-badge${rejectedN ? " bad" : ""}">반영 ${r.requests.accepted}/${r.requests.total}${rejectedN ? ` · 미반영 ${rejectedN}` : ""}</span></h3></summary>` +
       '<table class="mini-table"><tr><th>이름</th><th>날짜</th><th>유형</th><th>결과</th></tr>' +
-      r.requests_all.map(q => `<tr><td>${esc(q.staff_id)}</td><td>${esc(q.date)}</td><td>${esc(q.type)}</td>` +
+      ordered.map(q => `<tr><td>${esc(q.staff_id)}</td><td>${esc(q.date)}</td><td>${esc(q.type)}</td>` +
         `<td class="${q.accepted ? "badge-ok" : "badge-bad"}">${q.accepted ? "수용" :
           `반려<br><span style="font-weight:400;font-size:10px;color:var(--sub)">${esc(q.reason || "")}</span>`}</td></tr>`).join("") +
       "</table></details>";
   }
 
+  // 적용 조건(예전 '입력 요약') — 이 표를 만들 때 쓴 값. 공휴일은 **이 달의 달력**(ST.days)에서 센다. 예전엔
+  // params_summary.holidays(1년치 표)의 길이를 그대로 찍어 11월에 "공휴일 18개"가 나왔다(2026-10-31 검토 P1).
+  const ps = ST.params_summary;
+  const satSun = ST.days.filter(d => d.dow === "토" || d.dow === "일").length;
+  const holOnly = ST.days.filter(d => d.weekend && d.dow !== "토" && d.dow !== "일").length;
+  html += `<details class="side-sec" id="condSec"><summary><h3 style="display:inline">적용 조건</h3></summary><ul class="issue-list" style="font-size:12px">
+    <li style="background:var(--code-bg)" id="inputSummaryLine">${ST.year}년 ${ST.month}월 · ${ST.staff.length}명 ·
+    월최대야간 ${ps.max_nights}일 · NK ${ps.nk_count}명 · 공휴일 ${holOnly}개(주말 ${satSun}일)</li>` +
+  `</ul><p class="side-note">이 근무표를 만들 때 쓴 값입니다. 바꾸려면 '← 입력으로'.</p></details>`;
 
-  // ---- 자세히 보기(전문가 모드) — 시도 점수표·처리 로그·수정 전 점검을 한 접힘 안에 둔다. 셋 다 첫
+  // ---- 상세 도구(옛 '자세히 보기', 전문가 모드) — 시도 점수표·처리 로그·수정 전 점검을 한 접힘 안에 둔다. 셋 다 첫
   // 사용자에게는 소음이고(2026-10-31 검토 §3), 점수표 줄 누르기는 표·다운로드가 바뀌는 큰 동작이다.
   // 펼친 상태는 기억한다(localStorage ns_expert_open) — 매번 여는 사람은 매번 열려 있어야 한다.
   html += `<details class="side-sec expert-sec" id="expertSec"${expertOpen() ? " open" : ""}>` +
-    `<summary><h3 style="display:inline">자세히 보기 <span class="count-badge">변경 안내 · 점수표 · 처리 로그 · 수정 전 점검</span></h3></summary>` +
-    `<p class="side-note">표를 고르거나 손 수정을 많이 할 때 보는 자리입니다. 처음 쓸 때는 접어 두어도 됩니다.</p>`;
+    `<summary><h3 style="display:inline">상세 도구</h3></summary>` +
+    `<p class="side-note">변경 안내 초안 · 다른 근무표(시도 점수표) · 수정 전 확인 · 처리 로그. 표를 고르거나 손 수정을 많이 할 때 봅니다.</p>`;
   // 변경 안내 초안은 여기(전문가 모드) 안에 — 공지 뒤 변경이 있는 달에만 쓰는 것이라 평소 패널에서는 숨긴다
-  // (2026-11-09 사용자). 코드째 걷어내지 않는 이유: 쓰는 길이 남아 있고(자세히 보기 → 변경 안내 초안) 테스트가 본다.
+  // (2026-11-09 사용자). 코드째 걷어내지 않는 이유: 쓰는 길이 남아 있고(상세 도구 → 변경 안내 초안) 테스트가 본다.
   html += renderNotice();
   // 야간 패턴(블록 길이·간격 분포)은 엔진 점검용 숫자라 여기로(2026-11-09 사용자: 설명 불필요, 숨겨).
   html += `<div class="side-sec"><h3>야간 패턴</h3><ul class="issue-list" style="font-size:11.5px">
     <li style="background:var(--code-bg)">블록 길이 분포: ${esc(blockH)}</li>
     <li style="background:var(--code-bg)">블록 간격 분포: ${esc(gapH)}</li>
   </ul></div>`;
-  html += `<div class="side-sec"><h3>수정 전 점검 — 건드리면 안 되는 칸</h3><div id="fragileBox"></div></div>`;
+  html += `<div class="side-sec"><h3>수정 전 확인</h3><p class="side-note">고치면 다른 규칙이 깨지는 칸입니다. 표 위 '빗금'을 켜면 표에도 표시됩니다.</p><div id="fragileBox"></div></div>`;
 
   // 시도 점수표 — 시드마다 어떤 숫자로 견줘 어느 것을 골랐는지. 앞 열이 다르면 뒤 열은 보지 않는다
   // (운영 필수 → 숙련도 → 공평성 → 전체 하드, 2026-10-30 결정). 공평성은 주말·야간·D/E·원티드 미반영의 합(사람·일 수).
@@ -4829,26 +4939,16 @@ function renderSide() {
       const last = grouped[grouped.length - 1];
       if (last && last.text === l) last.n++; else grouped.push({ text: l, n: 1 });
     }
-    html += `<details class="side-sec log-sec"><summary><h3 style="display:inline">처리 로그 <span class="count-badge">${r.logs.length}건${grouped.length < r.logs.length ? ` · 묶으면 ${grouped.length}줄` : ""}</span></h3></summary>` +
+    html += `<details class="side-sec log-sec" id="logSec"><summary><h3 style="display:inline">처리 로그 <span class="count-badge">${r.logs.length}건${grouped.length < r.logs.length ? ` · 묶으면 ${grouped.length}줄` : ""}</span></h3></summary>` +
       `<p class="side-note">엔진 내부 기록(개발자용). 같은 줄은 ×n으로 묶음.</p>` +
       `<div class="log-box">${grouped.map(g => esc(g.text) + (g.n > 1 ? ` <b>×${g.n}</b>` : "")).join("\n")}</div></details>`;
   }
-  html += `</details>`;   // 자세히 보기 끝
+  html += `</details>`;   // 상세 도구 끝
 
-  // 실험 기능 — 패널 맨 아래 칸. 제목 아래에 기능을 한 줄씩 둔다(사용자 요청 2026-11-11: 작은 글씨 한 문단에 '·'로 이어
-  // 붙였더니 폰에서 줄이 엉뚱한 데서 꺾여 무엇이 버튼인지 알 수 없었다). 한 줄 전체가 누르는 자리다.
-  const pendingNow = ST.pending.length > 0;
-  html += `<div class="side-sec side-exp"><h3>실험 기능</h3><div class="exp-list">` +
-    // 월간 근무 보고(HTML 한 장) — 다운로드 게이트는 출력①②와 같다(적용 안 한 편집이 있으면 못 받고, 필수 위반이 있으면 한 번 묻는다).
-    `<button class="exp-item" id="expMagBtn" onclick="if (confirmDownloadWithViolations()) downloadMagazine()" ${pendingNow ? "disabled" : ""} ` +
-      `title="검증·일별 인원·주말 명단·사람별 집계·부담·원티드·고정 칸·야간·점수표·처리 기록을 한 파일에 — 열어서 인쇄하면 PDF">` +
-      `<span class="exp-name">월간 근무 보고(HTML) 받기${pendingNow ? `<small>적용 안 한 편집이 있으면 받을 수 없습니다</small>` : ""}</span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
-    // 생성 중에 무작위로 하나씩 나오는 애니메이션 12가지를 한 화면에 모은 파일(근무표 데이터는 없음 — 예시 기록으로 돈다).
-    // 사본은 docs/시각화/모음/만들기.py가 guide/에 굽는다.
-    `<a class="exp-item" href="guide/gen-animations.html" download="생성화면_애니메이션_12가지.html" ` +
-      `title="생성할 때 나오는 애니메이션 12가지를 한 화면에 — 근무표 내용은 들어 있지 않습니다">` +
-      `<span class="exp-name">생성 애니메이션(HTML) 받기</span><span class="exp-go" aria-hidden="true">⬇</span></a>` +
-    // 문의 파일 받기·관리자 모드 — 화면 맨 아래 'SMC'·'Shift' 글자와 같은 창을 연다. 문의는 적용 안 한 편집이 있어도 받을 수
+  // 도움말 · 기타 — 패널 맨 아래. 한 줄 전체가 누르는 자리다(작은 글씨 한 문단에 '·'로 이어 붙였더니 폰에서 무엇이 버튼인지
+  // 알 수 없었다, 2026-11-11). 월간 보고서는 표 위 파일 작업줄로 옮겼다 — 파일 받는 곳은 한 군데다.
+  html += `<div class="side-sec side-exp"><h3>도움말 · 기타</h3><div class="exp-list">` +
+    // 문의 파일 받기·관리자 모드 — 설명서(📘) 창 맨 아래 '도움' 줄과 같은 창을 연다. 문의는 적용 안 한 편집이 있어도 받을 수
     // 있다(그 편집까지 담긴다). 관리자 모드는 여기서도 비밀번호를 묻는다.
     `<button class="exp-item" id="expVocBtn" onclick="openVocDialog()" ` +
       `title="이름과 내용을 적으면 지금 입력·출력·고친 기록이 파일 하나(zip)로 받아집니다 — 이 기기에 저장만 됩니다">` +
@@ -4856,8 +4956,15 @@ function renderSide() {
     `<button class="exp-item" id="expAdminBtn" onclick="openVocGate()" ` +
       `title="받은 문의 파일(zip)을 올려 그 사람이 보던 화면을 다시 봅니다 — 비밀번호가 필요합니다">` +
       `<span class="exp-name">관리자 모드</span><span class="exp-go" aria-hidden="true">›</span></button>` +
+    // 생성 중에 무작위로 하나씩 나오는 애니메이션 12가지를 한 화면에 모은 파일(근무표 데이터는 없음 — 예시 기록으로 돈다).
+    // 사본은 docs/시각화/모음/만들기.py가 guide/에 굽는다.
+    `<a class="exp-item" href="guide/gen-animations.html" download="생성화면_애니메이션_12가지.html" ` +
+      `title="생성할 때 나오는 애니메이션 12가지를 한 화면에 — 근무표 내용은 들어 있지 않습니다">` +
+      `<span class="exp-name">생성 애니메이션(HTML) 받기</span><span class="exp-go" aria-hidden="true">⬇</span></a>` +
     `</div></div>`;
   sidePane.innerHTML = html;
+  // 다시 그리기 전에 펴 두었던(또는 닫아 둔) 칸은 그대로 — 기본값은 처음 한 번만 쓴다.
+  sidePane.querySelectorAll("details[id]").forEach(d => { if (d.id in wasOpen) d.open = wasOpen[d.id]; });
   renderPending();
   renderNextMonthCard();
   const ex = $("#expertSec");
@@ -4932,7 +5039,7 @@ function renderWeekendRoster() {
     };
     return `<tr><td>${d.n}일 ${esc(d.dow)}</td>${cell("D")}${cell("E")}${cell("N")}</tr>`;
   }).join("");
-  return `<details class="side-sec"><summary><h3 style="display:inline">주말·공휴일 근무자 <span class="count-badge">${days.length}일</span></h3></summary>` +
+  return `<details class="side-sec" id="weekendSec"><summary><h3 style="display:inline">주말·공휴일 근무자 <span class="count-badge">${days.length}일</span></h3></summary>` +
     '<table class="mini-table weekend-roster"><tr><th>날</th><th>D</th><th>E</th><th>N</th></tr>' + rows + "</table>" +
     '<p class="side-note">인원/최소인력과 이름. 빨강은 미달. 접어 두면 자리를 안 차지합니다.</p></details>';
 }
@@ -4998,7 +5105,9 @@ function renderFairScore() {
     `</div>` +
     // 가장 낮은 축 — 가중 평균에 가려진 축을 한 글자로. 견준 사람이 10명 밑이면 '인원 적음'도 함께(백분위는 서도 뜻이 흔들린다).
     (f.lowest ? `<p class="fair-lowest" data-fair-lowest="${escAttr(f.lowest.key)}">가장 낮은 축: <b class="${fairGradeClass((f.axes.find(a => a.key === f.lowest.key) || {}).grade && f.axes.find(a => a.key === f.lowest.key).grade.key)}">${esc(f.lowest.name)} ${Math.round(f.lowest.score)}</b>${f.few_people ? ` · <span class="warn-text">견준 사람 ${f.people}명 — 인원 적음</span>` : ""}</p>` : "") +
-    `<ul class="fair-axes">`;
+    `<p class="side-note fair-ref">참고용 점수입니다 — 필수 규칙 검사와는 별개입니다.</p>` +
+    // 축별 막대·추가 지표·변경량·누적 형평은 접힘 안에 — 늘 펼쳐 두면 종합을 본 뒤에도 여러 문단을 지나야 다음 칸이 나온다.
+    `<details class="fair-detail" id="fairDetail"><summary>축별 점수 · 누적 형평 보기</summary><ul class="fair-axes">`;
   for (const a of f.axes) {
     const sc = a.score == null ? null : Math.round(a.score);
     const cls = fairGradeClass(a.grade && a.grade.key);
@@ -5023,8 +5132,8 @@ function renderFairScore() {
     html += `<p class="side-note">입력②(연간근무표)를 올리면 누적 형평이 붙습니다.</p>`;
   }
   // 뜻·산식·선택 기준은 접힘 하나에 — 늘 펼쳐 두면 점수보다 글이 많아 아무것도 안 읽힌다
-  html += `<p class="side-note">참고용입니다 — 낮아도 병동 사정을 아는 파트장이 그대로 두거나 고칩니다. 사람별 한 줄은 이름을 눌러 여정에서.</p>` +
-    `<details class="fair-help"><summary>점수의 뜻 · 견준 사람</summary><p class="side-note">${esc(f.weights_note || "")}</p>` +
+  html += `<p class="side-note">낮아도 병동 사정을 아는 파트장이 그대로 두거나 고칩니다. 사람별 한 줄은 이름을 눌러 여정에서.</p></details>` +
+    `<details class="fair-help" id="fairHelp"><summary>점수의 뜻 · 견준 사람</summary><p class="side-note">${esc(f.weights_note || "")}</p>` +
     (f.selection_note ? `<p class="side-note">${esc(f.selection_note)}</p>` : "") +
     // 축마다 견준 사람 수와 빠진 사람(1인 집단·역할·목표 없음)·원값 — 점수가 좋다는 말이 "견준 사람끼리만 좋다"로 바뀌지 않게.
     // 늘 펼쳐 두면 축마다 두 줄이 돼 점수보다 글이 많아져 여기로 접었다(2026-11-09).
@@ -5034,7 +5143,7 @@ function renderFairScore() {
   const W = f.weights || {}, FW = f.fatigue_weights || {}, DW = f.default_weights || {}, DF = f.default_fatigue_weights || {};
   const FAT_NAMES = { quick_to_night: "낮→밤 직결", short_recovery: "짧은 회복", consecutive_weekends: "연속 주말" };
   const changed = Object.keys(DW).some(k => W[k] !== DW[k]) || Object.keys(DF).some(k => FW[k] !== DF[k]);
-  html += `<details class="fair-weights" id="fairWeights"${changed ? " open" : ""}><summary>가중치 조정${changed ? ' <span class="count-badge">기본과 다름</span>' : ""}</summary><div class="fair-w-grid">` +
+  html += `<details class="fair-weights" id="fairWeights"${changed ? " open" : ""}><summary>표시 점수 가중치${changed ? ' <span class="count-badge">기본과 다름</span>' : ""}</summary><div class="fair-w-grid">` +
     f.axes.map(a => `<label><span>${esc(a.name)}</span><input type="number" min="0" max="${f.weight_max || 5}" step="0.5" data-fw-axis="${escAttr(a.key)}" value="${W[a.key] ?? a.weight}"></label>`).join("") +
     Object.keys(FAT_NAMES).map(k => `<label><span>피로 · ${FAT_NAMES[k]}</span><input type="number" min="0" max="${f.weight_max || 5}" step="0.5" data-fw-fat="${k}" value="${FW[k] ?? ""}"></label>`).join("") +
     `</div><div class="fair-w-actions"><button type="button" class="btn-sm" data-fw="apply">적용</button><button type="button" class="btn-sm" data-fw="reset">기본값</button></div>` +
@@ -5113,19 +5222,24 @@ function renderBurdenSummary() {
     .sort((a, b) => (b.weekend - prev[b.s.id].weekend) - (a.weekend - prev[a.s.id].weekend)).slice(0, 6);
   const nightUp = rows.filter(r => prev[r.s.id] && r.nights - prev[r.s.id].nights >= 2)
     .sort((a, b) => (b.nights - prev[b.s.id].nights) - (a.nights - prev[a.s.id].nights)).slice(0, 6);
+  // 이유가 분명한 것부터 — 목표와 다름·쏠림을 앞에, 지난달 대비 변화(사실일 뿐 과다 판정이 아니다)와 필수 목록에 이미 있는
+  // 연속근무 초과를 뒤에 둔다. 세 가지까지만 펴 두고 나머지는 접는다(전부 볼 수 있다). 건수는 '사유 종류 수'다 — 사람 수가 아니다.
+  const who = (id) => `<span class="who">${esc(id)}</span>`;
   const items = [];
-  if (wkUp.length) items.push(`<li>지난달(${esc(prevMonth)})보다 주말이 2일 이상 는 사람: ${wkUp.map(r => `<span class="who">${esc(r.s.id)}</span> ${prev[r.s.id].weekend}→${r.weekend}`).join(", ")}</li>`);
-  if (nightUp.length) items.push(`<li>지난달보다 야간이 2회 이상 는 사람: ${nightUp.map(r => `<span class="who">${esc(r.s.id)}</span> ${prev[r.s.id].nights}→${r.nights}`).join(", ")}</li>`);
-  if (wkTop.length) items.push(`<li>주말 근무 많음(평균 ${wkMean.toFixed(1)}일): ${wkTop.map(r => `<span class="who">${esc(r.s.id)}</span> ${r.weekend}일`).join(", ")}</li>`);
-  if (wkLow.length) items.push(`<li>주말 근무 적음: ${wkLow.map(r => `<span class="who">${esc(r.s.id)}</span> ${r.weekend}일`).join(", ")}</li>`);
-  if (nightOff.length) items.push(`<li>야간이 목표와 다름: ${nightOff.slice(0, 6).map(r => `<span class="who">${esc(r.s.id)}</span> ${r.nights}/${r.s.night_target}`).join(", ")}${nightOff.length > 6 ? ` 외 ${nightOff.length - 6}명` : ""}</li>`);
-  if (deOff.length) items.push(`<li>D·E 쏠림(병동 D 비율 ${(ratio * 100).toFixed(0)}%): ${deOff.map(r => `<span class="who">${esc(r.s.id)}</span> D${r.dCnt}·E${r.eCnt}`).join(", ")}</li>`);
-  if (runOver.length) items.push(`<li>연속근무 ${maxC}일 초과: ${runOver.map(r => `<span class="who">${esc(r.s.id)}</span> ${r.maxRun}일`).join(", ")}</li>`);
-  if (soleTop.length) items.push(`<li>혼자 Lv4+인 조에 많이 섬(고연차 평균 ${soleMean.toFixed(1)}회): ${soleTop.map(s => `<span class="who">${esc(s.id)}</span> ${soleCnt[s.id]}회`).join(", ")}</li>`);
-  const body = items.length ? `<ul class="burden-list">${items.join("")}</ul>`
-    : '<p class="side-note">주말·야간·D/E·연속근무 어느 쪽도 눈에 띄게 쏠린 사람이 없습니다.</p>';
-  return `<div class="side-sec"><h3>부담 요약 <span class="count-badge">${items.length}항목</span></h3>${body}` +
-    '<p class="side-note">표 오른쪽 주말·연속·야간 열과 같은 숫자 · 평균과 2일(회) 넘게 차이 나는 사람만.</p></div>';
+  if (nightOff.length) items.push(`<li><b>야간이 목표와 다름</b><span class="burden-who">${nightOff.slice(0, 6).map(r => `${who(r.s.id)} ${r.nights}/${r.s.night_target}`).join(", ")}${nightOff.length > 6 ? ` 외 ${nightOff.length - 6}명` : ""}</span></li>`);
+  if (wkTop.length) items.push(`<li><b>주말 근무 많음</b>(평균 ${wkMean.toFixed(1)}일)<span class="burden-who">${wkTop.map(r => `${who(r.s.id)} ${r.weekend}일`).join(", ")}</span></li>`);
+  if (deOff.length) items.push(`<li><b>D·E 쏠림</b>(병동 D 비율 ${(ratio * 100).toFixed(0)}%)<span class="burden-who">${deOff.map(r => `${who(r.s.id)} D${r.dCnt}·E${r.eCnt}`).join(", ")}</span></li>`);
+  if (soleTop.length) items.push(`<li><b>고연차 단독 배치</b>(혼자 Lv4+인 조 — 고연차 평균 ${soleMean.toFixed(1)}회)<span class="burden-who">${soleTop.map(s => `${who(s.id)} ${soleCnt[s.id]}회`).join(", ")}</span></li>`);
+  if (wkLow.length) items.push(`<li><b>주말 근무 적음</b><span class="burden-who">${wkLow.map(r => `${who(r.s.id)} ${r.weekend}일`).join(", ")}</span></li>`);
+  if (wkUp.length) items.push(`<li><b>지난달(${esc(prevMonth)})보다 주말 2일 이상 늘어남</b><span class="burden-who">${wkUp.map(r => `${who(r.s.id)} ${prev[r.s.id].weekend}→${r.weekend}`).join(", ")}</span></li>`);
+  if (nightUp.length) items.push(`<li><b>지난달보다 야간 2회 이상 늘어남</b><span class="burden-who">${nightUp.map(r => `${who(r.s.id)} ${prev[r.s.id].nights}→${r.nights}`).join(", ")}</span></li>`);
+  if (runOver.length) items.push(`<li><b>연속근무 ${maxC}일 초과</b>(필수 위반 목록에도 있습니다)<span class="burden-who">${runOver.map(r => `${who(r.s.id)} ${r.maxRun}일`).join(", ")}</span></li>`);
+  const SHOW = 3;
+  const body = !items.length ? '<p class="side-note">주말·야간·D/E·연속근무 어느 쪽도 눈에 띄게 쏠린 사람이 없습니다.</p>'
+    : `<ul class="burden-list">${items.slice(0, SHOW).join("")}</ul>` +
+      (items.length > SHOW ? `<details class="burden-more" id="burdenMore"><summary>나머지 ${items.length - SHOW}가지 보기</summary><ul class="burden-list">${items.slice(SHOW).join("")}</ul></details>` : "");
+  return `<div class="side-sec" id="burdenSec"><h3>조정 참고 <span class="count-badge">${items.length}가지</span></h3>${body}` +
+    '<p class="side-note">평균이나 목표와 2일(회) 넘게 차이 나는 사람만 — 조정을 권하는 것이 아니라 볼 자리입니다. 숫자는 표 오른쪽 주말·연속·야간 열과 같습니다.</p></div>';
 }
 
 function renderPending() {
