@@ -571,7 +571,7 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 <li><b>검증 요약의 항목을 누르면</b> 그 칸(사람이 없는 항목은 그날 열)으로 이동해 잠깐 깜빡입니다. 수정 대기 칸이 있는
 동안 요약 숫자는 <b>마지막으로 적용한 표 기준</b>이고, '재생성 적용' 뒤 다시 계산됩니다.</li>
 <li><b>날짜 머리칸을 누르면</b> 그날 병동(누가 어디서 일하는지)이 뜨고, 거기서 이름을 누르면 그 사람의 한 달 여정이 뜹니다.
-패널 맨 아래 <b>월간 근무 보고(HTML) 받기</b>는 첫 장 요약(확인할 항목·부담 분포)과 검증·일별 인원·원티드·점수표·시각화를
+패널 맨 아래 <b>월간 근무 보고(HTML) 받기</b>는 첫 장 요약(확인할 항목·부담 분포)과 검증·일별 인원·원티드·점수표를
 한 파일로 묶어 줍니다 — 열어서 인쇄하면 PDF. 그 아래 <b>생성 애니메이션(HTML) 받기</b>는 생성할 때 나오는 애니메이션
 12가지를 한 화면에 모은 파일입니다(근무표 내용은 들어 있지 않습니다).</li>
 <li><b>변경 안내 초안</b> — 근무표를 공지한 뒤 칸이 바뀌면, 오른쪽 패널에서 공지한 판(공지한 출력①을 올리거나 지금
@@ -3745,7 +3745,7 @@ function drawJourney(now) {
 // 집계·부담·원티드·고정 칸·야간 분포·점수표·로그)을 한 파일에 모아 인쇄·전달할 수 있게. 숫자는 전부
 // 화면과 같은 계산(burdenOf·dutyColumns·report)이라 따로 맞춰 볼 필요가 없다. 파일 하나(HTML)라 카톡으로
 // 보내도 열리고, 브라우저에서 인쇄하면 PDF가 된다. 실험 기능이라 패널 맨 아래 작은 글씨로만 연다.
-function magazineHtml(trace) {
+function magazineHtml() {
   const r = ST.report || {}, days = ST.days, nd = ST.num_days;
   const row = s => ST.grid[s.id] || [];
   const holCount = days.filter(d => d.weekend).length;
@@ -3907,33 +3907,10 @@ function magazineHtml(trace) {
   // --- 10 처리 기록
   const logs = (r.logs || []).filter(l => /\[수리\]|\[균등\]|\[보완\]|\[H2-9\]|\[H5-2\]|\[H1-1\]|\[전입\]/.test(l)).slice(0, 25);
   const sec10 = `<h2>10. 처리 기록(발췌)</h2>${logs.length ? `<pre class="log">${logs.map(esc).join("\n")}</pre>` : "<p>수리·균등 기록 없음.</p>"}<p class="sub">전체 ${(r.logs || []).length}건은 화면 결과창 '처리 로그'에.</p>`;
-  // --- 11 시각화 — 여정(클로드 개념 I)·비(클로드 갤러리 II)·한 달의 궤도(지피티 01-04)를 이달 표로, 그리고
-  // /api/trace가 준 '서치 과정'(단계별 칸 쓰기)을 재생한다. 기록이 없으면(실패) 완성표만 그린다.
-  // 화면용(캔버스)이라 인쇄에는 안 나온다. 데이터는 명단·날짜·표·기록뿐이고, 그리는 코드는 아래 한 덩어리.
-  const vizCode = v => v === "OFF" ? "/" : v === "prn" ? "p" : (v || "");
-  const vizData = JSON.stringify({
-    year: ST.year, month: ST.month,
-    staff: people.map(s => ({ id: s.id, level: s.level || 1, nk: !!s.is_nk, partjang: false })),
-    days: days.map(d => ({ n: d.n, dow: d.dow, weekend: !!d.weekend })),
-    grid: Object.fromEntries(people.map(s => [s.id, row(s).map(vizCode)])),
-    min: { D: days.map(d => (d.min || {}).D ?? 0), E: days.map(d => (d.min || {}).E ?? 0), N: days.map(d => (d.min || {}).N ?? 0) },
-    trace: trace && trace.events ? { staff: trace.staff, events: trace.events, stages: trace.stages, final: trace.final, seed: trace.seed } : null,
-  }).replace(/<\//g, "<\\/");
-  const transport = `<div class="viz-tr"><button data-tr="first" title="처음">⏮</button><button data-tr="prev" title="이전 단계">◀</button><button class="big" data-tr="play">▶ 재생</button><button data-tr="next" title="다음 단계">▶</button><label>속도 <input type="range" data-tr="speed" min="1" max="60" value="14"></label><span class="viz-stage"></span><span class="viz-kpi"></span><div class="viz-bar"><i></i></div></div>`;
-  const sec11 = `<h2 class="viz-h">11. 시각화 <span class="sub">(화면용 — 인쇄에는 안 나옴${trace && trace.events ? `. 시드 ${trace.seed}의 생성 과정 ${trace.events.length}단계 쓰기를 재생` : ". 생성 기록을 못 받아 완성표만 그림"})</span></h2>
-    <div class="viz" id="viz">
-    <section class="vizb" id="viz-jour"><h3>여정 — 한 사람의 한 달</h3><div class="viz-ctl"><label>사람 <select id="vzWho"></select></label><button id="vzPrev">◀</button><button id="vzPlay">▶ 걷기</button><button id="vzNext">▶</button><button class="viz-open" data-open="viz-jour">↗ 새 창에서 크게</button><span class="sub">←→·휠로 날짜. 해는 낮, 노을은 저녁, 달은 밤. 카드에 그 칸이 어느 단계에서 왜 놓였는지.</span></div><canvas id="vzJour"></canvas><div class="viz-card" id="vzCard"></div></section>
-    <section class="vizb" id="viz-rain"><h3>비 — 근무 글자가 떨어져 제자리에</h3><div class="viz-ctl"><button class="viz-open" data-open="viz-rain">↗ 새 창에서 크게</button><span class="sub">위에서부터 명단 순, 왼쪽부터 1일. 엔진이 칸을 놓는 순서대로 글자가 내려앉고, 아직 빈 칸 위로는 글자 비가 내린다.</span></div>${transport}<canvas id="vzRain"></canvas></section>
-    <section class="vizb" id="viz-orb"><h3>한 달의 궤도</h3><div class="viz-ctl"><button class="viz-open" data-open="viz-orb">↗ 새 창에서 크게</button><span class="sub">안쪽부터 명단 순 · 시계 방향 = 1~${nd}일 · 원호 색 = 근무(파랑 D·주황 E·보라 N·분홍 NK·초록 prn·회색 쉼). 가운데는 채운 비율, 바늘은 진행, 반짝임은 방금 놓인 칸.</span></div>${transport}<canvas id="vzOrb"></canvas></section>
-    </div>
-    <script id="vizData" type="application/json">${vizData}</script>
-    <script id="vizSrc" type="text/plain">${magazineVizScript()}</script>
-    <script>new Function(document.getElementById("vizSrc").textContent)();</script>`;
   // --- 목차 — 맨 위에서 절로 바로 가는 링크. 절 제목(<h2>N. …)에 id를 붙이고, 같은 제목으로 목차를 만든다.
-  const body = [sec0, sec1, sec2, sec3, sec4, sec5, sec5a, sec5b, sec6, sec7, sec8, sec9, sec10, sec11].join("")
+  const body = [sec0, sec1, sec2, sec3, sec4, sec5, sec5a, sec5b, sec6, sec7, sec8, sec9, sec10].join("")
     .replace(/<h2>(\d+)\. /g, '<h2 id="s$1">$1. ');
   const tocItems = [...body.matchAll(/<h2 id="s(\d+)">\d+\. ([^<]+)/g)].map(m => `<a href="#s${m[1]}"><b>${m[1]}</b> ${m[2].trim()}</a>`);
-  tocItems.push(`<a href="#viz-jour" class="vz"><b>▶</b> 여정</a>`, `<a href="#viz-rain" class="vz"><b>▶</b> 비</a>`, `<a href="#viz-orb" class="vz"><b>▶</b> 궤도</a>`);
   // 목차는 sticky로 고정한다. sticky를 못 하는 브라우저(일부 인앱 브라우저)를 위해 스크롤로 자리를
   // 지나면 fixed로 바꾸는 보강을 둔다 — 자리표시자가 높이를 지켜 본문이 튀지 않는다.
   const toc = `<div class="toc-ph" id="tocPh"></div><nav class="toc" id="toc">${tocItems.join("")}</nav>
@@ -3959,122 +3936,11 @@ ul{margin:6px 0;padding-left:18px}li{margin:3px 0}pre.log{font-size:11px;backgro
 .brief .dist{font-size:12px}.brief .dist .row{display:grid;grid-template-columns:34px 1fr 40px;gap:6px;align-items:center;margin:3px 0}.brief .dist .bar{height:12px;background:#e5e7eb;border-radius:999px;overflow:hidden}.brief .dist .bar i{display:block;height:100%;background:#0f6e6b;border-radius:999px}.brief .dist .lab{color:#374151}.brief .dist .n{text-align:right;color:#374151}
 .brief .one{margin:10px 0 0;padding:10px 12px;background:#ecfdf5;border-radius:8px;font-size:13px}.brief .one .sub{display:block;margin-top:4px}
 @media (max-width:640px){.pg{padding:16px 14px;margin:0}.nums,.brief .kp{grid-template-columns:repeat(2,1fr)}.brief .two{grid-template-columns:1fr}h1{font-size:26px}table.t.tiny{font-size:10px}}
-.toc{position:-webkit-sticky;position:sticky;top:0;z-index:5;background:#fff;display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;white-space:nowrap;padding:8px 0;margin:8px 0 6px;border-bottom:1px solid #e5e7eb;scrollbar-width:thin}.toc a{flex:0 0 auto;text-decoration:none;color:#111827;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:999px;padding:4px 11px;font-size:12px}.toc a b{color:#0f6e6b;margin-right:3px}.toc a:hover{border-color:#0f6e6b;color:#0f6e6b}.toc.pinned{position:fixed;left:0;right:0;padding-left:16px;padding-right:16px;box-shadow:0 2px 8px rgba(0,0,0,.08)}.toc-ph{display:none}.toc-ph.on{display:block}.toc a.vz{background:#0b1020;color:#fff;border-color:#0b1020}.toc a.vz b{color:#4ade80}h2,.vizb{scroll-margin-top:56px}
-.viz-open{margin-left:auto;background:#fff!important;color:#000!important;font-weight:700}
-.vizb{margin:0 0 18px;padding-top:4px}.vizb h3{margin:0 0 8px;font-family:Georgia,"Noto Serif KR",serif;font-weight:300;font-size:20px;letter-spacing:.04em;color:#fff}
-.viz-tr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 8px;font-size:12px}.viz-tr button.big{background:#fff;color:#000;font-weight:700}.viz-tr label{color:#9aa3b2;display:flex;gap:6px;align-items:center}.viz-tr input[type=range]{width:110px;accent-color:#fff}.viz-stage{color:#fff;font-family:Georgia,serif;font-size:14px}.viz-kpi{color:#9aa3b2;font-size:11px;letter-spacing:.06em}.viz-bar{flex-basis:100%;height:3px;background:rgba(255,255,255,.12);position:relative;cursor:pointer}.viz-bar i{position:absolute;left:0;top:0;bottom:0;background:#fff;width:0}.viz-bar b{position:absolute;top:-2px;width:1px;height:7px;background:rgba(255,255,255,.35)}
-body.full{background:#05070c}body.full .pg{max-width:none;margin:0;padding:10px;box-shadow:none;background:#05070c;min-height:100vh}body.full .viz{padding:8px}body.full .vizb:not(.full-on){display:none}body.full .viz-card{max-width:720px}
-.viz{background:#0b1020;border-radius:12px;padding:12px;color:#eef2f7}.viz-tab,.viz-sub,.viz-ctl button,.viz-tr button{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#e5e7eb;border-radius:999px;padding:6px 13px;font-size:12.5px;cursor:pointer}.viz-tab.on,.viz-sub.on{background:#fff;color:#000;font-weight:700}.viz-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;font-size:12px}.viz-ctl .sub{color:#9aa3b2}.viz select{background:#111827;color:#fff;border:1px solid #374151;border-radius:8px;padding:4px 8px;font-size:12px}.viz canvas{display:block;width:100%;border-radius:8px;background:#05070c}.viz-card{margin-top:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.55}.viz-card .d{font-family:Georgia,serif;font-weight:300;font-size:22px}.viz-card .m{color:#9aa3b2;font-size:11px;margin-top:6px}
-@media print{body{background:#fff}.pg{box-shadow:none;margin:0;max-width:none;padding:0}h2{break-after:avoid}table{break-inside:auto}tr{break-inside:avoid}.viz,h2.viz-h,.toc,.brief-print-hide{display:none}}</style></head><body><div class="pg">
+.toc{position:-webkit-sticky;position:sticky;top:0;z-index:5;background:#fff;display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;white-space:nowrap;padding:8px 0;margin:8px 0 6px;border-bottom:1px solid #e5e7eb;scrollbar-width:thin}.toc a{flex:0 0 auto;text-decoration:none;color:#111827;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:999px;padding:4px 11px;font-size:12px}.toc a b{color:#0f6e6b;margin-right:3px}.toc a:hover{border-color:#0f6e6b;color:#0f6e6b}.toc.pinned{position:fixed;left:0;right:0;padding-left:16px;padding-right:16px;box-shadow:0 2px 8px rgba(0,0,0,.08)}.toc-ph{display:none}.toc-ph.on{display:block}h2{scroll-margin-top:56px}
+@media print{body{background:#fff}.pg{box-shadow:none;margin:0;max-width:none;padding:0}h2{break-after:avoid}table{break-inside:auto}tr{break-inside:avoid}.toc,.brief-print-hide{display:none}}</style></head><body><div class="pg">
 ${head}${toc}
 ${body}
 <div class="foot">SMC Fair Shift · 화면과 같은 계산 · 실험 기능 — 인쇄하면 PDF로 저장할 수 있다</div></div></body></html>`;
-}
-// 월간 보고 11절의 그리기 코드 — 보고서 파일 안에서만 도는 독립 스크립트(앱 전역을 쓰지 않는다).
-// 여정·비·바람·궤도 셋을 한 덩어리로 두고, 보이는 탭만 애니메이션한다(안 보이는 캔버스까지 돌면 폰이 뜨거워진다).
-function magazineVizScript() {
-  return String.raw`(function(){
-var D=JSON.parse(document.getElementById("vizData").textContent),TR=D.trace,nD=D.days.length;
-var P=TR?TR.staff:D.staff,nS=P.length;
-var FINAL=TR?TR.final:P.map(function(s){return D.grid[s.id]});
-var C={D:"#60a5fa",E:"#fb923c",N:"#a78bfa",NK:"#f472b6","/":"#475569",p:"#4ade80","8A":"#cbd5e1","9A":"#cbd5e1","10A":"#cbd5e1","S/":"#2dd4bf"};
-var NAME={D:"낮(D)",E:"저녁(E)",N:"밤(N)",NK:"밤(야간전담)","/":"쉼",p:"prn","S/":"수면오프","8A":"8A"};
-var REST={"/":1,"연차":1,"연1":1,"연2":1,"연3":1,"연4":1,"S/":1,"군":1,"TW":1,"T":1,"휴":1,"병":1,"공":1,"조":1,"경":1,"승":1};
-function work(v){return !!v&&!REST[v]} function isN(v){return v==="N"||v==="NK"} function col(v){return C[v]||(work(v)?"#e5e7eb":"#64748b")}
-function rnd(i){var x=Math.sin(i*9301+49297)*233280;return x-Math.floor(x)} function ease(x){return 1-Math.pow(1-Math.min(1,Math.max(0,x)),3)}
-function hex(c,a){var n=parseInt(c.slice(1),16);return "rgba("+((n>>16)&255)+","+((n>>8)&255)+","+(n&255)+","+a+")"}
-var FULL=window.VIZ_FULL||null; if(FULL){var fb=document.getElementById(FULL);if(fb)fb.classList.add("full-on")}
-function fit(cv,ratio,maxH){var w=cv.clientWidth||600,h=FULL?Math.max(240,window.innerHeight-(cv.getBoundingClientRect().top|0)-(FULL==="viz-jour"?130:16)):Math.max(220,Math.min(maxH||560,Math.round(w*ratio),Math.round(window.innerHeight*.82))),dpr=Math.min(2,window.devicePixelRatio||1);if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+"px"}var x=cv.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);return [x,w,h]}
-// --- 재생 상태(기록이 있을 때) — 원본 데모(갤러리 II)의 applyTo·단계 머무름 그대로
-var grid,pos=0,playing=false,born=new Map(),dwellUntil=0,dwellStage=-1,speed=14,recent=[],t0=performance.now();
-var EV=TR?TR.events:[],STG=TR?TR.stages:[];
-function resetGrid(){grid=[];for(var i=0;i<nS;i++){grid.push([]);for(var d=0;d<nD;d++)grid[i].push("")}pos=0;born.clear();recent=[]}
-function stageOf(p){var i=0;while(i<STG.length&&STG[i].end<=p)i++;return Math.min(i,STG.length-1)}
-function applyTo(target){if(target<pos)resetGrid();var now=performance.now();while(pos<target&&pos<EV.length){var e=EV[pos];grid[e[1]][e[2]]=e[3];born.set(e[1]+":"+e[2],now);recent.push([e[1],e[2],now]);pos++}if(recent.length>80)recent.splice(0,recent.length-80);updateText()}
-function age(i,d,now,ms){var b=born.get(i+":"+d);return b===undefined?1:ease((now-b)/(ms||800))}
-if(TR){resetGrid()}else{grid=FINAL.map(function(r){return r.slice()})}
-// --- 재생 조작(블록마다 하나, 같은 상태를 본다)
-var TRS=[].slice.call(document.querySelectorAll(".viz-tr"));
-function setPlay(){TRS.forEach(function(t){t.querySelector("[data-tr=play]").textContent=playing?"⏸ 멈춤":"▶ 재생"})}
-function updateText(){if(!TR)return;var k=stageOf(Math.max(0,pos-1)),st=STG[k]||{};var frac=EV.length?pos/EV.length:1;
- TRS.forEach(function(t){t.querySelector(".viz-stage").textContent=(k+1)+"/"+STG.length+" "+(st.name||"")+(st.desc?" — "+st.desc:"");t.querySelector(".viz-kpi").textContent="필수 위반 "+st.strict+" · 노랑 "+st.soft+" · 공평성 "+st.fair+" · 채움 "+Math.round(100*(st.filled||0)/(nS*nD))+"%";t.querySelector(".viz-bar i").style.width=(frac*100)+"%"})}
-TRS.forEach(function(t){
- if(!TR){t.style.display="none";return}
- var bar=t.querySelector(".viz-bar");STG.forEach(function(st){var m=document.createElement("b");m.style.left=(100*st.end/Math.max(1,EV.length))+"%";bar.appendChild(m)});
- bar.onclick=function(ev){var r=bar.getBoundingClientRect();playing=false;setPlay();applyTo(Math.round(EV.length*(ev.clientX-r.left)/r.width))};
- t.querySelector("[data-tr=play]").onclick=function(){if(pos>=EV.length)applyTo(0);playing=!playing;setPlay();dwellUntil=0};
- t.querySelector("[data-tr=first]").onclick=function(){playing=false;setPlay();applyTo(0)};
- t.querySelector("[data-tr=next]").onclick=function(){playing=false;setPlay();var c=stageOf(pos);applyTo(STG[c].end===pos&&c+1<STG.length?STG[c+1].end:STG[c].end)};
- t.querySelector("[data-tr=prev]").onclick=function(){playing=false;setPlay();var c=stageOf(pos);applyTo(c?STG[c-1].end:0)};
- t.querySelector("[data-tr=speed]").oninput=function(){speed=+this.value;TRS.forEach(function(o){o.querySelector("[data-tr=speed]").value=speed})}});
-if(TR){applyTo(0);playing=true;setPlay()}
-// --- 보이는 캔버스만 그린다
-var vis={};var io=("IntersectionObserver" in window)?new IntersectionObserver(function(es){es.forEach(function(e){vis[e.target.id]=e.isIntersecting})},{threshold:.05}):null;
-["vzJour","vzRain","vzOrb"].forEach(function(id){vis[id]=true;if(io)io.observe(document.getElementById(id))});
-// --- 1 여정 — 완성표 위를 걷고, 카드는 그 칸을 놓은 단계(PROV)를 말한다
-var jc=document.getElementById("vzJour"),who=0,jday=0,jpos=0,jplay=false,jlast=0,cardDay=-1;
-var PROV=[];for(var i0=0;i0<nS;i0++){PROV.push([]);for(var d0=0;d0<nD;d0++)PROV[i0].push(-1)}EV.forEach(function(e){PROV[e[1]][e[2]]=e[0]});
-var sel=document.getElementById("vzWho");P.forEach(function(s,i){if(s.partjang)return;var o=document.createElement("option");o.value=i;o.textContent=s.id+" (Lv"+s.level+(s.nk?", 야간전담":"")+")";sel.appendChild(o)});who=+sel.value||0;
-sel.onchange=function(){who=+sel.value;jday=0;jpos=0;cardDay=-1};
-document.getElementById("vzPlay").onclick=function(){jplay=!jplay;this.textContent=jplay?"⏸ 멈춤":"▶ 걷기"};
-document.getElementById("vzNext").onclick=function(){jday=Math.min(nD-1,jday+1);jplay=false};document.getElementById("vzPrev").onclick=function(){jday=Math.max(0,jday-1);jplay=false};
-jc.addEventListener("wheel",function(e){e.preventDefault();jday=Math.max(0,Math.min(nD-1,jday+Math.sign(e.deltaY)));jplay=false},{passive:false});
-document.addEventListener("keydown",function(e){if(!vis.vzJour)return;if(e.key==="ArrowRight")jday=Math.min(nD-1,jday+1);if(e.key==="ArrowLeft")jday=Math.max(0,jday-1)});
-function sky(v){return v==="D"?["#8ec5ff","#dff0ff"]:v==="E"?["#3b2a5a","#f59e6b"]:isN(v)?["#050816","#1a2050"]:v==="S/"?["#1f2937","#475569"]:work(v)?["#6b8fb3","#d6e6f5"]:["#5b6b84","#c7d2e2"]}
-function why(row,d){var v=row[d],out=[];if(isN(v)){var a=d,b=d;while(a>0&&isN(row[a-1]))a--;while(b<nD-1&&isN(row[b+1]))b++;out.push("밤 블록 "+(b-a+1)+"일("+(a+1)+"~"+(b+1)+"일). 뒤 이틀은 휴식(H2-5).");var up=0;for(var k=0;k<=d;k++)if(isN(row[k]))up++;out.push("이번 달 "+up+"번째 밤.")}
- else if(work(v)){var p=d,q=d;while(p>0&&work(row[p-1])&&!isN(row[p-1]))p--;while(q<nD-1&&work(row[q+1])&&!isN(row[q+1]))q++;out.push("주간 블록 "+(q-p+1)+"일("+(p+1)+"~"+(q+1)+"일) — 3~4일이 기준(H6-1).");var r=0,m=0;for(var k2=0;k2<nD;k2++){r=work(row[k2])?r+1:0;if(k2===d)m=r}out.push("연속근무 "+m+"일째.")}
- else{var pn=d>=1&&(isN(row[d-1])||(d>=2&&isN(row[d-2])&&!work(row[d-1])));out.push(pn?"밤 블록 뒤의 휴식(H2-5).":"쉬는 날.")}
- if(work(v)&&D.days[d].weekend){var w=0;for(var k3=0;k3<=d;k3++)if(work(row[k3])&&D.days[k3].weekend)w++;out.push("주말·공휴일 근무 "+w+"번째.")}return out}
-function drawJour(now){var r=fit(jc,.52,480),x=r[0],w=r[1],h=r[2],row=FINAL[who];if(jplay&&now-jlast>1500){jlast=now;jday=(jday+1)%nD}jpos+=(jday-jpos)*.1;
- var colW=Math.min(170,w*.3),cx=w*.42,k=Math.max(0,Math.min(nD-1,Math.round(jpos))),s=sky(row[k]),g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,s[0]);g.addColorStop(1,s[1]);x.fillStyle=g;x.fillRect(0,0,w,h);
- var night=isN(row[k]);for(var i=0;i<60;i++){x.fillStyle="rgba(255,255,255,"+((night?.8:.08)*(.3+.7*rnd(i+9)))+")";x.fillRect(((rnd(i)*w*2-jpos*30)%w+w)%w,rnd(i+1)*h*.5,1.5,1.5)}
- var ground=h*.72;function hill(px){var t=(px-cx)/colW+jpos;return ground+Math.sin(t*1.7)*10+Math.sin(t*.6)*16}
- x.fillStyle="rgba(10,14,24,.85)";x.beginPath();x.moveTo(0,h);for(var px=0;px<=w;px+=8)x.lineTo(px,hill(px));x.lineTo(w,h);x.closePath();x.fill();x.textAlign="center";
- for(var d=0;d<nD;d++){var xx=cx+(d-jpos)*colW;if(xx<-colW||xx>w+colW)continue;var v=row[d],near=Math.max(0,1-Math.abs(d-jpos)),yg=hill(xx),yy=h*.22;
-  if(v==="D"){x.fillStyle="#fde68a";x.shadowBlur=30;x.shadowColor="#fde68a";x.beginPath();x.arc(xx,yy,20,0,7);x.fill();x.shadowBlur=0}
-  else if(v==="E"){x.fillStyle="#fb923c";x.shadowBlur=30;x.shadowColor="#fb923c";x.beginPath();x.arc(xx,yy+48,20,Math.PI,0);x.fill();x.shadowBlur=0}
-  else if(isN(v)){x.fillStyle="#e5e7eb";x.shadowBlur=24;x.shadowColor="#c7d2fe";x.beginPath();x.arc(xx,yy,17,0,7);x.fill();x.fillStyle=sky(v)[0];x.beginPath();x.arc(xx+7,yy-3,15,0,7);x.fill();x.shadowBlur=0}
-  else if(work(v)){x.fillStyle="#fef3c7";x.shadowBlur=16;x.shadowColor="#fde68a";x.beginPath();x.arc(xx,yy+8,14,0,7);x.fill();x.shadowBlur=0}
-  else{x.fillStyle="rgba(255,255,255,.75)";for(var q=0;q<3;q++){x.beginPath();x.arc(xx-14+q*14,yy+6-(q%2)*8,12,0,7);x.fill()}}
-  x.strokeStyle="rgba(255,255,255,"+(.25+.5*near)+")";x.lineWidth=2;x.beginPath();x.moveTo(xx,yg);x.lineTo(xx,yg-32-24*near);x.stroke();
-  x.fillStyle="rgba(255,255,255,"+(.5+.5*near)+")";x.font="300 "+(14+14*near)+"px Georgia,serif";x.fillText(String(d+1),xx,yg-40-24*near);
-  x.fillStyle=col(v);x.font="600 "+(11+3*near)+"px system-ui,sans-serif";x.fillText(NAME[v]||v||"",xx,yg+18);if(D.days[d].weekend){x.fillStyle="rgba(252,165,165,.9)";x.font="10px system-ui";x.fillText("주말",xx,yg+32)}}
- var gy=hill(cx);x.fillStyle="#fff";x.beginPath();x.arc(cx,gy-22+Math.sin(now/250)*2,6,0,7);x.fill();x.strokeStyle="#fff";x.lineWidth=3;x.beginPath();x.moveTo(cx,gy-16);x.lineTo(cx,gy+1);x.moveTo(cx,gy+1);x.lineTo(cx-6+Math.sin(now/250)*5,gy+13);x.moveTo(cx,gy+1);x.lineTo(cx+6-Math.sin(now/250)*5,gy+13);x.stroke();
- if(cardDay!==jday){cardDay=jday;var v2=row[jday],st=PROV[who][jday]>=0?STG[PROV[who][jday]]:null,ni=row.filter(isN).length,wk=row.filter(function(z,i2){return work(z)&&D.days[i2].weekend}).length,of=row.filter(function(z){return z==="/"}).length;
-  var prov=st?'<b>'+st.name+'</b> 단계에서 놓였습니다.'+(st.desc?' <span class="m" style="display:inline">'+st.desc+'</span>':''):(TR?'입력에서 정해진 칸(고정·이월)입니다.':'');
-  document.getElementById("vzCard").innerHTML='<div class="d">'+(jday+1)+'일 <span style="color:'+col(v2)+'">'+(NAME[v2]||v2||"—")+'</span></div>'+(prov?'<div>'+prov+'</div>':'')+'<div style="margin-top:6px">'+why(row,jday).join("<br>")+'</div><div class="m">'+P[who].id+' · 이달 밤 '+ni+'회 · 주말 '+wk+'일 · 쉼 '+of+'일</div>'}}
-// --- 2 비 — 원본(갤러리 II 5번) 그대로: 놓인 칸은 흰색으로 떨어져 제 색으로, 빈 칸 위로는 초록 글자 비
-var rc=document.getElementById("vzRain");
-function drawRain(now){var r=fit(rc,.8,760),x=r[0],w=r[1],h=r[2];x.fillStyle="rgba(5,7,12,.35)";x.fillRect(0,0,w,h);
- var pad=14,cs=Math.min((w-pad*2)/nD,(h-pad*2)/nS),ox=(w-cs*nD)/2,oy=(h-cs*nS)/2;x.font="700 "+(cs*.72)+"px 'JetBrains Mono',monospace";x.textAlign="center";x.textBaseline="middle";var chars="DEN/pDEN";
- for(var d=0;d<nD;d++){var speed2=60+50*rnd(d),head=((now/1000)*speed2+rnd(d+50)*600)%(h+300)-150;for(var k=0;k<10;k++){var y=oy+head-k*cs;if(y<oy||y>oy+cs*nS)continue;var i=Math.floor((y-oy)/cs);if(grid[i]&&grid[i][d])continue;x.fillStyle="rgba(74,222,128,"+(k?.22-k*.02:.6)+")";x.fillText(chars[Math.floor(rnd(d*31+k+Math.floor(now/90))*8)],ox+d*cs+cs/2,y+cs/2)}}
- for(var i2=0;i2<nS;i2++)for(var d2=0;d2<nD;d2++){var v=grid[i2][d2];if(!v)continue;var s=age(i2,d2,now,500),yy=oy+i2*cs+cs/2-(1-s)*cs*1.5;x.fillStyle=s<1?"#fff":col(v);x.globalAlpha=v==="/"?.3:1;x.shadowBlur=v==="/"?0:6;x.shadowColor=col(v);x.fillText(v==="NK"?"K":v==="/"?"/":v[0],ox+d2*cs+cs/2,yy);x.shadowBlur=0;x.globalAlpha=1}
- x.textBaseline="alphabetic"}
-// --- 3 한 달의 궤도 — 원본(지피티 01-04) 그대로: 놓인 칸이 원호로, 가운데 채운 비율, 바늘은 진행, 방금 놓인 칸은 반짝
-var oc=document.getElementById("vzOrb");
-function drawOrb(now){var r=fit(oc,.95,760),x=r[0],w=r[1],h=r[2];x.fillStyle="#121629";x.fillRect(0,0,w,h);var cx=w/2,cy=h/2,R=Math.min(w,h)*.43,r0=R*.19,dr=(R-r0)/nS,filled=0;
- for(var i=0;i<nS;i++){var rr=r0+(i+.5)*dr;x.strokeStyle="#666886";x.lineWidth=.5;x.globalAlpha=.2;x.beginPath();x.arc(cx,cy,rr,0,Math.PI*2);x.stroke();x.globalAlpha=1;
-  for(var d=0;d<nD;d++){var v=grid[i][d];if(!v)continue;filled++;var a=d/nD*Math.PI*2-Math.PI/2+.01,b=(d+1)/nD*Math.PI*2-Math.PI/2-.01;x.strokeStyle=col(v);x.globalAlpha=(v==="/"?.35:.9)*age(i,d,now,600);x.lineWidth=dr*.68;x.beginPath();x.arc(cx,cy,rr,a,b);x.stroke();x.globalAlpha=1}}
- x.fillStyle="#ada9c4";x.font=(w<600?"11px":"12px")+" system-ui";x.textAlign="center";x.textBaseline="middle";for(var d2=0;d2<nD;d2+=(w<600?5:3)){var a2=(d2+.5)/nD*Math.PI*2-Math.PI/2;x.fillText(String(d2+1).padStart(2,"0"),cx+Math.cos(a2)*(R+18),cy+Math.sin(a2)*(R+18))}
- var frac=TR?(EV.length?pos/EV.length:1):((now/900)%nD)/nD,ah=frac*Math.PI*2-Math.PI/2;x.strokeStyle="#eee4c5";x.globalAlpha=.6;x.lineWidth=.9;x.beginPath();x.moveTo(cx+Math.cos(ah)*r0,cy+Math.sin(ah)*r0);x.lineTo(cx+Math.cos(ah)*(R+12),cy+Math.sin(ah)*(R+12));x.stroke();x.globalAlpha=1;
- x.fillStyle="#eae5f3";x.font="300 "+(w<600?26:30)+"px Georgia,serif";x.fillText(String(Math.round(filled/(nS*nD)*100)),cx,cy-4);x.fillStyle="#ada9c4";x.font="11px system-ui";x.fillText("% 채움 · "+D.year+"년 "+D.month+"월",cx,cy+18);
- recent.forEach(function(e){var rr2=r0+(e[0]+.5)*dr,a3=(e[1]+.5)/nD*Math.PI*2-Math.PI/2,al=Math.max(0,1-(now-e[2])/1500);if(al<=0)return;x.fillStyle="rgba(255,245,215,"+al+")";x.beginPath();x.arc(cx+Math.cos(a3)*rr2,cy+Math.sin(a3)*rr2,2.2,0,Math.PI*2);x.fill()});x.textBaseline="alphabetic"}
-// --- 새 창에서 크게 — 이 보고서의 데이터·그리기 코드·마크업을 그대로 담은 페이지를 Blob으로 열어 그 블록만 창을 꽉 채운다
-document.querySelectorAll(".viz-open").forEach(function(b){b.onclick=function(){
- var k=b.dataset.open,title=document.title+" — "+document.querySelector("#"+k+" h3").textContent;
- var css="";document.querySelectorAll("style").forEach(function(s){css+=s.textContent});
- var vizEl=document.getElementById("viz").cloneNode(true);vizEl.querySelectorAll(".viz-open").forEach(function(x){x.remove()});vizEl.querySelectorAll("select").forEach(function(x){x.innerHTML=""});vizEl.querySelectorAll(".viz-bar b").forEach(function(x){x.remove()});
- var html='<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+title+'</title><style>'+css+'</style></head><body class="full"><div class="pg">'+vizEl.outerHTML+'</div>'+
-  '<script id="vizData" type="application/json">'+document.getElementById("vizData").textContent+'<\/script>'+
-  '<script id="vizSrc" type="text/plain">'+document.getElementById("vizSrc").textContent+'<\/script>'+
-  '<script>window.VIZ_FULL='+JSON.stringify(k)+';new Function(document.getElementById("vizSrc").textContent)();<\/script></body></html>';
- var url=URL.createObjectURL(new Blob([html],{type:"text/html"}));var w=window.open(url,"_blank");if(!w)location.href=url}});
-// --- 루프: 재생은 원본과 같은 걸음(속도/5 이벤트씩, 단계 끝에서 잠깐 머무름), 그리기는 보이는 캔버스만
-function frame(now){
- if(TR&&playing){if(pos>=EV.length){playing=false;setPlay()}else if(now>=dwellUntil){var cur=stageOf(pos),end=STG[cur].end;applyTo(Math.min(end,pos+Math.max(1,Math.round(speed/5))));if(pos===end&&dwellStage!==cur){dwellStage=cur;dwellUntil=now+Math.max(300,1800-speed*25)}}}
- if(vis.vzJour&&(!FULL||FULL==="viz-jour"))drawJour(now);if(vis.vzRain&&(!FULL||FULL==="viz-rain"))drawRain(now);if(vis.vzOrb&&(!FULL||FULL==="viz-orb"))drawOrb(now);requestAnimationFrame(frame)}
-requestAnimationFrame(frame);
-})();`;
 }
 // ================================================================ 문의 파일 받기
 // 파트장이 "이거 이상해요"를 보낼 때: 이름과 내용만 적으면 지금 입력·출력·한 일(칸 수정·재생성 순서)을 앱이 zip 하나로
@@ -4375,15 +4241,12 @@ function openVocView() {
   bd.querySelector("button[data-vocview]").focus();
 }
 
-async function downloadMagazine() {
+// 예전에는 맨 끝에 11절 '시각화'(여정·비·궤도 — 생성 과정을 재생하는 캔버스)가 있었다. 그것을 그리려고 받을 때마다 고른
+// 시드를 한 번 더 돌려(/api/trace) 생성 한 번 값의 시간을 기다렸다. 보고서에는 필요 없다는 사용자 결정으로 뺐다(2026-11-13) —
+// 절·그리기 코드·그 API를 함께 걷어냈다. 되살리려면 그 커밋 직전의 magazineVizScript()와 bridge.api_trace를 볼 것.
+function downloadMagazine() {
   if (!ST) return;
-  // 11절(시각화)이 재생할 생성 기록 — 고른 시드를 한 번 더 돌리므로 생성 한 번 값의 시간이 든다.
-  // 못 받으면(오류) 완성표만 그린 보고서를 그대로 준다 — 기록은 장식이지 보고서의 본체가 아니다.
-  let trace = null;
-  showGenOverlay("월간 보고의 시각화 기록을 만드는 중입니다…");
-  try { trace = await api("/api/trace"); } catch (e) { trace = null; }
-  finally { hideGenOverlay(); }
-  downloadText(magazineHtml(trace), `월간근무보고_${ST.year}-${String(ST.month).padStart(2, "0")}.html`);
+  downloadText(magazineHtml(), `월간근무보고_${ST.year}-${String(ST.month).padStart(2, "0")}.html`);
 }
 
 // 이 칸이 묶여 있는 규칙 — 파트장이 "왜 이 칸이냐"를 물을 때 누르는 자리(근무 선택기)에 같이 띄운다.

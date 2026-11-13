@@ -74,7 +74,6 @@ function callBridge(path, opts) {
     case "/api/fragile_map": return bridge.api_fragile_map(opts.body);
     case "/api/fair_weights": return bridge.api_fair_weights(opts.body);
     case "/api/fill_hints": return bridge.api_fill_hints();
-    case "/api/trace": return bridge.api_trace();
     case "/api/regenerate": return bridge.api_regenerate(opts.body);
     case "/api/night_stage": return bridge.api_night_stage(opts.body);
     case "/api/confirm_nights": return bridge.api_confirm_nights(opts.body);
