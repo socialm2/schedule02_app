@@ -1043,12 +1043,16 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
 @media (max-width: 680px) {
   html, body { height: auto; }
   #app { height: auto; min-height: 100vh; min-height: 100dvh; }
+  /* 폰은 페이지째 스크롤한다. 맨 위의 overflow-x:hidden은 body를 '스크롤 상자'로 만들어(세로가 auto로 계산된다) 그 안의
+     position:sticky가 body에 묶이는데, 정작 스크롤하는 것은 창이라 **붙지 않는다** — 탭 띠가 표와 함께 올라가 버렸다.
+     clip은 가로로 넘친 것을 똑같이 잘라 내되 스크롤 상자를 만들지 않는다(옛 브라우저는 위의 hidden 그대로 — 띠가 안 붙을 뿐이다). */
+  html, body { overflow-x: clip; }
   #main { flex-direction: column; }
   /* 폰에서는 이 칸이 스크롤하지 않고 페이지째 늘어난다 — 가두면 내용이 잘린다 */
   #gridPane { overflow: visible; padding: 10px; contain: none; }
   /* 표는 한 화면 높이 안에서 스스로 스크롤한다 — 그래야 날짜 머리칸이 붙는다(위 #gridPane 주석).
      56px은 헤더 한 줄 몫. 표 끝에 닿으면 페이지 스크롤로 이어진다. */
-  .grid-scroll { max-height: calc(100dvh - 56px); overflow: auto; }
+  .grid-scroll { max-height: calc(100dvh - 72px); overflow: auto; }   /* 72px = 위에 붙는 탭 띠 몫 */
   #sidePane { width: auto; border-left: none; border-top: 2px solid var(--accent); }
 
   header { padding: 8px 12px; }
@@ -1247,10 +1251,18 @@ header #infoBtn, header .sign-out {
 @media (prefers-reduced-motion: reduce) { .tab-pane.pop { animation: none; } }
 .result-strip { display: none; }
 @media (max-width: 680px) {
-  .result-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px;
-    position: sticky; top: 0; z-index: 5; background: var(--paper); padding: 6px 0; margin: 0 0 6px; }
-  #sidePane .side-tabs { position: static; }
+  /* 폰: 탭 단추는 이 띠 한 벌뿐이다 — 화면 위에 붙어서 표와 패널을 내리는 내내 보인다. 패널 안의 같은 단추는 숨긴다
+     (둘 다 보이면 표 위와 아래에 같은 것이 두 번 뜬다). */
+  .result-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; flex: none;
+    position: sticky; top: 0; z-index: 6; background: var(--paper); padding: 6px 10px; margin: 0;
+    border-bottom: 1px solid var(--line); }
+  .result-strip[hidden] { display: none; }
+  #sidePane .side-tabs { display: none; }
+  #sidePane { scroll-margin-top: 66px; }   /* 띠를 눌러 내려올 때 패널 머리가 띠 밑에 깔리지 않게 */
 }
+/* 입력②가 화면 연월의 바로 전달까지가 아닐 때의 안내 — 올린 자리 바로 아래 */
+.ym-note { margin: 6px 0 0; padding: 8px 10px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); line-height: 1.5; }
+.ym-note b { font-weight: 700; }
 .legend .legend-tap { flex-basis: 100%; color: var(--sub); }
 .legend .desig-mark {
   display: inline-block; margin: 0 2px 0 0; padding: 0 3px; font-size: 10px; font-weight: 700; line-height: 1.4;

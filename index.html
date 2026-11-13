@@ -57,7 +57,7 @@
   <header>
     <!-- 배지·빌드시각은 스크린리더가 제목으로 읽지 않게 감싼다(aria-hidden). .build-time span 자체는
          CI(deploy.yml)가 정규식으로 찾아 바꾸므로 그 태그에는 속성을 더하지 말 것. -->
-    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.88</span><span class="build-time">Updated 2026-11-13 18:53:35</span></span></h1>
+    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.88</span><span class="build-time">Updated 2026-11-13 19:22:46</span></span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
@@ -69,6 +69,10 @@
   <div id="vocViewBar" class="voc-view-bar" style="display:none"></div>
 
   <div id="main" role="main">
+    <!-- 폰 전용 탭 띠(형평성·필수 위반·추가 검토·원티드·상세 자료) — 출력 화면에서만 app.js(renderResultStrip)가 채운다. 표와 패널을
+         내리는 내내 위에 붙어 있으려면 둘을 함께 감싼 #main의 직계 자식이어야 한다(표 영역 안에 두면 표를 지나면서 떨어진다).
+         PC에서는 같은 단추가 오른쪽 패널 맨 위에 있어 이 띠는 숨긴다(style.css). -->
+    <div id="resultStrip" class="result-strip" role="tablist" aria-label="결과 살펴보기" hidden></div>
     <div id="gridPane">
       <!-- 입력 화면: 업로드 + 직접입력 폼 (샘플 기본값으로 미리 채워짐) -->
       <div id="intake">
@@ -196,11 +200,13 @@
               <div class="upload-row">
                 <input type="file" id="staffTableInput" accept=".xlsx" class="file-input-hidden" tabindex="-1">
                 <button type="button" class="upload-btn" data-target="staffTableInput" aria-label="입력② 연간근무표 업로드">업로드</button>
-                <button type="button" class="upload-btn format-btn" data-href="templates/입력2_연간근무표_2026-08.xlsx" data-download="입력2_연간근무표_2026-08.xlsx" aria-label="입력② 연간근무표 양식 다운로드">양식(다운로드)</button>
+                <button type="button" class="upload-btn format-btn" data-href="templates/입력2_연간근무표_2026-08.xlsx" data-download="입력2_연간근무표_예시_2026-08.xlsx" aria-label="입력② 연간근무표 예시 파일 다운로드" title="열 구성을 보는 예시 파일입니다(2026년 8월분) — 실제로는 지난달 출력②를 올립니다">예시(다운로드)</button>
               </div>
               <button id="staffTableClearBtn" class="small" style="display:none">반영 해제</button>
               <button id="staffTableClearAllBtn" class="small" style="display:none">이전 파일도 해제</button>
               <span id="staffTableStatus" class="hint"></span>
+              <!-- 올린 입력②가 화면 연월의 바로 전달까지가 아니면 여기서 바로 알린다(app.js renderStaffTableYmNote) -->
+              <p id="staffTableYmNote" class="hint ym-note" style="display:none" role="status"></p>
             </div>
 
             <!-- 입력①(이번 달 명단)와 입력②(지난달 명단)의 차이 = 전입·전출. 둘 다 올라와야 표시됨 -->

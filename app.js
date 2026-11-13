@@ -568,7 +568,7 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 위반 숫자·'필수 위반'·'추가 검토' 탭도 야간 관련 항목만, 형평성은 '야간 균등'만 셉니다. 야간을 고친 뒤 표 위의 <b>야간 확정 → 나머지 짜기</b>를
 누르면 야간과 그 뒤 쉬는 이틀·수면오프(S/)를 고정하고 나머지를 짭니다. 확정 뒤에는 재생성·편집 적용에도 야간이 그대로이고,
 지워서 모자란 야간은 다른 사람으로 메우지 않고 빨간 필수 위반으로 남습니다('야간 다시 고치기'로 돌아가 직접 채웁니다).</li>
-<li><b>오른쪽 패널은 탭 다섯</b> — 형평성 · 필수 위반 · 추가 검토 · 원티드 · 상세 자료. 맨 위에 붙어 있고 누르면 그 내용이 나타납니다(폰은 표 위에도 같은 다섯).
+<li><b>오른쪽 패널은 탭 다섯</b> — 형평성 · 필수 위반 · 추가 검토 · 원티드 · 상세 자료. 맨 위에 붙어 있고 누르면 그 내용이 나타납니다(폰은 화면 맨 위에 붙는 띠 하나).
 필수 위반이 있는 표는 처음에 그 탭이 열려 있습니다. <b>'필수 위반'·'추가 검토' 탭의 항목을 누르면</b> 그 칸(사람이 없는 항목은 그날 열)으로 이동해 잠깐 깜빡입니다. 수정 대기 칸이 있는
 동안 요약 숫자는 <b>마지막으로 적용한 표 기준</b>이고, '재생성 적용' 뒤 다시 계산됩니다.</li>
 <li><b>날짜 머리칸을 누르면</b> 그날 병동(누가 어디서 일하는지)이 뜨고, 거기서 이름을 누르면 그 사람의 한 달 여정이 뜹니다.
@@ -728,8 +728,8 @@ function noteYearMonthEdit() {
     showToast(`연월 → ${y}년 ${m}월: 화면에서 고른 값이 쓰입니다`);
   }
 }
-$("#f_year").onchange = () => { seedHolidaysForYear(parseInt($("#f_year").value, 10)); renderHolidayCalendar(); noteYearMonthEdit(); };
-$("#f_month").onchange = () => { renderHolidayCalendar(); noteYearMonthEdit(); };
+$("#f_year").onchange = () => { seedHolidaysForYear(parseInt($("#f_year").value, 10)); renderHolidayCalendar(); noteYearMonthEdit(); renderStaffTableYmNote(); };
+$("#f_month").onchange = () => { renderHolidayCalendar(); noteYearMonthEdit(); renderStaffTableYmNote(); };
 
 // 연/월을 코드에서 바꿀 때 쓴다. 연도 목록은 올해 기준 7년치뿐이라, 그 밖의 해를
 // 그냥 대입하면 select가 조용히 안 바뀐다 — 없으면 항목을 만들어 넣는다.
@@ -747,6 +747,7 @@ function setFormYearMonth(year, month) {
   $("#f_month").value = String(month);
   seedHolidaysForYear(year);
   renderHolidayCalendar();
+  renderStaffTableYmNote();
   saveSettings();
 }
 
@@ -1377,12 +1378,10 @@ document.querySelectorAll(".upload-btn[data-href]").forEach(btn => {
   btn.onclick = () => {
     const a = document.createElement("a");
     a.href = btn.dataset.href;
-    // 입력② 양식은 고정 파일(2026-08)이라 내려받는 이름이 늘 8월이었다 — 11월을 만드는 사람이
-    // "이게 맞나" 한다(2026-10-31 검토 A-15). 파일 내용(빈 양식)은 그대로 두고, 받는 이름만 화면
-    // 연월로 붙인다 — 입력① 양식이 화면 연월로 만들어지는 것과 같은 규칙.
-    const yy = parseInt($("#f_year").value, 10), mm = parseInt($("#f_month").value, 10);
-    const ym = (yy > 0 && mm >= 1 && mm <= 12) ? `${yy}-${String(mm).padStart(2, "0")}` : "양식";
-    a.download = (btn.dataset.download || "").replace(/_\d{4}-\d{2}\.xlsx$/, `_${ym}.xlsx`);
+    // 입력② 예시는 고정 파일(2026년 8월까지의 연간근무표)이다. 한때 받는 이름만 화면 연월로 붙였는데(2026-10-31 검토 A-15),
+    // 그러면 '입력2_연간근무표_2026-12.xlsx'라는 이름의 8월분 파일이 나간다 — 받은 사람이 그대로 올렸다가 "11월이 이어져 있지
+    // 않다"는 경고를 받았다(사용자 2026-11-13). 이름은 내용을 말해야 한다: 예시라는 것과 몇 월분인지.
+    a.download = btn.dataset.download || "";
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -1648,6 +1647,27 @@ function updateClearButtons() {
   renderGenSummary();
 }
 let staffTableLoaded = false;   // 입력②가 Worker에 반영돼 있는가(refreshStaffTableStatus가 갱신)
+let staffTableLastDate = null;  // 반영된 입력②의 마지막 날짜('2026-08-31') — 화면 연월의 바로 전달인지 견준다
+
+// 입력②는 '만드는 달의 바로 전달까지' 이어져 있어야 이월정보(잔휴·연속근무·야간 간격)를 쓴다. 어긋난 파일을 올리면
+// 지금까지는 생성이 끝난 뒤에야 표 위 경고로 알았다 — 올린 자리에서, 연월을 바꿀 때마다 바로 알린다. 막지는 않는다
+// (이월 없이 만들 수는 있다 — 처음 쓰는 달과 같다).
+function renderStaffTableYmNote() {
+  const el = $("#staffTableYmNote");
+  if (!el) return;
+  const m = /^(\d{4})-(\d{2})/.exec(String(staffTableLastDate || ""));
+  const y = parseInt($("#f_year").value, 10), mo = parseInt($("#f_month").value, 10);
+  if (!staffTableLoaded || !m || !(y > 0) || !(mo >= 1 && mo <= 12)) { el.style.display = "none"; el.textContent = ""; return; }
+  const ly = Number(m[1]), lm = Number(m[2]);
+  const py = mo === 1 ? y - 1 : y, pm = mo === 1 ? 12 : mo - 1;          // 화면 연월의 바로 전달
+  const ny = lm === 12 ? ly + 1 : ly, nm = lm === 12 ? 1 : lm + 1;      // 이 파일이 이어지는 달
+  if (ly === py && lm === pm) { el.style.display = "none"; el.textContent = ""; return; }
+  el.style.display = "";
+  el.innerHTML = `⚠ 올린 입력②는 <b>${ly}년 ${lm}월까지</b>의 근무표입니다 — 화면은 ${y}년 ${mo}월이라 바로 전달(${py}년 ${pm}월)이 아닙니다. ` +
+    `이대로 만들면 이월정보(잔휴·연속근무·야간 간격)를 쓰지 못합니다. ` +
+    `<b>${pm}월분 출력②</b>(없으면 OCS ${pm}월 근무표)를 올리거나, 처음 쓰는 달이면 '반영 해제'하고 만드세요. ` +
+    `이 파일은 ${ny}년 ${nm}월 근무표를 만들 때 맞습니다(옆의 '예시' 파일은 2026년 8월분입니다).`;
+}
 
 $("#wantedClearBtn").onclick = () => {
   const statusEl = $("#wantedStatus");
@@ -1706,7 +1726,9 @@ async function refreshStaffTableStatus() {
   banner.style.display = "none";
   // 반영 중이면 '반영 해제' 버튼이 계속 보여서 그 자체가 상태 표시가 된다(updateClearButtons).
   staffTableLoaded = !!s.loaded;
+  staffTableLastDate = s.loaded ? (s.last_date || null) : null;
   updateClearButtons();
+  renderStaffTableYmNote();
 }
 
 $("#staffTableClearBtn").onclick = async () => {
@@ -2143,11 +2165,8 @@ let sampleCfg = null;   // /api/sample 응답 — '샘플 값으로 되돌리기
   }
   settingsReady = true;
   renderSourceBadges();
-  // 지난번에 맞춰 둔 값으로 열렸으면 근무정보·근무인력은 접어 둔다 — 매달 같은 값을 다시 훑게 하지 않는다. 값은 머리줄에
-  // 한 줄로 보이고, 눌러서 펴면 고칠 수 있다. 처음 쓰는 기기(샘플 값)에서는 펴 둔다 — 그때는 고쳐야 할 칸이다.
-  if (settingsSource === "saved" && !VOC_VIEW) {
-    for (const id of ["infoSec", "msSec"]) { const d = document.getElementById(id); if (d) d.open = false; }
-  }
+  // 근무정보·근무인력은 늘 펴 둔다(사용자 2026-11-13: "입력 화면 쪽 접어 두지 마"). 저장된 값으로 열릴 때 접어 두던 것을
+  // 한나절 만에 뺐다 — 접혀 있으면 지금 무슨 값으로 만드는지가 한 번 더 눌러야 보인다. 손으로 접을 수는 있다.
   refreshStaffTableStatus();
   // 처음 연 기기(저장된 설정 없음)에는 세 단계 체크리스트를 띄운다 — 배포톡의 "① 그대로 생성 ②
   // 양식 받아 명단 ③ 우리 값"을 화면 안으로 옮긴 것. 저장된 설정이 있으면 이미 쓰는 사람이다.
@@ -2828,8 +2847,10 @@ function renderGrid() {
   }
   // 표 위 상태 띠 — 폰에서는 '확인할 문제'(옛 검증 요약)가 표 40행 아래(약 1,900px)라 생성 직후 보이는 것이
   // 표 머리뿐이었다(2026-10-31 검토 A-11). 누르면 그 자리로 간다. PC에서도 같은 자리에 둔다.
-  // 폰 전용이다(PC에서는 같은 단추들이 오른쪽 패널 맨 위에 고정돼 있어 CSS로 숨긴다). 누르면 패널의 그 탭이 열린다.
-  html += `<div class="result-strip" id="resultStrip">${sideTabsHtml()}</div>`;
+  // 탭 단추는 한 벌만 보인다(사용자 2026-11-13: 폰에서 표 위와 아래에 두 번 떠 있었다). PC는 오른쪽 패널 맨 위(.side-tabs),
+  // 폰은 #main 맨 위의 띠(#resultStrip — index.html에 자리가 있다)다. 폰의 띠는 표와 패널을 내리는 내내 화면 위에 붙어 있어서
+  // 패널 안에 같은 단추를 또 둘 필요가 없다(폰에서는 .side-tabs를 숨긴다 — style.css).
+  renderResultStrip();
   // 범례는 이달 표에 실제로 나온 코드만 — 20색을 다 늘어놓으면 두 줄을 차지해 표가 17행밖에 안
   // 보였다(2026-10-31 검토 C 1-7). 이름 옆 '지'·'밤' 배지와, 날짜·이름이 눌린다는 것도 여기 적는다
   // (툴팁은 폰에서 볼 수 없다, A-17).
@@ -2994,6 +3015,7 @@ function renderGrid() {
     gridContent.style.display = "none";
     gridContent.innerHTML = "";
     gridPane.classList.remove("out-on");
+    renderResultStrip();   // ST가 없으면 띠를 치운다
     $("#intake").style.display = "block";
     sidePane.style.display = "none";
     updateInfoLabel(false);
@@ -3136,8 +3158,15 @@ delegateClick(sidePane, ".side-tabs .side-tab", (b) => {
   showSideTab(b.dataset.tab, true);
   if (sidePane.scrollHeight > sidePane.clientHeight + 1) sidePane.scrollTop = 0;
 });
-// 표 위 띠(폰): 패널은 표 아래 멀리 있으므로 탭을 열고 그 자리로 내려간다.
-delegateClick(document.getElementById("gridContent"), ".result-strip .side-tab", (b) => {
+// 폰의 띠: 패널은 표 아래 멀리 있으므로 탭을 열고 그 자리로 내려간다(띠 높이만큼은 #sidePane의 scroll-margin-top이 비운다).
+const resultStrip = document.getElementById("resultStrip");
+function renderResultStrip() {
+  if (!resultStrip) return;
+  if (!ST) { resultStrip.hidden = true; resultStrip.innerHTML = ""; return; }
+  resultStrip.innerHTML = sideTabsHtml();
+  resultStrip.hidden = false;
+}
+delegateClick(resultStrip, ".side-tab", (b) => {
   showSideTab(b.dataset.tab, true);
   sidePane.scrollIntoView({ block: "start", behavior: "smooth" });
 });
@@ -4252,6 +4281,7 @@ async function loadVocFile(file) {
       // 표가 없는 문의(생성 전에 받은 것) — 그 사람도 입력 화면을 보고 있었다.
       ST = null;
       gridContent.style.display = "none"; gridContent.innerHTML = ""; gridPane.classList.remove("out-on"); SIDE_TAB = null;
+      if (resultStrip) { resultStrip.hidden = true; resultStrip.innerHTML = ""; }
       $("#intake").style.display = "block"; sidePane.style.display = "none";
       updateInfoLabel(false); setResultView(false);
     }
