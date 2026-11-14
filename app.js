@@ -2971,7 +2971,7 @@ function renderGrid() {
   html += `<span class="sw"><span style="outline:2px dashed var(--warn);width:13px;height:13px;display:inline-block"></span>미적용 편집</span>`;
   html += `<span class="sw"><span class="box wanted-swatch"></span>원티드 반영</span>`;
   html += `<span class="sw"><span class="viol-swatch viol-hard-swatch"></span>필수위반</span>`;
-  html += `<span class="sw"><span class="viol-swatch viol-soft-swatch"></span>추가 검토(밑줄)</span>`;
+  html += `<span class="sw"><span class="viol-swatch viol-soft-swatch"></span>추가 검토</span>`;
   html += `<span class="sw"><span class="viol-swatch swap-cand-swatch"></span>맞교환 상대(찾는 동안)</span>`;
   html += `<span class="sw"><span class="box fragile-row-swatch"></span>수정주의근무(사선 띠) = 바꿀 수 없음</span>`;
   html += `<span class="sw"><span class="box fragile-day-swatch"></span>수정주의근무(점 띠) = 맞교환으로만</span>`;

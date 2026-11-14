@@ -19,7 +19,7 @@
      (완전 무채색 회색보다 옅게 채도를 넣음 — "꾸미지 않은 기본 회색"처럼 보이지
      않게 해서, 강제 다크모드 브라우저가 재배색 대상으로 오판할 여지를 줄임). */
   --btn-fill: #D9E3F0;
-  --soft-mark: #B87A00;   /* 표의 추가 검토 밑줄 — --warn(#7F5708)은 글자용이라 2~3px 띠로는 갈색으로 묻힌다 */
+  --soft-mark: #B87A00;   /* 표의 추가 검토 표식 — --warn(#7F5708)은 글자용이라 작은 표식으로는 갈색으로 묻힌다 */
 }
 @media (prefers-color-scheme: dark) { :root {
   /* 라이트/다크 둘 다 지원한다는 뜻의 "light dark"보다, 지금 실제로 다크로 렌더링
@@ -359,12 +359,14 @@ td.viol-hard::after {
   border-color: transparent currentColor transparent transparent;
   filter: drop-shadow(-1px 1px 0 var(--card));
 }
-/* 추가 검토(최선노력)는 칸 아래의 짧은 밑줄이다. 하루 동안은 노란 동그라미였는데 그 모양은 맞교환 상대 표시가 쓴다(사용자
-   2026-11-14: "추가검토는 노란 점 쓰지 마, 맞교환 상대에 쓸 거니까"). 삼각형(필수)·동그라미(맞교환 상대)와 모양이 달라 색을 못
-   가려도 구분되고, 글자를 가리지 않는다. 늘 보인다 — 체크로 켜고 끄던 것은 같은 날 없앴다. */
+/* 추가 검토(최선노력)는 칸 **오른쪽 아래**의 작은 삼각형이다 — 필수 위반(오른쪽 위, 빨강, 11px)과 같은 '모서리 접힘'이되 자리·크기·색이
+   다르다. 거쳐 온 것: 노란 동그라미(그 모양은 맞교환 상대 표시가 쓴다 — 사용자 2026-11-14 "추가검토는 노란 점 쓰지 마") → 칸 아래 밑줄
+   (같은 날 "밑줄 안 이뻐 다른 걸로"). 빈 고리·마름모도 입혀 봤는데 근무 글자에 닿았다. 늘 보인다(켜고 끄는 체크는 없앴다). */
 td.viol-soft::after {
-  content: ""; position: absolute; left: 22%; right: 22%; bottom: 1px; height: 3px;
-  border-radius: 2px; background: currentColor; box-shadow: 0 0 0 1px var(--card);
+  content: ""; position: absolute; right: 0; bottom: 0;
+  border-style: solid; border-width: 0 0 9px 9px;
+  border-color: transparent transparent currentColor transparent;
+  filter: drop-shadow(-1px -1px 0 var(--card));
 }
 td.viol-hard::after { color: var(--hard); }
 td.viol-soft::after { color: var(--soft-mark); }
@@ -380,8 +382,9 @@ td.viol-soft::after { color: var(--soft-mark); }
 }
 .viol-soft-swatch { border: 1px solid var(--line); border-radius: 2px; }
 .viol-soft-swatch::after {
-  content: ""; position: absolute; left: 2px; right: 2px; bottom: 1px; height: 3px;
-  border-radius: 2px; background: currentColor;
+  content: ""; position: absolute; right: 0; bottom: 0;
+  border-style: solid; border-width: 0 0 9px 9px;
+  border-color: transparent transparent currentColor transparent;
 }
 .swap-cand-swatch::after {
   content: ""; position: absolute; top: 2px; left: 2px; width: 9px; height: 9px;
