@@ -542,7 +542,7 @@ td.sn.fragile-day span, td.sk.fragile-day span, td.sjo.fragile-day span { backgr
 .legend-toggle input { margin: 0; width: 14px; height: 14px; }
 .legend.legend-fold { margin: 2px 0 8px; }
 #gridContent:not(.legend-on) .legend-fold { display: none; }
-/* '수정 주의 칸'이 꺼져 있으면 칸의 줄무늬만 감춘다(계산과 패널의 '수정 전 확인'은 그대로) */
+/* '수정주의근무'가 꺼져 있으면 칸의 줄무늬만 감춘다(계산과 패널의 '수정 전 확인'은 그대로) */
 #gridContent:not(.hatch-on) td.fragile-row span, #gridContent:not(.hatch-on) td.fragile-day span { background-image: none !important; }
 .out-title .legend-toggle + .legend-toggle { margin-left: 2px; }
 .out-sub { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; min-width: 0; }

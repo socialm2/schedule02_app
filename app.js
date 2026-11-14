@@ -2633,7 +2633,7 @@ function paintFragile() {
   if (box && !FRAGILE.done) {
     const sec = FRAGILE.t0 ? Math.round((Date.now() - FRAGILE.t0) / 1000) : 0;
     box.innerHTML = `<p class="fragile-note">건드리면 안 되는 칸을 점검하는 중입니다… (40명 기준 약 10초${sec ? `, ${sec}초 경과` : ""}). ` +
-      `제목 옆 <b>'수정 주의 칸'</b>을 켜면 혼자서는 못 바꾸는 칸이 표에 표시됩니다.</p>`;
+      `제목 옆 <b>'수정주의근무'</b>를 켜면 혼자서는 못 바꾸는 칸이 표에 표시됩니다.</p>`;
   } else if (box) {
     const pct = FRAGILE.total ? Math.round(100 * FRAGILE.fixed / FRAGILE.total) : 0;
     const free = FRAGILE.total - FRAGILE.fixed;
@@ -2845,13 +2845,13 @@ function renderGrid() {
     `<span title="이 입력으로 표를 짠 횟수 — 재생성 적용마다 1씩 늘고, 내려받는 파일 이름 끝에 _r2처럼 붙습니다">${ST.round}회차</span></p>` +
     // 범례 켜기 — 제목 줄 끝의 작은 체크 하나. 예전엔 '표 보기' 한 줄에 체크 넷(범례·빗금·집계 열 전체·그 밖 코드 줄)이 있었는데,
     // 나머지 셋은 늘 켜 두고 체크를 없앴다(사용자 2026-11-13: 혼자 한 줄 먹으면 안 된다). 범례만 색 18가지가 두 줄이라 접어 둔다.
-    `<label class="legend-toggle" title="근무 색과 표시(고정·미적용 편집·원티드·위반·수정 주의 칸)의 뜻, 누르는 법을 표 위에 펼칩니다">` +
+    `<label class="legend-toggle" title="근무 색과 표시(고정·미적용 편집·원티드·위반·수정주의근무)의 뜻, 누르는 법을 표 위에 펼칩니다">` +
       `<input type="checkbox" data-view="legend"${viewOpt("legend") ? " checked" : ""}> 범례</label>` +
-    // 수정 주의 칸 — 고치면 다른 규칙이 깨지는 칸에 줄무늬를 얹는다(진함 = 바꿀 수 없음, 옅음 = 맞교환으로만). 예전 이름은 '빗금'이었는데
+    // 수정주의근무 — 고치면 다른 규칙이 깨지는 칸에 줄무늬를 얹는다(진함 = 바꿀 수 없음, 옅음 = 맞교환으로만). 예전 이름은 '빗금'이었는데
     // 무늬의 이름이지 뜻이 아니라서 무엇을 켜는지 읽히지 않았다(사용자 2026-11-14). 하루 동안은 체크 없이 늘 켜 두었는데 표의 절반에
     // 무늬가 얹혀 촘촘했다 — 칸을 손으로 고칠 때만 켜면 된다. 기본은 꺼짐, 기기에 기억.
     `<label class="legend-toggle" title="고치면 다른 규칙이 깨지는 칸을 표에 표시합니다 — 진한 무늬는 어느 근무로도 바꿀 수 없는 칸, 옅은 무늬는 맞교환으로만 바꿀 수 있는 칸">` +
-      `<input type="checkbox" data-view="hatch"${viewOpt("hatch") ? " checked" : ""}> 수정 주의 칸</label></span></div>` +
+      `<input type="checkbox" data-view="hatch"${viewOpt("hatch") ? " checked" : ""}> 수정주의근무</label></span></div>` +
     fileBarHtml() + `</div>`;
   if (lastConfigWarning) {
     html += `<p class="carry-warning">⚠ ${esc(lastConfigWarning)}</p>`;
@@ -2894,8 +2894,8 @@ function renderGrid() {
   html += `<span class="sw"><span class="box wanted-swatch"></span>원티드 반영</span>`;
   html += `<span class="sw"><span class="viol-swatch viol-hard-swatch"></span>필수위반</span>`;
   html += `<span class="sw"><span class="viol-swatch viol-soft-swatch"></span>추가 검토(최선노력)</span>`;
-  html += `<span class="sw"><span class="box fragile-row-swatch"></span>수정 주의 칸(진함) = 바꿀 수 없음</span>`;
-  html += `<span class="sw"><span class="box fragile-day-swatch"></span>수정 주의 칸(옅음) = 맞교환으로만</span>`;
+  html += `<span class="sw"><span class="box fragile-row-swatch"></span>수정주의근무(진함) = 바꿀 수 없음</span>`;
+  html += `<span class="sw"><span class="box fragile-day-swatch"></span>수정주의근무(옅음) = 맞교환으로만</span>`;
   if (ST.staff.some(s => s.is_designated)) html += `<span class="sw"><span class="desig-mark">지</span>지정 가능자</span>`;
   if (ST.staff.some(s => s.is_night_leader)) html += `<span class="sw"><span class="desig-mark nl-mark">밤</span>야간리더</span>`;
   html += `<span class="sw legend-tap">날짜를 누르면 그날 병동 · 이름을 누르면 한 달 여정 · 칸을 누르면 근무 바꾸기</span>`;
@@ -3308,7 +3308,7 @@ function setViewOpt(k, on) {
 }
 function applyViewOpts() {
   gridContent.classList.toggle("legend-on", viewOpt("legend"));
-  gridContent.classList.toggle("hatch-on", viewOpt("hatch"));   // 수정 주의 칸(옛 '빗금') — 꺼져 있으면 무늬만 감춘다(style.css)
+  gridContent.classList.toggle("hatch-on", viewOpt("hatch"));   // 수정주의근무(옛 '빗금') — 꺼져 있으면 무늬만 감춘다(style.css)
 }
 applyViewOpts();
 gridContent.addEventListener("change", (e) => {
@@ -4912,7 +4912,7 @@ function renderSide() {
     <li style="background:var(--code-bg)">블록 길이 분포: ${esc(blockH)}</li>
     <li style="background:var(--code-bg)">블록 간격 분포: ${esc(gapH)}</li>
   </ul></div>`;
-  html += `<div class="side-sec"><h3>수정 전 확인</h3><p class="side-note">고치면 다른 규칙이 깨지는 칸입니다. 제목 옆 '수정 주의 칸'을 켜면 표에도 표시됩니다(진함 = 바꿀 수 없음, 옅음 = 맞교환으로만).</p><div id="fragileBox"></div></div>`;
+  html += `<div class="side-sec"><h3>수정 전 확인</h3><p class="side-note">고치면 다른 규칙이 깨지는 칸입니다. 제목 옆 '수정주의근무'를 켜면 표에도 표시됩니다(진함 = 바꿀 수 없음, 옅음 = 맞교환으로만).</p><div id="fragileBox"></div></div>`;
 
   // 시도 점수표 — 시드마다 어떤 숫자로 견줘 어느 것을 골랐는지. 앞 열이 다르면 뒤 열은 보지 않는다
   // (운영 필수 → 숙련도 → 공평성 → 전체 하드, 2026-10-30 결정). 공평성은 주말·야간·D/E·원티드 미반영의 합(사람·일 수).
