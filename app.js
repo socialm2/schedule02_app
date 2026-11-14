@@ -938,8 +938,8 @@ function fillForm(cfg) {
   }));
   recomputeStaff();
 
-  $("#f_team_b").value = (p.team_b_names || []).join("\n");
-  updateTeamBCount();
+  teamBBase = [...(p.team_b_names || [])];
+  applyTeamB();
 
   const ms = p.min_staff || {};
   const byDow = ms.weekday_by_dow || {};
@@ -1271,6 +1271,17 @@ document.querySelector(".info-section")?.addEventListener("change", (ev) => {
 function updateTeamBCount() {
   const n = teamBNamesFromForm().length;
   $("#teamBCount").textContent = n ? `${n}명` : "";
+}
+// B팀(신입) 명단도 일반 명단과 같은 순서로 정한다 — 입력①(이번 달) > 입력②(지난달) > 기본값(샘플·저장된 설정).
+// null = 그 파일이 없다(또는 B팀을 알 수 없는 파일이다), [] = 그 파일에 B팀이 0명이다. 둘을 가르지 않으면 "0명"이 "말 없음"으로
+// 읽힌다: 예전엔 두 업로드가 같은 칸(#f_team_b)을 '이름이 있을 때만' 덮어써서, B팀을 지운 입력①로 바꿔 올려도 지난 파일의
+// 신입이 남고, 이번 달 입력① 뒤에 지난달 입력②를 올리면 지난달 신입으로 덮였고, 입력②를 빼도 그 파일의 신입이 남았다 —
+// 그 이름들이 출력①②에 그대로 나가 다음 달 입력으로 이어졌다(GPT 시나리오 검증 SC-01, 2026-11-14).
+let teamBOfWanted = null, teamBOfAnnual = null, teamBBase = [];
+function applyTeamB() {
+  const pick = teamBOfWanted !== null ? teamBOfWanted : teamBOfAnnual !== null ? teamBOfAnnual : teamBBase;
+  $("#f_team_b").value = pick.join("\n");
+  updateTeamBCount();
 }
 function teamBNamesFromForm() {
   return $("#f_team_b").value.split("\n").map(s => s.trim()).filter(Boolean);
@@ -1624,10 +1635,9 @@ async function handleWantedFile(f) {
       recomputeStaff();
     }
     const teamB = data.team_b_names || [];
-    if (teamB.length) {
-      $("#f_team_b").value = teamB.join("\n");
-      updateTeamBCount();
-    }
+    // 명단을 준 입력①이면 그 파일의 B팀이 이번 달 B팀이다(0명이면 0명). 명단 없이 신청만 읽힌 파일은 B팀을 말하지 않은 것이다.
+    if (staffUpdated || teamB.length) teamBOfWanted = [...teamB];
+    applyTeamB();
     const unk = (data.unknown_marks || []).length;
     clearUploadError(statusEl);
     // 연월·인원·신청 수·B팀은 단추 아래 요약 줄(renderStaffSummary)이 말한다 — 같은 말을 한 번 더 적지 않는다.
@@ -1768,8 +1778,8 @@ function clearWanted() {
   wantedTransferInDates = {};
   wantedTransferInDatesRaw = {};
   recomputeStaff();
-  $("#f_team_b").value = "";
-  updateTeamBCount();
+  teamBOfWanted = null;     // 명단과 같이 입력②(없으면 기본값)의 B팀으로 돌아간다
+  applyTeamB();
   statusEl.textContent = formStaff.length
     ? `반영 해제했습니다 — 명단은 ${staffOfAnnual.length ? "입력②" : "샘플"}(${formStaff.length}명) 기준으로 돌아갔습니다.`
     : "반영 해제했습니다 — 현재 인원 명단이 없습니다.";
@@ -1824,6 +1834,8 @@ async function clearStaffTable() {
     // 병동인력표까지 해제해도 인원이 사라지지 않는다.
     staffOfAnnual = [];
     recomputeStaff();
+    teamBOfAnnual = null;
+    applyTeamB();
     statusEl.textContent = "반영 해제했습니다 — 이번 생성은 처음부터 시작합니다.";
     showToast("연간근무표 반영을 해제했습니다");
   } catch (e) {}
@@ -1854,10 +1866,9 @@ async function handleStaffTableFile(f) {
     }));
     recomputeStaff();
     const teamB = data.team_b_names || [];
-    if (teamB.length) {
-      $("#f_team_b").value = teamB.join("\n");
-      updateTeamBCount();
-    }
+    // 연간근무표는 B 구분란까지 들어 있는 파일이라 0명도 답이다. OCS 지난달 근무표는 B팀을 따로 적지 않으므로 이름이 있을 때만 받는다.
+    teamBOfAnnual = (!fromPrevMonth || teamB.length) ? [...teamB] : null;
+    applyTeamB();
     clearUploadError(statusEl);
     const stranded = (data.rows_after_summary || []);
     // 전월잔휴는 이번 달 오프 배분의 출발점이라, 비어 있으면 0으로 보고 진행하되
@@ -4363,6 +4374,7 @@ async function loadVocFile(file) {
 function applyVocForm(cfg, staffTableLoaded_, opts) {
   wantedRequestsRaw = []; wantedDropped = []; wantedSource = null; wantedActiveTag = ""; wantedYM = null;
   staffOfWanted = []; staffOfAnnual = []; prevRosterNames = []; transferredInNames = [];
+  teamBOfWanted = null; teamBOfAnnual = null;      // 내 파일의 신입이 남의 문의 화면에 남지 않게 — B팀은 cfg의 것(fillForm이 기본값으로 넣는다)
   fillForm(cfg);                                   // 병동·근무정보·근무인력·B팀·명단(cfg.staff)·신청·이월정보
   $("#f_year").value = cfg.year;
   $("#f_month").value = cfg.month;

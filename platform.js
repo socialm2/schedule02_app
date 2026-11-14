@@ -499,10 +499,19 @@ async function downloadAppFile(path, filename) {
 
 // ---------------------------------------------------------------- 화면이 쓰는 다섯 가지
 
-async function apiUpload(path, file) {
-  // 워커에는 File 객체를 그대로 못 넘긴다(구조화 복제 대상이 아님) — 바이트로 바꿔 보낸다.
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  return api(path, { _fileBytes: bytes });
+// 올리기는 고른 순서대로 하나씩 한다. 파일을 읽는 시간(arrayBuffer)이 파일마다 달라, 큰 파일을 고르고 곧바로 다른 파일을
+// 고르면 나중 것이 먼저 Worker에 닿고 먼저 고른 것이 그 뒤에 덮었다 — 화면에는 마지막에 고른 파일 이름이 보이는데 쓰이는
+// 것은 먼저 고른 파일이다(GPT 시나리오 검증 SC-05, 2026-11-14: 완료 순서를 뒤집어 주입한 시험). 줄을 세우면 마지막에 고른 것이 이긴다.
+let uploadChain = Promise.resolve();
+function apiUpload(path, file) {
+  const run = async () => {
+    // 워커에는 File 객체를 그대로 못 넘긴다(구조화 복제 대상이 아님) — 바이트로 바꿔 보낸다.
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    return api(path, { _fileBytes: bytes });
+  };
+  const p = uploadChain.then(run, run);
+  uploadChain = p.catch(() => {});
+  return p;
 }
 
 // 올린 파일을 글자(base64)로, 글자를 다시 파일로 — app.js가 직전 입력①②를 sessionStorage에 남기고
