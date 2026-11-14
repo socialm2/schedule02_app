@@ -729,7 +729,7 @@ function noteYearMonthEdit() {
   }
 }
 $("#f_year").onchange = () => { seedHolidaysForYear(parseInt($("#f_year").value, 10)); renderHolidayCalendar(); noteYearMonthEdit(); renderStaffTableYmNote(); };
-$("#f_month").onchange = () => { renderHolidayCalendar(); noteYearMonthEdit(); renderStaffTableYmNote(); renderGenSummary(); };
+$("#f_month").onchange = () => { renderHolidayCalendar(); noteYearMonthEdit(); renderStaffTableYmNote(); };
 
 // 연/월을 코드에서 바꿀 때 쓴다. 연도 목록은 올해 기준 7년치뿐이라, 그 밖의 해를
 // 그냥 대입하면 select가 조용히 안 바뀐다 — 없으면 항목을 만들어 넣는다.
@@ -1058,9 +1058,11 @@ function renderStaffSummary() {
   // 파일이 없다는 말이 없어서 올린 줄 아는 사람이 있었다(사용자 2026-11-14).
   const n = formStaff.length, req = formRequests.length, tb = teamBNamesFromForm().length;
   const fromFile = staffFromWanted && wantedSource !== "sample";
-  el.classList.toggle("on", fromFile);
+  const bad1 = fromFile && !!wantedYM && ymMismatch();   // 문제가 있으면 초록 ✓가 아니라 노란 ⚠ — 아래 안내와 같은 말을 해야 한다
+  el.classList.toggle("on", fromFile && !bad1);
+  el.classList.toggle("warn", bad1);
   if (fromFile) {
-    el.textContent = `✓ 입력① 반영 — ${wantedActiveTag ? wantedActiveTag + " · " : ""}인원 ${n}명 · 원티드 ${req}건${tb ? ` · B팀 ${tb}명` : ""}`;
+    el.textContent = `${bad1 ? "⚠" : "✓"} 입력① 반영 — ${wantedActiveTag ? wantedActiveTag + " · " : ""}인원 ${n}명 · 원티드 ${req}건${tb ? ` · B팀 ${tb}명` : ""}`;
   } else if (!n) {
     el.textContent = "올린 파일 없음";
   } else if (staffOfAnnual.length && !staffFromWanted) {
@@ -1068,18 +1070,37 @@ function renderStaffSummary() {
   } else {
     el.textContent = `올린 파일 없음 — 예시 명단 ${n}명${req ? ` · 예시 신청 ${req}건` : ""}으로 만듭니다`;
   }
+  renderWantedYmNote();
+}
+// 올린 입력①에 문제가 있으면 올린 자리 바로 아래에 알린다 — 지금은 '파일의 연월이 화면과 다르다' 한 가지다(입력②의 같은 자리는
+// renderStaffTableYmNote). 같은 내용이 위 연월 칸 옆(#ymNotice)에도 뜨지만 폰에서는 그 칸이 화면 밖이라, 올린 사람은 못 본다.
+// 예전에는 생성 버튼 위 한 줄(#genSummary)이 두 파일의 상태를 한데 적었는데, 칸 밖에 떠 있고 위의 요약과 같은 말이라 뺐다
+// (사용자 2026-11-14). 파일이 없으면 없다고, 올리면 무엇이 들었는지, 문제가 있으면 그 문제를 — 전부 그 파일 칸 안에서 말한다.
+function renderWantedYmNote() {
+  const el = $("#wantedYmNote");
+  if (!el) return;
+  if (!wantedYM || wantedSource === "sample" || !ymMismatch()) { el.style.display = "none"; el.textContent = ""; return; }
+  const sc = screenYM();
+  el.style.display = "";
+  el.innerHTML = `⚠ <b>${wantedYM.year}년 ${wantedYM.month}월</b> 표입니다 — 화면은 ${sc.year}년 ${sc.month}월입니다. ` +
+    `근무표는 화면 연월로 만들고, 신청은 날짜의 '일'만 보고 ${sc.month}월에 적용합니다` +
+    (wantedDropped.length ? `(${sc.month}월에 없는 날짜 ${wantedDropped.length}건은 뺐습니다)` : "") + `. ` +
+    `<button type="button" class="small note-btn" id="wantedYmFixBtn">화면을 ${wantedYM.year}년 ${wantedYM.month}월로 맞추기</button>`;
+  $("#wantedYmFixBtn").onclick = () => { setFormYearMonth(wantedYM.year, wantedYM.month); rebaseWantedToScreen(); renderSourceBadges(); };
 }
 // 입력②의 같은 줄 — 몇 월까지의 근무표인지, 몇 명·며칠치인지. 숫자는 Worker가 지금 들고 있는 것(staff_table_status)이다.
 let staffTableInfo = null;   // {staff_count, annual_days} — refreshStaffTableStatus가 채운다
 function renderStaffTableSummary() {
   const el = $("#staffTableSummary");
   if (!el) return;
-  el.classList.toggle("on", staffTableLoaded);
+  const bad2 = staffTableLoaded && staffTableLinked() === false;
+  el.classList.toggle("on", staffTableLoaded && !bad2);
+  el.classList.toggle("warn", bad2);
   if (!staffTableLoaded) { el.textContent = "올린 파일 없음 — 이월정보 없이 만듭니다(처음 쓰는 달과 같습니다)"; return; }
   const m = /^(\d{4})-(\d{2})/.exec(String(staffTableLastDate || ""));
   const until = m ? `${Number(m[1])}년 ${Number(m[2])}월까지` : "";
   const info = staffTableInfo || {};
-  el.textContent = "✓ 입력② 반영 — " + [until, info.staff_count ? `인원 ${info.staff_count}명` : "", info.annual_days ? `근무표 ${info.annual_days}일치` : ""].filter(Boolean).join(" · ");
+  el.textContent = (bad2 ? "⚠" : "✓") + " 입력② 반영 — " + [until, info.staff_count ? `인원 ${info.staff_count}명` : "", info.annual_days ? `근무표 ${info.annual_days}일치` : ""].filter(Boolean).join(" · ");
 }
 
 // ================================================================ 값의 출처 표시
@@ -1221,25 +1242,6 @@ function renderFormSummaries() {
     const sun = ["D", "E", "N"].map(k => `${k}${val(`ms_${k}_sunday_holiday`)}`).join("·");
     ms.textContent = `평일 ${wk} · 토 ${sat} · 공휴일 ${sun}`;
   }
-  renderGenSummary();
-}
-function renderGenSummary() {
-  try { renderGenSummaryInner(); } catch (e) { /* 부팅 중 일찍 불린 경우 — 다음 갱신에서 채워진다 */ }
-}
-function renderGenSummaryInner() {
-  const el = $("#genSummary");
-  if (!el) return;
-  const y = $("#f_year") ? $("#f_year").value : "", m = $("#f_month") ? $("#f_month").value : "";
-  const in1 = staffFromWanted || wantedSource === "file" ? "입력① 반영" : "입력① 없음(예시 명단)";
-  // 입력②가 '전달까지 이어진 파일'인지 실제로 견줘서 적는다. 예전엔 올라가 있기만 하면 "전월 연결"이라고 적어,
-  // 8월까지의 파일을 올린 12월 화면에서도 연결됐다고 말했다(바로 위 칸의 노란 안내와 어긋났다).
-  const lm = /^(\d{4})-(\d{2})/.exec(String(staffTableLastDate || ""));
-  const yy = Number(y), mm = Number(m);
-  const linked = !!lm && Number(lm[1]) === (mm === 1 ? yy - 1 : yy) && Number(lm[2]) === (mm === 1 ? 12 : mm - 1);
-  const in2 = !staffTableLoaded ? "입력② 없음" : (linked || !lm) ? "입력② 반영(전월 연결)" : `입력② 반영 — ⚠ ${Number(lm[2])}월까지라 전월과 안 이어짐`;
-  const warn = ymMismatch() ? ` · ⚠ 입력① 파일은 ${wantedYM.year}년 ${wantedYM.month}월` : "";
-  el.textContent = `${y}년 ${m}월 · ${formStaff.length}명 · ${in1} · ${in2}${warn}`;
-  el.classList.toggle("warn", !!warn || (staffTableLoaded && !!lm && !linked));
 }
 document.getElementById("intake")?.addEventListener("input", () => renderFormSummaries());
 document.getElementById("intake")?.addEventListener("change", () => renderFormSummaries());
@@ -1689,7 +1691,6 @@ function updateClearButtons() {
       if (allBtn) allBtn.style.display = "none";
     }
   }
-  renderGenSummary();
 }
 let staffTableLoaded = false;   // 입력②가 Worker에 반영돼 있는가(refreshStaffTableStatus가 갱신)
 let staffTableLastDate = null;  // 반영된 입력②의 마지막 날짜('2026-08-31') — 화면 연월의 바로 전달인지 견준다
@@ -1697,21 +1698,28 @@ let staffTableLastDate = null;  // 반영된 입력②의 마지막 날짜('2026
 // 입력②는 '만드는 달의 바로 전달까지' 이어져 있어야 이월정보(잔휴·연속근무·야간 간격)를 쓴다. 어긋난 파일을 올리면
 // 지금까지는 생성이 끝난 뒤에야 표 위 경고로 알았다 — 올린 자리에서, 연월을 바꿀 때마다 바로 알린다. 막지는 않는다
 // (이월 없이 만들 수는 있다 — 처음 쓰는 달과 같다).
+// 올린 입력②가 화면 연월의 바로 전달까지 이어졌는가 — true/false, 견줄 수 없으면(안 올렸거나 날짜를 모르면) null
+function staffTableLinked() {
+  const m = /^(\d{4})-(\d{2})/.exec(String(staffTableLastDate || ""));
+  const y = parseInt($("#f_year").value, 10), mo = parseInt($("#f_month").value, 10);
+  if (!staffTableLoaded || !m || !(y > 0) || !(mo >= 1 && mo <= 12)) return null;
+  return Number(m[1]) === (mo === 1 ? y - 1 : y) && Number(m[2]) === (mo === 1 ? 12 : mo - 1);
+}
 function renderStaffTableYmNote() {
   const el = $("#staffTableYmNote");
   if (!el) return;
-  const m = /^(\d{4})-(\d{2})/.exec(String(staffTableLastDate || ""));
+  if (staffTableLinked() !== false) { el.style.display = "none"; el.textContent = ""; renderStaffTableSummary(); return; }
+  const m = /^(\d{4})-(\d{2})/.exec(String(staffTableLastDate));
   const y = parseInt($("#f_year").value, 10), mo = parseInt($("#f_month").value, 10);
-  if (!staffTableLoaded || !m || !(y > 0) || !(mo >= 1 && mo <= 12)) { el.style.display = "none"; el.textContent = ""; return; }
-  const ly = Number(m[1]), lm = Number(m[2]);
-  const py = mo === 1 ? y - 1 : y, pm = mo === 1 ? 12 : mo - 1;          // 화면 연월의 바로 전달
-  const ny = lm === 12 ? ly + 1 : ly, nm = lm === 12 ? 1 : lm + 1;      // 이 파일이 이어지는 달
-  if (ly === py && lm === pm) { el.style.display = "none"; el.textContent = ""; return; }
+  const pm = mo === 1 ? 12 : mo - 1;
   el.style.display = "";
-  el.innerHTML = `⚠ 올린 입력②는 <b>${ly}년 ${lm}월까지</b>의 근무표입니다 — 화면은 ${y}년 ${mo}월이라 바로 전달(${py}년 ${pm}월)이 아닙니다. ` +
-    `이대로 만들면 이월정보(잔휴·연속근무·야간 간격)를 쓰지 못합니다. ` +
-    `<b>${pm}월분 출력②</b>(없으면 OCS ${pm}월 근무표)를 올리거나, 처음 쓰는 달이면 '반영 해제'하고 만드세요. ` +
-    `이 파일은 ${ny}년 ${nm}월 근무표를 만들 때 맞습니다. 써 보는 중이면 옆의 '예시(다운로드)'를 다시 누르세요 — 화면 연월에 맞는 예시를 받습니다.`;
+  // 문제와 할 일만 짧게. 정상 상태의 '반영 해제' 단추는 숨겨져 있으므로(2026-11-10) 잘못 올린 파일을 빼는 단추를 여기 둔다 —
+  // 한때 이 글이 "'반영 해제'하고 만드세요"라고 했는데 화면에 그 단추가 없었다.
+  el.innerHTML = `⚠ <b>${Number(m[1])}년 ${Number(m[2])}월까지</b>의 근무표입니다 — ${y}년 ${mo}월의 바로 전달(${pm}월)이 아니라 이월정보를 쓰지 못합니다. ` +
+    `${pm}월분 출력②(없으면 OCS ${pm}월 근무표)로 다시 올리세요. 써 보는 중이면 '예시(다운로드)'를 다시 받으면 맞는 예시가 옵니다. ` +
+    `<button type="button" class="small note-btn" id="staffTableDropBtn">이 파일 빼기</button>`;
+  $("#staffTableDropBtn").onclick = () => clearStaffTable();
+  renderStaffTableSummary();
 }
 
 $("#wantedClearBtn").onclick = () => {
@@ -1774,9 +1782,7 @@ async function refreshStaffTableStatus() {
   staffTableLastDate = s.loaded ? (s.last_date || null) : null;
   staffTableInfo = s.loaded ? { staff_count: s.staff_count, annual_days: s.annual_days } : null;
   updateClearButtons();
-  renderStaffTableYmNote();
-  renderStaffTableSummary();
-  renderGenSummary();
+  renderStaffTableYmNote();   // 요약 줄(renderStaffTableSummary)도 여기서 같이 다시 그린다
 }
 
 $("#staffTableClearBtn").onclick = async () => {

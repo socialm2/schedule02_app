@@ -589,6 +589,11 @@ td.sn.fragile-day span, td.sk.fragile-day span, td.sjo.fragile-day span { backgr
 details.form-sec > p.upload-how { margin: 0; padding: 10px 14px 0; }
 .upload-item .file-sum { margin: 6px 0 6px; font-size: .78125rem; line-height: 1.45; color: var(--sub); word-break: keep-all; }
 .upload-item .file-sum.on { color: var(--ok); font-weight: 700; }
+.upload-item .file-sum.warn { color: var(--warn); font-weight: 700; }
+/* 파일 칸 둘의 간격 — details의 직계 자식마다 사방 14px 안쪽 여백이 붙어 두 칸 사이가 60px 가까이 비었다 */
+details.form-sec > .upload-item { padding: 10px 14px 6px; margin-bottom: 0; }
+details.form-sec > .upload-item + .upload-item { border-top: 1px dashed var(--line); padding-top: 14px; margin-top: 6px; }
+.ym-note .note-btn { margin: 6px 0 0; display: inline-block; }
 .upload-item .file-sum:empty { display: none; }
 /* 업로드·양식 둘 다 일부러 진짜 <button>으로 통일(위 app.js 주석 참고) — 삼성인터넷의
    다크모드 강제 적용이 <button>은 색을 살려두고 <label>/<a>는 오히려 흐리게 만드는
@@ -1470,6 +1475,3 @@ details.expert-sec > .side-sec { margin-top: 12px; }
 /* ---- 입력 화면: 접힌 칸의 값 요약과 생성 직전 한 줄(2026-11-13) ---- */
 details.form-sec > summary .sec-sum { font-weight: 400; font-size: .75rem; color: var(--sub); margin-left: 8px; word-break: keep-all; }
 details.form-sec[open] > summary .sec-sum { display: none; }
-.gen-summary { margin: 10px 0 6px; font-size: .78125rem; font-weight: 600; color: var(--ink); word-break: keep-all; }
-.gen-summary.warn { color: var(--warn); }
-.gen-summary:empty { display: none; }
