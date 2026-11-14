@@ -729,7 +729,7 @@ function noteYearMonthEdit() {
   }
 }
 $("#f_year").onchange = () => { seedHolidaysForYear(parseInt($("#f_year").value, 10)); renderHolidayCalendar(); noteYearMonthEdit(); renderStaffTableYmNote(); };
-$("#f_month").onchange = () => { renderHolidayCalendar(); noteYearMonthEdit(); renderStaffTableYmNote(); };
+$("#f_month").onchange = () => { renderHolidayCalendar(); noteYearMonthEdit(); renderStaffTableYmNote(); renderGenSummary(); };
 
 // 연/월을 코드에서 바꿀 때 쓴다. 연도 목록은 올해 기준 7년치뿐이라, 그 밖의 해를
 // 그냥 대입하면 select가 조용히 안 바뀐다 — 없으면 항목을 만들어 넣는다.
@@ -1053,10 +1053,33 @@ renderMinStaffTable();
 function renderStaffSummary() {
   const el = $("#staffSummary");
   if (!el) return;
-  if (!formStaff.length) { el.textContent = ""; return; }
-  const src = staffFromWanted ? `입력①${wantedActiveTag ? `(${wantedActiveTag})` : ""}에서 반영`
-            : (staffOfAnnual.length ? "입력②(연간근무표)에서 반영" : "샘플 명단 — 입력①을 올리면 바뀝니다");
-  el.textContent = `현재 인원: ${formStaff.length}명 — ${src}`;
+  // 단추 아래 한 줄 — 입력①이 올라가 있는지, 올라가 있으면 무엇이 들었는지(연월·인원·원티드 수·B팀). 아무것도 안 올렸으면
+  // "올린 파일 없음"이라고 먼저 말하고 그 대신 무엇으로 만드는지를 적는다. 예전 문구("현재 인원: 40명 — 샘플 명단 — …")는
+  // 파일이 없다는 말이 없어서 올린 줄 아는 사람이 있었다(사용자 2026-11-14).
+  const n = formStaff.length, req = formRequests.length, tb = teamBNamesFromForm().length;
+  const fromFile = staffFromWanted && wantedSource !== "sample";
+  el.classList.toggle("on", fromFile);
+  if (fromFile) {
+    el.textContent = `✓ 입력① 반영 — ${wantedActiveTag ? wantedActiveTag + " · " : ""}인원 ${n}명 · 원티드 ${req}건${tb ? ` · B팀 ${tb}명` : ""}`;
+  } else if (!n) {
+    el.textContent = "올린 파일 없음";
+  } else if (staffOfAnnual.length && !staffFromWanted) {
+    el.textContent = `올린 파일 없음 — 입력②의 명단 ${n}명으로 만듭니다(원티드 신청 없음)`;
+  } else {
+    el.textContent = `올린 파일 없음 — 예시 명단 ${n}명${req ? ` · 예시 신청 ${req}건` : ""}으로 만듭니다`;
+  }
+}
+// 입력②의 같은 줄 — 몇 월까지의 근무표인지, 몇 명·며칠치인지. 숫자는 Worker가 지금 들고 있는 것(staff_table_status)이다.
+let staffTableInfo = null;   // {staff_count, annual_days} — refreshStaffTableStatus가 채운다
+function renderStaffTableSummary() {
+  const el = $("#staffTableSummary");
+  if (!el) return;
+  el.classList.toggle("on", staffTableLoaded);
+  if (!staffTableLoaded) { el.textContent = "올린 파일 없음 — 이월정보 없이 만듭니다(처음 쓰는 달과 같습니다)"; return; }
+  const m = /^(\d{4})-(\d{2})/.exec(String(staffTableLastDate || ""));
+  const until = m ? `${Number(m[1])}년 ${Number(m[2])}월까지` : "";
+  const info = staffTableInfo || {};
+  el.textContent = "✓ 입력② 반영 — " + [until, info.staff_count ? `인원 ${info.staff_count}명` : "", info.annual_days ? `근무표 ${info.annual_days}일치` : ""].filter(Boolean).join(" · ");
 }
 
 // ================================================================ 값의 출처 표시
@@ -1208,10 +1231,15 @@ function renderGenSummaryInner() {
   if (!el) return;
   const y = $("#f_year") ? $("#f_year").value : "", m = $("#f_month") ? $("#f_month").value : "";
   const in1 = staffFromWanted || wantedSource === "file" ? "입력① 반영" : "입력① 없음(예시 명단)";
-  const in2 = staffTableLoaded ? "입력② 반영(전월 연결)" : "입력② 없음";
+  // 입력②가 '전달까지 이어진 파일'인지 실제로 견줘서 적는다. 예전엔 올라가 있기만 하면 "전월 연결"이라고 적어,
+  // 8월까지의 파일을 올린 12월 화면에서도 연결됐다고 말했다(바로 위 칸의 노란 안내와 어긋났다).
+  const lm = /^(\d{4})-(\d{2})/.exec(String(staffTableLastDate || ""));
+  const yy = Number(y), mm = Number(m);
+  const linked = !!lm && Number(lm[1]) === (mm === 1 ? yy - 1 : yy) && Number(lm[2]) === (mm === 1 ? 12 : mm - 1);
+  const in2 = !staffTableLoaded ? "입력② 없음" : (linked || !lm) ? "입력② 반영(전월 연결)" : `입력② 반영 — ⚠ ${Number(lm[2])}월까지라 전월과 안 이어짐`;
   const warn = ymMismatch() ? ` · ⚠ 입력① 파일은 ${wantedYM.year}년 ${wantedYM.month}월` : "";
   el.textContent = `${y}년 ${m}월 · ${formStaff.length}명 · ${in1} · ${in2}${warn}`;
-  el.classList.toggle("warn", !!warn);
+  el.classList.toggle("warn", !!warn || (staffTableLoaded && !!lm && !linked));
 }
 document.getElementById("intake")?.addEventListener("input", () => renderFormSummaries());
 document.getElementById("intake")?.addEventListener("change", () => renderFormSummaries());
@@ -1593,7 +1621,9 @@ async function handleWantedFile(f) {
     }
     const unk = (data.unknown_marks || []).length;
     clearUploadError(statusEl);
-    statusEl.textContent =
+    // 연월·인원·신청 수·B팀은 단추 아래 요약 줄(renderStaffSummary)이 말한다 — 같은 말을 한 번 더 적지 않는다.
+    // 요약이 못 담는 것(명단은 못 읽고 신청만 읽었다, 인식 못 한 표시가 있다)이 있을 때만 여기 적는다.
+    statusEl.textContent = (staffUpdated && !unk) ? "" :
       `${data.year}년 ${data.month}월 표에서 신청 ${formRequests.length}건` +
       (staffUpdated ? `, 인원 ${data.staff.length}명 인식` : " 인식") +
       (teamB.length ? `, B팀 ${teamB.length}명 인식` : "") +
@@ -1742,8 +1772,11 @@ async function refreshStaffTableStatus() {
   // 반영 중이면 '반영 해제' 버튼이 계속 보여서 그 자체가 상태 표시가 된다(updateClearButtons).
   staffTableLoaded = !!s.loaded;
   staffTableLastDate = s.loaded ? (s.last_date || null) : null;
+  staffTableInfo = s.loaded ? { staff_count: s.staff_count, annual_days: s.annual_days } : null;
   updateClearButtons();
   renderStaffTableYmNote();
+  renderStaffTableSummary();
+  renderGenSummary();
 }
 
 $("#staffTableClearBtn").onclick = async () => {
