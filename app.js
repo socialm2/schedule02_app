@@ -3390,8 +3390,8 @@ function fileBarHtml() {
   const hasPending = (ST.pending || []).length > 0, nightOnly = !!ST.night_stage;
   const dis = hasPending || nightOnly ? " disabled" : "";
   let html = `<div class="file-bar-wrap"><div class="file-bar" id="sideDownload" role="group" aria-label="되올리기 · 파일 받기">` +
-    // 순서: 되올리기 · 입력으로 | 출력① · 출력②. 좁은 화면에서는 두 줄 두 칸으로 선다 — 윗줄이 '화면으로 들이는 것·돌아가는 것',
-    // 아랫줄이 '받는 것 둘'. 예전 순서(되올리기 · 출력① / 출력② · 입력으로)는 줄이 넘어갈 때 너비가 제각각인 단추가 섞여
+    // 문서 순서: 되올리기 · 입력으로 | 출력① · 출력②. 폰 세로에서는 이 순서대로 두 줄 두 칸으로 선다 — 윗줄이 '화면으로 들이는 것·
+    // 돌아가는 것', 아랫줄이 '받는 것 둘'. 가로·PC에서는 '← 입력으로'만 맨 끝(네 번째)으로 간다(style.css의 order — 사용자 2026-11-14). 예전 순서(되올리기 · 출력① / 출력② · 입력으로)는 줄이 넘어갈 때 너비가 제각각인 단추가 섞여
     // 들쭉날쭉했다(사용자 2026-11-13: "되올리기랑 입력으로가 같이 있어야 이쁠 듯").
     `<button class="file-btn sub" onclick="uploadMonth()" title="엑셀에서 고친 출력①(월간근무표)을 올리면 그 값으로 반영되고 바뀐 칸은 고정됩니다">엑셀 수정본 되올리기</button>` +
     `<button id="backToInputBtn" class="file-btn sub" title="입력 화면으로 돌아가 새로 만듭니다">← 입력으로</button>` +

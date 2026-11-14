@@ -518,7 +518,7 @@ td.sn.fragile-day span, td.sk.fragile-day span, td.sjo.fragile-day span { backgr
 .output-title { font-size: 1.0625rem; margin: 0; }
 .output-subtitle { font-size: .78125rem; color: var(--sub); margin: 0; font-weight: 600; }
 /* 표 위 한 줄 — 왼쪽에 제목·병동·연월·인원·회차, 오른쪽에 파일 작업줄. 좁으면 작업줄이 아래로 내려간다. */
-/* 표 위 머리줄 — 제목 + 파일 줄(되올리기 · 입력으로 | 출력① · 출력②).
+/* 표 위 머리줄 — 제목 + 파일 줄(폰 세로: 되올리기 · 입력으로 | 출력① · 출력② / 가로·PC: 되올리기 · 출력① · 출력② · 입력으로).
    넓으면 한 줄(제목 왼쪽, 단추 넷 오른쪽). 좁아서 단추 넷이 한 줄에 안 들어가면 **두 줄 두 칸**으로, 칸 너비를 똑같이 해서 선다.
    그냥 flex-wrap에 맡기면 너비가 제각각인 단추가 되는 대로 넘어가 줄마다 길이가 달랐다(폰 세로·가로 모두 — 사용자 2026-11-13).
    기준은 창 너비가 아니라 **이 머리줄의 너비**다(@container): 폰을 눕히면 창은 넓어도 표 영역은 오른쪽 패널만큼 좁다.
@@ -530,6 +530,9 @@ td.sn.fragile-day span, td.sk.fragile-day span, td.sjo.fragile-day span { backgr
 .file-bar .file-btn { min-height: 26px; padding: 2px 10px; border-radius: 8px; font-weight: 700; font-size: .75rem; line-height: 1.2;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; margin: 0; }
 .file-bar .file-btn.sub { font-weight: 600; background: var(--card); color: var(--ink); border-color: var(--line); }
+/* '← 입력으로'의 자리 — 폰 세로(두 줄 두 칸)에서는 두 번째(되올리기 옆), 가로·PC에서는 네 번째(맨 끝)다(사용자 2026-11-14).
+   문서 순서는 되올리기 · 입력으로 · 출력① · 출력②이고, 넓은 화면에서만 order로 맨 뒤에 보낸다. */
+.file-bar #backToInputBtn { order: 1; }
 .file-bar-note { margin: 4px 0 0; text-align: right; }
 .file-bar-note .goto-pending { display: none; }
 @media (max-width: 680px) { .file-bar-note .goto-pending { display: inline-block; margin: 4px 0 0; } }
@@ -545,6 +548,7 @@ td.sn.fragile-day span, td.sk.fragile-day span, td.sjo.fragile-day span { backgr
   .file-bar-wrap { margin-left: 0; width: 100%; }
   .file-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .file-bar .file-btn { min-height: 34px; min-width: 0; }
+  .file-bar #backToInputBtn { order: 0; }
   .file-bar-note { text-align: left; }
 }
 /* 범례 켜기 — 제목 줄(.out-title) 끝의 작은 체크 하나. 혼자 한 줄을 차지하지 않는다. 범례 자체는 켰을 때만 표 위에 펼쳐진다. */
