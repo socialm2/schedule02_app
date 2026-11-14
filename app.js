@@ -2709,8 +2709,8 @@ function paintFragile() {
       : " — 대부분 칸은 혼자서도 바꿀 수 있습니다.";
     box.innerHTML =
       `<ul class="issue-list" style="font-size:12px">` +
-      `<li class="hard"><span class="rule">고정</span>${FRAGILE.row_fixed}칸 — 어느 근무로 바꿔도 그 사람 행의 규칙이 깨짐(맞교환도 불가, 진한 무늬)</li>` +
-      `<li class="soft"><span class="rule">교환만</span>${FRAGILE.swap_only}칸 — 혼자 바꾸면 그날 인원·숙련도 규칙이 깨짐(맞교환은 가능할 수 있음, 옅은 무늬)</li>` +
+      `<li class="hard"><span class="rule">고정</span>${FRAGILE.row_fixed}칸 — 어느 근무로 바꿔도 그 사람 행의 규칙이 깨짐(맞교환도 불가, 사선 무늬)</li>` +
+      `<li class="soft"><span class="rule">교환만</span>${FRAGILE.swap_only}칸 — 혼자 바꾸면 그날 인원·숙련도 규칙이 깨짐(맞교환은 가능할 수 있음, 점무늬)</li>` +
       `<li class="none"><span class="rule">자유</span>${free}칸 — 혼자 바꿔도 새 필수 위반 없음</li>` +
       `</ul><p class="fragile-note">전체 ${FRAGILE.total}칸 중 ${pct}%가 혼자서는 못 바꾸는 칸${warn}</p>`;
   }
@@ -2724,9 +2724,23 @@ async function findSwap(sid, day, shift) {
     });
   } catch (e) { return; }
   renderSide();
+  paintSwapMarks();
   const sec = $("#swapSec");
   if (sec) sec.scrollIntoView({ block: "nearest" });
   if (!SWAP.candidates.length) showToast(SWAP.reason || "맞교환 상대가 없습니다", true);
+}
+
+// 맞교환 상대를 찾는 동안, 상대가 될 수 있는 사람의 그날 칸에 노란 동그라미를 붙인다(위치 표시만 — 고르는 것은 패널의 비교
+// 카드에서 한다: 야간·주말이 어떻게 바뀌는지 안 보고 고르게 하지 않으려고. 사용자 2026-11-14). 예전엔 상대가 패널 목록에만 나와
+// 표에서 그 사람 줄을 다시 찾아야 했다. 내 칸에는 테두리를 둘러 어느 칸의 상대인지 보이게 한다. 닫거나 고르면 사라진다.
+function paintSwapMarks() {
+  gridContent.querySelectorAll("td.swap-cand, td.swap-origin").forEach(td => td.classList.remove("swap-cand", "swap-origin"));
+  gridContent.classList.toggle("swap-on", !!SWAP);
+  if (!SWAP || !ST) return;
+  const cell = sid => [...gridContent.querySelectorAll(`td[data-day="${SWAP.day}"]`)].find(td => td.dataset.sid === sid);
+  const mine = cell(SWAP.staff_id);
+  if (mine) mine.classList.add("swap-origin");
+  for (const c of SWAP.candidates || []) { const td = cell(c.partner); if (td) td.classList.add("swap-cand"); }
 }
 
 function renderSwap() {
@@ -2734,7 +2748,8 @@ function renderSwap() {
   const s = SWAP;
   let html = `<div class="side-sec" id="swapSec"><h3>맞교환 상대 <span class="count-badge">${s.candidates.length}명</span></h3>`;
   html += `<p class="fragile-note">${esc(s.staff_id)} ${s.day + 1}일 ${esc(s.current)} → ${esc(s.want)}. ` +
-          `그 날 ${esc(s.want)}인 사람과 둘의 하루만 바꿉니다(두 칸). 새 필수 위반이 없는 상대만 보입니다.</p>`;
+          `그 날 ${esc(s.want)}인 사람과 둘의 하루만 바꿉니다(두 칸). 새 필수 위반이 없는 상대만 보입니다.` +
+          (s.candidates.length ? ` 표의 ${s.day + 1}일 열에서 <b>노란 동그라미</b>가 붙은 칸이 상대입니다.` : "") + `</p>`;
   if (!s.candidates.length) {
     html += `<p class="fragile-note">${esc(s.reason || "상대가 없습니다")}</p>`;
   } else {
@@ -2905,13 +2920,19 @@ function renderGrid() {
     `<span title="이 입력으로 표를 짠 횟수 — 재생성 적용마다 1씩 늘고, 내려받는 파일 이름 끝에 _r2처럼 붙습니다">${ST.round}회차</span></p>` +
     // 범례 켜기 — 제목 줄 끝의 작은 체크 하나. 예전엔 '표 보기' 한 줄에 체크 넷(범례·빗금·집계 열 전체·그 밖 코드 줄)이 있었는데,
     // 나머지 셋은 늘 켜 두고 체크를 없앴다(사용자 2026-11-13: 혼자 한 줄 먹으면 안 된다). 범례만 색 18가지가 두 줄이라 접어 둔다.
-    `<label class="legend-toggle" title="근무 색과 표시(고정·미적용 편집·원티드·위반·수정주의근무)의 뜻, 누르는 법을 표 위에 펼칩니다">` +
+    // 체크 셋은 한 덩어리(.out-checks)다 — 폰에서는 셋이 연월 옆에 다 못 들어가므로 하나만 다음 줄로 떨어지지 않고 셋이 같이 내려간다.
+    `<span class="out-checks"><label class="legend-toggle" title="근무 색과 표시(고정·미적용 편집·원티드·위반·수정주의근무)의 뜻, 누르는 법을 표 위에 펼칩니다">` +
       `<input type="checkbox" data-view="legend"${viewOpt("legend") ? " checked" : ""}> 범례</label>` +
     // 수정주의근무 — 고치면 다른 규칙이 깨지는 칸에 줄무늬를 얹는다(진함 = 바꿀 수 없음, 옅음 = 맞교환으로만). 예전 이름은 '빗금'이었는데
     // 무늬의 이름이지 뜻이 아니라서 무엇을 켜는지 읽히지 않았다(사용자 2026-11-14). 하루 동안은 체크 없이 늘 켜 두었는데 표의 절반에
     // 무늬가 얹혀 촘촘했다 — 칸을 손으로 고칠 때만 켜면 된다. 기본은 꺼짐, 기기에 기억.
-    `<label class="legend-toggle" title="고치면 다른 규칙이 깨지는 칸을 표에 표시합니다 — 진한 무늬는 어느 근무로도 바꿀 수 없는 칸, 옅은 무늬는 맞교환으로만 바꿀 수 있는 칸">` +
-      `<input type="checkbox" data-view="hatch"${viewOpt("hatch") ? " checked" : ""}> 수정주의근무</label></span></div>` +
+    `<label class="legend-toggle" title="고치면 다른 규칙이 깨지는 칸을 표에 표시합니다 — 사선 무늬는 어느 근무로도 바꿀 수 없는 칸, 점무늬는 맞교환으로만 바꿀 수 있는 칸">` +
+      `<input type="checkbox" data-view="hatch"${viewOpt("hatch") ? " checked" : ""}> 수정주의근무</label>` +
+    // 추가검토 — 추가 검토(최선노력)에 걸린 칸의 노란 동그라미. 예전엔 늘 떠 있어서 한 달에 서른 군데쯤 점이 흩어졌고, 꼭 고쳐야 하는
+    // 필수 위반(빨간 삼각형)과 같은 무게로 보였다(사용자 2026-11-14: "너무 눈에 띄는 모양이라"). 기본은 꺼짐 — 보고 싶을 때만 켠다.
+    // '추가 검토' 탭의 목록과 '누르면 그 칸으로'는 체크와 상관없이 그대로다.
+    `<label class="legend-toggle" title="추가 검토(지키는 게 원칙이지만 인원 사정상 못 맞출 수 있는 항목)에 걸린 칸에 노란 동그라미를 표시합니다">` +
+      `<input type="checkbox" data-view="soft"${viewOpt("soft") ? " checked" : ""}> 추가검토</label></span></span></div>` +
     fileBarHtml() + `</div>`;
   if (lastConfigWarning) {
     html += `<p class="carry-warning">⚠ ${esc(lastConfigWarning)}</p>`;
@@ -2953,9 +2974,9 @@ function renderGrid() {
   html += `<span class="sw"><span style="outline:2px dashed var(--warn);width:13px;height:13px;display:inline-block"></span>미적용 편집</span>`;
   html += `<span class="sw"><span class="box wanted-swatch"></span>원티드 반영</span>`;
   html += `<span class="sw"><span class="viol-swatch viol-hard-swatch"></span>필수위반</span>`;
-  html += `<span class="sw"><span class="viol-swatch viol-soft-swatch"></span>추가 검토(최선노력)</span>`;
-  html += `<span class="sw"><span class="box fragile-row-swatch"></span>수정주의근무(진함) = 바꿀 수 없음</span>`;
-  html += `<span class="sw"><span class="box fragile-day-swatch"></span>수정주의근무(옅음) = 맞교환으로만</span>`;
+  html += `<span class="sw"><span class="viol-swatch viol-soft-swatch"></span>추가 검토('추가검토'를 켰을 때) · 맞교환 상대(찾는 동안)</span>`;
+  html += `<span class="sw"><span class="box fragile-row-swatch"></span>수정주의근무(사선) = 바꿀 수 없음</span>`;
+  html += `<span class="sw"><span class="box fragile-day-swatch"></span>수정주의근무(점무늬) = 맞교환으로만</span>`;
   if (ST.staff.some(s => s.is_designated)) html += `<span class="sw"><span class="desig-mark">지</span>지정 가능자</span>`;
   if (ST.staff.some(s => s.is_night_leader)) html += `<span class="sw"><span class="desig-mark nl-mark">밤</span>야간리더</span>`;
   html += `<span class="sw legend-tap">날짜를 누르면 그날 병동 · 이름을 누르면 한 달 여정 · 칸을 누르면 근무 바꾸기</span>`;
@@ -3085,6 +3106,7 @@ function renderGrid() {
   html += renderDailyLevelFootRows();
   html += "</tbody></table></div>";
   gridContent.innerHTML = html;
+  paintSwapMarks();     // 표를 다시 그려도 찾는 중인 맞교환 상대 표시는 남는다(SWAP이 비었으면 아무것도 안 붙는다)
   $("#backToInputBtn").onclick = () => {
     // 손으로 고친 칸(미적용 편집·되올린 수정본의 고정 칸)은 돌아가는 순간 사라지고,
     // 다시 생성해도 돌아오지 않는다 — 같은 입력이면 같은 근무표가 나오지만 고친 칸은
@@ -3371,6 +3393,7 @@ function setViewOpt(k, on) {
 function applyViewOpts() {
   gridContent.classList.toggle("legend-on", viewOpt("legend"));
   gridContent.classList.toggle("hatch-on", viewOpt("hatch"));   // 수정주의근무(옛 '빗금') — 꺼져 있으면 무늬만 감춘다(style.css)
+  gridContent.classList.toggle("soft-on", viewOpt("soft"));     // 추가검토 — 꺼져 있으면 노란 동그라미만 감춘다(칸의 표식은 그대로)
 }
 applyViewOpts();
 gridContent.addEventListener("change", (e) => {
@@ -3746,7 +3769,7 @@ document.getElementById("sidePane").addEventListener("change", (ev) => {
   const sec = $("#swapSec"); if (sec) sec.scrollIntoView({ block: "nearest" });
 });
 delegateClick(document.getElementById("sidePane"), "button.swap-close",
-  () => { SWAP = null; renderSide(); paintFragile(); });
+  () => { SWAP = null; renderSide(); paintFragile(); paintSwapMarks(); });
 delegateClick(document.getElementById("holidayCalendar"), "td[data-iso]",
   (td) => toggleHolidayDate(td.dataset.iso));
 
@@ -4990,7 +5013,7 @@ function renderSide() {
     <li style="background:var(--code-bg)">블록 길이 분포: ${esc(blockH)}</li>
     <li style="background:var(--code-bg)">블록 간격 분포: ${esc(gapH)}</li>
   </ul></div>`;
-  html += `<div class="side-sec"><h3>수정 전 확인</h3><p class="side-note">고치면 다른 규칙이 깨지는 칸입니다. 제목 옆 '수정주의근무'를 켜면 표에도 표시됩니다(진함 = 바꿀 수 없음, 옅음 = 맞교환으로만).</p><div id="fragileBox"></div></div>`;
+  html += `<div class="side-sec"><h3>수정 전 확인</h3><p class="side-note">고치면 다른 규칙이 깨지는 칸입니다. 제목 옆 '수정주의근무'를 켜면 표에도 표시됩니다(사선 = 바꿀 수 없음, 점무늬 = 맞교환으로만).</p><div id="fragileBox"></div></div>`;
 
   // 시도 점수표 — 시드마다 어떤 숫자로 견줘 어느 것을 골랐는지. 앞 열이 다르면 뒤 열은 보지 않는다
   // (운영 필수 → 숙련도 → 공평성 → 전체 하드, 2026-10-30 결정). 공평성은 주말·야간·D/E·원티드 미반영의 합(사람·일 수).
