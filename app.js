@@ -2633,7 +2633,7 @@ function paintFragile() {
   if (box && !FRAGILE.done) {
     const sec = FRAGILE.t0 ? Math.round((Date.now() - FRAGILE.t0) / 1000) : 0;
     box.innerHTML = `<p class="fragile-note">건드리면 안 되는 칸을 점검하는 중입니다… (40명 기준 약 10초${sec ? `, ${sec}초 경과` : ""}). ` +
-      `표의 <b>빗금 = 혼자서는 못 바꾸는 칸</b>이 차례로 얹힙니다.</p>`;
+      `제목 옆 <b>'수정 주의 칸'</b>을 켜면 혼자서는 못 바꾸는 칸이 표에 표시됩니다.</p>`;
   } else if (box) {
     const pct = FRAGILE.total ? Math.round(100 * FRAGILE.fixed / FRAGILE.total) : 0;
     const free = FRAGILE.total - FRAGILE.fixed;
@@ -2649,8 +2649,8 @@ function paintFragile() {
       : " — 대부분 칸은 혼자서도 바꿀 수 있습니다.";
     box.innerHTML =
       `<ul class="issue-list" style="font-size:12px">` +
-      `<li class="hard"><span class="rule">고정</span>${FRAGILE.row_fixed}칸 — 어느 근무로 바꿔도 그 사람 행의 규칙이 깨짐(맞교환도 불가, 진한 빗금)</li>` +
-      `<li class="soft"><span class="rule">교환만</span>${FRAGILE.swap_only}칸 — 혼자 바꾸면 그날 인원·숙련도 규칙이 깨짐(맞교환은 가능할 수 있음, 옅은 빗금)</li>` +
+      `<li class="hard"><span class="rule">고정</span>${FRAGILE.row_fixed}칸 — 어느 근무로 바꿔도 그 사람 행의 규칙이 깨짐(맞교환도 불가, 진한 무늬)</li>` +
+      `<li class="soft"><span class="rule">교환만</span>${FRAGILE.swap_only}칸 — 혼자 바꾸면 그날 인원·숙련도 규칙이 깨짐(맞교환은 가능할 수 있음, 옅은 무늬)</li>` +
       `<li class="none"><span class="rule">자유</span>${free}칸 — 혼자 바꿔도 새 필수 위반 없음</li>` +
       `</ul><p class="fragile-note">전체 ${FRAGILE.total}칸 중 ${pct}%가 혼자서는 못 바꾸는 칸${warn}</p>`;
   }
@@ -2839,12 +2839,19 @@ function renderGrid() {
   // 회차는 오른쪽 패널의 큰 숫자에서 여기로 내렸다 — 위반 수와 같은 무게로 볼 숫자가 아니다(GPT UI 검토 §04).
   const wardLabel = ST.ward_id ? `${esc(ST.ward_id)} · ` : "";
   let html = `<div class="out-head"><div class="out-title"><h2 class="output-title">2. 근무표 출력</h2>` +
-    `<p class="output-subtitle">${wardLabel}${ST.year}년 ${ST.month}월 · ${ST.staff.length}명 · ` +
+    // 연월 줄과 체크 둘은 한 덩어리(.out-sub)로 묶는다 — 좁은 화면에서 줄이 넘어갈 때 체크만 혼자 한 줄을 차지하지 않고
+    // 연월 옆에 붙어 내려간다(사용자 2026-11-14: 체크가 혼자 한 줄 먹으면 안 된다).
+    `<span class="out-sub"><p class="output-subtitle">${wardLabel}${ST.year}년 ${ST.month}월 · ${ST.staff.length}명 · ` +
     `<span title="이 입력으로 표를 짠 횟수 — 재생성 적용마다 1씩 늘고, 내려받는 파일 이름 끝에 _r2처럼 붙습니다">${ST.round}회차</span></p>` +
     // 범례 켜기 — 제목 줄 끝의 작은 체크 하나. 예전엔 '표 보기' 한 줄에 체크 넷(범례·빗금·집계 열 전체·그 밖 코드 줄)이 있었는데,
     // 나머지 셋은 늘 켜 두고 체크를 없앴다(사용자 2026-11-13: 혼자 한 줄 먹으면 안 된다). 범례만 색 18가지가 두 줄이라 접어 둔다.
-    `<label class="legend-toggle" title="근무 색과 표시(고정·미적용 편집·원티드·위반·빗금)의 뜻, 누르는 법을 표 위에 펼칩니다">` +
-      `<input type="checkbox" data-view="legend"${viewOpt("legend") ? " checked" : ""}> 범례</label></div>` +
+    `<label class="legend-toggle" title="근무 색과 표시(고정·미적용 편집·원티드·위반·수정 주의 칸)의 뜻, 누르는 법을 표 위에 펼칩니다">` +
+      `<input type="checkbox" data-view="legend"${viewOpt("legend") ? " checked" : ""}> 범례</label>` +
+    // 수정 주의 칸 — 고치면 다른 규칙이 깨지는 칸에 줄무늬를 얹는다(진함 = 바꿀 수 없음, 옅음 = 맞교환으로만). 예전 이름은 '빗금'이었는데
+    // 무늬의 이름이지 뜻이 아니라서 무엇을 켜는지 읽히지 않았다(사용자 2026-11-14). 하루 동안은 체크 없이 늘 켜 두었는데 표의 절반에
+    // 무늬가 얹혀 촘촘했다 — 칸을 손으로 고칠 때만 켜면 된다. 기본은 꺼짐, 기기에 기억.
+    `<label class="legend-toggle" title="고치면 다른 규칙이 깨지는 칸을 표에 표시합니다 — 진한 무늬는 어느 근무로도 바꿀 수 없는 칸, 옅은 무늬는 맞교환으로만 바꿀 수 있는 칸">` +
+      `<input type="checkbox" data-view="hatch"${viewOpt("hatch") ? " checked" : ""}> 수정 주의 칸</label></span></div>` +
     fileBarHtml() + `</div>`;
   if (lastConfigWarning) {
     html += `<p class="carry-warning">⚠ ${esc(lastConfigWarning)}</p>`;
@@ -2887,8 +2894,8 @@ function renderGrid() {
   html += `<span class="sw"><span class="box wanted-swatch"></span>원티드 반영</span>`;
   html += `<span class="sw"><span class="viol-swatch viol-hard-swatch"></span>필수위반</span>`;
   html += `<span class="sw"><span class="viol-swatch viol-soft-swatch"></span>추가 검토(최선노력)</span>`;
-  html += `<span class="sw"><span class="box fragile-row-swatch"></span>빗금 진함 = 고정 칸(수정 불가)</span>`;
-  html += `<span class="sw"><span class="box fragile-day-swatch"></span>빗금 옅음 = 맞교환으로만</span>`;
+  html += `<span class="sw"><span class="box fragile-row-swatch"></span>수정 주의 칸(진함) = 바꿀 수 없음</span>`;
+  html += `<span class="sw"><span class="box fragile-day-swatch"></span>수정 주의 칸(옅음) = 맞교환으로만</span>`;
   if (ST.staff.some(s => s.is_designated)) html += `<span class="sw"><span class="desig-mark">지</span>지정 가능자</span>`;
   if (ST.staff.some(s => s.is_night_leader)) html += `<span class="sw"><span class="desig-mark nl-mark">밤</span>야간리더</span>`;
   html += `<span class="sw legend-tap">날짜를 누르면 그날 병동 · 이름을 누르면 한 달 여정 · 칸을 누르면 근무 바꾸기</span>`;
@@ -3299,7 +3306,10 @@ function setViewOpt(k, on) {
   try { localStorage.setItem(VIEW_KEY, JSON.stringify(o)); } catch (e) { /* 기억만 못 할 뿐 */ }
   applyViewOpts();
 }
-function applyViewOpts() { gridContent.classList.toggle("legend-on", viewOpt("legend")); }
+function applyViewOpts() {
+  gridContent.classList.toggle("legend-on", viewOpt("legend"));
+  gridContent.classList.toggle("hatch-on", viewOpt("hatch"));   // 수정 주의 칸(옛 '빗금') — 꺼져 있으면 무늬만 감춘다(style.css)
+}
 applyViewOpts();
 gridContent.addEventListener("change", (e) => {
   const t = e.target;
@@ -4902,7 +4912,7 @@ function renderSide() {
     <li style="background:var(--code-bg)">블록 길이 분포: ${esc(blockH)}</li>
     <li style="background:var(--code-bg)">블록 간격 분포: ${esc(gapH)}</li>
   </ul></div>`;
-  html += `<div class="side-sec"><h3>수정 전 확인</h3><p class="side-note">고치면 다른 규칙이 깨지는 칸입니다. 표에는 빗금으로 표시됩니다(진함 = 바꿀 수 없음, 옅음 = 맞교환으로만).</p><div id="fragileBox"></div></div>`;
+  html += `<div class="side-sec"><h3>수정 전 확인</h3><p class="side-note">고치면 다른 규칙이 깨지는 칸입니다. 제목 옆 '수정 주의 칸'을 켜면 표에도 표시됩니다(진함 = 바꿀 수 없음, 옅음 = 맞교환으로만).</p><div id="fragileBox"></div></div>`;
 
   // 시도 점수표 — 시드마다 어떤 숫자로 견줘 어느 것을 골랐는지. 앞 열이 다르면 뒤 열은 보지 않는다
   // (운영 필수 → 숙련도 → 공평성 → 전체 하드, 2026-10-30 결정). 공평성은 주말·야간·D/E·원티드 미반영의 합(사람·일 수).
