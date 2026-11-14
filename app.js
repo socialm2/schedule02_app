@@ -2967,19 +2967,30 @@ function renderGrid() {
                        "연4":"#FFF2CC", "S/":"#9DC3E6", TW:"#A9D18E", "군":"#C9C9C9", "조":"#808080", "경":"#F4B6C2",
                        "공":"#D0CECE", "병":"#F8C9C4", "휴":"#BFBFBF", "승":"#DDEBF7"};
   const usedCodes = dutyColumns().filter(c => c !== "OFF" && legendColor[c]);
-  for (const k of usedCodes) html += `<span class="sw"><span class="box" style="background:${legendColor[k]}"></span>${esc(k)}</span>`;
-  html += `<span class="sw">/ = 오프 · X = 원티드오프</span>`;
-  html += `<span class="sw"><span style="outline:2px solid var(--hard);width:13px;height:13px;display:inline-block"></span>확정(고정)</span>`;
-  html += `<span class="sw"><span style="outline:2px dashed var(--warn);width:13px;height:13px;display:inline-block"></span>미적용 편집</span>`;
-  html += `<span class="sw"><span class="box wanted-swatch"></span>원티드 반영</span>`;
-  html += `<span class="sw"><span class="viol-swatch viol-hard-swatch"></span>필수위반</span>`;
-  html += `<span class="sw"><span class="viol-swatch viol-soft-swatch"></span>추가 검토</span>`;
-  html += `<span class="sw"><span class="viol-swatch swap-cand-swatch"></span>맞교환 상대(찾는 동안)</span>`;
-  html += `<span class="sw"><span class="box fragile-row-swatch"></span>수정주의근무 ✕ = 바꿀 수 없음</span>`;
-  html += `<span class="sw"><span class="box fragile-day-swatch"></span>수정주의근무 ⇄ = 맞교환으로만</span>`;
-  if (ST.staff.some(s => s.is_designated)) html += `<span class="sw"><span class="desig-mark">지</span>지정 가능자</span>`;
-  if (ST.staff.some(s => s.is_night_leader)) html += `<span class="sw"><span class="desig-mark nl-mark">밤</span>야간리더</span>`;
-  html += `<span class="sw legend-tap">날짜를 누르면 그날 병동 · 이름을 누르면 한 달 여정 · 칸을 누르면 근무 바꾸기</span>`;
+  // 범례는 줄마다 이름표가 붙은 작은 표다 — 근무 · 칸 표시 · 고칠 때 · 이름 옆 · 누르면. 보기 칸(.lg-s)은 표의 칸과 같은 CSS 규칙을
+  // 같이 쓴다(style.css에서 td.viol-hard::after, .lg-hard::after처럼 묶었다) — 표식을 바꾸면 범례도 저절로 따라온다.
+  // 예전엔 색 상자와 글을 한 줄에 줄줄이 이어 붙인 나열이라 무엇이 무엇의 설명인지 읽히지 않았다(사용자 2026-11-14: "안 예뻐, 안 깔끔").
+  // 보기 칸에 표의 클래스(td.viol-soft 등)를 쓰지 않는 이유: paintFragile·paintSwapMarks가 #gridContent의 그 클래스를 지우고 다시
+  // 붙이며, 화면 점검도 그 클래스로 표의 칸을 센다 — 범례의 보기가 섞이면 둘 다 틀린다.
+  const DARK_CODES = new Set(["N", "NK", "조"]);
+  const sample = (txt, cls, bg) => `<span class="lg-s ${cls || ""}"${bg ? ` style="background:${bg};color:${DARK_CODES.has(txt) ? "#fff" : "#1C2523"}"` : ""}>${esc(txt)}</span>`;
+  const item = (smp, label) => `<span class="lg-it">${smp}<span class="lg-t">${label}</span></span>`;
+  const row = (head, body) => `<div class="lg-row"><span class="lg-h">${head}</span><div class="lg-items">${body}</div></div>`;
+  const D = legendColor.D;
+  html += row("근무", usedCodes.map(k => sample(k, "", legendColor[k])).join("") +
+    item(sample("/", "lg-off"), "오프") + item(sample("X", "lg-off lg-want"), "원티드오프"));
+  html += row("칸 표시",
+    item(sample("D", "lg-want", D), "원티드 반영") + item(sample("D", "lg-lock", D), "확정(고정)") +
+    item(sample("D", "lg-pend", D), "고쳤지만 미적용") + item(sample("D", "lg-hard", D), "필수 위반") +
+    item(sample("D", "lg-soft", D), "추가 검토"));
+  html += row("고칠 때",
+    item(sample("D", "lg-x", D), "바꿀 수 없음") + item(sample("D", "lg-sw", D), "맞교환으로만") +
+    item(sample("D", "lg-cand", D), "맞교환 상대") +
+    `<span class="lg-note">✕·⇄는 제목 옆 '수정주의근무'를 켰을 때, 동그라미는 '맞교환 상대 찾기' 중에만</span>`);
+  const nameMarks = (ST.staff.some(s => s.is_designated) ? item(`<span class="desig-mark">지</span>`, "지정 가능자") : "") +
+                    (ST.staff.some(s => s.is_night_leader) ? item(`<span class="desig-mark nl-mark">밤</span>`, "야간리더") : "");
+  if (nameMarks) html += row("이름 옆", nameMarks);
+  html += row("누르면", `<span class="lg-it legend-tap"><span class="lg-t"><b>날짜</b> → 그날 병동 · <b>이름</b> → 한 달 여정 · <b>칸</b> → 근무 바꾸기</span></span>`);
   html += "</div>";
 
   // OCS 형식과 같은 계산열(잔휴·D/E/N·금월·Lv) — 전부 현재 화면 그리드(미적용 편집 포함)로
