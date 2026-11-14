@@ -586,7 +586,7 @@ td.sn.fragile-day span, td.sk.fragile-day span, td.sjo.fragile-day span { backgr
 /* 업로드 버튼(파일선택 겸용)과 양식(다운로드 링크) 버튼을 같은 크기로, 한 줄에 배치 */
 .upload-item .upload-row { display: flex; gap: 8px; flex-wrap: nowrap; margin-bottom: 4px; }
 /* 단추 위의 안내(무엇을 올리나)와 단추 아래의 요약(지금 무엇이 올라가 있나). 요약은 올라가 있으면 초록, 없으면 흐린 글씨. */
-.upload-item .upload-how { margin: 0 0 8px; }
+details.form-sec > p.upload-how { margin: 0; padding: 10px 14px 0; }
 .upload-item .file-sum { margin: 6px 0 6px; font-size: .78125rem; line-height: 1.45; color: var(--sub); word-break: keep-all; }
 .upload-item .file-sum.on { color: var(--ok); font-weight: 700; }
 .upload-item .file-sum:empty { display: none; }

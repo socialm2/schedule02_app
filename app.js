@@ -1839,12 +1839,6 @@ async function handleStaffTableFile(f) {
       updateTeamBCount();
     }
     clearUploadError(statusEl);
-    const kept = fromPrevMonth
-      ? `지난달 근무표(${prevRosterNames.length}명)로 이월정보만 반영 — 누적 통계는 이번 달부터 0에서 시작합니다`
-      : (staffFromWanted
-          ? `명단은 입력①(${formStaff.length}명) 기준 유지, 누적 통계·이월정보만 반영`
-          : `인원 ${formStaff.length}명, 누적 통계·이월정보 반영`);
-    const dep = (data.departed_names || []).length;
     const stranded = (data.rows_after_summary || []);
     // 전월잔휴는 이번 달 오프 배분의 출발점이라, 비어 있으면 0으로 보고 진행하되
     // 반드시 눈에 띄게 알려준다 — 조용히 0이 되면 그 사람만 오프가 밀리는데
@@ -1855,21 +1849,18 @@ async function handleStaffTableFile(f) {
     // 몇 명분을 읽었는지 한 줄 보여준다 — 아무 말이 없으면 확인이 된 건지 알 수 없다.
     const noPrev = fromPrevMonth ? [] : (data.prev_off_balance_missing || []);
     const prevColMissing = !fromPrevMonth && data.has_prev_off_balance_col === false;
-    const prevBalOk = !fromPrevMonth && !prevColMissing && noPrev.length === 0
-      ? `전월잔휴 ${(data.staff || []).length}명분 확인` : "";
     // 모르는 근무표기는 빈칸(=OFF)으로 읽힌다 — 조용히 넘어가면 그 사람의 연속근무일수·
     // 야간블록 이월이 틀어진 채로 다음 달이 만들어진다.
     const unknownCodes = data.unknown_grid_marks || [];
     renderUploadMessages(statusEl, data);
-    statusEl.textContent =
-      `${kept} (연간 근무표 ${data.annual_days}일치 포함)` +
-      (teamB.length ? `, B팀 ${teamB.length}명 인식` : "") +
-      (transferredInNames.length ? `, 전입(이력) ${transferredInNames.length}명 인식` : "") +
-      (dep ? `, 기존 전출자 ${dep}명 이력 보존` : "") +
+    // 평소의 긴 문장("명단은 입력① 기준 유지, 누적 통계·이월정보만 반영 (연간 근무표 n일치 포함), B팀 n명 인식, 전월잔휴 n명분
+    // 확인")은 적지 않는다(사용자 2026-11-14: 불필요). 몇 월까지·몇 명·며칠치는 단추 아래 요약 줄이 말하고, 명단이 어긋나면
+    // 아래 전입·전출 카드가 말한다. 여기 남기는 것은 **경고뿐**이다 — 전월잔휴가 비었다, 열이 없다, 못 읽은 표기·행이 있다.
+    // 이것들까지 빼면 조용히 0으로 읽힌 채 근무표가 나간다.
+    const warnText =
       (noBal.length
         ? ` — ⚠ 전월잔휴가 비어 있어 0으로 보고 진행합니다: ${noBal.length}명(${noBal.join(", ")}). 실제 잔휴가 있으면 파일의 '잔휴' 칸을 채워 다시 올려주세요.`
         : "") +
-      (prevBalOk ? `, ${prevBalOk}` : "") +
       (prevColMissing
         ? " — ⚠ 이 연간근무표에는 '전월잔휴' 열이 없습니다. 전원 0으로 보고 진행하니, 이번 달 출력②를 받아 그 칸을 채워 쓰시면 다음 달부터 이어집니다."
         : (noPrev.length
@@ -1881,6 +1872,11 @@ async function handleStaffTableFile(f) {
       (stranded.length
         ? ` — ⚠ 맨 아래 통계 줄 뒤의 행 ${stranded.length}건(${stranded.join(", ")})은 읽지 못했습니다. 사람 행은 통계 줄 위에 넣어주세요.`
         : "");
+    // OCS 지난달 근무표로 올린 경우의 한 줄은 남긴다 — 누적 통계가 0에서 시작한다는 것은 요약 줄에 없는 사실이다.
+    statusEl.textContent = [
+      fromPrevMonth ? "OCS 지난달 근무표로 이월정보만 반영했습니다 — 누적 통계는 이번 달부터 0에서 시작합니다" : "",
+      warnText.replace(/^ — /, ""),
+    ].filter(Boolean).join(" — ");
     if (noBal.length) {
       showToast(`전월잔휴가 비어 있는 인원 ${noBal.length}명은 0으로 보고 진행합니다 — 확인해주세요`, true);
     }
