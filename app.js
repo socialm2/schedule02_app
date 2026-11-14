@@ -2840,7 +2840,11 @@ function renderGrid() {
   const wardLabel = ST.ward_id ? `${esc(ST.ward_id)} · ` : "";
   let html = `<div class="out-head"><div class="out-title"><h2 class="output-title">2. 근무표 출력</h2>` +
     `<p class="output-subtitle">${wardLabel}${ST.year}년 ${ST.month}월 · ${ST.staff.length}명 · ` +
-    `<span title="이 입력으로 표를 짠 횟수 — 재생성 적용마다 1씩 늘고, 내려받는 파일 이름 끝에 _r2처럼 붙습니다">${ST.round}회차</span></p></div>` +
+    `<span title="이 입력으로 표를 짠 횟수 — 재생성 적용마다 1씩 늘고, 내려받는 파일 이름 끝에 _r2처럼 붙습니다">${ST.round}회차</span></p>` +
+    // 범례 켜기 — 제목 줄 끝의 작은 체크 하나. 예전엔 '표 보기' 한 줄에 체크 넷(범례·빗금·집계 열 전체·그 밖 코드 줄)이 있었는데,
+    // 나머지 셋은 늘 켜 두고 체크를 없앴다(사용자 2026-11-13: 혼자 한 줄 먹으면 안 된다). 범례만 색 18가지가 두 줄이라 접어 둔다.
+    `<label class="legend-toggle" title="근무 색과 표시(고정·미적용 편집·원티드·위반·빗금)의 뜻, 누르는 법을 표 위에 펼칩니다">` +
+      `<input type="checkbox" data-view="legend"${viewOpt("legend") ? " checked" : ""}> 범례</label></div>` +
     fileBarHtml() + `</div>`;
   if (lastConfigWarning) {
     html += `<p class="carry-warning">⚠ ${esc(lastConfigWarning)}</p>`;
@@ -2870,9 +2874,6 @@ function renderGrid() {
   // 보였다(2026-10-31 검토 C 1-7). 이름 옆 '지'·'밤' 배지와, 날짜·이름이 눌린다는 것도 여기 적는다
   // (툴팁은 폰에서 볼 수 없다, A-17).
   html += nightStageBar();
-  // 표 보기 옵션 넷(기기에 기억): 범례·빗금(고치면 깨지는 칸 표시)·집계 열 전체·그 밖 코드 줄. 전부 기본은 꺼짐 —
-  // 범례는 색 18가지가 두 줄을 차지해 표를 밀어냈고, 나머지는 늘 켜 두면 표가 그 표시에 묻힌다.
-  html += viewRowHtml();
   html += `<div class="legend legend-fold" id="legendFold">`;
   const legendColor = {D:"#BDD7EE", E:"#F8CBAD", N:"#1F3864", NK:"#7030A0", prn:"#C6E0B4", "8A":"#D9D9D9", "9A":"#BFBFBF",
                        "10A":"#A6A6A6", T:"#B4C7E7", "연차":"#FFE699", "연1":"#FFF2CC", "연2":"#FFF2CC", "연3":"#FFF2CC",
@@ -2909,15 +2910,15 @@ function renderGrid() {
   // 다운로드 엑셀의 '듀티별 횟수' 블록과 같은 순서·같은 셈법(코드가 적힌 날 수)이다.
   const dutyCols = dutyColumns();
   for (const code of dutyCols) {
-    html += `<th class="stat-col${tailX(code)}" title="${escAttr(`이번 달 ${code} 횟수(코드가 적힌 날 수)`)}">${esc(code)}</th>`;
+    html += `<th class="stat-col" title="${escAttr(`이번 달 ${code} 횟수(코드가 적힌 날 수)`)}">${esc(code)}</th>`;
   }
   html += '<th class="stat-col burden" title="주말·공휴일에 근무한 날 수">주말</th>' +
     '<th class="stat-col burden" title="이번 달 가장 길게 이어진 연속근무 일수(전월 말에서 이어진 것 포함). 상한을 넘으면 빨강">연속</th>' +
     '<th class="stat-col burden" title="야간 횟수 / 개인 목표(4 또는 6, 야간전담 15). 목표와 다르면 노랑">야간</th>';
   html +=
-    '<th class="stat-col col-x" title="병원 HR 전용 항목 — 이 앱은 값을 추적하지 않아 항상 빈칸입니다">®</th>' +
-    '<th class="stat-col col-x" title="병원 HR 전용 항목 — 이 앱은 값을 추적하지 않아 항상 빈칸입니다">ⓡ</th>' +
-    '<th class="stat-col col-x">금월</th><th class="stat-col col-x">Lv</th>';
+    '<th class="stat-col" title="병원 HR 전용 항목 — 이 앱은 값을 추적하지 않아 항상 빈칸입니다">®</th>' +
+    '<th class="stat-col" title="병원 HR 전용 항목 — 이 앱은 값을 추적하지 않아 항상 빈칸입니다">ⓡ</th>' +
+    '<th class="stat-col">금월</th><th class="stat-col">Lv</th>';
   html += "</tr></thead><tbody>";
 
   for (const s of ST.staff) {
@@ -2971,7 +2972,7 @@ function renderGrid() {
               ` data-pick="1" tabindex="0" role="button" aria-label="${escAttr(aria)}">` +
               `<span>${esc(shiftText(v, isWanted))}</span></td>`;
     }
-    html += dutyCols.map(code => `<td class="stat-col${tailX(code)}">${dutyCnt[code]}</td>`).join("");
+    html += dutyCols.map(code => `<td class="stat-col">${dutyCnt[code]}</td>`).join("");
     if (s.is_partjang) {
       html += '<td class="stat-col">–</td><td class="stat-col">–</td><td class="stat-col">–</td>';
     } else {
@@ -2987,8 +2988,8 @@ function renderGrid() {
         `<td class="stat-col burden${runCls}" data-burden="run" title="${escAttr(`최장 연속근무 ${b.maxRun}일 (상한 ${maxC}일)`)}">${b.maxRun}</td>` +
         `<td class="stat-col burden${nightCls}" data-burden="night" title="${escAttr((tgt == null ? `야간 ${b.nights}회` : `야간 ${b.nights}회 / 목표 ${tgt}회`) + (pv ? ` (지난달 ${pv.nights}회)` : ""))}">${nightTxt}</td>`;
     }
-    html += `<td class="stat-col col-x">–</td><td class="stat-col col-x">–</td>` +
-      `<td class="stat-col col-x">${holCount}</td><td class="stat-col col-x">${s.level}</td>`;
+    html += `<td class="stat-col">–</td><td class="stat-col">–</td>` +
+      `<td class="stat-col">${holCount}</td><td class="stat-col">${s.level}</td>`;
     html += "</tr>";
   }
   // B팀(신입) — 스케줄링에는 전혀 관여하지 않는 이름뿐인 목록이라 서버 grid에 없다.
@@ -3282,24 +3283,15 @@ function burdenOf(s, row) {
   return { weekend, maxRun, nights };
 }
 function blankTailCells() {
-  return dutyColumns().map(c => `<td class="stat-col${tailX(c)}">–</td>`).join("") +
-    '<td class="stat-col">–</td>'.repeat(BURDEN_COLS.length) + '<td class="stat-col col-x">–</td>'.repeat(4);
+  return dutyColumns().map(c => `<td class="stat-col">–</td>`).join("") +
+    '<td class="stat-col">–</td>'.repeat(BURDEN_COLS.length) + '<td class="stat-col">–</td>'.repeat(4);
 }
-// 오른쪽 집계 열 가운데 기본으로 보이는 것 — D·E·N·NK·OFF 횟수와 부담 셋(주말·연속·야간). 그 밖의 코드 횟수와
-// ®·ⓡ·금월·Lv는 '집계 열 전체'를 켰을 때만(col-x). 21열이 늘 떠 있으면 날짜 31열보다 통계가 더 눈에 띈다.
-const TAIL_BASIC = new Set(["D", "E", "N", "NK", "OFF"]);
-function tailX(code) { return TAIL_BASIC.has(code) ? "" : " col-x"; }
-
-// ---------------------------------------------------------------- 표 보기 옵션(기기에 기억)
-// 범례 펼침·빗금·집계 열 전체·그 밖 코드 줄. 값은 localStorage 한 칸에 두고, 표를 다시 그려도(칸을 고칠 때마다 그린다)
-// 그대로다. 표를 다시 짜지 않고 #gridContent의 클래스만 바꾼다 — 보기만 바뀌는 것이라 스크롤이 튀면 안 된다.
+// ---------------------------------------------------------------- 범례 펼침(기기에 기억)
+// 표 보기 옵션은 범례 하나만 남았다. 한나절 동안은 넷이었다(범례·빗금·집계 열 전체·그 밖 코드 줄 — 전부 기본 꺼짐).
+// 사용자가 나머지 셋은 늘 켜 두고 체크를 없애라고 했다(2026-11-13) — 숨겨 두니 있는 줄 모르는 숫자가 됐다. 숨기던 코드
+// (숨김 표식 col-x와 옵션 클래스·CSS)도 같이 걷어냈다. 값은 localStorage 한 칸(예전 키 그대로 — 옛 값의 다른 항목은 읽지 않는다).
+// 표를 다시 짜지 않고 #gridContent의 클래스만 바꾼다 — 보기만 바뀌는 것이라 스크롤이 튀면 안 된다.
 const VIEW_KEY = "ns_view_opts_v1";
-const VIEW_OPTS = [
-  ["legend", "범례", "근무 색과 표시(고정·미적용 편집·원티드·위반)의 뜻, 누르는 법을 표 위에 펼칩니다"],
-  ["hatch", "빗금", "고치면 다른 규칙이 깨지는 칸을 빗금으로 표시합니다 — 진한 빗금은 바꿀 수 없는 칸, 옅은 빗금은 맞교환으로만 바꿀 수 있는 칸"],
-  ["cols", "집계 열 전체", "오른쪽 집계에 8A·prn·연차 같은 나머지 근무 코드 횟수와 ®·ⓡ·금월·Lv 열까지 보입니다"],
-  ["rows", "그 밖 코드 줄", "맨 아래 통계에 최소인력에 안 세는 코드(OFF·연차·교육 등)의 날짜별 인원 줄까지 보입니다"],
-];
 function viewOpts() { try { return JSON.parse(localStorage.getItem(VIEW_KEY) || "{}") || {}; } catch (e) { return {}; } }
 function viewOpt(k) { return !!viewOpts()[k]; }
 function setViewOpt(k, on) {
@@ -3307,19 +3299,7 @@ function setViewOpt(k, on) {
   try { localStorage.setItem(VIEW_KEY, JSON.stringify(o)); } catch (e) { /* 기억만 못 할 뿐 */ }
   applyViewOpts();
 }
-function applyViewOpts() {
-  const o = viewOpts();
-  gridContent.classList.toggle("legend-on", !!o.legend);
-  gridContent.classList.toggle("hatch-on", !!o.hatch);
-  gridContent.classList.toggle("cols-all", !!o.cols);
-  gridContent.classList.toggle("rows-all", !!o.rows);
-}
-function viewRowHtml() {
-  const o = viewOpts();
-  return `<div class="view-row" id="viewRow"><span class="view-row-t">표 보기</span>` +
-    VIEW_OPTS.map(([k, name, tip]) => `<label title="${escAttr(tip)}"><input type="checkbox" data-view="${k}"${o[k] ? " checked" : ""}> ${name}</label>`).join("") +
-    `</div>`;
-}
+function applyViewOpts() { gridContent.classList.toggle("legend-on", viewOpt("legend")); }
 applyViewOpts();
 gridContent.addEventListener("change", (e) => {
   const t = e.target;
@@ -4922,7 +4902,7 @@ function renderSide() {
     <li style="background:var(--code-bg)">블록 길이 분포: ${esc(blockH)}</li>
     <li style="background:var(--code-bg)">블록 간격 분포: ${esc(gapH)}</li>
   </ul></div>`;
-  html += `<div class="side-sec"><h3>수정 전 확인</h3><p class="side-note">고치면 다른 규칙이 깨지는 칸입니다. 표 위 '빗금'을 켜면 표에도 표시됩니다.</p><div id="fragileBox"></div></div>`;
+  html += `<div class="side-sec"><h3>수정 전 확인</h3><p class="side-note">고치면 다른 규칙이 깨지는 칸입니다. 표에는 빗금으로 표시됩니다(진함 = 바꿀 수 없음, 옅음 = 맞교환으로만).</p><div id="fragileBox"></div></div>`;
 
   // 시도 점수표 — 시드마다 어떤 숫자로 견줘 어느 것을 골랐는지. 앞 열이 다르면 뒤 열은 보지 않는다
   // (운영 필수 → 숙련도 → 공평성 → 전체 하드, 2026-10-30 결정). 공평성은 주말·야간·D/E·원티드 미반영의 합(사람·일 수).

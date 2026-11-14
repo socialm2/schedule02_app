@@ -536,18 +536,12 @@ td.sn.fragile-day span, td.sk.fragile-day span, td.sjo.fragile-day span { backgr
   .file-bar .file-btn { min-height: 34px; min-width: 0; }
   .file-bar-note { text-align: left; }
 }
-/* 표 보기 옵션(빗금·집계 열 전체·그 밖 코드 줄)과 접힌 범례 — 한 줄에 작은 글씨로. */
-.view-row { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 14px; margin: 2px 0 2px; font-size: .75rem; color: var(--sub); }
-.view-row .view-row-t { font-weight: 700; }
-.view-row label { display: inline-flex; align-items: center; gap: 5px; min-height: 30px; cursor: pointer; }
-.view-row input { margin: 0; }
+/* 범례 켜기 — 제목 줄(.out-title) 끝의 작은 체크 하나. 혼자 한 줄을 차지하지 않는다. 범례 자체는 켰을 때만 표 위에 펼쳐진다. */
+.legend-toggle { display: inline-flex; align-items: center; gap: 4px; font-size: .71875rem; font-weight: 600; color: var(--sub);
+  cursor: pointer; white-space: nowrap; padding: 2px 0; }
+.legend-toggle input { margin: 0; width: 14px; height: 14px; }
 .legend.legend-fold { margin: 2px 0 8px; }
 #gridContent:not(.legend-on) .legend-fold { display: none; }
-/* 보기 옵션이 꺼져 있을 때 숨기는 것 — 나머지 집계 열(col-x), 최소인력에 안 세는 코드 줄(duty-other), 빗금 */
-#gridContent:not(.cols-all) .col-x { display: none; }
-#gridContent:not(.rows-all) tr.duty-other { display: none; }
-#gridContent:not(.hatch-on) td.fragile-row span, #gridContent:not(.hatch-on) td.fragile-day span { background-image: none !important; }
-@media (max-width: 680px) { .view-row label { min-height: 36px; } }
 .carry-warning { font-size: .8125rem; color: var(--hard); background: var(--hard-soft);
   border-radius: 8px; padding: 8px 12px; margin: 0 0 12px; font-weight: 600; }
 .status-banner { font-size: .78125rem; border-radius: 8px; padding: 8px 12px;
@@ -1021,7 +1015,7 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
   html, body, #app, #main, #gridPane { height: auto !important; min-height: 0 !important; overflow: visible !important; }
   html, body { background: #fff !important; color: #000; }   /* html의 --paper가 마지막 쪽 빈 곳을 회색으로 칠했다 */
   #authGate, #loadingOverlay, #genOverlay, .toast, .picker, .modal-backdrop,
-  header button, header .spacer, #sidePane, #backToInputBtn, .file-bar-wrap, .view-row, .legend-fold,
+  header button, header .spacer, #sidePane, #backToInputBtn, .file-bar-wrap, .legend-toggle, .legend-fold,
   .carry-warning, .tap-hint, #monthInput { display: none !important; }
   header { border-bottom: 1px solid #000; padding: 0 0 4px; background: none; }
   #main { display: block; }
