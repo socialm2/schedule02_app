@@ -1216,8 +1216,10 @@ header #infoBtn, header .sign-out {
 /* 폰: '근무표 생성' 줄을 화면 아래에 붙인다(sticky) — 입력 묶음이 길어 버튼이 첫 화면에 안 보였다.
    빨간 안내(.gen-error)도 같은 줄에 들어오므로 너무 길면 안에서 스크롤한다. */
 @media (max-width: 680px) {
+  /* 바탕은 이 줄이 든 상자(.upload-section)와 같은 색이어야 한다. 흰색(--card)으로 깔았더니 회색 상자 안에서 버튼 둘레에
+     흰 띠가 보였다(사용자 2026-11-14, 폰 세로·밝은 테마). 바탕을 빼면 화면 아래에 붙었을 때 뒤로 지나가는 글자가 비친다. */
   .generate-row {
-    position: sticky; bottom: 0; z-index: 6; background: var(--card);
+    position: sticky; bottom: 0; z-index: 6; background: var(--code-bg);
     padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); margin-bottom: -8px;
     box-shadow: 0 -8px 16px -10px rgba(0,0,0,.25);
   }
