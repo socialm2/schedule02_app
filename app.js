@@ -5042,7 +5042,7 @@ function renderSide() {
   // 버튼인지 알 수 없었다, 2026-11-11). 월간 보고서는 실험 기능이라 표 위 파일 줄이 아니라 여기 둔다(사용자 2026-11-13 —
   // 한나절 파일 줄에 있었다). 적용 안 한 편집이 있으면 못 받는 것은 출력①②와 같다.
   html += `<div class="side-sec side-exp"><h3>도움말 · 기타</h3><div class="exp-list">` +
-    `<button class="exp-item" id="expMagBtn" onclick="if (confirmDownloadWithViolations()) downloadMagazine()"${hasPending ? " disabled" : ""} ` +
+    `<button class="exp-item" id="expMagBtn" onclick="if (confirmDownloadWithViolations()) downloadMagazine()"${hasPending || ST.night_stage ? " disabled" : ""} ` +
       `title="검증·일별 인원·주말 명단·사람별 집계·부담·원티드·고정 칸·야간·점수표·처리 기록을 한 파일(HTML)에 — 열어서 인쇄하면 PDF">` +
       `<span class="exp-name">월간 보고서 받기</span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
     // 문의 파일 받기·관리자 모드 — 설명서(📘) 창 맨 아래 '도움' 줄과 같은 창을 연다. 문의는 적용 안 한 편집이 있어도 받을 수
@@ -5236,6 +5236,9 @@ function renderFairScore() {
 const FAIR_W_KEY = "ns_fair_weights_v1";
 function fairWeightsStored() { try { return JSON.parse(localStorage.getItem(FAIR_W_KEY) || "null") || null; } catch (e) { return null; } }
 function fairWeightsRemember(axes, fatigue) {
+  // 관리자 모드에서 만진 가중치는 남의 문의를 보려고 바꾼 것이다 — 내 기기에 남기면 모드를 끝낸 뒤 내 점수 기준이 달라져 있다
+  // (설정·공지 기준본 저장은 막혀 있었는데 이것만 빠져 있었다, GPT 배포 전 검증 F03 2026-11-14).
+  if (VOC_VIEW) return;
   try { if (!axes && !fatigue) localStorage.removeItem(FAIR_W_KEY); else localStorage.setItem(FAIR_W_KEY, JSON.stringify({ axes, fatigue })); } catch (e) { /* 기억만 못 할 뿐 */ }
 }
 async function applyFairWeights(reset) {
