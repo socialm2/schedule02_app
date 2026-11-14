@@ -2709,8 +2709,8 @@ function paintFragile() {
       : " — 대부분 칸은 혼자서도 바꿀 수 있습니다.";
     box.innerHTML =
       `<ul class="issue-list" style="font-size:12px">` +
-      `<li class="hard"><span class="rule">고정</span>${FRAGILE.row_fixed}칸 — 어느 근무로 바꿔도 그 사람 행의 규칙이 깨짐(맞교환도 불가, 사선 무늬)</li>` +
-      `<li class="soft"><span class="rule">교환만</span>${FRAGILE.swap_only}칸 — 혼자 바꾸면 그날 인원·숙련도 규칙이 깨짐(맞교환은 가능할 수 있음, 점무늬)</li>` +
+      `<li class="hard"><span class="rule">고정</span>${FRAGILE.row_fixed}칸 — 어느 근무로 바꿔도 그 사람 행의 규칙이 깨짐(맞교환도 불가, 칸 왼쪽 사선 띠)</li>` +
+      `<li class="soft"><span class="rule">교환만</span>${FRAGILE.swap_only}칸 — 혼자 바꾸면 그날 인원·숙련도 규칙이 깨짐(맞교환은 가능할 수 있음, 칸 왼쪽 점 띠)</li>` +
       `<li class="none"><span class="rule">자유</span>${free}칸 — 혼자 바꿔도 새 필수 위반 없음</li>` +
       `</ul><p class="fragile-note">전체 ${FRAGILE.total}칸 중 ${pct}%가 혼자서는 못 바꾸는 칸${warn}</p>`;
   }
@@ -2926,7 +2926,7 @@ function renderGrid() {
     // 수정주의근무 — 고치면 다른 규칙이 깨지는 칸에 줄무늬를 얹는다(진함 = 바꿀 수 없음, 옅음 = 맞교환으로만). 예전 이름은 '빗금'이었는데
     // 무늬의 이름이지 뜻이 아니라서 무엇을 켜는지 읽히지 않았다(사용자 2026-11-14). 하루 동안은 체크 없이 늘 켜 두었는데 표의 절반에
     // 무늬가 얹혀 촘촘했다 — 칸을 손으로 고칠 때만 켜면 된다. 기본은 꺼짐, 기기에 기억.
-    `<label class="legend-toggle" title="고치면 다른 규칙이 깨지는 칸을 표에 표시합니다 — 사선 무늬는 어느 근무로도 바꿀 수 없는 칸, 점무늬는 맞교환으로만 바꿀 수 있는 칸">` +
+    `<label class="legend-toggle" title="고치면 다른 규칙이 깨지는 칸을 표에 표시합니다 — 칸 왼쪽의 사선 띠는 어느 근무로도 바꿀 수 없는 칸, 점 띠는 맞교환으로만 바꿀 수 있는 칸">` +
       `<input type="checkbox" data-view="hatch"${viewOpt("hatch") ? " checked" : ""}> 수정주의근무</label></span></span></div>` +
     // (2026-11-14 한나절 동안 여기에 '추가검토' 체크가 있었다 — 추가 검토 표식을 켜고 끄는. 같은 날 없앴다: 표식을 눈에 덜 띄는
     //  밑줄로 바꾸고 늘 보이게 했다. 뜻은 범례에 있다.)
@@ -2973,8 +2973,8 @@ function renderGrid() {
   html += `<span class="sw"><span class="viol-swatch viol-hard-swatch"></span>필수위반</span>`;
   html += `<span class="sw"><span class="viol-swatch viol-soft-swatch"></span>추가 검토(밑줄)</span>`;
   html += `<span class="sw"><span class="viol-swatch swap-cand-swatch"></span>맞교환 상대(찾는 동안)</span>`;
-  html += `<span class="sw"><span class="box fragile-row-swatch"></span>수정주의근무(사선) = 바꿀 수 없음</span>`;
-  html += `<span class="sw"><span class="box fragile-day-swatch"></span>수정주의근무(점무늬) = 맞교환으로만</span>`;
+  html += `<span class="sw"><span class="box fragile-row-swatch"></span>수정주의근무(사선 띠) = 바꿀 수 없음</span>`;
+  html += `<span class="sw"><span class="box fragile-day-swatch"></span>수정주의근무(점 띠) = 맞교환으로만</span>`;
   if (ST.staff.some(s => s.is_designated)) html += `<span class="sw"><span class="desig-mark">지</span>지정 가능자</span>`;
   if (ST.staff.some(s => s.is_night_leader)) html += `<span class="sw"><span class="desig-mark nl-mark">밤</span>야간리더</span>`;
   html += `<span class="sw legend-tap">날짜를 누르면 그날 병동 · 이름을 누르면 한 달 여정 · 칸을 누르면 근무 바꾸기</span>`;
@@ -5010,7 +5010,7 @@ function renderSide() {
     <li style="background:var(--code-bg)">블록 길이 분포: ${esc(blockH)}</li>
     <li style="background:var(--code-bg)">블록 간격 분포: ${esc(gapH)}</li>
   </ul></div>`;
-  html += `<div class="side-sec"><h3>수정 전 확인</h3><p class="side-note">고치면 다른 규칙이 깨지는 칸입니다. 제목 옆 '수정주의근무'를 켜면 표에도 표시됩니다(사선 = 바꿀 수 없음, 점무늬 = 맞교환으로만).</p><div id="fragileBox"></div></div>`;
+  html += `<div class="side-sec"><h3>수정 전 확인</h3><p class="side-note">고치면 다른 규칙이 깨지는 칸입니다. 제목 옆 '수정주의근무'를 켜면 표에도 표시됩니다(칸 왼쪽의 사선 띠 = 바꿀 수 없음, 점 띠 = 맞교환으로만).</p><div id="fragileBox"></div></div>`;
 
   // 시도 점수표 — 시드마다 어떤 숫자로 견줘 어느 것을 골랐는지. 앞 열이 다르면 뒤 열은 보지 않는다
   // (운영 필수 → 숙련도 → 공평성 → 전체 하드, 2026-10-30 결정). 공평성은 주말·야간·D/E·원티드 미반영의 합(사람·일 수).
