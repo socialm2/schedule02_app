@@ -565,7 +565,7 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 바뀝니다(다운로드도 그 표). <b>🔍 꼼꼼히 만들기</b>를 켜고 생성하면 평소 3개 만들어 고르던 것을 9개 만들어 고릅니다 — 위반이 남는 달에
 켜 보세요(일반 생성보다 오래 걸리고, 빠듯한 달은 1~2분. 진행 중 '여기까지 결과로 멈추기' 가능).</li>
 <li><b>🌙 야간 먼저(N only)</b> — 생성 버튼 아래 '만드는 방법'에서 고르면 두 단계로 만듭니다. 1단계는 야간(N·NK)만 보이고 야간을 넣거나 빼는 것만 됩니다(다른 근무로 바꾸기·맞교환은 확정 뒤에).
-위반 숫자·'필수 위반'·'추가 검토' 탭도 야간 관련 항목만, 형평성은 '야간 균등'만 셉니다. 야간을 고친 뒤 표 위의 <b>야간 확정 → 나머지 짜기</b>를
+위반 숫자·'필수 위반'·'추가 검토' 탭도 야간 관련 항목만, 형평성은 '야간 균등'만 셉니다(이 단계에서는 출력①②를 받을 수 없습니다). 야간을 고친 뒤 표 위의 <b>야간 확정 → 나머지 짜기</b>를
 누르면 야간과 그 뒤 쉬는 이틀·수면오프(S/)를 고정하고 나머지를 짭니다. 확정 뒤에는 재생성·편집 적용에도 야간이 그대로이고,
 지워서 모자란 야간은 다른 사람으로 메우지 않고 빨간 필수 위반으로 남습니다('야간 다시 고치기'로 돌아가 직접 채웁니다).</li>
 <li><b>오른쪽 패널은 탭 다섯</b> — 형평성 · 필수 위반 · 추가 검토 · 원티드 · 상세 자료. 맨 위에 붙어 있고 누르면 그 내용이 나타납니다(폰은 화면 맨 위에 붙는 띠 하나).
@@ -610,7 +610,7 @@ NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니�
 <b>원티드 결과</b>는 따로 '원티드' 탭에 있습니다 — 단추에 반영/전체 건수가 보이고, 누르면 미반영부터 사유와 함께 전체가 나옵니다.</li>
 <li><b>'형평성' 탭 단추의 숫자</b> — 100점 만점 한 숫자입니다. 칸을 고치는 동안(미적용 편집)에는 "원래 → 수정 후"가 같이 떠서
 고치면 점수가 어떻게 되는지 바로 보이고, 적용하거나 취소하면 한 숫자로 돌아옵니다. 점수는 참고용이라 낮아도 막지 않습니다 —
-연휴·휴가·교육·개인 요청 같은 병동 사정은 파트장이 알고 있으니 그대로 두거나 고치면 됩니다. 다운로드한 출력① 엑셀(일반·OCS 양식 모두)
+연휴·휴가·교육·개인 요청 같은 병동 사정은 파트장이 알고 있으니 그대로 두거나 고치면 됩니다. 다운로드한 출력① 엑셀
 맨 아래와 월간 근무 보고 5-1절에도 같은 점수가 실립니다(엑셀의 값은 내려받은 시점 것이라 파일에서 칸을 고쳐도 바뀌지 않습니다).</li>
 <li><b>누적 형평 · 변경 최소성 · 가중치</b> — 연간근무표(입력②)를 올렸으면 형평성 점수 칸에 최근 6개월(파일에 있는 만큼)의
 <b>적정 몫 대비 초과</b>가 붙습니다. 달마다 적정 몫 = 집단이 실제로 선 주말(야간) 총량 × 내 기회(휴가가 아닌 주말 수·가능일) ÷ 집단 기회 합이고,
@@ -840,9 +840,11 @@ window.applyUploadedMonth = async function (f) {
       for (let i = 0; i < b.length; i++) if ((a[i] || "") !== (b[i] || "")) moved++;
     }
     ST = next;
-    uploadedMonthRound = next.round;
+    // 바뀐 칸이 없으면 '수정본이 반영되었습니다 — 어떻게 할까요?' 카드를 띄우지 않는다 — "바뀐 칸이 없습니다"와 나란히 떠서
+    // 반영됐다는 건지 안 됐다는 건지 알 수 없었다(2026-11-14 화면 훑기).
+    uploadedMonthRound = moved ? next.round : -1;
     render();
-    showToast(moved ? `${moved}칸을 화면에 반영했습니다` : "바뀐 칸이 없습니다");
+    showToast(moved ? `${moved}칸을 화면에 반영했습니다` : "바뀐 칸이 없습니다 — 화면의 근무표와 같은 파일입니다");
   } catch (e) {
   } finally {
     hideGenOverlay();
@@ -850,6 +852,7 @@ window.applyUploadedMonth = async function (f) {
 };
 
 window.downloadXlsxOcs = () => apiDownload("xlsx_ocs");
+window.gotoPending = () => { const el = $("#pendingSec"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); };
 // 출력②를 받으면 '다음 달 준비' 카드를 켠다 — 그 파일이 다음 달 입력②라는 것을 받은 그 자리에서 말한다.
 window.downloadStaffTable = async () => { await apiDownload("staff_table"); nextMonthCardOn = true; renderNextMonthCard(); };
 
@@ -1086,7 +1089,11 @@ function renderWantedYmNote() {
     `근무표는 화면 연월로 만들고, 신청은 날짜의 '일'만 보고 ${sc.month}월에 적용합니다` +
     (wantedDropped.length ? `(${sc.month}월에 없는 날짜 ${wantedDropped.length}건은 뺐습니다)` : "") + `. ` +
     `<button type="button" class="small note-btn" id="wantedYmFixBtn">화면을 ${wantedYM.year}년 ${wantedYM.month}월로 맞추기</button>`;
-  $("#wantedYmFixBtn").onclick = () => { setFormYearMonth(wantedYM.year, wantedYM.month); rebaseWantedToScreen(); renderSourceBadges(); };
+  $("#wantedYmFixBtn").onclick = () => {
+    const y = wantedYM.year, mo = wantedYM.month;
+    setFormYearMonth(y, mo); rebaseWantedToScreen(); renderSourceBadges();
+    showToast(`화면 연월을 입력①과 같은 ${y}년 ${mo}월로 맞췄습니다`);
+  };
 }
 // 입력②의 같은 줄 — 몇 월까지의 근무표인지, 몇 명·며칠치인지. 숫자는 Worker가 지금 들고 있는 것(staff_table_status)이다.
 let staffTableInfo = null;   // {staff_count, annual_days} — refreshStaffTableStatus가 채운다
@@ -1703,7 +1710,11 @@ function staffTableLinked() {
   const m = /^(\d{4})-(\d{2})/.exec(String(staffTableLastDate || ""));
   const y = parseInt($("#f_year").value, 10), mo = parseInt($("#f_month").value, 10);
   if (!staffTableLoaded || !m || !(y > 0) || !(mo >= 1 && mo <= 12)) return null;
-  return Number(m[1]) === (mo === 1 ? y - 1 : y) && Number(m[2]) === (mo === 1 ? 12 : mo - 1);
+  if (!(Number(m[1]) === (mo === 1 ? y - 1 : y) && Number(m[2]) === (mo === 1 ? 12 : mo - 1))) return false;
+  // 전달이 맞아도 말일까지 이어져 있어야 이월정보를 쓴다(엔진 carryover_from_staff_table과 같은 기준) — 11월 29일에서 끝난
+  // 파일은 생성 뒤에야 "이어져 있지 않아 반영되지 않았습니다"가 떴고, 올린 자리에서는 초록 ✓였다(2026-11-14 오입력 검증).
+  const d = /^\d{4}-\d{2}-(\d{2})/.exec(String(staffTableLastDate));
+  return !d || Number(d[1]) === new Date(Number(m[1]), Number(m[2]), 0).getDate();
 }
 function renderStaffTableYmNote() {
   const el = $("#staffTableYmNote");
@@ -1715,7 +1726,10 @@ function renderStaffTableYmNote() {
   el.style.display = "";
   // 문제와 할 일만 짧게. 정상 상태의 '반영 해제' 단추는 숨겨져 있으므로(2026-11-10) 잘못 올린 파일을 빼는 단추를 여기 둔다 —
   // 한때 이 글이 "'반영 해제'하고 만드세요"라고 했는데 화면에 그 단추가 없었다.
-  el.innerHTML = `⚠ <b>${Number(m[1])}년 ${Number(m[2])}월까지</b>의 근무표입니다 — ${y}년 ${mo}월의 바로 전달(${pm}월)이 아니라 이월정보를 쓰지 못합니다. ` +
+  const sameMonth = Number(m[2]) === pm, dd = /^\d{4}-\d{2}-(\d{2})/.exec(String(staffTableLastDate));
+  el.innerHTML = (sameMonth && dd
+      ? `⚠ <b>${pm}월 ${Number(dd[1])}일까지</b>만 들어 있는 근무표입니다 — ${pm}월 말일까지 이어져야 이월정보(연속근무·야간 뒤 휴식)를 씁니다. `
+      : `⚠ <b>${Number(m[1])}년 ${Number(m[2])}월까지</b>의 근무표입니다 — ${y}년 ${mo}월의 바로 전달(${pm}월)이 아니라 이월정보를 쓰지 못합니다. `) +
     `${pm}월분 출력②(없으면 OCS ${pm}월 근무표)로 다시 올리세요. 써 보는 중이면 '예시(다운로드)'를 다시 받으면 맞는 예시가 옵니다. ` +
     `<button type="button" class="small note-btn" id="staffTableDropBtn">이 파일 빼기</button>`;
   $("#staffTableDropBtn").onclick = () => clearStaffTable();
@@ -3068,7 +3082,9 @@ function renderGrid() {
     if (edited && !confirm(
         `손으로 고친 칸이 ${(ST.pending || []).length + (ST.locked || []).length}개 있습니다 — ` +
         `입력으로 돌아가면 이 수정은 사라지고, 다시 생성해도 돌아오지 않습니다.\n` +
-        `남겨두려면 먼저 "재생성 적용" 뒤 내려받아 두세요.\n\n그래도 돌아가시겠습니까?`)) return;
+        ((ST.pending || []).length ? `남겨두려면 먼저 "재생성 적용" 뒤 내려받아 두세요.`
+                                    : `출력①②를 아직 안 받으셨다면 먼저 내려받아 두세요.`) +
+        `\n\n그래도 돌아가시겠습니까?`)) return;
     ST = null;
     gridContent.style.display = "none";
     gridContent.innerHTML = "";
@@ -3171,7 +3187,7 @@ function sideTabItems() {
     }
   }
   return [
-    { tab: "fair", extra: " fair-strip", ...fair },
+    { tab: "fair", extra: " fair-strip" + (ST && ST.fair_edited ? " editing" : ""), ...fair },
     { tab: "hard", label: "필수 위반", v: String(r.hard_count), cls: r.hard_count ? "bad" : "ok", title: "필수 위반과 인력 미달" },
     { tab: "soft", label: "추가 검토", v: String(soft), cls: soft ? "warn" : "", title: "원칙이지만 인원 사정상 못 맞출 수 있는 항목" },
     // 원티드 — 신청 중 몇 건이 반영됐나(반영/전체). '상세 자료' 안에 접혀 있던 것을 따로 뺐다(사용자 2026-11-13: "중요해") —
@@ -3357,7 +3373,11 @@ gridContent.addEventListener("change", (e) => {
 // 단추 높이는 옆의 제목 글자 줄에 맞춘다 — 두 줄 높이 상자가 제목보다 커서 머리줄이 표를 밀었다.
 // 적용 안 한 편집이 있으면 못 받는 것은 그대로.
 function fileBarHtml() {
-  const hasPending = (ST.pending || []).length > 0, dis = hasPending ? " disabled" : "";
+  // 받을 수 없는 두 경우 — ① 적용 안 한 편집이 있다 ② 야간 먼저 1단계다. ②는 화면에 야간만 보이는데 파일에는 주간까지 다
+  // 들어 있고(2단계에서 다시 짜일 값), 위반 숫자도 야간 것만 세는 동안이라 '필수 위반이 남았습니다' 확인도 안 뜬다 —
+  // 야간 0건으로 보이는 표에서 주간 최소인력이 모자란 파일이 묻지도 않고 받아졌다(2026-11-14 화면 훑기).
+  const hasPending = (ST.pending || []).length > 0, nightOnly = !!ST.night_stage;
+  const dis = hasPending || nightOnly ? " disabled" : "";
   let html = `<div class="file-bar-wrap"><div class="file-bar" id="sideDownload" role="group" aria-label="되올리기 · 파일 받기">` +
     // 순서: 되올리기 · 입력으로 | 출력① · 출력②. 좁은 화면에서는 두 줄 두 칸으로 선다 — 윗줄이 '화면으로 들이는 것·돌아가는 것',
     // 아랫줄이 '받는 것 둘'. 예전 순서(되올리기 · 출력① / 출력② · 입력으로)는 줄이 넘어갈 때 너비가 제각각인 단추가 섞여
@@ -3366,7 +3386,10 @@ function fileBarHtml() {
     `<button id="backToInputBtn" class="file-btn sub" title="입력 화면으로 돌아가 새로 만듭니다">← 입력으로</button>` +
     `<button class="file-btn" onclick="if (confirmDownloadWithViolations()) downloadXlsxOcs()"${dis} title="이번 달 근무표 — 엑셀에서 고쳐 되올릴 수 있습니다"><span class="io-tag">출력①</span>월간근무표</button>` +
     `<button class="file-btn" onclick="if (confirmDownloadWithViolations()) downloadStaffTable()"${dis} title="다음 달 입력②로 올리는 파일"><span class="io-tag">출력②</span>연간근무표</button></div>` +
-    (hasPending ? `<p class="hint file-bar-note">적용 안 한 편집이 있어 파일을 받을 수 없습니다 — '재생성 적용' 뒤에 받을 수 있습니다.</p>` : "") +
+    (nightOnly ? `<p class="hint file-bar-note">야간만 보이는 1단계에서는 파일을 받을 수 없습니다 — '야간 확정 → 나머지 짜기'(또는 '전체 보기로') 뒤에 받을 수 있습니다.</p>`
+     : hasPending ? `<p class="hint file-bar-note">적용 안 한 편집이 있어 파일을 받을 수 없습니다 — '재생성 적용' 뒤에 받을 수 있습니다.` +
+       // 폰에서는 '재생성 적용'이 표 40행 아래(패널)에 있어 고친 뒤 어디로 가야 하는지 화면에 없었다 — 여기서 데려간다(style.css: 폰에서만 보인다)
+       ` <button type="button" class="small note-btn goto-pending" onclick="gotoPending()">적용하러 가기 ↓</button></p>` : "") +
     `<div id="nextMonthCard"></div>`;
   if (monthUploadJustApplied()) {
     // 올린 직후에만 두 갈래를 띄운다. 평소에 늘 떠 있으면 '재생성'이 눌리기 쉬운데,
@@ -3590,7 +3613,7 @@ function renderDailyLevelFootRows() {
   };
   // B팀 구분행과 같은 스타일로, 통계 3행 위에도 제목 행을 붙인다.
   const totalCols = 3 + ST.num_days + tailStatCount();  // 이름 + 잔휴2 + 날짜 + 계산열
-  const divider = `<tr class="team-b-divider"><td colspan="${totalCols}">통계 · 날짜별 인원(파트장 제외) — 빨강 미달 · 노랑 초과 · 점선 아래는 최소인력에 안 세는 코드 · 고연차/저연차 줄은 빨강 고연차 없음 · 노랑 고연차 1명뿐</td></tr>`;
+  const divider = `<tr class="team-b-divider"><td colspan="${totalCols}">통계 · 날짜별 인원(파트장 제외) — 빨강 미달 · 노랑 초과 · 점선 아래는 최소인력에 안 세는 코드 · 고연차/저연차 줄은 빨강 고연차 없음 · 노랑 고연차 1명뿐(0/n 노랑 = 고연차 없이 야간리더가 맡음)</td></tr>`;
   return divider +
     renderDailyStaffCountRows(foot) +
     LEVEL_FOOT_LABELS.map(rowHtml).join("");
@@ -4656,6 +4679,14 @@ document.addEventListener("scroll", (ev) => {
   if (Date.now() - pickerOpenedAt < 250) return;
   closePicker();
 }, true);
+// 화면을 돌리면(가로↔세로) 근무 고르기 상자는 닫는다 — 열 때의 너비·자리 그대로 남아 360px에서는 화면 밖으로 삐져나가고
+// 제목이 한 글자씩 줄바꿈됐다(2026-11-14 화면 훑기). 너비가 바뀔 때만 닫는다: 폰은 주소창이 접힐 때도 resize가 온다(높이만 바뀐다).
+let pickerViewportW = window.innerWidth;
+window.addEventListener("resize", () => {
+  if (window.innerWidth === pickerViewportW) return;
+  pickerViewportW = window.innerWidth;
+  if (picker) closePicker();
+});
 function closePicker() {
   // 포커스를 상자 안에 둔 채로 지우면 body로 튄다 — 그러면 키보드 사용자는 다음 칸으로
   // 갈 수가 없다. 누른 칸으로 되돌리되, **노드가 아니라 좌표로** 되돌린다: 근무를 고르면
@@ -5313,7 +5344,9 @@ function renderPending() {
   // 생각하고 눌렀다가 다른 사람 근무가 통째로 움직여 있으면 그때는 되돌릴 수 없다.
   html += '<p class="apply-warn">누르면 <b>표 전체를 다시 짭니다</b> — ' +
           '고친 칸만 바뀌는 것이 아니라 다른 사람 근무도 함께 움직입니다. ' +
-          '지금 표를 남겨두려면 먼저 내려받아 두세요.</p>';
+          // 예전엔 "지금 표를 남겨두려면 먼저 내려받아 두세요"였는데 편집 중에는 출력①②가 잠겨 있어 할 수 없는 일을 시켰다.
+          '고치기 전 표를 남겨두려면 <b>전체 취소</b> 뒤 내려받고 다시 고치세요. ' +
+          '몇 칸만 바꾸려면 출력①을 엑셀에서 고쳐 <b>되올리기</b>가 안전합니다(고친 칸만 바뀝니다).</p>';
   html += '<div class="action-row">' +
           '<button class="danger" onclick="discardAll()">전체 취소</button>' +
           '<button class="primary" onclick="applyEdits()">재생성 적용</button>' +
