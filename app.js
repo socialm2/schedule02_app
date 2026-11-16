@@ -3434,10 +3434,10 @@ function fileBarHtml() {
     // 문서 순서: 되올리기 · 입력으로 | 출력① · 출력②. 폰 세로에서는 이 순서대로 두 줄 두 칸으로 선다 — 윗줄이 '화면으로 들이는 것·
     // 돌아가는 것', 아랫줄이 '받는 것 둘'. 가로·PC에서는 '← 입력으로'만 맨 끝(네 번째)으로 간다(style.css의 order — 사용자 2026-11-14). 예전 순서(되올리기 · 출력① / 출력② · 입력으로)는 줄이 넘어갈 때 너비가 제각각인 단추가 섞여
     // 들쭉날쭉했다(사용자 2026-11-13: "되올리기랑 입력으로가 같이 있어야 이쁠 듯").
-    `<button class="file-btn sub" onclick="uploadMonth()" title="엑셀에서 고친 출력①(월간근무표)을 올리면 그 값으로 반영되고 바뀐 칸은 고정됩니다">엑셀 수정본 되올리기</button>` +
+    `<button class="file-btn up" onclick="uploadMonth()" title="엑셀에서 고친 출력①(월간근무표)을 올리면 그 값으로 반영되고 바뀐 칸은 고정됩니다">엑셀 수정본 되올리기</button>` +
     `<button id="backToInputBtn" class="file-btn sub" title="입력 화면으로 돌아가 새로 만듭니다">← 입력으로</button>` +
-    `<button class="file-btn" onclick="if (confirmDownloadWithViolations()) downloadXlsxOcs()"${dis} title="이번 달 근무표 — 엑셀에서 고쳐 되올릴 수 있습니다"><span class="io-tag">출력①</span>월간근무표</button>` +
-    `<button class="file-btn" onclick="if (confirmDownloadWithViolations()) downloadStaffTable()"${dis} title="다음 달 입력②로 올리는 파일"><span class="io-tag">출력②</span>연간근무표</button></div>` +
+    `<button class="file-btn dl" onclick="if (confirmDownloadWithViolations()) downloadXlsxOcs()"${dis} title="이번 달 근무표 — 엑셀에서 고쳐 되올릴 수 있습니다"><span class="io-tag">출력①</span>월간근무표</button>` +
+    `<button class="file-btn dl" onclick="if (confirmDownloadWithViolations()) downloadStaffTable()"${dis} title="다음 달 입력②로 올리는 파일"><span class="io-tag">출력②</span>연간근무표</button></div>` +
     (nightOnly ? `<p class="hint file-bar-note">야간만 보이는 1단계에서는 파일을 받을 수 없습니다 — '야간 확정 → 나머지 짜기'(또는 '전체 보기로') 뒤에 받을 수 있습니다.</p>`
      : hasPending ? `<p class="hint file-bar-note">적용 안 한 편집이 있어 파일을 받을 수 없습니다 — '재생성 적용' 뒤에 받을 수 있습니다.` +
        // 폰에서는 '재생성 적용'이 표 40행 아래(패널)에 있어 고친 뒤 어디로 가야 하는지 화면에 없었다 — 여기서 데려간다(style.css: 폰에서만 보인다)

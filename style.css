@@ -580,9 +580,19 @@ td.swap-origin { outline: 2.5px solid var(--accent); outline-offset: -2.5px; }
 .out-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; }
 .file-bar-wrap { margin-left: auto; min-width: 0; max-width: 100%; }
 .file-bar { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
-.file-bar .file-btn { min-height: 26px; padding: 2px 10px; border-radius: 8px; font-weight: 700; font-size: .75rem; line-height: 1.2;
+/* 파일 줄의 단추 넷은 이 화면에서 가장 중요한 동작이다(받기·되올리기) — 26px·12px 흰 단추 넷이 똑같이 생겨 눈에 안 띄었다
+   (사용자 2026-11-16: "작고 잘 안 보여, 전체 균형 맞으면서 눈에 잘 띄게"). 높이·글자를 키우고 무게를 가른다:
+   받기 둘(.dl) = 채운 강조색 + ↓ · 되올리기(.up) = 옅은 강조색 + ↑ · 입력으로(.sub) = 흰 단추 그대로. 화살표는 ::before라 글자(textContent)는 그대로다. */
+.file-bar .file-btn { min-height: 36px; padding: 4px 14px; border-radius: 9px; font-weight: 700; font-size: .84375rem; line-height: 1.2;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; margin: 0; }
 .file-bar .file-btn.sub { font-weight: 600; background: var(--card); color: var(--ink); border-color: var(--line); }
+.file-bar .file-btn.dl { background: var(--accent); border-color: var(--accent); color: var(--on-accent); box-shadow: 0 1px 3px rgba(0,0,0,.14); }
+.file-bar .file-btn.dl:hover:not(:disabled) { filter: brightness(1.08); color: var(--on-accent); }
+.file-bar .file-btn.dl .io-tag { background: rgba(255,255,255,.24); color: inherit; margin-right: 0; }
+.file-bar .file-btn.up { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.file-bar .file-btn.dl::before, .file-bar .file-btn.up::before { font-size: 1.05em; font-weight: 800; line-height: 1; }
+.file-bar .file-btn.dl::before { content: "\2193"; }
+.file-bar .file-btn.up::before { content: "\2191"; }
 /* '← 입력으로'의 자리 — 폰 세로(두 줄 두 칸)에서는 두 번째(되올리기 옆), 가로·PC에서는 네 번째(맨 끝)다(사용자 2026-11-14).
    문서 순서는 되올리기 · 입력으로 · 출력① · 출력②이고, 넓은 화면에서만 order로 맨 뒤에 보낸다. */
 .file-bar #backToInputBtn { order: 1; }
@@ -594,13 +604,13 @@ td.swap-origin { outline: 2.5px solid var(--accent); outline-offset: -2.5px; }
 @container (max-width: 620px) {
   .file-bar-wrap { margin-left: 0; width: 100%; }
   .file-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .file-bar .file-btn { min-height: 34px; min-width: 0; }
+  .file-bar .file-btn { min-height: 40px; min-width: 0; }
   .file-bar-note { text-align: left; }
 }
 @media (max-width: 680px) {
   .file-bar-wrap { margin-left: 0; width: 100%; }
   .file-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .file-bar .file-btn { min-height: 34px; min-width: 0; }
+  .file-bar .file-btn { min-height: 42px; min-width: 0; font-size: .875rem; }
   .file-bar #backToInputBtn { order: 0; }
   .file-bar-note { text-align: left; }
 }
