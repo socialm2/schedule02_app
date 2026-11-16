@@ -1494,6 +1494,24 @@ details.expert-sec > .side-sec { margin-top: 12px; }
 .fair-change { font-size: .72rem; color: var(--sub); margin: 6px 0 0; }
 .fair-cum { margin-top: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: .74rem; }
 .fair-cum > b { color: var(--accent); margin-right: 4px; }
+/* 줄 나눔(2026-11-16) — 엔진 설명을 문장·지표·사람마다 한 줄로. 쏠린 사람은 작은 칸(chip)으로 늘어놓는다 */
+.note-lines { list-style: none; margin: 4px 0 0; padding: 0; }
+.note-lines li { position: relative; padding-left: 10px; margin: 2px 0; line-height: 1.45; }
+.note-lines li::before { content: "·"; position: absolute; left: 1px; color: var(--sub); }
+.cum-head { color: var(--sub); }
+.chip-list { list-style: none; margin: 6px 0 0; padding: 0; }
+.chip-list li { margin: 6px 0 0; }
+.chip-head { display: block; font-size: .72rem; margin-bottom: 3px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { display: inline-block; padding: 1px 7px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); font-size: .7rem; white-space: nowrap; }
+.chip small { color: var(--sub); }
+.def-list { display: grid; grid-template-columns: max-content 1fr; gap: 3px 10px; margin: 6px 0 0; font-size: .7rem; }
+.def-list dt { font-weight: 700; color: var(--ink); }
+.def-list dd { margin: 0; color: var(--sub); }
+details.attempt-cols { margin-top: 6px; font-size: .7rem; }
+details.attempt-cols > summary { color: var(--sub); cursor: pointer; }
+.apply-warn p { margin: 0; }
+.apply-warn .note-lines { margin-top: 4px; }
 .fair-weights { margin-top: 8px; font-size: .74rem; }
 .fair-weights summary { cursor: pointer; color: var(--sub); }
 .fair-w-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; margin: 8px 0; }

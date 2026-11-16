@@ -5027,9 +5027,10 @@ function renderSide() {
   // (2026-11-09 사용자). 코드째 걷어내지 않는 이유: 쓰는 길이 남아 있고(상세 도구 → 변경 안내 초안) 테스트가 본다.
   html += renderNotice();
   // 야간 패턴(블록 길이·간격 분포)은 엔진 점검용 숫자라 여기로(2026-11-09 사용자: 설명 불필요, 숨겨).
-  html += `<div class="side-sec"><h3>야간 패턴</h3><ul class="issue-list" style="font-size:11.5px">
-    <li style="background:var(--code-bg)">블록 길이 분포: ${esc(blockH)}</li>
-    <li style="background:var(--code-bg)">블록 간격 분포: ${esc(gapH)}</li>
+  // 분포는 '3일×1, 6일×1, …'이 한 줄로 이어져 읽히지 않았다 — 값마다 작은 칸으로(2026-11-16).
+  html += `<div class="side-sec"><h3>야간 패턴</h3><ul class="chip-list">
+    <li>${chipLine("블록 길이 분포: " + blockH)}</li>
+    <li>${chipLine("블록 간격 분포: " + gapH)}</li>
   </ul></div>`;
   html += `<div class="side-sec"><h3>수정 전 확인</h3><p class="side-note">고치면 다른 규칙이 깨지는 칸입니다. 제목 옆 '수정주의근무'를 켜면 표에도 표시됩니다(칸 왼쪽 위 ✕ = 바꿀 수 없음, ⇄ = 맞교환만 가능).</p><div id="fragileBox"></div></div>`;
 
@@ -5066,15 +5067,19 @@ function renderSide() {
       '</table></div>' +
       (folded ? `<p class="side-note"><button class="linklike attempt-more" data-n="${folded}">${attemptTableExpanded ? "점수 상위 3줄만 보기" : `나머지 ${folded}개 시드 보기`}</button></p>` : "") +
       // 열 제목 설명은 툴팁(마우스 올리기)만으로는 폰에서 볼 수 없다 — 작은 글자로 같은 내용을 둔다.
-      `<p class="side-note attempt-cols"><b>열 뜻</b> — 시드: 같은 입력을 다른 출발점으로 돌린 번호(글자 W 주말 몫 우선 · S 고연차 먼저 · B 블록 이어가기 먼저). ` +
-      `운영필수: 최소인력·지정·연속근무처럼 그날 병동이 못 돌아가는 필수 위반 수. 숙련도: 조에 숙련도 4 이상이 없는 횟수. ` +
-      `공평성: 2×횟수 + 주말 + 조구성 + 단독 + 미반영(사람·일 단위, 낮을수록 고름). 전체: 노란 추가 검토까지 더한 위반 수. ` +
-      `횟수: D·E·N 횟수가 목표에서 벗어난 날수 합. 주말: 주말 근무가 평균에서 벗어난 날수. 조구성: 조의 숙련도 띠 구성이 병동 비율에서 벗어난 사람 수. ` +
-      `단독: 혼자 Lv4+인 조에 선 횟수의 쏠림. 미반영: 반려된 원티드 신청 수. 점수(표시점수): 화면 '형평성 점수'와 같은 0~100 눈금 — 고르는 기준이 아니라 읽는 눈금이라 ✓와 다른 줄이 더 높을 수 있다(그 표에는 대개 필수 위반이 있다).</p>` +
-      `<p class="side-note">앞 열부터 견줘 다르면 뒤 열은 보지 않습니다 — 운영 필수 → 숙련도 → 공평성 → 전체. ` +
-      `✓ = 점수가 가장 좋은 시드(기본값), ◀ = 지금 보는 표. <b>줄을 누르면 그 시드의 표로 바뀝니다</b>(다운로드도 그 표). ` +
-      `${thoroughRun ? `🔍 꼼꼼히 만들기로 근무표 ${rows.length}개를 만들어 골랐습니다${rows.length < THOROUGH_ATTEMPTS ? "(중간에 멈춤)" : ""}. ` : ""}` +
-      `${(window.__genMode || "").startsWith("parallel") ? `시드 ${rows.length}개를 여러 코어로 동시에 계산했습니다.` : ""}</p></div>`;
+      `<details class="attempt-cols"><summary>열 뜻</summary><dl class="def-list">` +
+      [["시드", "같은 입력을 다른 출발점으로 돌린 번호(글자 W 주말 몫 우선 · S 고연차 먼저 · B 블록 이어가기 먼저)"],
+       ["운영필수", "최소인력·지정·연속근무처럼 그날 병동이 못 돌아가는 필수 위반 수"], ["숙련도", "조에 숙련도 4 이상이 없는 횟수"],
+       ["공평성", "2×횟수 + 주말 + 조구성 + 단독 + 미반영(사람·일 단위, 낮을수록 고름)"], ["전체", "노란 추가 검토까지 더한 위반 수"],
+       ["횟수", "D·E·N 횟수가 목표에서 벗어난 날수 합"], ["주말", "주말 근무가 평균에서 벗어난 날수"],
+       ["조구성", "조의 숙련도 띠 구성이 병동 비율에서 벗어난 사람 수"], ["단독", "혼자 Lv4+인 조에 선 횟수의 쏠림"],
+       ["미반영", "반려된 원티드 신청 수"],
+       ["점수", "화면 '형평성 점수'와 같은 0~100 눈금 — 고르는 기준이 아니라 읽는 눈금이라 ✓와 다른 줄이 더 높을 수 있다(그 표에는 대개 필수 위반이 있다)"]]
+        .map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("") + `</dl></details>` +
+      `<ul class="note-lines side-note"><li>앞 열부터 견줘 다르면 뒤 열은 보지 않습니다 — 운영 필수 → 숙련도 → 공평성 → 전체.</li>` +
+      `<li>✓ = 점수가 가장 좋은 시드(기본값), ◀ = 지금 보는 표.</li><li><b>줄을 누르면 그 시드의 표로 바뀝니다</b>(다운로드도 그 표).</li>` +
+      `${thoroughRun ? `<li>🔍 꼼꼼히 만들기로 근무표 ${rows.length}개를 만들어 골랐습니다${rows.length < THOROUGH_ATTEMPTS ? "(중간에 멈춤)" : ""}.</li>` : ""}` +
+      `${(window.__genMode || "").startsWith("parallel") ? `<li>시드 ${rows.length}개를 여러 코어로 동시에 계산했습니다.</li>` : ""}</ul></div>`;
   }
 
   // 처리 로그 — 기본 접기. 같은 줄이 이어지면 "×n"으로 묶는다(맞교환 줄이 수십 번 반복돼 904건으로
@@ -5163,8 +5168,9 @@ async function refreshFillHints() {
       const bl = it.blocked.length ? ` <small>· 넣으면 필수 위반 ${it.blocked.length}명(${esc([...new Set(it.blocked.flatMap(b => b.rules))].join(","))})</small>` : "";
       return `<li>${it.day}일 ${esc(it.key)} ${it.have}/${it.need}명 → 위반 없이 넣을 수 있는 사람: ${ok || "<b>없음</b>"}${bl}</li>`;
     }).join("") + "</ul>" +
-      '<p class="side-note">추천일 뿐입니다 — 다른 사람을 넣어도 됩니다(그 칸이 빨강·노랑으로 표시될 뿐, 확정·다운로드는 됩니다). ' +
-      '목록은 쉬는 사람 중 그 근무를 설 수 있고 넣어도 새 필수 위반이 없는 사람이고, 괄호는 생기는 최선노력 위반입니다. 잠긴 칸·원티드는 뺐습니다.</p>';
+      '<ul class="note-lines side-note"><li>추천일 뿐입니다 — 다른 사람을 넣어도 됩니다(그 칸이 빨강·노랑으로 표시될 뿐, 확정·다운로드는 됩니다).</li>' +
+      '<li>목록은 쉬는 사람 중 그 근무를 설 수 있고 넣어도 새 필수 위반이 없는 사람입니다. 괄호는 생기는 최선노력 위반입니다.</li>' +
+      '<li>잠긴 칸·원티드는 뺐습니다.</li></ul>';
   } catch (e) {
     box.textContent = "";
   }
@@ -5217,6 +5223,38 @@ function fairAxisMeta(a) {
 // 짜일 주간 몫이 섞여 있어, 야간을 아무리 고쳐도 엉뚱하게 오르내린다.
 function nightAxis(f) { return f && Array.isArray(f.axes) ? f.axes.find(a => a.key === "night") : null; }
 
+// 글 덩어리를 줄로 나눈다(사용자 2026-11-16: "출력 화면에 정보가 많은데 줄바꿈이 없어 정신없다"). 엔진이 주는 설명은 한 문자열이라
+// 쉼표·가운뎃점·마침표로 이어 붙어 온다 — 괄호 밖의 구분자에서만 가른다(괄호 안의 "목표 34.3, +9.7"은 한 덩어리).
+function splitTop(s, sep) {
+  const out = []; let depth = 0, cur = "";
+  s = String(s || "");
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === "(") depth++;
+    else if (ch === ")") depth = Math.max(0, depth - 1);
+    if (depth === 0 && s.startsWith(sep, i)) { out.push(cur); cur = ""; i += sep.length - 1; continue; }
+    cur += ch;
+  }
+  out.push(cur);
+  return out.map(t => t.trim()).filter(Boolean);
+}
+// 구분자로 이어진 지표를 줄마다 — 단, 조각이 짧은 값('D 7 · E 7 · N 4')이면 한 줄로 둔다(그건 한 덩어리 값이다)
+function phraseLines(text, sep) {
+  const parts = splitTop(text, sep);
+  return parts.length > 1 && parts.every(p => p.length >= 10) ? parts.map(esc).join("<br>") : esc(text);
+}
+// 문장마다 한 줄 — '다.'·'.'로 끝나는 곳에서 가른다(괄호 안은 그대로)
+function sentenceLines(text) {
+  const parts = splitTop(text, ". ").map((t, i, a) => (i < a.length - 1 && !/[.!?]$/.test(t)) ? t + "." : t);
+  return `<ul class="note-lines">${parts.map(p => `<li>${esc(p)}</li>`).join("")}</ul>`;
+}
+// '머리: 가, 나, 다' → 머리는 굵게, 뒤는 한 사람씩 작은 칸으로(괄호는 작게)
+function chipLine(text) {
+  const t = String(text || ""), k = t.indexOf(": ");
+  const head = k > 0 ? t.slice(0, k) : "", body = k > 0 ? t.slice(k + 2) : t;
+  const chips = splitTop(body, ", ").map(c => `<span class="chip">${esc(c).replace(/\(([^()]*)\)$/, "<small>($1)</small>")}</span>`).join("");
+  return `${head ? `<b class="chip-head">${esc(head)}</b>` : ""}<span class="chips">${chips}</span>`;
+}
 function renderFairScore() {
   const f = ST.fair;
   if (!f || !Array.isArray(f.axes)) return "";
@@ -5250,29 +5288,32 @@ function renderFairScore() {
     html += `<li class="fair-axis" data-fair-axis="${escAttr(a.key)}" title="${escAttr(a.unit || "")}">` +
       `<div class="fair-axis-head"><span class="fair-axis-name">${esc(a.name)}${a.weight !== 1 ? ` <small>×${a.weight}</small>` : ""}</span><b class="${cls}">${sc == null ? "–" : sc}${esc2 != null && esc2 !== sc ? ` <span class="fair-edited-axis">→ ${esc2}</span>` : ""}</b></div>` +
       `<div class="fair-bar"><i class="${cls}" style="width:${sc == null ? 0 : sc}%"></i></div>` +
-      `<div class="fair-axis-text">${esc((ea && ea.text) || a.text || "")}</div></li>`;
+      `<div class="fair-axis-text">${phraseLines((ea && ea.text) || a.text || "", " · ")}</div></li>`;
   }
   html += `</ul>`;
-  if (f.fatigue_text) html += `<p class="fair-change">추가 지표 — ${esc(f.fatigue_text)}</p>`;
+  if (f.fatigue_text) html += `<div class="fair-change"><b>추가 지표</b><br>${phraseLines(f.fatigue_text, ", ")}</div>`;
   // 변경 최소성 — 재생성·적용이 고정 칸 밖에서 바꾼 칸 수(bridge가 직전 표와 대조). 첫 생성에는 없다.
   if (f.change_text) html += `<p class="fair-change" data-fair-change="${f.change ? f.change.cells : ""}">${esc(f.change_text)}</p>`;
   // 누적 형평성 — 연간근무표(입력②)를 올렸을 때만. 이번 달이 들쭉날쭉해도 누적이 고르면 괜찮고, 반대면 경고.
   const cu = f.cumulative;
   if (cu) {
-    html += `<div class="fair-cum" id="fairCum"><b>누적 형평</b> <span>${esc(cu.text || "")}</span>` +
-      ((cu.items || []).length ? `<ul class="burden-list">${cu.items.map(t => `<li>${esc(t)}</li>`).join("")}</ul>`
+    const ct = String(cu.text || ""), ck = ct.indexOf("): ");
+    const cuHead = ck > 0 ? ct.slice(0, ck + 1) : ct, cuBody = ck > 0 ? splitTop(ct.slice(ck + 3), ", ") : [];
+    html += `<div class="fair-cum" id="fairCum"><b>누적 형평</b> <span class="cum-head">${esc(cuHead)}</span>` +
+      (cuBody.length ? `<ul class="note-lines cum-avg">${cuBody.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : "") +
+      ((cu.items || []).length ? `<ul class="chip-list">${cu.items.map(t => `<li>${chipLine(t)}</li>`).join("")}</ul>`
         : `<p class="side-note">주말 3일·야간 2회 넘게 쏠린 사람 없음.</p>`) + `</div>`;
   } else {
     html += `<p class="side-note">입력②(연간근무표)를 올리면 누적 형평이 붙습니다.</p>`;
   }
   // 뜻·산식·선택 기준은 접힘 하나에 — 늘 펼쳐 두면 점수보다 글이 많아 아무것도 안 읽힌다
   html += `<p class="side-note">낮아도 병동 사정을 아는 파트장이 그대로 두거나 고칩니다. 사람별 한 줄은 이름을 눌러 여정에서.</p></details>` +
-    `<details class="fair-help" id="fairHelp"><summary>점수의 뜻 · 견준 사람</summary><p class="side-note">${esc(f.weights_note || "")}</p>` +
-    (f.selection_note ? `<p class="side-note">${esc(f.selection_note)}</p>` : "") +
+    `<details class="fair-help" id="fairHelp"><summary>점수의 뜻 · 견준 사람</summary><div class="side-note">${sentenceLines(f.weights_note || "")}</div>` +
+    (f.selection_note ? `<div class="side-note">${sentenceLines(f.selection_note)}</div>` : "") +
     // 축마다 견준 사람 수와 빠진 사람(1인 집단·역할·목표 없음)·원값 — 점수가 좋다는 말이 "견준 사람끼리만 좋다"로 바뀌지 않게.
     // 늘 펼쳐 두면 축마다 두 줄이 돼 점수보다 글이 많아져 여기로 접었다(2026-11-09).
     `<ul class="fair-meta-list">${f.axes.map(a => `<li class="fair-axis-meta" data-fair-meta="${escAttr(a.key)}"><b>${esc(a.name)}</b> ${esc(fairAxisMeta(a))}</li>`).join("")}</ul>` +
-    (cu && cu.method ? `<p class="side-note">누적 형평 — ${esc(cu.method)}</p>` : "") + `</details>`;
+    (cu && cu.method ? `<div class="side-note"><b>누적 형평</b>${sentenceLines(cu.method)}</div>` : "") + `</details>`;
   // 가중치 조정 — 값은 엔진이 0~5로 고르고 돌려준 것을 그대로 보여 준다(화면이 따로 셈하지 않는다).
   const W = f.weights || {}, FW = f.fatigue_weights || {}, DW = f.default_weights || {}, DF = f.default_fatigue_weights || {};
   const FAT_NAMES = { quick_to_night: "낮→밤 직결", short_recovery: "짧은 회복", consecutive_weekends: "연속 주말" };
@@ -5398,11 +5439,10 @@ function renderPending() {
   html += '<div id="feedbackBox"><p style="color:var(--sub);font-size:12px">피드백 확인 중...</p></div>';
   // 재생성은 고친 칸만 손보는 것이 아니라 표 전체를 다시 짠다. 한 칸만 바꿨다고
   // 생각하고 눌렀다가 다른 사람 근무가 통째로 움직여 있으면 그때는 되돌릴 수 없다.
-  html += '<p class="apply-warn">누르면 <b>표 전체를 다시 짭니다</b> — ' +
-          '고친 칸만 바뀌는 것이 아니라 다른 사람 근무도 함께 움직입니다. ' +
+  html += '<div class="apply-warn"><p>누르면 <b>표 전체를 다시 짭니다</b> — 고친 칸만이 아니라 다른 사람 근무도 함께 움직입니다.</p><ul class="note-lines">' +
           // 예전엔 "지금 표를 남겨두려면 먼저 내려받아 두세요"였는데 편집 중에는 출력①②가 잠겨 있어 할 수 없는 일을 시켰다.
-          '고치기 전 표를 남겨두려면 <b>전체 취소</b> 뒤 내려받고 다시 고치세요. ' +
-          '몇 칸만 바꾸려면 출력①을 엑셀에서 고쳐 <b>되올리기</b>가 안전합니다(고친 칸만 바뀝니다).</p>';
+          '<li>고치기 전 표를 남겨두려면 <b>전체 취소</b> 뒤 내려받고 다시 고치세요.</li>' +
+          '<li>몇 칸만 바꾸려면 출력①을 엑셀에서 고쳐 <b>되올리기</b>가 안전합니다(고친 칸만 바뀝니다).</li></ul></div>';
   html += '<div class="action-row">' +
           '<button class="danger" onclick="discardAll()">전체 취소</button>' +
           '<button class="primary" onclick="applyEdits()">재생성 적용</button>' +
