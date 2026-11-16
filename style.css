@@ -583,7 +583,7 @@ td.swap-origin { outline: 2.5px solid var(--accent); outline-offset: -2.5px; }
 /* 파일 줄의 단추 넷은 이 화면에서 가장 중요한 동작이다(받기·되올리기) — 26px·12px 흰 단추 넷이 똑같이 생겨 눈에 안 띄었다
    (사용자 2026-11-16: "작고 잘 안 보여, 전체 균형 맞으면서 눈에 잘 띄게"). 높이·글자를 키우고 무게를 가른다:
    받기 둘(.dl) = 채운 강조색 + ↓ · 되올리기(.up) = 옅은 강조색 + ↑ · 입력으로(.sub) = 흰 단추 그대로. 화살표는 ::before라 글자(textContent)는 그대로다. */
-.file-bar .file-btn { min-height: 36px; padding: 4px 14px; border-radius: 9px; font-weight: 700; font-size: .84375rem; line-height: 1.2;
+.file-bar .file-btn { min-height: 36px; padding: 4px 12px; border-radius: 9px; font-weight: 700; font-size: .8125rem; line-height: 1.2;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; margin: 0; }
 .file-bar .file-btn.sub { font-weight: 600; background: var(--card); color: var(--ink); border-color: var(--line); }
 .file-bar .file-btn.dl { background: var(--accent); border-color: var(--accent); color: var(--on-accent); box-shadow: 0 1px 3px rgba(0,0,0,.14); }
@@ -601,6 +601,23 @@ td.swap-origin { outline: 2.5px solid var(--accent); outline-offset: -2.5px; }
 @media (max-width: 680px) { .file-bar-note .goto-pending { display: inline-block; margin: 4px 0 0; } }
 .file-bar-wrap .upload-branch { max-width: 360px; margin-left: auto; }
 .file-bar-wrap #nextMonthCard:not(:empty) { max-width: 420px; margin: 6px 0 0 auto; }
+/* 노트북(1024~1440)에서 파일 줄이 제목 아래 줄로 밀렸다(사용자 2026-11-16: "노트북에서 아랫줄로 밀리거나 하면 안 됨") — 제목·연월·체크
+   덩어리와 단추 넷이 한 줄에 다 안 들어가면 flex가 단추 줄을 통째로 아래로 넘겼다. 이제 표 영역이 넓은 동안(621px 이상) 단추 줄은
+   제목 줄 오른쪽에 붙어 있고, 모자란 폭은 왼쪽 제목 덩어리가 안에서 줄을 바꿔(연월·체크가 제목 아래로) 받는다. 폭이 더 빠듯하면
+   (900px 이하) '엑셀 수정본 되올리기'를 '되올리기'로 줄이고 단추 여백을 좁힌다. 620px 이하(폰 가로·세로)는 아래의 두 줄 두 칸 그대로. */
+@container (min-width: 621px) {
+  .out-title { flex: 1 1 0; min-width: 150px; }
+  .file-bar-wrap { flex: none; }
+  .file-bar { flex-wrap: nowrap; }
+}
+@container (min-width: 621px) and (max-width: 900px) {
+  .file-bar .fb-long { display: none; }
+  .file-bar .file-btn { padding: 4px 10px; }
+}
+@container (min-width: 621px) and (max-width: 720px) {   /* 1024px 창 — 화살표를 빼고 여백을 더 좁힌다(색으로 무게는 그대로 갈린다) */
+  .file-bar .file-btn { padding: 4px 8px; gap: 5px; }
+  .file-bar .file-btn.dl::before, .file-bar .file-btn.up::before { content: none; }
+}
 @container (max-width: 620px) {
   .file-bar-wrap { margin-left: 0; width: 100%; }
   .file-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
