@@ -5127,9 +5127,8 @@ async function refreshFillHints() {
       const bl = it.blocked.length ? ` <small>· 넣으면 필수 위반 ${it.blocked.length}명(${esc([...new Set(it.blocked.flatMap(b => b.rules))].join(","))})</small>` : "";
       return `<li>${it.day}일 ${esc(it.key)} ${it.have}/${it.need}명 → 위반 없이 넣을 수 있는 사람: ${ok || "<b>없음</b>"}${bl}</li>`;
     }).join("") + "</ul>" +
-      '<ul class="note-lines side-note"><li>추천일 뿐입니다 — 다른 사람을 넣어도 됩니다(그 칸이 빨강·노랑으로 표시될 뿐, 확정·다운로드는 됩니다).</li>' +
-      '<li>목록은 쉬는 사람 중 그 근무를 설 수 있고 넣어도 새 필수 위반이 없는 사람입니다. 괄호는 생기는 최선노력 위반입니다.</li>' +
-      '<li>잠긴 칸·원티드는 뺐습니다.</li></ul>';
+      // 안내는 한 줄(사용자 2026-11-16 "4-6만 정리" — 세 줄이 같은 말을 나눠 하고 있었다)
+      '<p class="side-note">추천일 뿐이라 다른 사람을 넣어도 됩니다 — 쉬는 사람 중 넣어도 새 필수 위반이 없는 사람(잠긴 칸·원티드 제외), 괄호는 생기는 추가 검토.</p>';
   } catch (e) {
     box.textContent = "";
   }
@@ -5155,7 +5154,7 @@ function renderWeekendRoster() {
   }).join("");
   return `<details class="side-sec" id="weekendSec"><summary><h3 style="display:inline">주말·공휴일 근무자 <span class="count-badge">${days.length}일</span></h3></summary>` +
     '<table class="mini-table weekend-roster"><tr><th>날</th><th>D</th><th>E</th><th>N</th></tr>' + rows + "</table>" +
-    '<p class="side-note">인원/최소인력과 이름. 빨강은 미달. 접어 두면 자리를 안 차지합니다.</p></details>';
+    '<p class="side-note">인원/최소인력과 이름. 빨강은 미달.</p></details>';
 }
 
 // 공정성 점수(0~100) — 축 다섯(근무횟수·주말·야간·원티드·숙련)을 막대로, 종합은 큰 숫자로. 점수는
@@ -5223,7 +5222,8 @@ function renderFairScore() {
     `</div>` +
     // 가장 낮은 축 — 가중 평균에 가려진 축을 한 글자로. 견준 사람이 10명 밑이면 '인원 적음'도 함께(백분위는 서도 뜻이 흔들린다).
     (f.lowest ? `<p class="fair-lowest" data-fair-lowest="${escAttr(f.lowest.key)}">가장 낮은 축: <b class="${fairGradeClass((f.axes.find(a => a.key === f.lowest.key) || {}).grade && f.axes.find(a => a.key === f.lowest.key).grade.key)}">${esc(f.lowest.name)} ${Math.round(f.lowest.score)}</b>${f.few_people ? ` · <span class="warn-text">견준 사람 ${f.people}명 — 인원 적음</span>` : ""}</p>` : "") +
-    `<p class="side-note fair-ref">참고용 점수입니다 — 필수 규칙 검사와는 별개입니다.</p>` +
+    // 면책은 한 줄 — 접힘 끝의 "낮아도 파트장이 그대로 두거나 고칩니다"와 같은 말이라 합쳤다(사용자 2026-11-16)
+    `<p class="side-note fair-ref">참고용 점수입니다 — 필수 규칙과 별개라, 낮아도 병동 사정에 따라 그대로 두거나 고치면 됩니다.</p>` +
     // 축별 막대·추가 지표·변경량·누적 형평은 접힘 안에 — 늘 펼쳐 두면 종합을 본 뒤에도 여러 문단을 지나야 다음 칸이 나온다.
     `<details class="fair-detail" id="fairDetail"><summary>축별 점수 · 누적 형평 보기</summary><ul class="fair-axes">`;
   for (const a of f.axes) {
@@ -5255,7 +5255,7 @@ function renderFairScore() {
   // 뜻·산식·선택 기준은 접힘 하나에 — 늘 펼쳐 두면 점수보다 글이 많아 아무것도 안 읽힌다
   // 점수의 뜻·견준 사람·가중치 조정은 화면에서 걷어냈다(사용자 2026-11-16 "출력 정보 많은데 다 필요한 거야?") —
   // 산식은 설명서 몫이고, 가중치를 바꿔도 표는 그대로라 파트장이 할 일이 없었다. 종합 점수는 엔진 기본 가중치로만 센다.
-  html += `<p class="side-note">낮아도 병동 사정을 아는 파트장이 그대로 두거나 고칩니다. 사람별 한 줄은 이름을 눌러 여정에서.</p></details></div>`;
+  html += `<p class="side-note">사람별 한 줄은 이름을 눌러 여정에서 봅니다.</p></details></div>`;
   return html;
 }
 
