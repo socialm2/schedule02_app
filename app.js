@@ -560,9 +560,8 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 행을 지우거나 더하지 말고 <b>근무 칸만</b> 고쳐주세요 — 다른 달·다른 명단 파일은 반려됩니다.
 올린 직후에만 <b>① 즉시 다운로드</b>(고친 그대로)와 <b>② 재생성 후 다운로드</b>(고친 칸은 두고
 나머지를 다시 배정) 두 갈래가 뜹니다.</li>
-<li><b>시도 점수표</b> — 같은 입력을 시드 여러 개(찾는 규칙이 조금씩 다름: 시드 옆 글자 W 주말 몫 우선·S 고연차 먼저·B 블록 이어가기 먼저, 둘이 붙으면 둘 다)로
-돌려 운영 필수 → 숙련도 → 공평성 → 전체 위반 순으로 견줘 가장 좋은 표를 보여줍니다. 점수표 줄을 누르면 그 시드의 표로
-바뀝니다(다운로드도 그 표). <b>🔍 꼼꼼히 만들기</b>를 켜고 생성하면 평소 3개 만들어 고르던 것을 9개 만들어 고릅니다 — 위반이 남는 달에
+<li><b>여러 개 만들어 고르기</b> — 같은 입력을 출발점(시드)만 바꿔 여러 번 돌려
+운영 필수 → 숙련도 → 공평성 → 전체 위반 순으로 견줘 가장 좋은 표를 보여줍니다. <b>🔍 꼼꼼히 만들기</b>를 켜고 생성하면 평소 3개 만들어 고르던 것을 9개 만들어 고릅니다 — 위반이 남는 달에
 켜 보세요(일반 생성보다 오래 걸리고, 빠듯한 달은 1~2분. 진행 중 '여기까지 결과로 멈추기' 가능).</li>
 <li><b>🌙 야간 먼저 짜기(N only)</b> — 생성 버튼 아래 '만드는 방법'에서 고르면 두 단계로 만듭니다. 1단계는 야간(N·NK)만 보이고 야간을 넣거나 빼는 것만 됩니다(다른 근무로 바꾸기·맞교환은 확정 뒤에).
 위반 숫자·'필수 위반'·'추가 검토' 탭도 야간 관련 항목만, 형평성은 '야간 균등'만 셉니다(이 단계에서는 출력①②를 받을 수 없습니다). 야간을 고친 뒤 표 위의 <b>야간 확정 → 나머지 짜기</b>를
@@ -587,7 +586,8 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 그날 전체 인원수를 가리키는 위반(H1-1 등)이나 월 전체 집계 위반은 특정 칸이 없어
 오른쪽 목록에만 남습니다.</p>
 <p>제목 옆 <b>'수정주의근무'</b>를 켜면 고치면 다른 규칙이 깨지는 칸의 왼쪽 위에 기호가 붙습니다 — <b>✕</b>는 어느 근무로도 바꿀 수 없는 칸,
-<b>⇄</b>는 맞교환으로만 바꿀 수 있는 칸입니다. 칸을 눌러 뜨는 상자의 <b>'맞교환 상대 찾기'</b>에서 근무를 고르면, 그날 열에서
+<b>⇄</b>는 맞교환으로만 바꿀 수 있는 칸입니다. 체크에 마우스를 올리면 지금 표에서 혼자 못 바꾸는 칸의 비율이 뜨고,
+<b>60%를 넘으면 손 수정보다 맞교환이나 재생성이 안전합니다.</b> 칸을 눌러 뜨는 상자의 <b>'맞교환 상대 찾기'</b>에서 근무를 고르면, 그날 열에서
 바꿀 수 있는 상대 칸마다 <b>노란 동그라미</b>가 붙고 내 칸에는 테두리가 생깁니다(고르는 것은 패널의 목록에서 — 닫으면 사라집니다).</p>
 
 <h3>근무표 그리드의 계산열</h3>
@@ -604,26 +604,25 @@ NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니�
 <li><b>형평성 점수</b> — '형평성' 탭의 0~100 종합과 축 다섯(근무횟수 균등 ×2 · 주말 균등 · 야간 균등 · 원티드 반영 · 숙련 분산).
 점수는 "이 앱으로 만든 기준선 201개 달 가운데 이 달보다 쏠린 달의 비율"이라 병동 크기·달 길이와 무관하게 읽힙니다 —
 100이면 어느 달보다 고르고, 50이면 중간, 원티드만 반영률 그대로. 75 이상 좋음 · 40 이상 보통 · 그 아래는 살펴볼 것.
-축마다 근거 한 줄(최대·최소·벗어난 사람 수)이 같이 붙습니다. 시드를 고르는 내부 기준(시도 점수표)은 그대로이고 이 점수는 읽기용입니다.</li>
+축마다 근거 한 줄(최대·최소·벗어난 사람 수)이 같이 붙습니다. 표를 고르는 기준(운영 필수 → 숙련도 → 공평성)은 따로이고 이 점수는 읽기용입니다.</li>
 <li><b>내 달 요약</b> — 이름을 눌러 여정을 열면 맨 아래에 그 사람에게 보낼 한 줄이 있습니다: 주말·D·E가 같은 조건 집단 평균과
 얼마나 다른지(±), 야간/목표, 피로 점수(낮→밤 직결 ×2 · 밤 뒤 하루만 쉬고 D·E ×3 · 연속 주말 ×1), 원티드 반영/미반영과 사유.
 월간 근무 보고 5-2절에 전원이 실리니 복사해 보내면 됩니다.</li>
-<li><b>변경 안내 초안</b>은 '상세 자료' 탭의 '상세 도구'를 펴면 있습니다 — 공지한 판을 기준본으로 두고, 그 뒤 바뀐 사람에게 보낼 문구를 만듭니다.
+<li><b>변경 안내 초안</b>은 '상세 자료' 탭에 접혀 있습니다 — 공지한 판을 기준본으로 두고, 그 뒤 바뀐 사람에게 보낼 문구를 만듭니다.
 <b>원티드 결과</b>는 따로 '원티드' 탭에 있습니다 — 단추에 반영/전체 건수가 보이고, 누르면 미반영부터 사유와 함께 전체가 나옵니다.</li>
 <li><b>'형평성' 탭 단추의 숫자</b> — 100점 만점 한 숫자입니다. 칸을 고치는 동안(미적용 편집)에는 "원래 → 수정 후"가 같이 떠서
 고치면 점수가 어떻게 되는지 바로 보이고, 적용하거나 취소하면 한 숫자로 돌아옵니다. 점수는 참고용이라 낮아도 막지 않습니다 —
 연휴·휴가·교육·개인 요청 같은 병동 사정은 파트장이 알고 있으니 그대로 두거나 고치면 됩니다. 다운로드한 출력① 엑셀
 맨 아래와 월간 근무 보고 5-1절에도 같은 점수가 실립니다(엑셀의 값은 내려받은 시점 것이라 파일에서 칸을 고쳐도 바뀌지 않습니다).</li>
-<li><b>누적 형평 · 변경 최소성 · 가중치</b> — 연간근무표(입력②)를 올렸으면 형평성 점수 칸에 최근 6개월(파일에 있는 만큼)의
+<li><b>누적 형평 · 변경 최소성</b> — 연간근무표(입력②)를 올렸으면 형평성 점수 칸에 최근 6개월(파일에 있는 만큼)의
 <b>적정 몫 대비 초과</b>가 붙습니다. 달마다 적정 몫 = 집단이 실제로 선 주말(야간) 총량 × 내 기회(휴가가 아닌 주말 수·가능일) ÷ 집단 기회 합이고,
 초과 = 실제 − 적정 몫을 더한 것이라 긴 휴가·전입·야간 제한이 있는 사람이 "적음"으로 잘못 올라오지 않습니다.
-주말 ±3일·야간 ±2회 넘게 벗어난 사람을 올립니다(이번 달 양보가 다음 달 보상으로 이어지는지 보는 자리). 점수 옆의 <b>가장 낮은 축</b>과
-축마다 붙는 <b>견준 n명·빠짐</b>은 가중 평균에 가려진 축과 비교에서 빠진 사람을 드러내는 것이고, 시도 점수표의 <b>표시점수</b> 열은 시드마다 이 점수를
-같은 산식으로 센 것입니다(시드를 고르는 기준은 그대로이므로 ✓와 다른 줄이 더 높을 수 있고, 그 표에는 대개 필수 위반이 있습니다). 재생성·적용 뒤에는
+주말 ±3일·야간 ±2회 넘게 벗어난 사람을 올립니다(이번 달 양보가 다음 달 보상으로 이어지는지 보는 자리). 점수 옆의 <b>가장 낮은 축</b>은
+가중 평균에 가려진 축을 드러내는 것입니다. 재생성·적용 뒤에는
 고정 칸 밖에서 바뀐 칸 수가 적힙니다. 원티드 축에는 반려를 <b>자리 경쟁·안전·자격·형식</b>으로 가른 수와, 자리 경쟁에 밀린 것이 몰린 사람(유효 신청 2건 이상인데
 반영률이 전체보다 20%p 넘게 낮음), 사유 없는 반려 수가 붙습니다. 누적 초과를 다음 달 배정에서 하루까지 갚아 주는 기능은
 12개월 실험에서 이번 달 균등을 깎는 만큼의 이득이 없어 켜지 않았습니다(누적 초과는 숫자로 보여 주고, 조정은 파트장이 합니다).
-변경 안내 초안 머리에는 영향 인원·바뀐 칸·휴무→근무 수가 붙습니다. '가중치 조정'을 펴면 축 다섯과 피로 셋의 가중치(0~5)를 바꿀 수 있고, 기기에 기억돼 다음 생성에도 쓰입니다.</li>
+변경 안내 초안 머리에는 영향 인원·바뀐 칸·휴무→근무 수가 붙습니다.</li>
 <li><b>미달 날 채울 수 있는 사람</b> — '필수 위반' 탭의 '인력 미달'에 날이 있으면, 그날 쉬는 사람 중 그 근무를 설 수 있고
 넣어도 새 필수 위반이 없는 사람을 날짜마다 적어 줍니다. 추천일 뿐이라 다른 사람을 넣어도 되고(그 칸이 빨강·노랑으로
 표시될 뿐), 위반이 남은 채로 확정·다운로드도 됩니다.</li>
@@ -1987,11 +1986,8 @@ let genDriven = null;   // 꼼꼼히 만들기 진척 {done,total,at,avg} — �
 let genThorough = false;
 function thoroughOn() { const c = $("#thoroughChk"); return !!(c && c.checked); }
 function genOpts() {
-  const body = {};
-  const fw = fairWeightsStored();
-  if (fw) { if (fw.axes) body.fair_weights = fw.axes; if (fw.fatigue) body.fatigue_weights = fw.fatigue; }
-  if (!thoroughOn()) return Object.keys(body).length ? { method: "POST", body: JSON.stringify(body) } : { method: "POST" };
-  body.attempts = THOROUGH_ATTEMPTS;
+  if (!thoroughOn()) return { method: "POST" };
+  const body = { attempts: THOROUGH_ATTEMPTS };
   return { method: "POST", body: JSON.stringify(body), onProgress: onGenProgress };
 }
 // attempt_key와 같은 순서(운영 필수 → 숙련도 → 공평성 → 전체 → 앞 시드, 2026-10-30). 화면 표시(지금까지 최선·점수표
@@ -2666,8 +2662,26 @@ function fragileTitle(info) {
   return "바꿀 수 있는 근무가 하나뿐입니다";
 }
 
+// '수정주의근무' 체크의 풀이 + 지금 표의 비율과 권고. 예전엔 상세 도구 안 '수정 전 확인' 칸에 따로 있었는데(고정·교환만·자유 칸 수),
+// 표를 고치려는 사람은 그 칸이 아니라 이 체크를 본다 — 숫자는 걷고 권고 한 줄만 여기로 옮겼다(사용자 2026-11-16 "6개 정리").
+const HATCH_BASE = "고치면 다른 규칙이 깨지는 칸을 표에 표시합니다 — 칸 왼쪽 위 ✕는 어느 근무로도 바꿀 수 없는 칸, ⇄는 맞교환으로만 바꿀 수 있는 칸";
+function hatchTitle() {
+  if (!FRAGILE || !ST || FRAGILE.round !== ST.round) return HATCH_BASE;
+  if (!FRAGILE.done) return HATCH_BASE + "\n(지금 표를 점검하는 중입니다 — 40명 기준 약 10초)";
+  const pct = FRAGILE.total ? Math.round(100 * FRAGILE.fixed / FRAGILE.total) : 0;
+  // 비율 구간별로 말한다 — 필수 위반 0인 샘플 병동도 78%가 나오는데 "인원이 빠듯한 달"이라 하면 입력이 잘못됐나 의심한다
+  // (2026-10-31 검토 A-18). 촘촘하다는 것은 규칙이 맞물렸다는 뜻이고, 인원 부족은 필수 위반이 남았을 때만 말한다.
+  const hard = ST.report ? ST.report.hard_count : 0;
+  const advice = pct >= 60
+    ? (hard > 0 ? "필수 위반이 남은 데다 혼자 바꿀 칸도 적습니다 — 손 수정보다 맞교환·재생성이 안전합니다."
+                : "규칙이 촘촘히 맞물린 표입니다 — 손 수정보다 맞교환이나 재생성이 안전합니다.")
+    : pct >= 40 ? "절반 가까운 칸은 맞교환이나 재생성으로 바꾸는 편이 안전합니다."
+    : "대부분 칸은 혼자서도 바꿀 수 있습니다.";
+  return `${HATCH_BASE}\n지금 표: 전체 ${FRAGILE.total}칸 중 ${pct}%가 혼자서는 못 바꾸는 칸(✕ ${FRAGILE.row_fixed} · ⇄ ${FRAGILE.swap_only}). ${advice}`;
+}
 function paintFragile() {
-  const box = $("#fragileBox");
+  const tg = document.getElementById("hatchToggle");
+  if (tg) tg.title = hatchTitle();
   const grid = document.getElementById("gridContent");
   if (!grid) return;
   grid.querySelectorAll("td.fragile-row, td.fragile-day, td.fragile-1").forEach(td => {
@@ -2677,10 +2691,7 @@ function paintFragile() {
       delete td.dataset.fragileTitle;
     }
   });
-  if (!FRAGILE || !ST || FRAGILE.round !== ST.round) {
-    if (box) box.innerHTML = '<p class="fragile-note">생성 뒤에 점검합니다.</p>';
-    return;
-  }
+  if (!FRAGILE || !ST || FRAGILE.round !== ST.round) return;
   for (const key in FRAGILE.cells) {
     const info = FRAGILE.cells[key];
     const i = key.lastIndexOf(":");
@@ -2691,30 +2702,6 @@ function paintFragile() {
     if (td.dataset.fragileTitle === undefined) td.dataset.baseTitle = td.title || "";
     td.dataset.fragileTitle = "1";
     td.title = (td.dataset.baseTitle ? td.dataset.baseTitle + "\n" : "") + fragileTitle(info);
-  }
-  if (box && !FRAGILE.done) {
-    const sec = FRAGILE.t0 ? Math.round((Date.now() - FRAGILE.t0) / 1000) : 0;
-    box.innerHTML = `<p class="fragile-note">건드리면 안 되는 칸을 점검하는 중입니다… (40명 기준 약 10초${sec ? `, ${sec}초 경과` : ""}). ` +
-      `제목 옆 <b>'수정주의근무'</b>를 켜면 혼자서는 못 바꾸는 칸이 표에 표시됩니다.</p>`;
-  } else if (box) {
-    const pct = FRAGILE.total ? Math.round(100 * FRAGILE.fixed / FRAGILE.total) : 0;
-    const free = FRAGILE.total - FRAGILE.fixed;
-    // 비율 구간별로 말한다 — 필수 위반 0인 샘플 병동도 78%가 나오는데 "인원이 빠듯한 달"이라
-    // 하면 입력이 잘못됐나 의심한다(2026-10-31 검토 A-18). 빗금이 많은 것은 규칙이 촘촘히
-    // 맞물린 표라는 뜻이고, 인원 부족은 필수 위반이 남았을 때만 말한다.
-    const hard = ST && ST.report ? ST.report.hard_count : 0;
-    const warn = pct >= 60
-      ? (hard > 0
-          ? ' <span class="warn-text">— 필수 위반이 남은 데다 혼자 바꿀 칸도 적습니다. 인원이 빠듯한 달이니 손 수정보다 맞교환·재생성이 안전합니다.</span>'
-          : ' <span class="warn-text">— 규칙이 촘촘히 맞물린 표입니다(필수 위반은 없습니다). 혼자 바꿀 수 있는 칸이 적으니 손 수정보다 맞교환이나 재생성이 안전합니다.</span>')
-      : pct >= 40 ? " — 절반 가까운 칸은 맞교환이나 재생성으로 바꾸는 편이 안전합니다."
-      : " — 대부분 칸은 혼자서도 바꿀 수 있습니다.";
-    box.innerHTML =
-      `<ul class="issue-list" style="font-size:12px">` +
-      `<li class="hard"><span class="rule">고정</span>${FRAGILE.row_fixed}칸 — 어느 근무로 바꿔도 그 사람 행의 규칙이 깨짐(맞교환도 불가, 칸 왼쪽 위 ✕)</li>` +
-      `<li class="soft"><span class="rule">교환만</span>${FRAGILE.swap_only}칸 — 혼자 바꾸면 그날 인원·숙련도 규칙이 깨짐(맞교환은 가능할 수 있음, 칸 왼쪽 위 ⇄)</li>` +
-      `<li class="none"><span class="rule">자유</span>${free}칸 — 혼자 바꿔도 새 필수 위반 없음</li>` +
-      `</ul><p class="fragile-note">전체 ${FRAGILE.total}칸 중 ${pct}%가 혼자서는 못 바꾸는 칸${warn}</p>`;
   }
 }
 
@@ -2928,7 +2915,7 @@ function renderGrid() {
     // 수정주의근무 — 고치면 다른 규칙이 깨지는 칸에 줄무늬를 얹는다(진함 = 바꿀 수 없음, 옅음 = 맞교환으로만). 예전 이름은 '빗금'이었는데
     // 무늬의 이름이지 뜻이 아니라서 무엇을 켜는지 읽히지 않았다(사용자 2026-11-14). 하루 동안은 체크 없이 늘 켜 두었는데 표의 절반에
     // 무늬가 얹혀 촘촘했다 — 칸을 손으로 고칠 때만 켜면 된다. 기본은 꺼짐, 기기에 기억.
-    `<label class="legend-toggle" title="고치면 다른 규칙이 깨지는 칸을 표에 표시합니다 — 칸 왼쪽 위 ✕는 어느 근무로도 바꿀 수 없는 칸, ⇄는 맞교환으로만 바꿀 수 있는 칸">` +
+    `<label class="legend-toggle" id="hatchToggle" title="${escAttr(hatchTitle())}">` +
       `<input type="checkbox" data-view="hatch"${viewOpt("hatch") ? " checked" : ""}> 수정주의근무</label></span></span></div>` +
     // (2026-11-14 한나절 동안 여기에 '추가검토' 체크가 있었다 — 추가 검토 표식을 켜고 끄는. 같은 날 없앴다: 표식을 눈에 덜 띄는
     //  밑줄로 바꾸고 늘 보이게 했다. 뜻은 범례에 있다.)
@@ -3241,7 +3228,7 @@ function sideTabItems() {
     { tab: "wanted", label: "원티드", v: (r.requests && r.requests.total) ? `${r.requests.accepted}<span class="st-of">/${r.requests.total}</span>` : "–",
       cls: (r.requests && r.requests.total) ? (r.requests.accepted < r.requests.total ? "warn" : "ok") : "",
       title: "원티드 신청 결과 — 반영된 건수/전체 신청 건수. 누르면 미반영부터 사유와 함께 나옵니다" },
-    { tab: "more", label: "상세 자료", v: "⋯", cls: "", title: "직원별 집계 · 주말 근무자 · 적용 조건 · 상세 도구 · 도움말" },
+    { tab: "more", label: "상세 자료", v: "⋯", cls: "", title: "직원별 집계 · 주말 근무자 · 적용 조건 · 변경 안내 초안 · 도움말" },
   ];
 }
 function sideTabsHtml() {
@@ -3752,7 +3739,6 @@ delegateClick(document.getElementById("sidePane"), "button.undo-edit",
   (b) => undoEdit(b.dataset.sid, Number(b.dataset.day)));
 delegateClick(document.getElementById("sidePane"), "button.swap-pick",
   (b) => stageSwap(b.dataset.sid, Number(b.dataset.day), b.dataset.partner));
-delegateClick(document.getElementById("sidePane"), "button[data-fw]", (b) => applyFairWeights(b.dataset.fw === "reset"));
 delegateClick(document.getElementById("sidePane"), "button.notice-set-screen", () => setNoticeFromScreen());
 delegateClick(document.getElementById("sidePane"), "button.notice-set-file", () => $("#baselineInput").click());
 delegateClick(document.getElementById("sidePane"), "button.notice-clear", () => {
@@ -4877,7 +4863,7 @@ function issueLi(v) {
 
 // 오른쪽 패널 — 위에서부터 '지금 확인하고 판단할 일' 순서다(GPT UI 검토 261113 + 사용자 "출력 쪽 너무 지저분하다"):
 //   편집 중(있을 때만) → 확인할 문제(필수 위반·인력 미달·추가 검토) → 형평성(종합·가장 낮은 축) → 조정 참고(3가지까지)
-//   → 상세 자료(직원별 집계·주말 근무자·원티드 결과·적용 조건 — 전부 접힘) → 상세 도구 → 도움말·기타.
+//   → 상세 자료(직원별 집계·주말 근무자·적용 조건·변경 안내 초안 — 전부 접힘) → 도움말·기타. 원티드 결과는 자기 탭.
 // 예전에는 18칸이 화면 네 장 분량으로 이어졌고, 위반 수가 세 군데·직원별 표가 두 군데(표 오른쪽 열과 같은 숫자)에 있었다.
 // 파일 받기는 표 위 작업줄(fileBarHtml)로 갔다. 숫자와 목록은 전부 그대로다 — 순서와 기본 펼침만 바꿨다.
 function renderSide() {
@@ -4985,9 +4971,6 @@ function renderSide() {
   // 주말·공휴일 근무자 명단 — "이번 주말에 누가 서나"를 그리드를 훑지 않고 본다
   html += renderWeekendRoster();
 
-  // 야간블록 히스토그램
-  const blockH = Object.entries(r.night_block_hist).map(([k, v]) => `${k}일×${v}`).join(", ") || "없음";
-  const gapH = Object.entries(r.night_gap_hist).map(([k, v]) => `${k}일×${v}`).join(", ") || "없음";
 
   // 원티드 결과 — 자기 탭('원티드')에 펼쳐서. 미반영부터 사유와 함께, 그 뒤에 반영된 것. 신청이 없는 달에도 탭은 있다(없다고 적는다).
   let wantedHtml = `<div class="side-sec" id="wantedSec">`;
@@ -5017,26 +5000,17 @@ function renderSide() {
     월최대야간 ${ps.max_nights}일 · NK ${ps.nk_count}명 · 공휴일 ${holOnly}개(주말 ${satSun}일)</li>` +
   `</ul><p class="side-note">이 근무표를 만들 때 쓴 값입니다. 바꾸려면 '← 입력 이동'.</p></details>`;
 
-  // ---- 상세 도구(옛 '자세히 보기', 전문가 모드) — 시도 점수표·처리 로그·수정 전 점검을 한 접힘 안에 둔다. 셋 다 첫
-  // 사용자에게는 소음이고(2026-10-31 검토 §3), 점수표 줄 누르기는 표·다운로드가 바뀌는 큰 동작이다.
-  // 펼친 상태는 기억한다(localStorage ns_expert_open) — 매번 여는 사람은 매번 열려 있어야 한다.
-  html += `<details class="side-sec expert-sec" id="expertSec"${expertOpen() ? " open" : ""}>` +
-    `<summary><h3 style="display:inline">상세 도구</h3></summary>` +
-    `<p class="side-note">변경 안내 초안 · 다른 근무표(시도 점수표) · 수정 전 확인 · 처리 로그. 표를 고르거나 손 수정을 많이 할 때 봅니다.</p>`;
-  // 변경 안내 초안은 여기(전문가 모드) 안에 — 공지 뒤 변경이 있는 달에만 쓰는 것이라 평소 패널에서는 숨긴다
-  // (2026-11-09 사용자). 코드째 걷어내지 않는 이유: 쓰는 길이 남아 있고(상세 도구 → 변경 안내 초안) 테스트가 본다.
+  // 변경 안내 초안 — 공지한 판을 기준본으로 두고 바뀐 사람에게 보낼 글. 공지 뒤 변경이 있는 달에만 쓰는 것이라 접힌 채 둔다.
+  // 예전엔 '상세 도구' 접힘 안에 야간 패턴·수정 전 확인·시도 점수표·처리 로그와 함께 있었다. 넷 다 파트장이 읽을 것이 아니라
+  // 걷어냈다(사용자 2026-11-16 "출력 정보 많은데 다 필요한 거야?" → "6개 정리"): 야간 패턴·처리 로그는 월간 보고서와 문의 파일에
+  // 남고, 수정 전 확인은 '수정주의근무' 체크의 풀이로 옮겼고, 시도 점수표는 관리자 모드에서만 보인다(아래).
   html += renderNotice();
-  // 야간 패턴(블록 길이·간격 분포)은 엔진 점검용 숫자라 여기로(2026-11-09 사용자: 설명 불필요, 숨겨).
-  // 분포는 '3일×1, 6일×1, …'이 한 줄로 이어져 읽히지 않았다 — 값마다 작은 칸으로(2026-11-16).
-  html += `<div class="side-sec"><h3>야간 패턴</h3><ul class="chip-list">
-    <li>${chipLine("블록 길이 분포: " + blockH)}</li>
-    <li>${chipLine("블록 간격 분포: " + gapH)}</li>
-  </ul></div>`;
-  html += `<div class="side-sec"><h3>수정 전 확인</h3><p class="side-note">고치면 다른 규칙이 깨지는 칸입니다. 제목 옆 '수정주의근무'를 켜면 표에도 표시됩니다(칸 왼쪽 위 ✕ = 바꿀 수 없음, ⇄ = 맞교환만 가능).</p><div id="fragileBox"></div></div>`;
 
   // 시도 점수표 — 시드마다 어떤 숫자로 견줘 어느 것을 골랐는지. 앞 열이 다르면 뒤 열은 보지 않는다
   // (운영 필수 → 숙련도 → 공평성 → 전체 하드, 2026-10-30 결정). 공평성은 주말·야간·D/E·원티드 미반영의 합(사람·일 수).
-  if (ST.attempt_table && ST.attempt_table.length > 0) {
+  // 관리자 모드에서만(받은 문의를 다시 볼 때 "왜 이 시드를 골랐나"를 따지는 표다) — 파트장 화면에서는 열 한 개짜리 숫자 표가
+  // 읽히지 않았고, 줄을 누르면 표·다운로드가 통째로 바뀌는 큰 동작이라 모르고 누르면 사고다.
+  if (VOC_VIEW && ST.attempt_table && ST.attempt_table.length > 0) {
     const rows = ST.attempt_table;
     // 꼼꼼히 만들기(9회)면 줄이 아홉이라 옆 칸이 길어진다 — 점수 상위 3줄(+지금 보는 표)만 펴고 나머지는 접는다.
     const ranked = [...rows].sort((a, b) => (attemptBetter(a, b) ? -1 : attemptBetter(b, a) ? 1 : 0));
@@ -5044,7 +5018,7 @@ function renderSide() {
     shown.add(ST.current_seed);
     const folded = rows.filter(a => !shown.has(a.seed)).length;
     const thoroughRun = (window.__genMode || "").includes("thorough");
-    html += `<div class="side-sec"><h3>시도 점수표 <span class="count-badge">시드 ${rows.length}개</span>` +
+    html += `<div class="side-sec" id="attemptSec"><h3>시도 점수표 <span class="count-badge">시드 ${rows.length}개</span> <span class="count-badge">관리자</span>` +
       `<span class="tap-hint">줄을 누르면 그 시드의 표로 바뀝니다(다운로드도 그 표)</span></h3>` +
       // 열이 열한 개라 좁은 패널(폰·307px)에서는 넘친다 — 가로 스크롤 상자에 넣는다(표가 잘려 마지막 열이 안 보였다)
       `<div class="attempt-scroll"><table class="mini-table attempt-table${attemptTableExpanded ? " expanded" : ""}"><tr><th>시드</th><th title="최소인력·지정·연속근무 등 그날 병동이 못 돌아가는 필수 위반">운영필수</th>` +
@@ -5082,19 +5056,6 @@ function renderSide() {
       `${(window.__genMode || "").startsWith("parallel") ? `<li>시드 ${rows.length}개를 여러 코어로 동시에 계산했습니다.</li>` : ""}</ul></div>`;
   }
 
-  // 처리 로그 — 기본 접기. 같은 줄이 이어지면 "×n"으로 묶는다(맞교환 줄이 수십 번 반복돼 904건으로
-  // 보였다, 2026-10-31 검토 A-13). 내부 기록이라 첫 사용자가 읽을 글이 아니다.
-  if (r.logs.length > 0) {
-    const grouped = [];
-    for (const l of r.logs) {
-      const last = grouped[grouped.length - 1];
-      if (last && last.text === l) last.n++; else grouped.push({ text: l, n: 1 });
-    }
-    html += `<details class="side-sec log-sec" id="logSec"><summary><h3 style="display:inline">처리 로그 <span class="count-badge">${r.logs.length}건${grouped.length < r.logs.length ? ` · 묶으면 ${grouped.length}줄` : ""}</span></h3></summary>` +
-      `<p class="side-note">엔진 내부 기록(개발자용). 같은 줄은 ×n으로 묶음.</p>` +
-      `<div class="log-box">${grouped.map(g => esc(g.text) + (g.n > 1 ? ` <b>×${g.n}</b>` : "")).join("\n")}</div></details>`;
-  }
-  html += `</details>`;   // 상세 도구 끝
 
   // 도움말 · 기타 — '상세 자료' 탭 맨 아래. 한 줄 전체가 누르는 자리다(작은 글씨 한 문단에 '·'로 이어 붙였더니 폰에서 무엇이
   // 버튼인지 알 수 없었다, 2026-11-11). 월간 보고서는 실험 기능이라 표 위 파일 줄이 아니라 여기 둔다(사용자 2026-11-13 —
@@ -5121,11 +5082,9 @@ function renderSide() {
   sidePane.querySelectorAll("details[id]").forEach(d => { if (d.id in wasOpen) d.open = wasOpen[d.id]; });
   renderPending();
   renderNextMonthCard();
-  const ex = $("#expertSec");
-  if (ex) ex.addEventListener("toggle", () => { try { localStorage.setItem(EXPERT_KEY, ex.open ? "1" : "0"); } catch (e) { /* 기억만 못 할 뿐 */ } });
 }
-const EXPERT_KEY = "ns_expert_open";
-function expertOpen() { try { return localStorage.getItem(EXPERT_KEY) === "1"; } catch (e) { return false; } }
+// 예전 '상세 도구' 접힘의 열림 기억 — 접힘을 걷어냈으니 지운다
+try { localStorage.removeItem("ns_expert_open"); } catch (e) { /* 읽는 곳이 없다 */ }
 
 // 엔진 메시지의 내부 표기를 사람 말로 — 화면에만 적용한다(파일·보고서는 엔진 문구 그대로).
 // 규칙 번호는 ruleTag로 문장 뒤에 작게 붙인다.
@@ -5206,19 +5165,6 @@ function fairGradeClass(g) { return g === "good" ? "good" : g === "mid" ? "warn-
 // 표 위 상태 띠의 공정성 한 숫자 — 편집 중이면 "원래 → 수정 후"를 같이 보인다(둘 다 엔진이 센 값: fair·fair_edited).
 // 점수가 낮아도 막지 않는다 — 병동 사정은 파트장이 안다. 누르면 오른쪽 '공정성 점수' 칸으로 간다.
 function fairOneNumber(f) { return !f || f.total == null ? "–" : String(Math.round(f.total)); }
-function fairAxisMeta(a) {
-  const ex = a.excluded || {}, parts = [];
-  if (a.key === "wanted") return a.raw_text ? `원값 ${a.raw_text}` : "";
-  if (a.key === "mix") return `견준 조 ${a.compared ?? "–"}개 · 원값 ${a.raw_text || ""}`;
-  parts.push(`견준 ${a.compared ?? a.n_units ?? "–"}명`);
-  const out = [];
-  if (ex.single) out.push(`같은 조건 없음 ${ex.single}`);
-  if (ex.no_target) out.push(`야간 목표 없음 ${ex.no_target}`);
-  if (ex.role) out.push(`야간전담 ${ex.role}`);
-  if (out.length) parts.push(`빠짐 ${out.join(" · ")}`);
-  if (a.raw_text) parts.push(`원값 ${a.raw_text}`);
-  return parts.join(" · ");
-}
 // 1단계(야간만 보기)에서는 종합 점수 대신 '야간 균등' 축 하나만 — 종합에는 주말·근무횟수처럼 2단계에서 다시
 // 짜일 주간 몫이 섞여 있어, 야간을 아무리 고쳐도 엉뚱하게 오르내린다.
 function nightAxis(f) { return f && Array.isArray(f.axes) ? f.axes.find(a => a.key === "night") : null; }
@@ -5307,54 +5253,14 @@ function renderFairScore() {
     html += `<p class="side-note">입력②(연간근무표)를 올리면 누적 형평이 붙습니다.</p>`;
   }
   // 뜻·산식·선택 기준은 접힘 하나에 — 늘 펼쳐 두면 점수보다 글이 많아 아무것도 안 읽힌다
-  html += `<p class="side-note">낮아도 병동 사정을 아는 파트장이 그대로 두거나 고칩니다. 사람별 한 줄은 이름을 눌러 여정에서.</p></details>` +
-    `<details class="fair-help" id="fairHelp"><summary>점수의 뜻 · 견준 사람</summary><div class="side-note">${sentenceLines(f.weights_note || "")}</div>` +
-    (f.selection_note ? `<div class="side-note">${sentenceLines(f.selection_note)}</div>` : "") +
-    // 축마다 견준 사람 수와 빠진 사람(1인 집단·역할·목표 없음)·원값 — 점수가 좋다는 말이 "견준 사람끼리만 좋다"로 바뀌지 않게.
-    // 늘 펼쳐 두면 축마다 두 줄이 돼 점수보다 글이 많아져 여기로 접었다(2026-11-09).
-    `<ul class="fair-meta-list">${f.axes.map(a => `<li class="fair-axis-meta" data-fair-meta="${escAttr(a.key)}"><b>${esc(a.name)}</b> ${esc(fairAxisMeta(a))}</li>`).join("")}</ul>` +
-    (cu && cu.method ? `<div class="side-note"><b>누적 형평</b>${sentenceLines(cu.method)}</div>` : "") + `</details>`;
-  // 가중치 조정 — 값은 엔진이 0~5로 고르고 돌려준 것을 그대로 보여 준다(화면이 따로 셈하지 않는다).
-  const W = f.weights || {}, FW = f.fatigue_weights || {}, DW = f.default_weights || {}, DF = f.default_fatigue_weights || {};
-  const FAT_NAMES = { quick_to_night: "낮→밤 직결", short_recovery: "짧은 회복", consecutive_weekends: "연속 주말" };
-  const changed = Object.keys(DW).some(k => W[k] !== DW[k]) || Object.keys(DF).some(k => FW[k] !== DF[k]);
-  html += `<details class="fair-weights" id="fairWeights"${changed ? " open" : ""}><summary>표시 점수 가중치${changed ? ' <span class="count-badge">기본과 다름</span>' : ""}</summary><div class="fair-w-grid">` +
-    f.axes.map(a => `<label><span>${esc(a.name)}</span><input type="number" min="0" max="${f.weight_max || 5}" step="0.5" data-fw-axis="${escAttr(a.key)}" value="${W[a.key] ?? a.weight}"></label>`).join("") +
-    Object.keys(FAT_NAMES).map(k => `<label><span>피로 · ${FAT_NAMES[k]}</span><input type="number" min="0" max="${f.weight_max || 5}" step="0.5" data-fw-fat="${k}" value="${FW[k] ?? ""}"></label>`).join("") +
-    `</div><div class="fair-w-actions"><button type="button" class="btn-sm" data-fw="apply">적용</button><button type="button" class="btn-sm" data-fw="reset">기본값</button></div>` +
-    `<p class="side-note">0은 안 봄, 5가 상한. 기기에 기억됩니다. 표는 바뀌지 않습니다.</p></details></div>`;
+  // 점수의 뜻·견준 사람·가중치 조정은 화면에서 걷어냈다(사용자 2026-11-16 "출력 정보 많은데 다 필요한 거야?") —
+  // 산식은 설명서 몫이고, 가중치를 바꿔도 표는 그대로라 파트장이 할 일이 없었다. 종합 점수는 엔진 기본 가중치로만 센다.
+  html += `<p class="side-note">낮아도 병동 사정을 아는 파트장이 그대로 두거나 고칩니다. 사람별 한 줄은 이름을 눌러 여정에서.</p></details></div>`;
   return html;
 }
 
-// 가중치는 기기(localStorage)에 기억하고 생성 요청마다 같이 보낸다 — 새 탭에서도 같은 종합 점수가 나오게.
-const FAIR_W_KEY = "ns_fair_weights_v1";
-function fairWeightsStored() { try { return JSON.parse(localStorage.getItem(FAIR_W_KEY) || "null") || null; } catch (e) { return null; } }
-function fairWeightsRemember(axes, fatigue) {
-  // 관리자 모드에서 만진 가중치는 남의 문의를 보려고 바꾼 것이다 — 내 기기에 남기면 모드를 끝낸 뒤 내 점수 기준이 달라져 있다
-  // (설정·공지 기준본 저장은 막혀 있었는데 이것만 빠져 있었다, GPT 배포 전 검증 F03 2026-11-14).
-  if (VOC_VIEW) return;
-  try { if (!axes && !fatigue) localStorage.removeItem(FAIR_W_KEY); else localStorage.setItem(FAIR_W_KEY, JSON.stringify({ axes, fatigue })); } catch (e) { /* 기억만 못 할 뿐 */ }
-}
-async function applyFairWeights(reset) {
-  if (!ST) return;
-  let body;
-  if (reset) {
-    body = { axes: {}, fatigue: {} };
-    fairWeightsRemember(null, null);
-  } else {
-    const axes = {}, fatigue = {};
-    document.querySelectorAll("#fairWeights input[data-fw-axis]").forEach(i => { const v = parseFloat(i.value); if (!Number.isNaN(v)) axes[i.dataset.fwAxis] = v; });
-    document.querySelectorAll("#fairWeights input[data-fw-fat]").forEach(i => { const v = parseFloat(i.value); if (!Number.isNaN(v)) fatigue[i.dataset.fwFat] = v; });
-    body = { axes, fatigue };
-    fairWeightsRemember(axes, fatigue);
-  }
-  try {
-    ST = await api("/api/fair_weights", { method: "POST", body: JSON.stringify(body) });
-    renderSide();
-    showToast(reset ? "가중치를 기본값으로 돌렸습니다" : "가중치를 적용해 점수를 다시 셌습니다");
-  } catch (e) { showToast(`가중치 적용 실패: ${e.message || e}`, true); }
-}
-
+// 예전 '표시 점수 가중치'가 기기에 남긴 값 — 기능을 걷어냈으니 지운다(남겨 두면 아무도 못 지우는 찌꺼기다)
+try { localStorage.removeItem("ns_fair_weights_v1"); } catch (e) { /* 지우지 못해도 읽는 곳이 없다 */ }
 function renderBurdenSummary() {
   const people = ST.staff.filter(s => !s.is_partjang);
   if (!people.length) return "";
