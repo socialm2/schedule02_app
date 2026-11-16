@@ -2977,20 +2977,22 @@ function renderGrid() {
   const item = (smp, label) => `<span class="lg-it">${smp}<span class="lg-t">${label}</span></span>`;
   const row = (head, body) => `<div class="lg-row"><span class="lg-h">${head}</span><div class="lg-items">${body}</div></div>`;
   const D = legendColor.D;
+  // 세 줄이다(사용자 2026-11-16: "지금 총 5줄인데 줄여 봐") — 따로 한 줄씩이던 '이름 옆'과 '누르면'을 위 두 줄의 오른쪽 빈자리로
+  // 옮겼다. PC에서는 줄마다 한 줄로 들어가고, 폰에서는 오른쪽 덩어리(.lg-side·.lg-note)가 그 줄 안에서 아래로 내려간다.
+  const nameMarks = (ST.staff.some(s => s.is_designated) ? item(`<span class="desig-mark">지</span>`, "지정 가능자") : "") +
+                    (ST.staff.some(s => s.is_night_leader) ? item(`<span class="desig-mark nl-mark">밤</span>`, "야간리더") : "");
   html += row("근무", usedCodes.map(k => sample(k, "", legendColor[k])).join("") +
-    item(sample("/", "lg-off"), "오프") + item(sample("X", "lg-off lg-want"), "원티드오프"));
+    item(sample("/", "lg-off"), "오프") + item(sample("X", "lg-off lg-want"), "원티드오프") +
+    (nameMarks ? `<span class="lg-side"><span class="lg-sub">이름 옆</span>${nameMarks}</span>` : ""));
   html += row("칸 표시",
     item(sample("D", "lg-want", D), "원티드 반영") + item(sample("D", "lg-lock", D), "확정(고정)") +
-    item(sample("D", "lg-pend", D), "고쳤지만 미적용") + item(sample("D", "lg-hard", D), "필수 위반") +
-    item(sample("D", "lg-soft", D), "추가 검토"));
+    item(sample("D", "lg-pend", D), "미적용 편집") + item(sample("D", "lg-hard", D), "필수 위반") +
+    item(sample("D", "lg-soft", D), "추가 검토") +
+    `<span class="lg-note legend-tap">누르면 — <b>날짜</b> 그날 병동 · <b>이름</b> 한 달 여정 · <b>칸</b> 근무 바꾸기</span>`);
   html += row("고칠 때",
     item(sample("D", "lg-x", D), "바꿀 수 없음") + item(sample("D", "lg-sw", D), "맞교환으로만") +
     item(sample("D", "lg-cand", D), "맞교환 상대") +
     `<span class="lg-note">✕·⇄는 '수정주의근무'를 켰을 때 · 동그라미는 '맞교환 상대 찾기' 중에만</span>`);
-  const nameMarks = (ST.staff.some(s => s.is_designated) ? item(`<span class="desig-mark">지</span>`, "지정 가능자") : "") +
-                    (ST.staff.some(s => s.is_night_leader) ? item(`<span class="desig-mark nl-mark">밤</span>`, "야간리더") : "");
-  if (nameMarks) html += row("이름 옆", nameMarks);
-  html += row("누르면", `<span class="lg-it legend-tap"><span class="lg-t"><b>날짜</b> → 그날 병동 · <b>이름</b> → 한 달 여정 · <b>칸</b> → 근무 바꾸기</span></span>`);
   html += "</div>";
 
   // OCS 형식과 같은 계산열(잔휴·D/E/N·금월·Lv) — 전부 현재 화면 그리드(미적용 편집 포함)로
