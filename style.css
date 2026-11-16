@@ -585,7 +585,9 @@ td.swap-origin { outline: 2.5px solid var(--accent); outline-offset: -2.5px; }
    받기 둘(.dl) = 채운 강조색 + ↓ · 되올리기(.up) = 옅은 강조색 + ↑ · 입력으로(.sub) = 흰 단추 그대로. 화살표는 ::before라 글자(textContent)는 그대로다. */
 .file-bar .file-btn { min-height: 36px; padding: 4px 12px; border-radius: 9px; font-weight: 700; font-size: .8125rem; line-height: 1.2;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; margin: 0; }
-.file-bar .file-btn.sub { font-weight: 600; background: var(--card); color: var(--ink); border-color: var(--line); }
+.file-bar .file-btn.sub { font-weight: 700; background: var(--card); color: var(--ink); border-color: var(--line); min-width: 112px; }
+/* ↑ '입력 이동'만 글자 무게 600에 폭 94px라 옆 단추(165~171px·700)보다 확연히 작아 보였다(사용자 2026-11-16 "기분 탓인가?" — 아니었다).
+   무게를 맞추고 최소 폭을 준다. 흰 바탕은 그대로 — 돌아가는 동작이라 받기 둘보다 앞서 보일 필요는 없다. */
 .file-bar .file-btn.dl { background: var(--accent); border-color: var(--accent); color: var(--on-accent); box-shadow: 0 1px 3px rgba(0,0,0,.14); }
 .file-bar .file-btn.dl:hover:not(:disabled) { filter: brightness(1.08); color: var(--on-accent); }
 .file-bar .file-btn.dl .io-tag { background: rgba(255,255,255,.24); color: inherit; margin-right: 0; }

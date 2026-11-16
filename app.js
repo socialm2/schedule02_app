@@ -392,7 +392,7 @@ iPhone(Safari)은 공유 버튼 → 홈 화면에 추가, Android(Chrome)는 ⋮
 
 const INFO_HTML_INPUT = `
 <p class="walk-link"><a href="walkthrough.html" target="_blank" rel="noopener">▶ 화면 따라하기</a> — 실제 화면 위에서 손가락이 눌러야 할 자리를 가리키며 입력 12단계·출력 12단계를 자동으로 넘깁니다(폰·PC 화면 둘 다). 옆에 띄워 두고 그대로 누르세요.</p>
-<h3>처음이면 이 세 줄만</h3>
+<h3>처음이면 이 세 줄부터 보세요</h3>
 <ol class="first-three">
 <li><b>그대로 [근무표 생성]을 눌러 보세요</b> — 샘플 병동(40명) 값이 채워져 있어 바로 결과 화면을 볼 수 있습니다.</li>
 <li><b>입력① 양식(다운로드)을 받아 우리 명단을 넣고 올리세요</b> — 직급·숙련도·가능근무·신청(원티드)은 이 파일에서만 받습니다.</li>
@@ -564,7 +564,7 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 돌려 운영 필수 → 숙련도 → 공평성 → 전체 위반 순으로 견줘 가장 좋은 표를 보여줍니다. 점수표 줄을 누르면 그 시드의 표로
 바뀝니다(다운로드도 그 표). <b>🔍 꼼꼼히 만들기</b>를 켜고 생성하면 평소 3개 만들어 고르던 것을 9개 만들어 고릅니다 — 위반이 남는 달에
 켜 보세요(일반 생성보다 오래 걸리고, 빠듯한 달은 1~2분. 진행 중 '여기까지 결과로 멈추기' 가능).</li>
-<li><b>🌙 야간 먼저(N only)</b> — 생성 버튼 아래 '만드는 방법'에서 고르면 두 단계로 만듭니다. 1단계는 야간(N·NK)만 보이고 야간을 넣거나 빼는 것만 됩니다(다른 근무로 바꾸기·맞교환은 확정 뒤에).
+<li><b>🌙 야간 먼저 짜기(N only)</b> — 생성 버튼 아래 '만드는 방법'에서 고르면 두 단계로 만듭니다. 1단계는 야간(N·NK)만 보이고 야간을 넣거나 빼는 것만 됩니다(다른 근무로 바꾸기·맞교환은 확정 뒤에).
 위반 숫자·'필수 위반'·'추가 검토' 탭도 야간 관련 항목만, 형평성은 '야간 균등'만 셉니다(이 단계에서는 출력①②를 받을 수 없습니다). 야간을 고친 뒤 표 위의 <b>야간 확정 → 나머지 짜기</b>를
 누르면 야간과 그 뒤 쉬는 이틀·수면오프(S/)를 고정하고 나머지를 짭니다. 확정 뒤에는 재생성·편집 적용에도 야간이 그대로이고,
 지워서 모자란 야간은 다른 사람으로 메우지 않고 빨간 필수 위반으로 남습니다('야간 다시 고치기'로 돌아가 직접 채웁니다).</li>
@@ -2448,8 +2448,8 @@ function renderNotice() {
   if (!NOTICE) {
     html += `<p class="hint">공지한 뒤 바뀐 칸을 사람별 안내 문구로 만듭니다. 먼저 <b>공지한 판</b>을 기준본으로.</p>
       <div class="download-row">
-      <button class="notice-set-screen">지금 화면 표를 기준본으로</button>
-      <button class="notice-set-file">공지한 출력① 올려서</button>
+      <button class="notice-set-screen">지금 표로 기준본 정하기</button>
+      <button class="notice-set-file">공지한 출력①로 기준본 정하기</button>
       </div>
       <p class="hint">기준본은 이 탭에만 남고, 근무표는 바뀌지 않습니다.</p></details>`;
     return html;
@@ -2662,7 +2662,7 @@ async function refreshFragile() {
 
 function fragileTitle(info) {
   if (info.row) return "고정 칸 — 어느 근무로 바꿔도 이 사람 행의 규칙(" + info.rules.join(", ") + ")을 깹니다. 맞교환도 안 됩니다";
-  if (info.alts === 0) return "맞교환으로만 — 혼자 바꾸면 그날 인원·숙련도 규칙(" + info.rules.join(", ") + ")이 깨집니다";
+  if (info.alts === 0) return "맞교환만 가능 — 혼자 바꾸면 그날 인원·숙련도 규칙(" + info.rules.join(", ") + ")이 깨집니다";
   return "바꿀 수 있는 근무가 하나뿐입니다";
 }
 
@@ -2990,7 +2990,7 @@ function renderGrid() {
     item(sample("D", "lg-soft", D), "추가 검토") +
     `<span class="lg-note legend-tap">누르면 — <b>날짜</b> 그날 병동 · <b>이름</b> 한 달 여정 · <b>칸</b> 근무 바꾸기</span>`);
   html += row("고칠 때",
-    item(sample("D", "lg-x", D), "바꿀 수 없음") + item(sample("D", "lg-sw", D), "맞교환으로만") +
+    item(sample("D", "lg-x", D), "바꿀 수 없음") + item(sample("D", "lg-sw", D), "맞교환만 가능") +
     item(sample("D", "lg-cand", D), "맞교환 상대") +
     `<span class="lg-note">✕·⇄는 '수정주의근무'를 켰을 때 · 동그라미는 '맞교환 상대 찾기' 중에만</span>`);
   html += "</div>";
@@ -3166,7 +3166,7 @@ function nightStageBar() {
       ` 위반 숫자와 '필수 위반'·'추가 검토' 탭은 <b>야간 관련 규칙만</b> 셉니다` +
       `${ST.report && ST.report.hidden_count ? `(주간 등 나머지 ${ST.report.hidden_count}건은 나머지를 짠 뒤 다시 셉니다)` : ""}.</span>` +
       `<button type="button" class="primary small" data-night="confirm">야간 확정 → 나머지 짜기</button>` +
-      `<button type="button" class="small" data-night="all">전체 보기로(확정 안 함)</button></div>`;
+      `<button type="button" class="small" data-night="all">전체 보기(확정 안 함)</button></div>`;
   }
   if (ST.nights_fixed) {
     return `<div class="night-stage-bar" id="nightStageBar"><span class="grow"><b>🌙 야간 확정됨</b>` +
@@ -3432,13 +3432,13 @@ function fileBarHtml() {
   const dis = hasPending || nightOnly ? " disabled" : "";
   let html = `<div class="file-bar-wrap"><div class="file-bar" id="sideDownload" role="group" aria-label="되올리기 · 파일 받기">` +
     // 문서 순서: 되올리기 · 입력으로 | 출력① · 출력②. 폰 세로에서는 이 순서대로 두 줄 두 칸으로 선다 — 윗줄이 '화면으로 들이는 것·
-    // 돌아가는 것', 아랫줄이 '받는 것 둘'. 가로·PC에서는 '← 입력으로'만 맨 끝(네 번째)으로 간다(style.css의 order — 사용자 2026-11-14). 예전 순서(되올리기 · 출력① / 출력② · 입력으로)는 줄이 넘어갈 때 너비가 제각각인 단추가 섞여
+    // 돌아가는 것', 아랫줄이 '받는 것 둘'. 가로·PC에서는 '← 입력 이동'만 맨 끝(네 번째)으로 간다(style.css의 order — 사용자 2026-11-14). 예전 순서(되올리기 · 출력① / 출력② · 입력으로)는 줄이 넘어갈 때 너비가 제각각인 단추가 섞여
     // 들쭉날쭉했다(사용자 2026-11-13: "되올리기랑 입력으로가 같이 있어야 이쁠 듯").
     `<button class="file-btn up" onclick="uploadMonth()" title="엑셀에서 고친 출력①(월간근무표)을 올리면 그 값으로 반영되고 바뀐 칸은 고정됩니다"><span class="fb-long">엑셀 수정본 </span>되올리기</button>` +
-    `<button id="backToInputBtn" class="file-btn sub" title="입력 화면으로 돌아가 새로 만듭니다">← 입력으로</button>` +
+    `<button id="backToInputBtn" class="file-btn sub" title="입력 화면으로 돌아가 새로 만듭니다">← 입력 이동</button>` +
     `<button class="file-btn dl" onclick="if (confirmDownloadWithViolations()) downloadXlsxOcs()"${dis} title="이번 달 근무표 — 엑셀에서 고쳐 되올릴 수 있습니다"><span class="io-tag">출력①</span>월간근무표</button>` +
     `<button class="file-btn dl" onclick="if (confirmDownloadWithViolations()) downloadStaffTable()"${dis} title="다음 달 입력②로 올리는 파일"><span class="io-tag">출력②</span>연간근무표</button></div>` +
-    (nightOnly ? `<p class="hint file-bar-note">야간만 보이는 1단계에서는 파일을 받을 수 없습니다 — '야간 확정 → 나머지 짜기'(또는 '전체 보기로') 뒤에 받을 수 있습니다.</p>`
+    (nightOnly ? `<p class="hint file-bar-note">야간만 보이는 1단계에서는 파일을 받을 수 없습니다 — '야간 확정 → 나머지 짜기'(또는 '전체 보기') 뒤에 받을 수 있습니다.</p>`
      : hasPending ? `<p class="hint file-bar-note">적용 안 한 편집이 있어 파일을 받을 수 없습니다 — '재생성 적용' 뒤에 받을 수 있습니다.` +
        // 폰에서는 '재생성 적용'이 표 40행 아래(패널)에 있어 고친 뒤 어디로 가야 하는지 화면에 없었다 — 여기서 데려간다(style.css: 폰에서만 보인다)
        ` <button type="button" class="small note-btn goto-pending" onclick="gotoPending()">적용하러 가기 ↓</button></p>` : "") +
@@ -5015,7 +5015,7 @@ function renderSide() {
   html += `<details class="side-sec" id="condSec"><summary><h3 style="display:inline">적용 조건</h3></summary><ul class="issue-list" style="font-size:12px">
     <li style="background:var(--code-bg)" id="inputSummaryLine">${ST.year}년 ${ST.month}월 · ${ST.staff.length}명 ·
     월최대야간 ${ps.max_nights}일 · NK ${ps.nk_count}명 · 공휴일 ${holOnly}개(주말 ${satSun}일)</li>` +
-  `</ul><p class="side-note">이 근무표를 만들 때 쓴 값입니다. 바꾸려면 '← 입력으로'.</p></details>`;
+  `</ul><p class="side-note">이 근무표를 만들 때 쓴 값입니다. 바꾸려면 '← 입력 이동'.</p></details>`;
 
   // ---- 상세 도구(옛 '자세히 보기', 전문가 모드) — 시도 점수표·처리 로그·수정 전 점검을 한 접힘 안에 둔다. 셋 다 첫
   // 사용자에게는 소음이고(2026-10-31 검토 §3), 점수표 줄 누르기는 표·다운로드가 바뀌는 큰 동작이다.
@@ -5031,7 +5031,7 @@ function renderSide() {
     <li style="background:var(--code-bg)">블록 길이 분포: ${esc(blockH)}</li>
     <li style="background:var(--code-bg)">블록 간격 분포: ${esc(gapH)}</li>
   </ul></div>`;
-  html += `<div class="side-sec"><h3>수정 전 확인</h3><p class="side-note">고치면 다른 규칙이 깨지는 칸입니다. 제목 옆 '수정주의근무'를 켜면 표에도 표시됩니다(칸 왼쪽 위 ✕ = 바꿀 수 없음, ⇄ = 맞교환으로만).</p><div id="fragileBox"></div></div>`;
+  html += `<div class="side-sec"><h3>수정 전 확인</h3><p class="side-note">고치면 다른 규칙이 깨지는 칸입니다. 제목 옆 '수정주의근무'를 켜면 표에도 표시됩니다(칸 왼쪽 위 ✕ = 바꿀 수 없음, ⇄ = 맞교환만 가능).</p><div id="fragileBox"></div></div>`;
 
   // 시도 점수표 — 시드마다 어떤 숫자로 견줘 어느 것을 골랐는지. 앞 열이 다르면 뒤 열은 보지 않는다
   // (운영 필수 → 숙련도 → 공평성 → 전체 하드, 2026-10-30 결정). 공평성은 주말·야간·D/E·원티드 미반영의 합(사람·일 수).
