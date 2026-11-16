@@ -2986,7 +2986,7 @@ function renderGrid() {
   html += row("고칠 때",
     item(sample("D", "lg-x", D), "바꿀 수 없음") + item(sample("D", "lg-sw", D), "맞교환으로만") +
     item(sample("D", "lg-cand", D), "맞교환 상대") +
-    `<span class="lg-note">✕·⇄는 제목 옆 '수정주의근무'를 켰을 때, 동그라미는 '맞교환 상대 찾기' 중에만</span>`);
+    `<span class="lg-note">✕·⇄는 '수정주의근무'를 켰을 때 · 동그라미는 '맞교환 상대 찾기' 중에만</span>`);
   const nameMarks = (ST.staff.some(s => s.is_designated) ? item(`<span class="desig-mark">지</span>`, "지정 가능자") : "") +
                     (ST.staff.some(s => s.is_night_leader) ? item(`<span class="desig-mark nl-mark">밤</span>`, "야간리더") : "");
   if (nameMarks) html += row("이름 옆", nameMarks);
@@ -3388,15 +3388,20 @@ function blankTailCells() {
   return dutyColumns().map(c => `<td class="stat-col">–</td>`).join("") +
     '<td class="stat-col">–</td>'.repeat(BURDEN_COLS.length) + '<td class="stat-col">–</td>'.repeat(4);
 }
-// ---------------------------------------------------------------- 범례 펼침(기기에 기억)
+// ---------------------------------------------------------------- 범례 펼침(기억하지 않음)·수정주의근무(기기에 기억)
 // 표 보기 옵션은 범례 하나만 남았다. 한나절 동안은 넷이었다(범례·빗금·집계 열 전체·그 밖 코드 줄 — 전부 기본 꺼짐).
 // 사용자가 나머지 셋은 늘 켜 두고 체크를 없애라고 했다(2026-11-13) — 숨겨 두니 있는 줄 모르는 숫자가 됐다. 숨기던 코드
 // (숨김 표식 col-x와 옵션 클래스·CSS)도 같이 걷어냈다. 값은 localStorage 한 칸(예전 키 그대로 — 옛 값의 다른 항목은 읽지 않는다).
 // 표를 다시 짜지 않고 #gridContent의 클래스만 바꾼다 — 보기만 바뀌는 것이라 스크롤이 튀면 안 된다.
 const VIEW_KEY = "ns_view_opts_v1";
 function viewOpts() { try { return JSON.parse(localStorage.getItem(VIEW_KEY) || "{}") || {}; } catch (e) { return {}; } }
-function viewOpt(k) { return !!viewOpts()[k]; }
+// 범례는 기억하지 않는다 — 열 때마다 꺼진 채로 시작한다(사용자 2026-11-16: "범례 체크 기본값은 off로"). 한 번 켠 기기는 그 뒤로
+// 늘 범례가 펼쳐진 채 열려 표가 그만큼 아래로 밀렸다. 같은 화면에서 표를 다시 그릴 때(칸을 고칠 때마다)는 켠 상태가 남는다.
+// 수정주의근무는 지금처럼 기기에 기억한다.
+let LEGEND_ON = false;
+function viewOpt(k) { return k === "legend" ? LEGEND_ON : !!viewOpts()[k]; }
 function setViewOpt(k, on) {
+  if (k === "legend") { LEGEND_ON = !!on; applyViewOpts(); return; }
   const o = viewOpts(); o[k] = !!on;
   try { localStorage.setItem(VIEW_KEY, JSON.stringify(o)); } catch (e) { /* 기억만 못 할 뿐 */ }
   applyViewOpts();
@@ -3405,6 +3410,7 @@ function applyViewOpts() {
   gridContent.classList.toggle("legend-on", viewOpt("legend"));
   gridContent.classList.toggle("hatch-on", viewOpt("hatch"));   // 수정주의근무(옛 '빗금') — 꺼져 있으면 무늬만 감춘다(style.css)
 }
+(() => { const o = viewOpts(); if ("legend" in o) { delete o.legend; try { localStorage.setItem(VIEW_KEY, JSON.stringify(o)); } catch (e) { /* 그대로 둬도 안 읽는다 */ } } })();
 applyViewOpts();
 gridContent.addEventListener("change", (e) => {
   const t = e.target;
