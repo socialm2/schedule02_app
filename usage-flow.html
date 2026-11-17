@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SMC Fair Shift 사용 순서</title>
+<style>
+:root{--page:#f6faf9;--bub:#0f766e;--card:#ffffff;--ink:#1d2a2b;--sub:#5d6b6c;--line:#cfdcda;--acc:#0f766e;--acc2:#14b8a6;--soft:#e6f4f1;--glow:rgba(20,184,166,.32);--lane:#7a8a8a;--pop1:#f59e0b;--pop2:#ec4899}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--page:#121a1b;--bub:#115e59;--card:#1f2a2b;--ink:#e8f0ef;--sub:#a3b3b2;--line:#3b4b4c;--acc:#2dd4bf;--acc2:#5eead4;--soft:#173634;--glow:rgba(45,212,191,.3);--lane:#8fa1a0;--pop1:#fbbf24;--pop2:#f472b6}}
+*{box-sizing:border-box}
+html{background:var(--page)}body{margin:0;background:var(--page);font:15px/1.55 system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:var(--ink);padding-block:28px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#wrap{position:absolute;left:0;top:0;width:1160px;height:496px;transform-origin:0 0}
+svg#paths{position:absolute;left:0;top:0;width:1160px;height:496px;overflow:visible}
+.guide{fill:none;stroke:var(--line);stroke-width:3;stroke-dasharray:3 9;stroke-linecap:round}
+.prog{fill:none;stroke:var(--acc2);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+.lprog{fill:none;stroke:var(--acc);stroke-width:4;stroke-linecap:round;opacity:0}
+#head{fill:var(--acc2);filter:drop-shadow(0 0 5px var(--acc2))}
+.lane{position:absolute;left:24px;font-size:13px;font-weight:700;letter-spacing:.04em;color:var(--lane)}
+.card{position:absolute;width:230px;height:118px;background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:14px 14px 12px;cursor:pointer;transition:opacity .3s,border-color .3s,box-shadow .3s,transform .3s}
+.card.ghost{transform:scale(.88);border-style:dashed;box-shadow:none}.card.ghost>*{opacity:.25}.card>*{transition:opacity .3s}
+.card.pop{animation:pop .65s cubic-bezier(.34,1.7,.5,1) both}
+@keyframes pop{0%{transform:scale(.2) rotate(-8deg);opacity:0}55%{transform:scale(1.12) rotate(3deg);opacity:1}75%{transform:scale(.95) rotate(-1deg)}100%{transform:scale(1) rotate(0)}}
+.card.on{border-color:var(--acc2);box-shadow:0 10px 26px var(--glow);z-index:2}
+.card.key{background:var(--soft)}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.num{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;background:var(--line);color:var(--ink);flex:none}
+.card.on .num,.card.key .num{background:var(--acc);color:#fff}
+.card.on .num{animation:boing .9s ease-in-out infinite}
+@keyframes boing{0%,100%{transform:scale(1)}30%{transform:scale(1.25,.85)}50%{transform:scale(.9,1.15) translateY(-3px)}70%{transform:scale(1.05,.95)}}
+.ico{width:30px;height:30px;color:var(--acc);flex:none}
+.card.on .ico{animation:wig 1s ease-in-out infinite}
+@keyframes wig{25%{transform:rotate(-12deg) translateY(-2px)}75%{transform:rotate(10deg)}}
+.t{font-weight:800;font-size:15px;line-height:1.25;word-break:keep-all}
+.d{font-size:12.5px;color:var(--sub);line-height:1.45;word-break:keep-all}
+.spark{position:absolute;width:10px;height:10px;border-radius:50%;pointer-events:none;animation:fly .7s ease-out forwards;z-index:3}
+@keyframes fly{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(.2);opacity:0}}
+#bub{position:absolute;width:250px;padding:9px 13px;border-radius:14px;background:var(--bub);color:#fff;font-size:12.5px;line-height:1.5;word-break:keep-all;box-shadow:0 8px 20px var(--glow);opacity:0;transform:translateY(-10px) scale(.7);transform-origin:50% 0;transition:opacity .2s,transform .45s cubic-bezier(.34,1.8,.5,1);pointer-events:none;z-index:4}
+#bub.show{opacity:1;transform:none}
+#bub::before{content:"";position:absolute;top:-8px;left:50%;margin-left:-9px;border:9px solid transparent;border-top:0;border-bottom:9px solid var(--bub)}
+#bub b{display:block;font-size:13px;margin-bottom:2px}
+#play{position:absolute;left:150px;top:0;border:0;background:var(--acc);color:#fff;border-radius:999px;height:28px;padding:0 14px;font-weight:700;cursor:pointer;font-size:13px;flex:none}
+.tag{position:absolute;font-size:12px;font-weight:700;color:var(--acc);background:var(--card);border:1.5px dashed var(--acc);border-radius:999px;padding:2px 10px;white-space:nowrap;transition:opacity .4s}
+
+main{max-width:1160px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+h1{font-size:clamp(24px,4vw,36px);margin:0;letter-spacing:-.01em;text-wrap:balance}
+.lead{margin:4px 0 0;color:var(--sub);font-size:clamp(15px,2vw,18px)}
+#stage{position:relative;width:100%;aspect-ratio:1160/496;overflow:hidden}
+.hint{font-size:13px;color:var(--sub);margin:0}
+h2{font-size:18px;margin:0 0 10px}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;list-style:none;margin:0;padding:0}
+.notes li{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;font-size:14px;word-break:keep-all;min-width:0}
+.notes b{color:var(--acc)}
+@media (max-width:700px){.wide-hint{display:block}}
+.wide-hint{display:none}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>SMC Fair Shift 사용 순서</h1>
+<p class="lead">입력 올려 생성하고, 확인·수정 뒤 출력 둘 받기</p>
+</header>
+<div id="stage">
+<div id="wrap">
+<svg id="paths" viewBox="0 0 1160 496">
+<path id="main" class="guide" d="M139 95 H1021 Q1061 95 1061 135 V208 Q1061 238 1031 238 H169 Q139 238 139 268 V331 H1021"/>
+<path id="loop" class="guide" d="M1021 331 H1118 Q1148 331 1148 301 V52 Q1148 26 1122 26 H453 Q433 26 433 36"/>
+<path id="prog" class="prog" d="M139 95 H1021 Q1061 95 1061 135 V208 Q1061 238 1031 238 H169 Q139 238 139 268 V331 H1021"/>
+<path id="lprog" class="lprog" d="M1021 331 H1118 Q1148 331 1148 301 V52 Q1148 26 1122 26 H453 Q433 26 433 36"/>
+<path id="head" d="M-10 -8 L9 0 L-10 8 L-5 0 Z"/>
+</svg>
+<div class="lane" style="top:6px">1 · 입력 화면</div>
+<div class="lane" style="top:244px;left:156px">2 · 근무표 출력 화면</div>
+<div class="tag" id="tag" style="left:700px;top:14px">↺ 다음 달 · 출력② → 입력②</div>
+<div id="cards"></div>
+<div id="bub"><b></b><span></span></div><button id="play" type="button">❚❚ 멈춤</button>
+</div>
+</div>
+<p class="hint">카드를 누르면 그 단계로 갑니다. 왼쪽 위 버튼으로 멈추고 다시 재생합니다.<span class="wide-hint"> 폰은 가로로 보면 글씨가 커집니다.</span></p>
+<section>
+<h2>알아둘 것</h2>
+<ul class="notes">
+<li><b>빨간 배너</b> = 필수 위반이 남음. 이대로 쓰지 말고 칸을 고치거나 다시 생성</li>
+<li><b>새로고침하면 표가 사라집니다.</b> 출력①②를 받아 두는 것이 보관</li>
+<li>엑셀에서 고쳤으면 출력①을 <b>'엑셀 수정본 되올리기'</b>로 다시 올리기</li>
+<li>공지 뒤 바뀌면 상세 자료 › <b>변경 안내 초안</b></li>
+<li>이상하면 <b>'문의 파일 받기'</b> → 메일로 보내기</li>
+</ul>
+</section>
+</main>
+<script>
+var I={
+up:'<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/>',
+cal:'<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h2M14 14h2M8 17h2"/>',
+sl:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+spk:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 1.8 1.8.7-1.8.7L19 21l-.7-1.8-1.8-.7 1.8-.7z"/>',
+chk:'<rect x="4" y="3.5" width="16" height="17" rx="2"/><path d="M8 9l2 2 4-4M8 15h8"/>',
+pen:'<path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/>',
+dn:'<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/>',
+rep:'<path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4.5h-4.5"/>'};
+var S=[
+["①","입력① 원티드표","양식(다운로드)에 우리 명단·원티드 신청을 채워 올리기","up",0,"양식은 입력① 칸의 '양식(다운로드)'. 이름이 한 글자라도 다르면 다른 사람"],
+["②","입력② 연간근무표","지난달 받은 출력②를 그대로 올리기 (첫 달은 없어도 됨)","cal",0,"처음 쓰는 달은 비워도 됩니다. 모양이 궁금하면 '예시(다운로드)'"],
+["③","근무정보·근무인력","연월과 우리 병동 값 확인 — 한 번 고치면 이 브라우저에 저장","sl",0,"처음 한 번만 고치면 됩니다. 다음 달부터는 입력①·②만 올리고 생성"],
+["④","근무표 생성","전체 한 번에 / 🌙 야간 먼저 — 위반이 남는 달은 🔍 꼼꼼히","spk",1,"40명 병동 기준 약 10초. 🔍 꼼꼼히는 9개를 만들어 가장 좋은 표를 고릅니다"],
+["⑤","결과 확인","오른쪽 탭 다섯: 형평성 · 필수 위반 · 추가 검토 · 원티드 · 상세 자료","chk",0,"빨간 배너가 있으면 이대로 쓰지 마세요. 위반 항목을 누르면 그 칸으로 갑니다"],
+["⑥","칸 고치기 → 재생성 적용","칸을 눌러 근무 바꾸기 · 맞교환 상대 찾기. 고친 칸은 고정","pen",0,"제목 옆 '수정주의근무'를 켜면 ✕(못 바꿈)·⇄(맞교환만) 칸이 보입니다"],
+["⑦","출력 둘 받기","출력① 월간근무표(OCS, 부서 배포) · 출력② 연간근무표(보관)","dn",1,"새로고침하면 표가 사라집니다. 둘 다 받아 두는 것이 보관입니다"],
+["⑧","다음 달","받아 둔 출력②를 다음 달 입력②로 — 이월정보·누적이 이어짐","rep",0,"마지막 근무·연속근무·야간블록과 6개월 누적 형평이 이어집니다"]];
+var X=[24,318,612,906],Y=[36,272],wrap=document.getElementById("wrap"),box=document.getElementById("cards"),cards=[];
+// 상자 크기에 맞춰 줄인다 — 어떤 크기로 보여도 잘리지 않게
+var stage=document.getElementById("stage");function fit(){var s=stage.clientWidth/1160;if(!(s>0))s=1;wrap.style.transform="scale("+s+")"}
+addEventListener("resize",fit);fit();
+S.forEach(function(s,i){var c=document.createElement("div");c.className="card ghost"+(s[4]?" key":"");
+c.style.left=X[i%4]+"px";c.style.top=Y[i<4?0:1]+"px";
+c.innerHTML='<div class="top"><span class="num"></span><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+I[s[3]]+'</svg><span class="t"></span></div><div class="d"></div>';
+c.querySelector(".num").textContent=s[0];c.querySelector(".t").textContent=s[1];c.querySelector(".d").textContent=s[2];
+c.onclick=function(){jump(i)};box.appendChild(c);cards.push(c)});
+var main=document.getElementById("main"),loop=document.getElementById("loop"),prog=document.getElementById("prog"),lprog=document.getElementById("lprog"),head=document.getElementById("head"),tag=document.getElementById("tag");
+var L1=main.getTotalLength(),L2=loop.getTotalLength();
+prog.style.strokeDasharray=L1+" "+L1;
+var at=S.map(function(s,i){var cx=X[i%4]+115,cy=Y[i<4?0:1]+59,best=0,bd=1e9;for(var l=0;l<=L1;l+=4){var p=main.getPointAtLength(l),d=Math.hypot(p.x-cx,p.y-cy);if(d<bd){bd=d;best=l}}return best});
+var SPEED=150,PAUSE=1500,t=0,last=null,playing=true,cur=-1,hold=0,shown=-1,ending=false;
+var reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+var COLORS=["var(--acc2)","var(--pop1)","var(--pop2)","var(--acc)"];
+function burst(c){var cx=parseFloat(c.style.left)+115,cy=parseFloat(c.style.top)+59;
+for(var k=0;k<10;k++){var sp=document.createElement("div"),a=k/10*Math.PI*2+Math.random()*.4,r=120+Math.random()*40;
+sp.className="spark";sp.style.left=(cx-5)+"px";sp.style.top=(cy-5)+"px";sp.style.background=COLORS[k%4];
+sp.style.setProperty("--dx",Math.cos(a)*r+"px");sp.style.setProperty("--dy",Math.sin(a)*r*.6+"px");
+if(k%3===0){sp.style.borderRadius="2px";sp.style.transform="rotate(45deg)"}
+wrap.appendChild(sp);setTimeout(function(e){return function(){e.remove()}}(sp),800)}}
+function popTo(i,anim){for(var k=0;k<cards.length;k++){var c=cards[k];
+if(k<=i){if(c.classList.contains("ghost")){c.classList.remove("ghost");if(anim&&k===i){c.classList.remove("pop");void c.offsetWidth;c.classList.add("pop");burst(c)}}}
+else{c.classList.add("ghost");c.classList.remove("pop")}}shown=i}
+var bub=document.getElementById("bub");
+// 화살표가 닿은 카드 밑에 말풍선 — 화살표가 떠나면 접힌다
+function show(i){cur=i;cards.forEach(function(c,k){c.classList.toggle("on",k===i)});
+bub.classList.remove("show");bub.querySelector("b").textContent=S[i][0]+" "+S[i][1];bub.querySelector("span").textContent=S[i][5];
+bub.style.left=(X[i%4]-10)+"px";bub.style.top=(Y[i<4?0:1]+128)+"px";void bub.offsetWidth;bub.classList.add("show")}
+function draw(){var a=Math.min(t,L1);prog.style.strokeDashoffset=L1-a;
+var b=Math.max(0,t-L1);lprog.style.opacity=b>0?1:0;lprog.style.strokeDasharray=b+" "+(L2+10);tag.style.opacity=b>0?1:.35;
+var path=t<=L1?main:loop,l=t<=L1?t:t-L1,p=path.getPointAtLength(l),q=path.getPointAtLength(Math.max(0,l-2));
+var ang=(l<2)?0:Math.atan2(p.y-q.y,p.x-q.x)*180/Math.PI;head.setAttribute("transform","translate("+p.x+" "+p.y+") rotate("+ang+")")}
+function jump(i){t=at[i];hold=PAUSE;popTo(i,true);show(i);draw()}
+function restart(){t=0;hold=PAUSE;cur=-1;popTo(0,true);show(0)}
+function frame(ts){if(last==null)last=ts;var dt=Math.min(64,ts-last);last=ts;
+if(playing&&!ending){if(hold>0){hold-=dt}else{var prev=t;t+=SPEED*dt/1000;
+for(var k=0;k<at.length;k++){if(prev<at[k]&&t>=at[k]){t=at[k];hold=PAUSE;popTo(k,true);show(k)}}
+if(t>=L1+L2){t=L1+L2;ending=true;setTimeout(function(){ending=false;restart()},PAUSE)}}}
+if(cur>=0&&hold<=0&&t>at[cur]+90&&bub.classList.contains("show")){bub.classList.remove("show");cards[cur].classList.remove("on")}
+draw();requestAnimationFrame(frame)}
+document.getElementById("play").onclick=function(){playing=!playing;this.textContent=playing?"❚❚ 멈춤":"▶ 재생"};
+if(reduce){playing=false;document.getElementById("play").textContent="▶ 재생";t=L1;popTo(7,false);show(7)}else{popTo(0,true);show(0)}
+hold=PAUSE;draw();requestAnimationFrame(frame);
+</script>
+</body>
+</html>
