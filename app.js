@@ -341,7 +341,7 @@ const INFO_SHIFT_LEGEND = `
 <h3>근무 색상</h3>
 <ul>
 <li><span class="kbd">D</span> 주간 · <span class="kbd">E</span> 저녁 · <span class="kbd">N</span> 야간 ·
-<span class="kbd">NK</span> 야간전담 · <span class="kbd">prn</span> 정규 · <span class="kbd">8A</span>/<span class="kbd">9A</span>/<span class="kbd">10A</span> 오전 상근(prn으로 셉니다) ·
+<span class="kbd">NK</span> 야간전담 · <span class="kbd">prn</span> 정규 · <span class="kbd">8A</span>/<span class="kbd">9A</span>/<span class="kbd">10A</span> 오전 상근(prn으로 셉니다. 병원 코드 DP·EP·RP도 prn) ·
 <span class="kbd">연차</span> · <span class="kbd">S/</span> 수면오프 · <span class="kbd">TW</span> 반근무+반교육 · <span class="kbd">군</span> 군공가 ·
 <span class="kbd">/</span> 일반오프 · <span class="kbd">X</span> 원티드오프</li>
 </ul>
@@ -3283,12 +3283,12 @@ delegateClick(resultStrip, ".side-tab", (b) => {
 // 평균 레벨과, 고랩(Lv4-5)·저랩(Lv1-3) 인원수를 화면 그리드(미적용 편집 포함)에서
 // 매번 다시 계산해 그리드 맨 아래 행으로 붙인다 — 잔휴·D/E/N 칸과 같은 패턴으로,
 // 파트장이 칸을 수정하면 재생성 없이 즉시 갱신된다.
-// prn으로 세는 근무코드 — 8A·9A·10A와 8H·9H·10H, 그리고 그 변형까지 전부 한 덩어리다
+// prn으로 세는 근무코드 — 8A·9A·10A와 8H·9H·10H, 그 변형, 그리고 이름이 PRN인 OCS 코드(DP·EP·RP)까지 한 덩어리다
 // (시작시각만 다른 같은 근무라 파트장 눈에는 하나다). 이 목록은 파이썬
 // nurse_scheduler/models.py의 PRN_LIKE_SHIFTS와 **한 글자도 다르면 안 된다** —
 // tests/test_pyodide_sync.py가 두 곳을 대조한다. 어긋나면 화면과 엑셀이 같은 날
 // 다른 인원을 표시하게 되는데, 어느 쪽이 맞는지 사용자는 알 방법이 없다.
-const PRN_FULL_CODES = ["10A", "10H", "8A", "8A(10", "8A*", "8A◎", "8H", "9A", "9H", "prn"];
+const PRN_FULL_CODES = ["10A", "10H", "8A", "8A(10", "8A*", "8A◎", "8H", "9A", "9H", "DP", "EP", "RP", "prn"];
 // 반일 근무 — 인원 수에서 0.5명으로 센다(실제 근무가 4시간대다).
 const PRN_HALF_CODES = ["8AH", "9AH", "9H*"];
 
