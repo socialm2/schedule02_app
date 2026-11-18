@@ -2445,8 +2445,8 @@ function renderNotice() {
   if (!NOTICE) {
     html += `<p class="hint">공지한 뒤 바뀐 칸을 사람별 안내 문구로 만듭니다. 먼저 <b>공지한 판</b>을 기준본으로.</p>
       <div class="download-row">
-      <button class="notice-set-screen">지금 표로 기준본 정하기</button>
-      <button class="notice-set-file">공지한 출력①로 기준본 정하기</button>
+      <button class="notice-set-screen"><span>지금 표로</span><span>기준본 정하기</span></button>
+      <button class="notice-set-file"><span>공지한 출력①로</span><span>기준본 정하기</span></button>
       </div>
       <p class="hint">기준본은 이 탭에만 남고, 근무표는 바뀌지 않습니다.</p></details>`;
     return html;

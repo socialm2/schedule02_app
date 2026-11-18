@@ -1448,6 +1448,10 @@ header #infoBtn, header .sign-out {
 
 /* 변경 안내 초안(GPT 11/2 보고서 N03) — 공지 기준본 대비 바뀐 사람만 */
 .notice-sec .notice-sum { margin: 6px 0; font-size: .8125rem; }
+/* 기준본 단추 둘 — 무엇으로(지금 표로 · 공지한 출력①로) / 기준본 정하기를 두 줄로 나눠 쓴다. 한 줄로 두면 좁은 패널에서
+   "지금 표로 기준본 정 / 하기"처럼 낱말 중간에서 밀렸다(사용자 2026-11-18). 줄마다 줄바꿈하지 않는다. */
+.notice-sec .notice-set-screen, .notice-sec .notice-set-file { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; line-height: 1.3; }
+.notice-sec .notice-set-screen span, .notice-sec .notice-set-file span { white-space: nowrap; }
 .notice-list { list-style: none; padding: 0; margin: 4px 0; }
 .notice-list li { border-bottom: 1px solid var(--line); padding: 7px 0; font-size: .75rem; }
 .notice-list li.sent { opacity: .55; }
