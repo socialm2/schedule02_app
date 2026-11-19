@@ -23,6 +23,8 @@ const PARTJANG_BLOCK = ["D", "E", "N", "NK", "prn"];
 // 않는다). 0이면 지정을 쓰지 않는 병동이라 규칙이 통째로 지나간다.
 const MIN_STAFF_ROWS = [["D","D"],["E","E"],["N","N"],["prn","prn"],["지정","지정"]];
 const MIN_STAFF_COLS = [["weekday","평일"],["saturday","토요일"],["sunday_holiday","공휴일"]];
+// prn 시간 구성에 쓸 수 있는 코드(엔진 models.PRN_MIX_CODES와 같다 — test_pyodide_sync가 대조).
+const PRN_MIX_CODES = ["8A", "9A", "10A"];
 const MIN_STAFF_DOWS = [["0","월"],["1","화"],["2","수"],["3","목"],["4","금"]];
 
 // 한국 공휴일(관공서의 공휴일에 관한 규정 기준) — 확인된 연도만 정확한 음력 명절 포함,
@@ -424,6 +426,9 @@ const INFO_HTML_INPUT = `
 하는지입니다. 근무표는 이 인원수를 반드시 채웁니다.</li>
 <li><b>지정</b> — 근무인력 표의 맨 아랫줄입니다. 그날 <b>'지정' 가능자가 몇 명 근무해야 하는지</b>를
 적습니다. 지정을 쓰지 않는 병동은 <b>0</b>으로 두면 이 규칙이 통째로 지나갑니다.</li>
+<li><b>prn 시간 구성</b> — 근무인력 표 바로 아래입니다. prn 인원 중 몇 명을 <b>8A·9A·10A</b>로 넣을지 적습니다(예: prn 2에
+8A 1 · 9A 1). 인원 수는 그대로이고, 가능근무 칸에 그 코드가 적힌 사람에게만 들어갑니다. 못 맞춘 날은 추가 검토(노랑)에
+뜨고 prn으로 남습니다. 비워 두면 모두 prn입니다.</li>
 </ul>
 
 <h3>야간리더 칸 — 밤을 맡길 수 있는 사람</h3>
@@ -962,6 +967,8 @@ function fillForm(cfg) {
     }
   }
 
+  fillPrnMix(p.prn_mix);
+
   formRequests = (cfg.requests || []).map(r => ({ ...r, priority: r.priority ?? 1 }));
 
   formCarryover = Object.entries(cfg.prev_month_carryover || {}).map(([sid, v]) => ({
@@ -1249,7 +1256,8 @@ function renderFormSummaries() {
     const wk = minStaffWeekdayExpanded ? "요일별" : ["D", "E", "N"].map(k => `${k}${val(`ms_${k}_weekday`)}`).join("·");
     const sat = ["D", "E", "N"].map(k => `${k}${val(`ms_${k}_saturday`)}`).join("·");
     const sun = ["D", "E", "N"].map(k => `${k}${val(`ms_${k}_sunday_holiday`)}`).join("·");
-    ms.textContent = `평일 ${wk} · 토 ${sat} · 공휴일 ${sun}`;
+    const mix = PRN_MIX_CODES.filter(c => Number(val(`pm_${c}`)) > 0).map(c => `${c} ${val(`pm_${c}`)}`).join("·");
+    ms.textContent = `평일 ${wk} · 토 ${sat} · 공휴일 ${sun}${mix ? ` · prn 구성 ${mix}` : ""}`;
   }
 }
 document.getElementById("intake")?.addEventListener("input", () => renderFormSummaries());
@@ -1346,6 +1354,31 @@ function readConsecutiveLimit() {
   return n;
 }
 
+// prn 시간 구성 — [["8A",1],["9A",1]]처럼 0보다 큰 것만, 8A → 9A → 10A 순서(그날 prn이 적으면 앞부터 채운다).
+// 빈 칸은 0(이 칸은 선택 사항이라 근무인력 표와 달리 비워도 된다). 못 읽는 값은 minStaffErrors로 생성을 막는다.
+function readPrnMix() {
+  const out = [];
+  for (const code of PRN_MIX_CODES) {
+    const el = document.getElementById(`pm_${code}`);
+    if (!el || String(el.value).trim() === "") continue;
+    const n = Number(el.value);
+    if (!Number.isInteger(n) || n < 0) {
+      minStaffErrors.push(`prn 시간 구성 ${code} 칸의 "${el.value}"은(는) 0 이상의 정수가 아닙니다`);
+      continue;
+    }
+    if (n > 0) out.push([code, n]);
+  }
+  return out;
+}
+function fillPrnMix(mix) {
+  const m = {};
+  for (const [code, n] of (Array.isArray(mix) ? mix : Object.entries(mix || {}))) m[code] = n;
+  for (const code of PRN_MIX_CODES) {
+    const el = document.getElementById(`pm_${code}`);
+    if (el) el.value = m[code] ? m[code] : "";
+  }
+}
+
 function buildCfgFromForm() {
   const holidays = [...formHolidays];
   const subhol = [...formSubHolidays];
@@ -1401,6 +1434,7 @@ function buildCfgFromForm() {
       max_consecutive_work: readConsecutiveLimit(),
       night_quota_low: readMinStaffCell("f_nightquota_low", "야간목표하한"),
       night_quota_high: readMinStaffCell("f_nightquota_high", "야간목표상한"),
+      prn_mix: readPrnMix(),
       holidays, substitute_holidays: subhol,
       advanced_track_staff: advancedTrackFromForm(),
       team_b_names: teamBNamesFromForm(),
@@ -2287,6 +2321,7 @@ function saveSettings() {
         max_consecutive_work: cfg.params.max_consecutive_work,
         night_quota_low: cfg.params.night_quota_low,
         night_quota_high: cfg.params.night_quota_high,
+        prn_mix: cfg.params.prn_mix,
       },
     }));
   } catch (e) { settingsStorageFailed(e, "write"); }
@@ -2310,7 +2345,7 @@ function withSavedSettings(cfg) {
   // 만드는 것은 늘 다음 달 근무표인데 지난달 값이 되살아나면, 화면 연월을 안 보고
   // 그대로 만들었다가 한 달 어긋난 근무표가 나온다.
   for (const k of ["min_staff", "off_max_per_month", "max_consecutive_work",
-                   "night_quota_low", "night_quota_high"]) {
+                   "night_quota_low", "night_quota_high", "prn_mix"]) {
     if (saved.params && saved.params[k] !== undefined) out.params[k] = saved.params[k];
   }
   return out;

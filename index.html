@@ -57,7 +57,7 @@
   <header>
     <!-- 배지·빌드시각은 스크린리더가 제목으로 읽지 않게 감싼다(aria-hidden). .build-time span 자체는
          CI(deploy.yml)가 정규식으로 찾아 바꾸므로 그 태그에는 속성을 더하지 말 것. -->
-    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.89</span><span class="build-time">Updated 2026-11-19 08:55:18</span></span></h1>
+    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.89</span><span class="build-time">Updated 2026-11-19 09:36:00</span></span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
@@ -152,6 +152,17 @@
             <div class="setting-row">
               <button type="button" id="msWeekdayToggle" class="pushbtn"></button>
               <span class="hint" id="msWeekdayHint"></span>
+            </div>
+            <!-- prn 시간 구성 — 위 표의 prn 인원 중 몇 명을 8A·9A·10A로 넣을지. 인원 수는 그대로이고 찍히는 코드만
+                 바뀐다(엔진 apply_prn_mix). 가능근무에 그 코드가 있는 사람에게만 들어가고, 모자란 날은 노랑(S14). -->
+            <div class="setting-row prn-mix-row" id="prnMixRow">
+              <span class="prn-mix-label">prn 시간 구성</span>
+              <label>8A <input type="number" min="0" step="1" placeholder="0" id="pm_8A"></label>
+              <label>9A <input type="number" min="0" step="1" placeholder="0" id="pm_9A"></label>
+              <label>10A <input type="number" min="0" step="1" placeholder="0" id="pm_10A"></label>
+              <span class="hint">위 표 prn 인원 중 몇 명을 이 시간으로 넣을지 적습니다(예: prn 2에 8A 1 · 9A 1). 인원 수는 그대로이고,
+                가능근무 칸에 그 코드가 있는 사람에게만 들어갑니다. 그날 prn 인원이 적으면 8A → 9A → 10A 순으로 앞에서부터
+                채웁니다. 비워 두면 지금처럼 모두 prn입니다.</span>
             </div>
           </details>
 

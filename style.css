@@ -894,6 +894,11 @@ button.small { font-size: .75rem; padding: 5px 11px; margin-top: 6px; }
 .generate-row > .hint:empty { display: none; }
 /* 꼼꼼히 찾기 토글 — 생성 버튼 바로 아래, 한 줄. 폰에서는 설명이 다음 줄로 내려간다. */
 /* 체크박스·제목 한 줄, 설명은 제목 아래 같은 들여쓰기 — 가로 모드에서 설명이 제목 옆에 붙어 줄이 어긋나던 것 */
+.prn-mix-row { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.prn-mix-row .prn-mix-label { font-weight: 600; font-size: .8125rem; }
+.prn-mix-row label { display: inline-flex; gap: 4px; align-items: center; font-size: .8125rem; }
+.prn-mix-row input { width: 56px; }
+.prn-mix-row .hint { flex-basis: 100%; }
 .gen-mode-opt { border: 1px solid var(--line); border-radius: 8px; margin: 10px 0 0; padding: 6px 10px 8px; font-size: .8125rem; display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; }
 .gen-mode-opt legend { font-size: .75rem; padding: 0 4px; }
 .gen-mode-opt label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
