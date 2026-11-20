@@ -615,7 +615,9 @@ td.swap-origin { outline: 2.5px solid var(--accent); outline-offset: -2.5px; }
    (900px 이하) '엑셀 수정본 되올리기'를 '되올리기'로 줄이고 단추 여백을 좁힌다. 620px 이하(폰 가로·세로)는 아래의 두 줄 두 칸 그대로. */
 @container (min-width: 621px) {
   .out-title { flex: 1 1 0; min-width: 150px; }
-  .file-bar-wrap { flex: none; }
+  /* 왼쪽 제목 덩어리가 여러 줄이 돼도(연월·'야간만 보기'·체크) 단추 줄은 제목과 같은 높이에 붙는다 — 가운데 맞춤이면 줄 수만큼 내려간다.
+     (.out-head 자신이 컨테이너라 이 안에서 .out-head의 맞춤은 못 바꾼다 — 자식 쪽에서 위로 붙인다) */
+  .file-bar-wrap { flex: none; align-self: flex-start; }
   .file-bar { flex-wrap: nowrap; }
 }
 @container (min-width: 621px) and (max-width: 900px) {
@@ -905,10 +907,10 @@ button.small { font-size: .75rem; padding: 5px 11px; margin-top: 6px; }
 .prn-mix-row label { display: inline-flex; gap: 4px; align-items: center; font-size: .8125rem; }
 .prn-mix-row input { width: 56px; }
 .prn-mix-row .hint { flex-basis: 100%; }
-/* 표의 '이름' 머리 칸 안의 '🌙 야간만 보기' — 야간 먼저(N only)로 들어가는 작은 단추. 칸 높이를 늘리지 않게 한 줄, 작은 글씨 */
-.night-enter { display: block; margin: 2px auto 0; font: inherit; font-size: .6875rem; font-weight: 600; line-height: 1.3; color: var(--sub);
-  background: var(--card, transparent); border: 1px solid var(--line); border-radius: 999px; padding: 0 7px; cursor: pointer; white-space: nowrap; }
-.night-enter:hover, .night-enter:focus-visible { color: var(--ink); border-color: var(--accent); }
+/* 제목 줄 '범례' 앞의 '🌙 야간만 보기' — 야간 먼저(N only)로 들어가는 단추. 옆의 체크들(회색 글씨)보다 눈에 띄게 강조색 알약 모양 */
+.night-enter { font: inherit; font-size: .78125rem; font-weight: 700; line-height: 1.5; color: var(--accent); background: var(--card);
+  border: 1.5px solid var(--accent); border-radius: 999px; padding: 1px 11px; cursor: pointer; white-space: nowrap; }
+.night-enter:hover, .night-enter:focus-visible { background: var(--accent); color: var(--on-accent); }
 @media print { .night-enter { display: none; } }
 .night-stage-bar { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 0 0 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--code-bg); font-size: .8125rem; }
 .night-stage-bar b { margin-right: 4px; }

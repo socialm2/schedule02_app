@@ -2952,7 +2952,7 @@ function renderGrid() {
     // 범례 켜기 — 제목 줄 끝의 작은 체크 하나. 예전엔 '표 보기' 한 줄에 체크 넷(범례·빗금·집계 열 전체·그 밖 코드 줄)이 있었는데,
     // 나머지 셋은 늘 켜 두고 체크를 없앴다(사용자 2026-11-13: 혼자 한 줄 먹으면 안 된다). 범례만 색 18가지가 두 줄이라 접어 둔다.
     // 체크들은 한 덩어리(.out-checks)다 — 폰에서 연월 옆에 다 못 들어가면 하나만 다음 줄로 떨어지지 않고 같이 내려간다.
-    `<span class="out-checks"><label class="legend-toggle" title="근무 색과 표시(고정·미적용 편집·원티드·위반·수정주의근무)의 뜻, 누르는 법을 표 위에 펼칩니다">` +
+    `<span class="out-checks">${nightEnterBtn()}<label class="legend-toggle" title="근무 색과 표시(고정·미적용 편집·원티드·위반·수정주의근무)의 뜻, 누르는 법을 표 위에 펼칩니다">` +
       `<input type="checkbox" data-view="legend"${viewOpt("legend") ? " checked" : ""}> 범례</label>` +
     // 수정주의근무 — 고치면 다른 규칙이 깨지는 칸에 줄무늬를 얹는다(진함 = 바꿀 수 없음, 옅음 = 맞교환으로만). 예전 이름은 '빗금'이었는데
     // 무늬의 이름이지 뜻이 아니라서 무엇을 켜는지 읽히지 않았다(사용자 2026-11-14). 하루 동안은 체크 없이 늘 켜 두었는데 표의 절반에
@@ -3033,7 +3033,7 @@ function renderGrid() {
   // 모바일에서 페이지 전체를 옆으로 밀어버려(#gridPane이 모바일 화면에서는 overflow:visible이라
   // 표 폭이 그대로 새어나감) 사용법 팝업 같은 position:fixed 요소의 위치가 틀어지는 부작용이 있었다.
   const holCount = ST.days.filter(d => d.weekend).length;
-  html += `<div class="grid-scroll"><table class="grid${ST.night_stage ? " night-only" : ""}"><thead><tr><th class="nm">이름${nightEnterBtn()}</th>` +
+  html += `<div class="grid-scroll"><table class="grid${ST.night_stage ? " night-only" : ""}"><thead><tr><th class="nm">이름</th>` +
     '<th class="stat-col">잔휴<br>전월</th><th class="stat-col">잔휴<br>이후</th>';
   ST.days.forEach((d, i) => { html += `<th class="day-head ${d.weekend ? "we" : ""}" data-day="${i}" role="button" tabindex="0" title="누르면 그날 병동 보기">${d.n}<br>${d.dow}</th>`; });
   // 듀티별 횟수 — D·E·N만이 아니라 이 달 표에 나온 모든 근무 코드를 열로 붙인다.
@@ -3188,10 +3188,10 @@ function setResultView(on) {
 // 서버가 nights_fixed라 어떤 재생성으로도 새 야간이 생기지 않는다. 버튼 값은 data-night에만(인라인 핸들러 금지).
 const NIGHT_CODES = new Set(["N", "NK"]);
 
-// 야간 먼저(N only)로 들어가는 단추 — 표의 '이름' 머리 칸 안에 둔다. 처음엔 제목 줄(범례·수정주의근무 옆)에 두었는데 노트북 폭에서
-// 파일 받기 줄이 아래로 밀렸다(ui_smoke가 잡았다). 이 칸은 가로·세로 스크롤에도 늘 보이고 줄을 더 쓰지 않는다. 야간 단계이거나
-// 야간을 확정한 뒤에는 표 위의 띠가 그 일을 하므로 숨긴다. 누르면 지금 표에서 야간만 보인다(값은 그대로) — 확정이 무엇을 바꾸는지는
-// 들어간 뒤 띠가 말한다.
+// 야간 먼저(N only)로 들어가는 단추 — 제목 줄의 '범례' 체크 앞에 둔다(사용자 2026-11-20: "범례 앞으로, 잘 보이게"). 하루 동안은 표의
+// '이름' 머리 칸 안에 있었는데 작고 표에 묻혀 눈에 안 띄었다. 제목 줄에 두면 좁은 노트북 폭에서 왼쪽 덩어리가 한 줄 더 길어지는데,
+// 파일 받기 줄은 제목과 같은 높이에 붙여 둔다(style.css의 .out-head 위 맞춤) — 가운데 맞춤이면 그만큼 아래로 내려가 보였다.
+// 야간 단계이거나 야간을 확정한 뒤에는 표 위의 띠가 그 일을 하므로 숨긴다. 누르면 지금 표에서 야간만 보인다(값은 그대로).
 function nightEnterBtn() {
   if (ST.night_stage || ST.nights_fixed) return "";
   return `<button type="button" class="night-enter" id="nightEnterBtn" ` +
