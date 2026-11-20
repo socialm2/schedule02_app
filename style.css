@@ -475,6 +475,7 @@ td.disabled { cursor: default; opacity: .55; }
 
 button.wide { width: 100%; }
 
+.exp-item .exp-lock { font-size: .6875rem; font-weight: 600; color: var(--sub); border: 1px solid var(--line); border-radius: 999px; padding: 0 5px; margin-left: 4px; }
 /* 고친 뒤의 두 갈래 — '고친 칸만 바꾸기'(채운 단추)와 '위반 없게 재생성'(테두리 단추). 단추마다 무엇이 움직이는지 한 줄 */
 .apply-choice { display: grid; gap: 4px; margin-top: 8px; }
 .apply-choice button { width: 100%; }

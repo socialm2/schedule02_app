@@ -557,6 +557,12 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 실선 테두리로 표시되고, <b>이후 몇 번을 더 수정해도 이전 고정은 계속 유지됩니다.</b> 고친 칸이
 적용 대기로 남아 있는 동안(두 단추 중 하나를 누르기 전)에는 표 위 파일 줄의 출력①②가 잠시 비활성화됩니다 — 재생성
 적용으로 확정한 뒤 다시 눌러야 받을 수 있습니다.</li>
+<li><b>단추가 안 눌리거나 파일이 반려될 때</b> — 이유는 단추 아래 한 줄과 알림에 뜹니다.
+<br>· <b>출력①②가 잠김</b>: 고치는 중인 칸이 있으면 적용(또는 전체 취소) 뒤, 야간만 보는 중이면 '나머지 자동 생성'(또는 '전체 보기') 뒤에 받습니다.
+<br>· <b>되올리기</b>: 이 달에 여기서 받은 출력①만(행은 지우지 않기). 고치는 중인 칸이 있으면 먼저 적용·취소.
+<br>· <b>야간만 받은 파일</b>: '🌙 야간만 보기' 화면에서 받고 그 화면에만 올립니다 — 빈칸은 '아직 안 정함', 쉬는 날은 <b>/</b>. 입력②·공지 기준본으로는 쓸 수 없습니다.
+<br>· <b>🌙 야간만 보기</b>: 고치는 중인 칸이 없을 때 들어갑니다.
+<br>· <b>고친 칸만 바꾸기·위반 없게 재생성</b>은 칸을 고쳐야, <b>되돌리기·처음으로</b>는 고치기 시작하면 나타납니다(새로 생성하면 사라짐).</li>
 <li><b>다운로드</b> — 표 위 파일 줄에서 받습니다. <b>월간근무표</b>(병원 OCS 형식, 부서 배포·기록용)와 <b>연간근무표</b>(다음 달
 입력②로 바로 재사용 — 이월정보·형평성 지표가 여기 하나로 이어짐) 두 파일을 꼭 둘 다 받아 보관하세요.</li>
 <li><b>엑셀 수정본 되올리기</b>(표 위 파일 줄) — 내려받은 <b>출력① 월간근무표</b>를 엑셀에서 고쳐 그대로 올리면
@@ -3230,7 +3236,7 @@ delegateClick(document.getElementById("gridContent"), "#undoAllBtn", () => undoA
 function nightEnterBtn() {
   if (ST.night_stage || ST.nights_fixed) return "";
   return `<button type="button" class="night-enter" id="nightEnterBtn" ` +
-    `title="야간(N·NK)만 보이게 합니다. 야간을 고쳐 확정하면 그 야간은 그대로 두고 나머지 근무를 다시 짭니다. 확정하지 않고 '전체 보기'로 돌아올 수 있습니다.">` +
+    `title="야간과 정해 둔 칸만 보이게 합니다 — 칸을 정하거나 '야간만 받기'로 받아 엑셀에서 고쳐 올린 뒤 '나머지 자동 생성'. 그만두려면 '전체 보기'. 고치는 중인 칸이 있으면 먼저 적용하거나 취소해야 들어갈 수 있습니다.">` +
     `🌙 야간만 보기</button>`;
 }
 
@@ -3522,6 +3528,8 @@ function fileBarHtml() {
   // 야간 0건으로 보이는 표에서 주간 최소인력이 모자란 파일이 묻지도 않고 받아졌다(2026-11-14 화면 훑기).
   const hasPending = (ST.pending || []).length > 0, nightOnly = !!ST.night_stage;
   const dis = hasPending || nightOnly ? " disabled" : "";
+  const lockWhy = nightOnly ? "야간만 보는 중이라 잠겼습니다 — '나머지 자동 생성'이나 '전체 보기' 뒤에 받을 수 있습니다"
+    : "고치는 중인 칸이 있어 잠겼습니다 — '고친 칸만 바꾸기'나 '위반 없게 재생성'(또는 '전체 취소') 뒤에 받을 수 있습니다";
   // 야간만 보는 화면에서는 출력① 자리가 '야간만 받기'가 된다 — 화면에 보이는 칸(야간·정해 둔 칸·방금 고친 칸)만 든 파일이고
   // 빈칸은 '아직 안 정함'이다. 엑셀에서 고쳐 이 화면에 되올린다(사용자 2026-11-20). 다 찬 근무표가 아니므로 출력②와
   // 월간 보고서는 계속 잠근다.
@@ -3529,12 +3537,16 @@ function fileBarHtml() {
     // 문서 순서: 되올리기 · 입력으로 | 출력① · 출력②. 폰 세로에서는 이 순서대로 두 줄 두 칸으로 선다 — 윗줄이 '화면으로 들이는 것·
     // 돌아가는 것', 아랫줄이 '받는 것 둘'. 가로·PC에서는 '← 입력 이동'만 맨 끝(네 번째)으로 간다(style.css의 order — 사용자 2026-11-14). 예전 순서(되올리기 · 출력① / 출력② · 입력으로)는 줄이 넘어갈 때 너비가 제각각인 단추가 섞여
     // 들쭉날쭉했다(사용자 2026-11-13: "되올리기랑 입력으로가 같이 있어야 이쁠 듯").
-    `<button class="file-btn up" onclick="uploadMonth()" title="엑셀에서 고친 출력①(월간근무표)을 올리면 그 값으로 반영되고 바뀐 칸은 고정됩니다"><span class="fb-long">엑셀 수정본 </span>되올리기</button>` +
+    // 단추마다 '언제 되는지'를 풀이에 한 줄로 적고, 잠긴 단추는 왜 잠겼는지와 무엇을 하면 풀리는지를 적는다(사용자 2026-11-21:
+    // 정해진 조건에서만 되는 단추·파일은 미리 알리고, 안 되면 이유를). 길게 쓰지 않는다 — 자세한 표는 설명서에 있다.
+    `<button class="file-btn up" onclick="uploadMonth()" title="${nightOnly
+      ? "이 화면에서 받은 '야간만 받은 파일'만 올릴 수 있습니다 — 적은 칸만 정해지고 빈칸은 '아직 안 정함'으로 남습니다"
+      : "이 달에 여기서 받은 출력①(월간근무표)을 엑셀에서 고쳐 올립니다 — 고친 칸만 바뀌고 고정됩니다. 행은 지우지 마세요. 고치는 중인 칸이 있으면 먼저 적용하거나 취소해야 합니다"}"><span class="fb-long">엑셀 수정본 </span>되올리기</button>` +
     `<button id="backToInputBtn" class="file-btn sub" title="입력 화면으로 돌아가 새로 만듭니다">← 입력 이동</button>` +
     (nightOnly
       ? `<button class="file-btn dl" id="nightDlBtn" onclick="downloadXlsxOcs()" title="화면에 보이는 칸(야간·정해 둔 칸)만 든 파일 — 빈칸은 '아직 안 정함'입니다. 엑셀에서 고쳐 이 화면에 되올릴 수 있습니다"><span class="io-tag">🌙</span>야간만 받기</button>`
-      : `<button class="file-btn dl" onclick="if (confirmDownloadWithViolations()) downloadXlsxOcs()"${dis} title="이번 달 근무표 — 엑셀에서 고쳐 되올릴 수 있습니다"><span class="io-tag">출력①</span>월간근무표</button>`) +
-    `<button class="file-btn dl" onclick="if (confirmDownloadWithViolations()) downloadStaffTable()"${dis} title="다음 달 입력②로 올리는 파일"><span class="io-tag">출력②</span>연간근무표</button></div>` +
+      : `<button class="file-btn dl" onclick="if (confirmDownloadWithViolations()) downloadXlsxOcs()"${dis} title="${dis ? lockWhy : "이번 달 근무표 — 엑셀에서 고쳐 되올릴 수 있습니다"}"><span class="io-tag">출력①</span>월간근무표</button>`) +
+    `<button class="file-btn dl" onclick="if (confirmDownloadWithViolations()) downloadStaffTable()"${dis} title="${dis ? lockWhy : "다음 달 입력②로 올리는 파일"}"><span class="io-tag">출력②</span>연간근무표</button></div>` +
     (nightOnly ? `<p class="hint file-bar-note">'야간만 받기'는 보이는 칸만 든 파일입니다(빈칸 = 아직 안 정함) — 엑셀에서 고쳐 여기에 되올릴 수 있습니다. 출력①②는 '나머지 자동 생성'(또는 '전체 보기') 뒤에 받습니다.</p>`
      : hasPending ? `<p class="hint file-bar-note">적용 안 한 편집이 있어 파일을 받을 수 없습니다 — '고친 칸만 바꾸기'나 '위반 없게 재생성' 뒤에 받을 수 있습니다.` +
        // 폰에서는 '재생성 적용'이 표 40행 아래(패널)에 있어 고친 뒤 어디로 가야 하는지 화면에 없었다 — 여기서 데려간다(style.css: 폰에서만 보인다)
@@ -5177,8 +5189,10 @@ function renderSide() {
   // 한나절 파일 줄에 있었다). 적용 안 한 편집이 있으면 못 받는 것은 출력①②와 같다.
   html += `<div class="side-sec side-exp"><h3>도움말 · 기타</h3><div class="exp-list">` +
     `<button class="exp-item" id="expMagBtn" onclick="if (confirmDownloadWithViolations()) downloadMagazine()"${hasPending || ST.night_stage ? " disabled" : ""} ` +
-      `title="검증·일별 인원·주말 명단·사람별 집계·부담·원티드·고정 칸·야간·점수표·처리 기록을 한 파일(HTML)에 — 열어서 인쇄하면 PDF">` +
-      `<span class="exp-name">월간 보고서 받기</span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
+      `title="${hasPending ? "고치는 중인 칸이 있어 잠겼습니다 — 적용하거나 전체 취소한 뒤에 받을 수 있습니다"
+        : ST.night_stage ? "야간만 보는 중이라 잠겼습니다 — '나머지 자동 생성'이나 '전체 보기' 뒤에 받을 수 있습니다"
+        : "검증·일별 인원·주말 명단·사람별 집계·부담·원티드·고정 칸·야간·점수표·처리 기록을 한 파일(HTML)에 — 열어서 인쇄하면 PDF"}">` +
+      `<span class="exp-name">월간 보고서 받기${hasPending || ST.night_stage ? ' <small class="exp-lock">잠김</small>' : ""}</span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
     // 사용 순서(실험) — 화살표가 지나가며 ①~⑧ 단계가 뜨는 한 장 그림(usage-flow.html). 새 탭으로 열어 옆에 띄워 두고 본다(사용자 2026-11-17).
     `<a class="exp-item" id="expFlowLink" href="usage-flow.html" target="_blank" rel="noopener" ` +
       `title="입력 올리기부터 다음 달까지 여덟 단계를 움직이는 그림으로 — 새 탭에서 열립니다">` +
