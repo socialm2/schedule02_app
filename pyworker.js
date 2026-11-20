@@ -75,6 +75,8 @@ function callBridge(path, opts) {
     case "/api/fragile_map": return bridge.api_fragile_map(opts.body);
     case "/api/fill_hints": return bridge.api_fill_hints();
     case "/api/regenerate": return bridge.api_regenerate(opts.body);
+    case "/api/history/undo": return bridge.api_history_undo(opts.body);
+    case "/api/history/reset": return bridge.api_history_reset(opts.body);
     case "/api/night_stage": return bridge.api_night_stage(opts.body);
     case "/api/confirm_nights": return bridge.api_confirm_nights(opts.body);
     case "/api/download_filename/xlsx": return bridge.download_filename_schedule();

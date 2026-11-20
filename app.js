@@ -553,7 +553,7 @@ const INFO_HTML_OUTPUT = `
 바꾼 칸과 관련된 규칙 위반이 있으면 바로 알려줍니다. 파트장 칸은 <b>D·E·N·NK·prn만 막고</b>
 연차·병가·교육·8A 등은 고를 수 있습니다(휴가 신청이 8A에 덮이지 않게 잠급니다).
 B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 쌓이지 않습니다.</li>
-<li><b>고친 칸만 바꾸기 / 위반 없게 재생성</b> — 칸을 고치면 오른쪽에 두 단추가 뜹니다. <b>고친 칸만 바꾸기</b>는 고친 칸만 넣고 다른 칸은 그대로 둡니다(그 수정으로 생기는 위반은 빨강·노랑으로 남습니다). <b>위반 없게 재생성</b>은 고친 칸을 고정한 채 나머지를 다시 배정합니다(다른 사람 근무도 움직입니다). 어느 쪽이든 고친 칸은 고정되고, 고정된 칸은 빨간
+<li><b>고친 칸만 바꾸기 / 위반 없게 재생성</b> — 칸을 고치면 오른쪽에 두 단추가 뜹니다. <b>고친 칸만 바꾸기</b>는 고친 칸만 넣고 다른 칸은 그대로 둡니다(그 수정으로 생기는 위반은 빨강·노랑으로 남습니다). <b>위반 없게 재생성</b>은 고친 칸을 고정한 채 나머지를 다시 배정합니다(다른 사람 근무도 움직입니다). 어느 쪽이든 고친 칸은 고정되고, 고치기 시작하면 표 위에 <b>↶ 되돌리기</b>(가장 최근에 한 것 하나를 되돌림)와 <b>⏮ 처음으로</b>(처음 만든 표로)가 나타납니다 — 재생성해 본 뒤 마음에 안 들면 한 번 눌러 직전 표로 돌아갈 수 있습니다. 고정된 칸은 빨간
 실선 테두리로 표시되고, <b>이후 몇 번을 더 수정해도 이전 고정은 계속 유지됩니다.</b> 고친 칸이
 적용 대기로 남아 있는 동안(두 단추 중 하나를 누르기 전)에는 표 위 파일 줄의 출력①②가 잠시 비활성화됩니다 — 재생성
 적용으로 확정한 뒤 다시 눌러야 받을 수 있습니다.</li>
@@ -2958,7 +2958,7 @@ function renderGrid() {
     // 무늬의 이름이지 뜻이 아니라서 무엇을 켜는지 읽히지 않았다(사용자 2026-11-14). 하루 동안은 체크 없이 늘 켜 두었는데 표의 절반에
     // 무늬가 얹혀 촘촘했다 — 칸을 손으로 고칠 때만 켜면 된다. 기본은 꺼짐, 기기에 기억.
     `<label class="legend-toggle" id="hatchToggle" title="${escAttr(hatchTitle())}">` +
-      `<input type="checkbox" data-view="hatch"${viewOpt("hatch") ? " checked" : ""}> 수정주의근무</label></span></span></div>` +
+      `<input type="checkbox" data-view="hatch"${viewOpt("hatch") ? " checked" : ""}> 수정주의근무</label>${historyBtns()}</span></span></div>` +
     // (2026-11-14 한나절 동안 여기에 '추가검토' 체크가 있었다 — 추가 검토 표식을 켜고 끄는. 같은 날 없앴다: 표식을 눈에 덜 띄는
     //  밑줄로 바꾸고 늘 보이게 했다. 뜻은 범례에 있다.)
     fileBarHtml() + `</div>`;
@@ -3192,6 +3192,41 @@ const NIGHT_CODES = new Set(["N", "NK"]);
 // '이름' 머리 칸 안에 있었는데 작고 표에 묻혀 눈에 안 띄었다. 제목 줄에 두면 좁은 노트북 폭에서 왼쪽 덩어리가 한 줄 더 길어지는데,
 // 파일 받기 줄은 제목과 같은 높이에 붙여 둔다(style.css의 .out-head 위 맞춤) — 가운데 맞춤이면 그만큼 아래로 내려가 보였다.
 // 야간 단계이거나 야간을 확정한 뒤에는 표 위의 띠가 그 일을 하므로 숨긴다. 누르면 지금 표에서 야간만 보인다(값은 그대로).
+// 되돌리기 — 고치기 시작하면(되돌릴 단계가 생기면) 나타난다(사용자 2026-11-20). '되돌리기'는 가장 최근 조작 하나를,
+// '처음으로'는 처음 만든 표까지 전부 되돌린다. 한 단계 = 한 번 누른 조작(칸 하나 고치기, 고친 칸만 바꾸기, 위반 없게 재생성,
+// 되올리기, 야간만 보기, 나머지 자동 생성 …). 무엇을 되돌리는지는 단추의 풀이와 누른 뒤의 알림에 적는다. 이력은 서버(Worker)가 든다.
+function historyBtns() {
+  const h = ST.history || { steps: 0 };
+  if (!h.steps) return "";
+  // 둘은 한 덩어리(.hist-group)로 묶는다 — 줄이 넘어갈 때 하나만 떨어지지 않고 같이 내려간다.
+  return `<span class="hist-group"><button type="button" class="hist-btn" id="undoBtn" title="가장 최근에 한 것을 되돌립니다 — ${escAttr(h.last || "")}">↶ 되돌리기 <small>${h.steps}</small></button>` +
+    `<button type="button" class="hist-btn" id="undoAllBtn" title="처음 만든 표로 돌아갑니다 — 지금까지 한 ${h.steps}단계를 모두 되돌립니다">⏮ 처음으로</button></span>`;
+}
+async function undoStep() {
+  try {
+    const next = await api("/api/history/undo", { method: "POST" });
+    ST = next; SWAP = null; uploadedMonthRound = -1;
+    render({ keepScroll: true });
+    refreshFragile();
+    const left = (ST.history || {}).steps || 0;
+    showToast(`되돌렸습니다 — ${next.undone || "직전 조작"}` + (left ? ` (더 되돌릴 수 있는 단계 ${left})` : " (처음 만든 표입니다)"));
+  } catch (e) { /* 오류 문구는 api()가 띄웠다 */ }
+}
+async function undoAll() {
+  const n = (ST.history || {}).steps || 0;
+  if (!n) return;
+  if (!confirm(`처음 만든 표로 돌아갑니다.\n\n지금까지 한 ${n}단계(고친 칸·적용·재생성 등)가 모두 사라지고, 이것은 되돌릴 수 없습니다.\n\n돌아가시겠습니까?`)) return;
+  try {
+    ST = await api("/api/history/reset", { method: "POST" });
+    SWAP = null; uploadedMonthRound = -1;
+    render({ keepScroll: true });
+    refreshFragile();
+    showToast(`처음 만든 표로 돌아갔습니다 — ${n}단계를 되돌렸습니다`);
+  } catch (e) { /* 오류 문구는 api()가 띄웠다 */ }
+}
+delegateClick(document.getElementById("gridContent"), "#undoBtn", () => undoStep());
+delegateClick(document.getElementById("gridContent"), "#undoAllBtn", () => undoAll());
+
 function nightEnterBtn() {
   if (ST.night_stage || ST.nights_fixed) return "";
   return `<button type="button" class="night-enter" id="nightEnterBtn" ` +

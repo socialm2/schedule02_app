@@ -914,10 +914,19 @@ button.small { font-size: .75rem; padding: 5px 11px; margin-top: 6px; }
   margin: 0; padding: 0 6px; border: 1px solid var(--line); border-radius: 999px; background: var(--card);
   font: inherit; font-size: .71875rem; font-weight: 600; line-height: 1; color: var(--sub); cursor: pointer; white-space: nowrap; }
 .out-checks .legend-toggle input { width: 13px; height: 13px; }
+.out-checks .hist-group { display: inline-flex; gap: 4px; white-space: nowrap; }
+/* 되돌리기 · 처음으로 — 고치기 시작하면 같은 줄에 나타난다. 앞의 셋과 같은 알약, 색만 주황(고치는 중을 뜻하는 색) */
+.out-checks .hist-btn { box-sizing: border-box; display: inline-flex; align-items: center; gap: 4px; height: 22px; margin: 0; padding: 0 6px;
+  border: 1px solid #C77C1E; border-radius: 999px; background: var(--card); font: inherit; font-size: .71875rem; font-weight: 700; line-height: 1;
+  color: #A35F10; cursor: pointer; white-space: nowrap; }
+.out-checks .hist-btn small { font-size: .65625rem; font-weight: 600; opacity: .8; }
+.out-checks .hist-btn:hover, .out-checks .hist-btn:focus-visible { background: #C77C1E; color: #fff; }
+@media (prefers-color-scheme: dark) { .out-checks .hist-btn { color: #F0B26A; border-color: #B8792A; } }
+@media print { .out-checks .hist-btn { display: none; } }
 .out-checks .night-enter { border-color: var(--accent); color: var(--accent); font-weight: 700; }
 .out-checks .night-enter:hover, .out-checks .night-enter:focus-visible { background: var(--accent); color: var(--on-accent); }
 .out-checks .legend-toggle:hover { border-color: var(--sub); color: var(--ink); }
-@media (max-width: 680px) { .out-checks .night-enter, .out-checks .legend-toggle { height: 26px; } }   /* 폰: 손가락으로 누를 높이 */
+@media (max-width: 680px) { .out-checks .night-enter, .out-checks .legend-toggle, .out-checks .hist-btn { height: 26px; } }   /* 폰: 손가락으로 누를 높이 */
 @media print { .night-enter { display: none; } }
 .night-stage-bar { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 0 0 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--code-bg); font-size: .8125rem; }
 .night-stage-bar b { margin-right: 4px; }
