@@ -649,9 +649,9 @@ td.swap-origin { outline: 2.5px solid var(--accent); outline-offset: -2.5px; }
 #gridContent:not(.legend-on) .legend-fold { display: none; }
 /* '수정주의근무'가 꺼져 있으면 칸의 기호만 감춘다(계산과 체크 풀이의 비율은 그대로) */
 #gridContent:not(.hatch-on) td.fragile-row span::before, #gridContent:not(.hatch-on) td.fragile-day span::before { display: none; }   /* 범례의 보기(.lg-x·.lg-sw)는 늘 보인다 */
-.out-title .legend-toggle + .legend-toggle { margin-left: 2px; }
+
 .out-sub { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; min-width: 0; }
-.out-checks { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; }
+.out-checks { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; }   /* 셋이 1280px 창에서 한 줄에 서는 폭(약 253px) */
 /* 폰: 첫 줄에 제목과 연월, 둘째 줄에 체크들. 연월 옆에 체크가 다 못 들어가면 마지막 하나만 혼자 다음 줄로 떨어진다 —
    묶음을 풀어(.out-sub) 연월은 제목 옆으로 올리고 체크는 한 줄에 같이 둔다. */
 @media (max-width: 680px) { .out-sub { display: contents; } }
@@ -907,10 +907,17 @@ button.small { font-size: .75rem; padding: 5px 11px; margin-top: 6px; }
 .prn-mix-row label { display: inline-flex; gap: 4px; align-items: center; font-size: .8125rem; }
 .prn-mix-row input { width: 56px; }
 .prn-mix-row .hint { flex-basis: 100%; }
-/* 제목 줄 '범례' 앞의 '🌙 야간만 보기' — 야간 먼저(N only)로 들어가는 단추. 옆의 체크들(회색 글씨)보다 눈에 띄게 강조색 알약 모양 */
-.night-enter { font: inherit; font-size: .78125rem; font-weight: 700; line-height: 1.5; color: var(--accent); background: var(--card);
-  border: 1.5px solid var(--accent); border-radius: 999px; padding: 1px 11px; cursor: pointer; white-space: nowrap; }
-.night-enter:hover, .night-enter:focus-visible { background: var(--accent); color: var(--on-accent); }
+/* 제목 줄의 셋(🌙 야간만 보기 · 범례 · 수정주의근무)은 한 벌이다 — 같은 높이·같은 글자 크기의 알약으로 나란히 선다(사용자 2026-11-20:
+   "야간만 보기 조금 줄이고 범례·수정근무도 비슷하게 평행하게"). 앞서는 단추만 크고 굵어서 옆의 체크 둘과 높이도 글자도 따로 놀았다.
+   '야간만 보기'는 누르면 화면이 바뀌는 단추라 테두리와 글자만 강조색으로 구분한다. */
+.out-checks .night-enter, .out-checks .legend-toggle { box-sizing: border-box; display: inline-flex; align-items: center; gap: 4px; height: 22px;
+  margin: 0; padding: 0 6px; border: 1px solid var(--line); border-radius: 999px; background: var(--card);
+  font: inherit; font-size: .71875rem; font-weight: 600; line-height: 1; color: var(--sub); cursor: pointer; white-space: nowrap; }
+.out-checks .legend-toggle input { width: 13px; height: 13px; }
+.out-checks .night-enter { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.out-checks .night-enter:hover, .out-checks .night-enter:focus-visible { background: var(--accent); color: var(--on-accent); }
+.out-checks .legend-toggle:hover { border-color: var(--sub); color: var(--ink); }
+@media (max-width: 680px) { .out-checks .night-enter, .out-checks .legend-toggle { height: 26px; } }   /* 폰: 손가락으로 누를 높이 */
 @media print { .night-enter { display: none; } }
 .night-stage-bar { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 0 0 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--code-bg); font-size: .8125rem; }
 .night-stage-bar b { margin-right: 4px; }
