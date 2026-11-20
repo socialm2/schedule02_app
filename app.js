@@ -553,9 +553,9 @@ const INFO_HTML_OUTPUT = `
 바꾼 칸과 관련된 규칙 위반이 있으면 바로 알려줍니다. 파트장 칸은 <b>D·E·N·NK·prn만 막고</b>
 연차·병가·교육·8A 등은 고를 수 있습니다(휴가 신청이 8A에 덮이지 않게 잠급니다).
 B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 쌓이지 않습니다.</li>
-<li><b>재생성 적용</b> — 적용 대기 중인 편집을 고정한 채 나머지를 다시 배정합니다. 고정된 칸은 빨간
+<li><b>고친 칸만 바꾸기 / 위반 없게 재생성</b> — 칸을 고치면 오른쪽에 두 단추가 뜹니다. <b>고친 칸만 바꾸기</b>는 고친 칸만 넣고 다른 칸은 그대로 둡니다(그 수정으로 생기는 위반은 빨강·노랑으로 남습니다). <b>위반 없게 재생성</b>은 고친 칸을 고정한 채 나머지를 다시 배정합니다(다른 사람 근무도 움직입니다). 어느 쪽이든 고친 칸은 고정되고, 고정된 칸은 빨간
 실선 테두리로 표시되고, <b>이후 몇 번을 더 수정해도 이전 고정은 계속 유지됩니다.</b> 고친 칸이
-적용 대기로 남아 있는 동안(재생성 적용 전)에는 표 위 파일 줄의 출력①②가 잠시 비활성화됩니다 — 재생성
+적용 대기로 남아 있는 동안(두 단추 중 하나를 누르기 전)에는 표 위 파일 줄의 출력①②가 잠시 비활성화됩니다 — 재생성
 적용으로 확정한 뒤 다시 눌러야 받을 수 있습니다.</li>
 <li><b>다운로드</b> — 표 위 파일 줄에서 받습니다. <b>월간근무표</b>(병원 OCS 형식, 부서 배포·기록용)와 <b>연간근무표</b>(다음 달
 입력②로 바로 재사용 — 이월정보·형평성 지표가 여기 하나로 이어짐) 두 파일을 꼭 둘 다 받아 보관하세요.</li>
@@ -568,13 +568,13 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 <li><b>여러 개 만들어 고르기</b> — 같은 입력을 출발점(시드)만 바꿔 여러 번 돌려
 운영 필수 → 숙련도 → 공평성 → 전체 위반 순으로 견줘 가장 좋은 표를 보여줍니다. <b>🔍 꼼꼼히 만들기</b>를 켜고 생성하면 평소 3개 만들어 고르던 것을 9개 만들어 고릅니다 — 위반이 남는 달에
 켜 보세요(일반 생성보다 오래 걸리고, 빠듯한 달은 1~2분. 진행 중 '여기까지 결과로 멈추기' 가능).</li>
-<li><b>🌙 야간 먼저 고치기(N only)</b> — 근무표를 만든 뒤 표 위의 <b>'🌙 야간만 보기'</b>를 누르면 두 단계로 고칩니다. 1단계는 야간(N·NK)만 보이고 야간을 넣거나 빼는 것만 됩니다(다른 근무로 바꾸기·맞교환은 확정 뒤에).
-위반 숫자·'필수 위반'·'추가 검토' 탭도 야간 관련 항목만, 형평성은 '야간 균등'만 셉니다(이 단계에서는 출력①②를 받을 수 없습니다). 야간을 고친 뒤 표 위의 <b>야간 확정 → 나머지 짜기</b>를
-누르면 야간과 그 뒤 쉬는 이틀·수면오프(S/)를 고정하고 나머지를 짭니다. 확정 뒤에는 재생성·편집 적용에도 야간이 그대로이고,
+<li><b>🌙 야간 먼저 고치기(N only)</b> — 근무표를 만든 뒤 표 위의 <b>'🌙 야간만 보기'</b>를 누르면 두 단계로 고칩니다. 야간(N·NK)과 정해 둔 칸만 보이고(빈칸 = 아직 안 정함), 칸을 눌러 아무 근무나 정할 수 있습니다. 파일 줄의 <b>야간만 받기</b>로 받아 엑셀에서 고쳐 <b>되올리기</b>도 됩니다(맞교환은 전체 표에서).
+위반 숫자·'필수 위반'·'추가 검토' 탭도 야간 관련 항목만, 형평성은 '야간 균등'만 셉니다(이 화면에서는 출력①②를 받을 수 없습니다). 다 정했으면 표 위의 <b>나머지 자동 생성</b>을
+누르면 보이는 칸과 야간 뒤 쉬는 이틀·수면오프(S/)를 고정하고 빈칸을 다시 짭니다(들어오기 전에 보던 낮번·저녁번은 바뀝니다). 확정 뒤에는 재생성·편집 적용에도 야간이 그대로이고,
 지워서 모자란 야간은 다른 사람으로 메우지 않고 빨간 필수 위반으로 남습니다('야간 다시 고치기'로 돌아가 직접 채웁니다).</li>
 <li><b>오른쪽 패널은 탭 다섯</b> — 형평성 · 필수 위반 · 추가 검토 · 원티드 · 상세 자료. 맨 위에 붙어 있고 누르면 그 내용이 나타납니다(폰은 화면 맨 위에 붙는 띠 하나).
 필수 위반이 있는 표는 처음에 그 탭이 열려 있습니다. <b>'필수 위반'·'추가 검토' 탭의 항목을 누르면</b> 그 칸(사람이 없는 항목은 그날 열)으로 이동해 잠깐 깜빡입니다. 수정 대기 칸이 있는
-동안 요약 숫자는 <b>마지막으로 적용한 표 기준</b>이고, '재생성 적용' 뒤 다시 계산됩니다.</li>
+동안 요약 숫자는 <b>마지막으로 적용한 표 기준</b>이고, 적용한 뒤 다시 계산됩니다.</li>
 <li><b>날짜 머리칸을 누르면</b> 그날 병동(누가 어디서 일하는지)이 뜨고, 거기서 이름을 누르면 그 사람의 한 달 여정이 뜹니다.
 '상세 자료' 탭 맨 아래 '도움말 · 기타'의 <b>사용 순서 보기</b>(실험 기능)는 입력부터 다음 달까지 여덟 단계를 화살표가 지나가며 보여 주는 한 장 그림입니다(새 탭).
 같은 곳의 <b>월간 보고서 받기</b>(실험 기능)는 첫 장 요약(확인할 항목·부담 분포)과 검증·일별 인원·원티드·점수표를
@@ -597,7 +597,7 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 바꿀 수 있는 상대 칸마다 <b>노란 동그라미</b>가 붙고 내 칸에는 테두리가 생깁니다(고르는 것은 패널의 목록에서 — 닫으면 사라집니다).</p>
 
 <h3>근무표 그리드의 계산열</h3>
-<p>날짜 칸 앞뒤로 병원 OCS 파일과 같은 자리에 계산열을 보여줍니다. 칸을 수정하면 재생성 적용을
+<p>날짜 칸 앞뒤로 병원 OCS 파일과 같은 자리에 계산열을 보여줍니다. 칸을 수정하면 적용을
 누르기 전에도 바로 값이 바뀝니다.</p>
 <ul>
 <li><b>잔휴전월 / 잔휴이후</b> — 이월된 잔여 휴무 기준으로 자동 계산됩니다.</li>
@@ -638,7 +638,7 @@ NK·8A·OFF·연차처럼 이 달 표에 나온 코드만 열로 더 붙습니�
 </ul>
 
 <h3>그리드 맨 아래 "통계" 줄</h3>
-<p>날짜마다 그날 몇 명이 서는지를 세어 보여줍니다. 칸을 수정하면 재생성 적용 전에도 바로 다시 셉니다.</p>
+<p>날짜마다 그날 몇 명이 서는지를 세어 보여줍니다. 칸을 수정하면 적용 전에도 바로 다시 셉니다.</p>
 <ul>
 <li><b>근무 코드마다 한 줄</b> — 이달 표에 나온 코드(D·E·N·NK·8A·prn·연차·OFF…)마다 그날 그 코드인
 사람 수입니다. 오른쪽 '듀티별 횟수' 열과 같은 코드 목록을 눕힌 것입니다(열은 사람별 횟수, 줄은 날짜별 인원).</li>
@@ -849,6 +849,15 @@ window.applyUploadedMonth = async function (f) {
     ST = next;
     // 바뀐 칸이 없으면 '수정본이 반영되었습니다 — 어떻게 할까요?' 카드를 띄우지 않는다 — "바뀐 칸이 없습니다"와 나란히 떠서
     // 반영됐다는 건지 안 됐다는 건지 알 수 없었다(2026-11-14 화면 훑기).
+    if (next.night_stage) {
+      // 야간만 보는 화면에 '야간만 받은 파일'을 되올린 것 — 적은 칸은 정해 둔 칸이 됐고 나머지는 아직 안 정했다.
+      // '그대로 받기 / 재생성' 갈래는 띄우지 않는다(다 찬 표가 아니다). 다음 할 일은 표 위의 '나머지 자동 생성'이다.
+      uploadedMonthRound = -1;
+      render({ keepScroll: true });
+      const n = next.uploaded_cells || 0;
+      showToast(n ? `${n}칸을 파일대로 정해 두었습니다 — 표 위의 [나머지 자동 생성]을 누르면 나머지를 짭니다` : "바뀐 칸이 없습니다 — 화면과 같은 파일입니다");
+      return;
+    }
     uploadedMonthRound = moved ? next.round : -1;
     render();
     showToast(moved ? `${moved}칸을 화면에 반영했습니다` : "바뀐 칸이 없습니다 — 화면의 근무표와 같은 파일입니다");
@@ -2498,9 +2507,9 @@ function renderNotice() {
   html += `<p class="notice-sum" data-notice-cells="${cells}" data-notice-r2w="${restToWork}">영향 <b>${diff.length}명</b> · 바뀐 칸 <b>${cells}</b> · 휴무→근무 <b class="${restToWork ? "warn-text" : ""}">${restToWork}</b> · 전달 필요 <b>${need}명</b></p>`;
   // '재생성 적용'은 고정하지 않은 칸을 다시 짜서 공지 뒤 한두 칸 고친 것이 수십 명의 변경이 된다 — 안내가
   // 길어진 이유를 알려 주고, 고친 칸만 바뀌는 길(엑셀에서 고쳐 되올리기)을 알려 준다.
-  if (diff.length > 5) html += `<p class="hint">바뀐 사람이 많습니다 — '재생성 적용'은 고정하지 않은 칸을 다시 짭니다.
-    공지 뒤 몇 칸만 고치려면 출력①을 엑셀에서 고쳐 표 위 <b>엑셀 수정본 되올리기</b>로 올리세요(고친 칸만 바뀝니다).</p>`;
-  if (pendN) html += `<p class="hint warn-text">적용 안 한 편집 ${pendN}칸이 섞여 있습니다(＊ 표시) — '재생성 적용' 뒤에 다시 보세요.</p>`;
+  if (diff.length > 5) html += `<p class="hint">바뀐 사람이 많습니다 — '위반 없게 재생성'은 고정하지 않은 칸을 다시 짭니다.
+    공지 뒤 몇 칸만 고치려면 칸을 고친 뒤 <b>고친 칸만 바꾸기</b>를 누르세요(엑셀에서 고쳐 되올려도 같습니다).</p>`;
+  if (pendN) html += `<p class="hint warn-text">적용 안 한 편집 ${pendN}칸이 섞여 있습니다(＊ 표시) — 적용한 뒤에 다시 보세요.</p>`;
   html += '<ul class="notice-list">';
   diff.forEach((e, k) => {
     const done = sent[e.sid] === noticeFp(e);
@@ -2939,7 +2948,7 @@ function renderGrid() {
     // 연월 줄과 체크 둘은 한 덩어리(.out-sub)로 묶는다 — 좁은 화면에서 줄이 넘어갈 때 체크만 혼자 한 줄을 차지하지 않고
     // 연월 옆에 붙어 내려간다(사용자 2026-11-14: 체크가 혼자 한 줄 먹으면 안 된다).
     `<span class="out-sub"><p class="output-subtitle">${wardLabel}${ST.year}년 ${ST.month}월 · ${ST.staff.length}명 · ` +
-    `<span title="이 입력으로 표를 짠 횟수 — 재생성 적용마다 1씩 늘고, 내려받는 파일 이름 끝에 _r2처럼 붙습니다">${ST.round}회차</span></p>` +
+    `<span title="이 입력으로 표를 짜거나 고쳐 적용한 횟수 — 적용·재생성·되올리기마다 1씩 늘고, 내려받는 파일 이름 끝에 _r2처럼 붙습니다">${ST.round}회차</span></p>` +
     // 범례 켜기 — 제목 줄 끝의 작은 체크 하나. 예전엔 '표 보기' 한 줄에 체크 넷(범례·빗금·집계 열 전체·그 밖 코드 줄)이 있었는데,
     // 나머지 셋은 늘 켜 두고 체크를 없앴다(사용자 2026-11-13: 혼자 한 줄 먹으면 안 된다). 범례만 색 18가지가 두 줄이라 접어 둔다.
     // 체크들은 한 덩어리(.out-checks)다 — 폰에서 연월 옆에 다 못 들어가면 하나만 다음 줄로 떨어지지 않고 같이 내려간다.
@@ -3074,7 +3083,10 @@ function renderGrid() {
       if (lockedSet.has(key)) cls.push("locked");
       if (pendingSet.has(key)) cls.push("pending");
       if (isWanted) cls.push("wanted");
-      if (ST.night_stage && !NIGHT_CODES.has(v)) cls.push("night-dim");
+      // 야간만 보는 화면: 야간과 '정해 둔 칸'(고정한 칸·방금 고친 칸)만 보이고 나머지는 가린다 — 가려진 칸은 '아직 안 정함'이다.
+      // 서버가 내보내는 '야간만 받은 파일'도 같은 칸만 담는다(bridge._night_view_cells).
+      const undecided = ST.night_stage && !NIGHT_CODES.has(v) && !lockedSet.has(key) && !pendingSet.has(key);
+      if (undecided) cls.push("night-dim");
       const viol = violMap.get(key);
       let title = "";
       if (viol) {
@@ -3088,7 +3100,7 @@ function renderGrid() {
       // openPicker에서 거르고, 서버도 같은 기준으로 한 번 더 막는다).
       // 마우스 없이도 고칠 수 있어야 한다 — 예전엔 td에 클릭만 걸려 있어 키보드만
       // 쓰는 사람은 이 앱의 핵심 기능(칸 수정)에 아예 닿을 수 없었다.
-      const aria = `${s.id} ${d + 1}일 ${shiftText(v, isWanted) || "빈칸"}`;
+      const aria = `${s.id} ${d + 1}일 ${undecided ? "아직 안 정함" : (shiftText(v, isWanted) || "빈칸")}`;
       html += `<td class="${cls.join(" ")}" data-sid="${escAttr(s.id)}" data-day="${d}"${title}` +
               ` data-pick="1" tabindex="0" role="button" aria-label="${escAttr(aria)}">` +
               `<span>${esc(shiftText(v, isWanted))}</span></td>`;
@@ -3148,7 +3160,7 @@ function renderGrid() {
     if (edited && !confirm(
         `손으로 고친 칸이 ${(ST.pending || []).length + (ST.locked || []).length}개 있습니다 — ` +
         `입력으로 돌아가면 이 수정은 사라지고, 다시 생성해도 돌아오지 않습니다.\n` +
-        ((ST.pending || []).length ? `남겨두려면 먼저 "재생성 적용" 뒤 내려받아 두세요.`
+        ((ST.pending || []).length ? `남겨두려면 먼저 "고친 칸만 바꾸기"나 "위반 없게 재생성" 뒤 내려받아 두세요.`
                                     : `출력①②를 아직 안 받으셨다면 먼저 내려받아 두세요.`) +
         `\n\n그래도 돌아가시겠습니까?`)) return;
     ST = null;
@@ -3190,16 +3202,16 @@ function nightEnterBtn() {
 function nightStageBar() {
   if (ST.night_stage) {
     const pend = (ST.pending || []).length;
-    return `<div class="night-stage-bar" id="nightStageBar"><span class="grow"><b>🌙 야간 먼저 — 1단계</b>` +
-      `야간만 보입니다. 칸을 눌러 야간을 넣고·빼고·옮긴 뒤 확정하세요(다른 근무로 바꾸기는 확정 뒤에).` +
-      // 전체 표를 본 뒤에 들어오는 길이라(2026-11-20) 확정이 무엇을 바꾸는지 여기서 말한다 — 안 적으면 방금 본 낮번·저녁번이
-      // 그대로 남는 줄 알고 확정한다.
-      ` <b>확정하면 야간과 그 뒤 휴식만 두고 나머지 근무는 다시 짭니다</b> — 방금 보던 낮번·저녁번은 바뀝니다(고정해 둔 칸은 그대로).` +
-      `${pend ? ` 고친 칸 ${pend}개는 확정할 때 함께 고정됩니다.` : ""}` +
-      ` 야간이 모자란 날은 2단계에서 채우지 않고 빨강(필수 위반)으로 남습니다.` +
+    // 할 수 있는 일 셋을 그대로 적는다(사용자 2026-11-20): ① 칸을 눌러 정하기(야간뿐 아니라 아무 근무나) ② 받아서 엑셀에서
+    // 고쳐 되올리기 ③ 정한 것은 두고 나머지 자동 생성. 전체 표를 본 뒤에 들어오는 길이라 ③이 무엇을 바꾸는지도 여기서 말한다.
+    return `<div class="night-stage-bar" id="nightStageBar"><span class="grow"><b>🌙 야간만 보기</b>` +
+      `야간과 정해 둔 칸만 보입니다(빈칸 = 아직 안 정함). 칸을 눌러 근무를 정하거나, 위의 <b>야간만 받기</b>로 받아 엑셀에서 고쳐 <b>되올리기</b> 하세요.` +
+      ` <b>나머지 자동 생성</b>을 누르면 보이는 칸과 야간 뒤 휴식은 그대로 두고 빈칸을 다시 짭니다 — 들어오기 전에 보던 낮번·저녁번은 바뀝니다.` +
+      `${pend ? ` 방금 고친 칸 ${pend}개도 그때 함께 고정됩니다.` : ""}` +
+      ` 야간이 모자란 날은 채우지 않고 빨강(필수 위반)으로 남습니다.` +
       ` 위반 숫자와 '필수 위반'·'추가 검토' 탭은 <b>야간 관련 규칙만</b> 셉니다` +
       `${ST.report && ST.report.hidden_count ? `(주간 등 나머지 ${ST.report.hidden_count}건은 나머지를 짠 뒤 다시 셉니다)` : ""}.</span>` +
-      `<button type="button" class="primary small" data-night="confirm">야간 확정 → 나머지 짜기</button>` +
+      `<button type="button" class="primary small" data-night="confirm">나머지 자동 생성</button>` +
       `<button type="button" class="small" data-night="all">전체 보기(확정 안 함)</button></div>`;
   }
   if (ST.nights_fixed) {
@@ -3211,14 +3223,14 @@ function nightStageBar() {
 }
 
 async function confirmNightsThenFill() {
-  showGenOverlay("확정한 야간은 두고 나머지 근무를 짜는 중입니다…", thoroughOn(), true);
+  showGenOverlay("정해 둔 칸은 두고 나머지 근무를 짜는 중입니다…", thoroughOn(), true);
   try {
     const conf = await api("/api/confirm_nights", { method: "POST" });
     ST = conf;
     ST = await api("/api/regenerate", genOpts());
     SWAP = null;
     render();
-    showToast(`야간 ${conf.confirmed_night_cells}칸을 확정하고 나머지를 짰습니다 — ${ST.round}회차`);
+    showToast(`야간 ${conf.confirmed_night_cells}칸과 정해 둔 칸은 그대로 두고 나머지를 짰습니다 — ${ST.round}회차`);
     refreshFragile();
   } catch (e) {
     // 오류 문구는 api()가 이미 띄웠다. 확정은 됐는데 짜기가 실패했을 수 있어 지금 상태로 다시 그린다.
@@ -3234,7 +3246,7 @@ async function enterNightStage() {
     ST = await api("/api/night_stage", { method: "POST", body: JSON.stringify({ on: true }) });
     SWAP = null;
     render({ keepScroll: true });
-    showToast("🌙 야간만 보입니다 — 야간을 고친 뒤 표 위의 [야간 확정 → 나머지 짜기]를, 그만두려면 [전체 보기]를 누르세요");
+    showToast("🌙 야간만 보입니다 — 칸을 정하거나 받아서 고쳐 올린 뒤 [나머지 자동 생성]을, 그만두려면 [전체 보기]를 누르세요");
   } catch (e) { /* 오류 문구는 api()가 띄웠다 */ }
 }
 delegateClick(document.getElementById("gridContent"), "#nightEnterBtn", () => enterNightStage());
@@ -3475,16 +3487,21 @@ function fileBarHtml() {
   // 야간 0건으로 보이는 표에서 주간 최소인력이 모자란 파일이 묻지도 않고 받아졌다(2026-11-14 화면 훑기).
   const hasPending = (ST.pending || []).length > 0, nightOnly = !!ST.night_stage;
   const dis = hasPending || nightOnly ? " disabled" : "";
+  // 야간만 보는 화면에서는 출력① 자리가 '야간만 받기'가 된다 — 화면에 보이는 칸(야간·정해 둔 칸·방금 고친 칸)만 든 파일이고
+  // 빈칸은 '아직 안 정함'이다. 엑셀에서 고쳐 이 화면에 되올린다(사용자 2026-11-20). 다 찬 근무표가 아니므로 출력②와
+  // 월간 보고서는 계속 잠근다.
   let html = `<div class="file-bar-wrap"><div class="file-bar" id="sideDownload" role="group" aria-label="되올리기 · 파일 받기">` +
     // 문서 순서: 되올리기 · 입력으로 | 출력① · 출력②. 폰 세로에서는 이 순서대로 두 줄 두 칸으로 선다 — 윗줄이 '화면으로 들이는 것·
     // 돌아가는 것', 아랫줄이 '받는 것 둘'. 가로·PC에서는 '← 입력 이동'만 맨 끝(네 번째)으로 간다(style.css의 order — 사용자 2026-11-14). 예전 순서(되올리기 · 출력① / 출력② · 입력으로)는 줄이 넘어갈 때 너비가 제각각인 단추가 섞여
     // 들쭉날쭉했다(사용자 2026-11-13: "되올리기랑 입력으로가 같이 있어야 이쁠 듯").
     `<button class="file-btn up" onclick="uploadMonth()" title="엑셀에서 고친 출력①(월간근무표)을 올리면 그 값으로 반영되고 바뀐 칸은 고정됩니다"><span class="fb-long">엑셀 수정본 </span>되올리기</button>` +
     `<button id="backToInputBtn" class="file-btn sub" title="입력 화면으로 돌아가 새로 만듭니다">← 입력 이동</button>` +
-    `<button class="file-btn dl" onclick="if (confirmDownloadWithViolations()) downloadXlsxOcs()"${dis} title="이번 달 근무표 — 엑셀에서 고쳐 되올릴 수 있습니다"><span class="io-tag">출력①</span>월간근무표</button>` +
+    (nightOnly
+      ? `<button class="file-btn dl" id="nightDlBtn" onclick="downloadXlsxOcs()" title="화면에 보이는 칸(야간·정해 둔 칸)만 든 파일 — 빈칸은 '아직 안 정함'입니다. 엑셀에서 고쳐 이 화면에 되올릴 수 있습니다"><span class="io-tag">🌙</span>야간만 받기</button>`
+      : `<button class="file-btn dl" onclick="if (confirmDownloadWithViolations()) downloadXlsxOcs()"${dis} title="이번 달 근무표 — 엑셀에서 고쳐 되올릴 수 있습니다"><span class="io-tag">출력①</span>월간근무표</button>`) +
     `<button class="file-btn dl" onclick="if (confirmDownloadWithViolations()) downloadStaffTable()"${dis} title="다음 달 입력②로 올리는 파일"><span class="io-tag">출력②</span>연간근무표</button></div>` +
-    (nightOnly ? `<p class="hint file-bar-note">야간만 보이는 1단계에서는 파일을 받을 수 없습니다 — '야간 확정 → 나머지 짜기'(또는 '전체 보기') 뒤에 받을 수 있습니다.</p>`
-     : hasPending ? `<p class="hint file-bar-note">적용 안 한 편집이 있어 파일을 받을 수 없습니다 — '재생성 적용' 뒤에 받을 수 있습니다.` +
+    (nightOnly ? `<p class="hint file-bar-note">'야간만 받기'는 보이는 칸만 든 파일입니다(빈칸 = 아직 안 정함) — 엑셀에서 고쳐 여기에 되올릴 수 있습니다. 출력①②는 '나머지 자동 생성'(또는 '전체 보기') 뒤에 받습니다.</p>`
+     : hasPending ? `<p class="hint file-bar-note">적용 안 한 편집이 있어 파일을 받을 수 없습니다 — '고친 칸만 바꾸기'나 '위반 없게 재생성' 뒤에 받을 수 있습니다.` +
        // 폰에서는 '재생성 적용'이 표 40행 아래(패널)에 있어 고친 뒤 어디로 가야 하는지 화면에 없었다 — 여기서 데려간다(style.css: 폰에서만 보인다)
        ` <button type="button" class="small note-btn goto-pending" onclick="gotoPending()">적용하러 가기 ↓</button></p>` : "") +
     `<div id="nextMonthCard"></div>`;
@@ -4664,18 +4681,11 @@ window.openPicker = function (ev, sid, day) {
     for (const k of PARTJANG_BLOCK) allowed.delete(k);
   }
   const cur = isTeamB ? ((ST.team_b_grid[sid] || [])[day] || "") : ST.grid[sid][day];
-  // 야간 먼저 1단계 — 야간을 넣거나(N·NK) 야간을 빼는(OFF) 것만. 가려진 주간 칸을 바꾸면 확정 때 함께 잠겨
-  // "야간만 확정했다"는 생각과 어긋난다. 서버(_night_stage_edit_problem)도 같은 기준으로 막는다.
+  // 야간만 보는 화면에서도 아무 근무나 고를 수 있다(사용자 2026-11-20). 예전엔 야간 넣기·빼기만 됐다 — 가려진 주간 칸을 고치면
+  // 확정 때 말없이 잠겼기 때문인데, 지금은 고른 칸이 '정해 둔 칸'으로 표에 보인다. 가려진 칸의 값(엔진이 놓았던 것)은
+  // 선택기에서도 보이지 않게 한다 — 그 칸은 '아직 안 정함'이다.
   const nightStage = !isTeamB && ST.night_stage;
-  if (nightStage) {
-    for (const k of [...allowed]) {
-      if (!(NIGHT_CODES.has(k) || (k === "OFF" && NIGHT_CODES.has(cur)))) allowed.delete(k);
-    }
-    if (!allowed.size) {
-      showToast(`${sid}님은 야간을 설 수 없는 분이라 야간 단계에서는 고칠 것이 없습니다 — 다른 근무는 '야간 확정 → 나머지 짜기' 뒤에 고쳐 주세요`, true);
-      return;
-    }
-  }
+  const undecidedCell = nightStage && !NIGHT_CODES.has(cur) && !(ST.locked || []).includes(`${sid}:${day}`) && !(ST.pending || []).includes(`${sid}:${day}`);
   const rect = td.getBoundingClientRect();
 
   const div = document.createElement("div");
@@ -4690,7 +4700,7 @@ window.openPicker = function (ev, sid, day) {
   // 어느 사람 칸을 고치는지 잃는다(2026-10-31 검토 P8c). ✕는 폰 바텀시트에서 닫는 길.
   const head = document.createElement("div");
   head.className = "picker-head";
-  head.innerHTML = `<b>${esc(sid)}</b> · ${day + 1}일 <span class="dim">지금 ${esc(shiftText(cur, (ST.wanted || []).includes(`${sid}:${day}`)) || "빈칸")}</span>` +
+  head.innerHTML = `<b>${esc(sid)}</b> · ${day + 1}일 <span class="dim">지금 ${undecidedCell ? "아직 안 정함" : esc(shiftText(cur, (ST.wanted || []).includes(`${sid}:${day}`)) || "빈칸")}</span>` +
     `<button type="button" class="picker-close" aria-label="닫기">✕</button>`;
   head.querySelector(".picker-close").onclick = (e) => { e.stopPropagation(); closePicker(); };
   div.appendChild(head);
@@ -4698,7 +4708,7 @@ window.openPicker = function (ev, sid, day) {
     if (!allowed.has(sh)) continue;
     const b = document.createElement("button");
     b.textContent = shiftText(sh);
-    if (sh === cur) b.classList.add("current");
+    if (sh === cur && !undecidedCell) b.classList.add("current");
     b.onclick = (e) => { e.stopPropagation(); stageEdit(sid, day, sh, isTeamB); closePicker(); };
     div.appendChild(b);
   }
@@ -4707,7 +4717,7 @@ window.openPicker = function (ev, sid, day) {
   if (nightStage) {
     const note = document.createElement("div");
     note.className = "picker-why";
-    note.textContent = "야간 단계에서는 야간을 넣거나 빼는 것만 됩니다. 맞교환·다른 근무는 '야간 확정 → 나머지 짜기' 뒤에.";
+    note.textContent = "여기서 고른 칸은 '정해 둔 칸'으로 표에 보이고, '나머지 자동 생성' 때 그대로 남습니다. 맞교환은 전체 표에서 됩니다.";
     div.appendChild(note);
   }
   if (!isTeamB && !staff.is_partjang && !nightStage) {
@@ -4951,7 +4961,7 @@ function renderSide() {
   // 표에는 수정 대기 칸이 보이지만 아래 목록은 마지막으로 적용한 표 기준이다 — 둘의 기준이 다른
   // 것을 적어 두지 않으면 "고쳤는데 왜 위반이 그대로냐"가 된다(10/30 GPT 검토 U06, 재현됨).
   const scopeNote = hasPending
-    ? `<p class="hint scope-note">📌 아래는 <b>마지막으로 적용한 표 기준</b>입니다 — 수정 대기 ${ST.pending.length}칸은 '재생성 적용' 뒤에 반영됩니다.</p>` : "";
+    ? `<p class="hint scope-note">📌 아래는 <b>마지막으로 적용한 표 기준</b>입니다 — 수정 대기 ${ST.pending.length}칸은 적용한 뒤에 반영됩니다.</p>` : "";
 
   // ── 탭 '필수 위반' — 필수 위반 목록과 인력 미달(같은 사건을 날짜별 숫자로 본 것)
   let hardHtml = `<div class="side-sec" id="sideSummary"><h3>필수 위반 <span class="count-badge${r.hard_count ? " bad" : ""}">${r.hard_count}건</span></h3>` + scopeNote;
@@ -5417,16 +5427,24 @@ function renderPending() {
   }
   html += "</ul>";
   html += '<div id="feedbackBox"><p style="color:var(--sub);font-size:12px">피드백 확인 중...</p></div>';
-  // 재생성은 고친 칸만 손보는 것이 아니라 표 전체를 다시 짠다. 한 칸만 바꿨다고
-  // 생각하고 눌렀다가 다른 사람 근무가 통째로 움직여 있으면 그때는 되돌릴 수 없다.
-  html += '<div class="apply-warn"><p>누르면 <b>표 전체를 다시 짭니다</b> — 고친 칸만이 아니라 다른 사람 근무도 함께 움직입니다.</p><ul class="note-lines">' +
-          // 예전엔 "지금 표를 남겨두려면 먼저 내려받아 두세요"였는데 편집 중에는 출력①②가 잠겨 있어 할 수 없는 일을 시켰다.
-          '<li>고치기 전 표를 남겨두려면 <b>전체 취소</b> 뒤 내려받고 다시 고치세요.</li>' +
-          '<li>몇 칸만 바꾸려면 출력①을 엑셀에서 고쳐 <b>되올리기</b>가 안전합니다(고친 칸만 바뀝니다).</li></ul></div>';
-  html += '<div class="action-row">' +
-          '<button class="danger" onclick="discardAll()">전체 취소</button>' +
-          '<button class="primary" onclick="applyEdits()">재생성 적용</button>' +
-          "</div>";
+  if (ST.night_stage) {
+    // 야간만 보는 화면에서 고친 칸은 이미 '정해 둔 칸'으로 표에 보인다 — 여기서 따로 적용할 것이 없고, 표 위의
+    // '나머지 자동 생성'이 그 칸들을 고정하고 빈칸을 짠다.
+    html += '<div class="apply-warn"><p>고친 칸은 <b>정해 둔 칸</b>으로 표에 보입니다 — 표 위의 <b>나머지 자동 생성</b>을 누르면 그대로 두고 빈칸을 짭니다.</p></div>';
+    html += '<div class="action-row"><button class="danger" onclick="discardAll()">전체 취소</button></div>';
+    body.innerHTML = html;
+    return;
+  }
+  // 고친 뒤의 두 갈래(사용자 2026-11-20). 예전엔 '재생성 적용' 하나뿐이라 한 칸만 바꾸려던 사람도 표 전체가 다시 짜였고,
+  // "고친 칸만"은 엑셀로 받아 되올려야 했다. 무엇이 움직이는지를 단추마다 한 줄로 적는다 — 위의 목록(이 수정이 만드는 위반)이
+  // 고르는 근거다.
+  html += '<div class="apply-choice">' +
+          '<button class="primary" id="applyOnlyBtn" onclick="applyOnly()">고친 칸만 바꾸기</button>' +
+          '<p class="hint">다른 칸은 그대로 둡니다. 위 목록의 위반은 남아 빨강·노랑으로 보입니다.</p>' +
+          '<button class="primary alt" id="applyRegenBtn" onclick="applyEdits()">위반 없게 재생성</button>' +
+          '<p class="hint">고친 칸은 고정하고 <b>나머지를 전부 다시 짭니다</b> — 다른 사람 근무도 함께 움직입니다.</p>' +
+          '</div>';
+  html += '<div class="action-row"><button class="danger" onclick="discardAll()">전체 취소</button></div>';
   body.innerHTML = html;
 }
 
@@ -5437,7 +5455,10 @@ async function refreshFeedback() {
   const fb = await api("/api/feedback", { method: "POST" });
   let html = "";
   if (fb.hard.length === 0 && fb.soft.length === 0) {
-    html = '<ul class="issue-list"><li class="none">관련 이상 없음 — 재생성해도 안전할 가능성이 높습니다.</li></ul>';
+    // 야간만 보는 화면의 피드백은 야간에 관한 것만 온다(서버가 거른다) — 주간 인원은 '나머지 자동 생성'이 다시 짠다.
+    html = ST.night_stage
+      ? '<ul class="issue-list"><li class="none">야간에 관한 이상 없음 — 주간 근무는 \'나머지 자동 생성\'이 다시 짭니다.</li></ul>'
+      : '<ul class="issue-list"><li class="none">관련 이상 없음 — 이 수정으로 새로 생기는 위반이 없습니다.</li></ul>';
   } else {
     html = '<ul class="issue-list">';
     for (const v of fb.hard) html += `<li class="hard">${esc(humanizeMsg(v.message))}${ruleTag(v.rule)}</li>`;
@@ -5450,6 +5471,19 @@ async function refreshFeedback() {
 window.discardAll = async function () {
   ST = await api("/api/discard", { method: "POST" });
   render({ keepScroll: true });
+};
+
+// '고친 칸만 바꾸기' — 재생성 없이 고친 칸만 넣고 고정한다. 남는 위반은 그대로 화면에 뜬다.
+window.applyOnly = async function () {
+  const n = (ST.pending || []).length;
+  try {
+    ST = await api("/api/apply_only", { method: "POST" });
+    SWAP = null;
+    render({ keepScroll: true });
+    refreshFragile();
+    const hard = (ST.report && ST.report.hard_count) || 0;
+    showToast(`고친 ${n}칸만 바꿨습니다 — 다른 칸은 그대로입니다` + (hard ? ` · 필수 위반 ${hard}건이 남아 있습니다` : ""), !!hard);
+  } catch (e) { /* 오류 문구는 api()가 띄웠다 */ }
 };
 
 window.applyEdits = async function () {
