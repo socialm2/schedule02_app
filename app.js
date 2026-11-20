@@ -568,7 +568,7 @@ B팀(신입) 칸은 누르면 바로 반영되고, 재생성 대기 목록에 �
 <li><b>여러 개 만들어 고르기</b> — 같은 입력을 출발점(시드)만 바꿔 여러 번 돌려
 운영 필수 → 숙련도 → 공평성 → 전체 위반 순으로 견줘 가장 좋은 표를 보여줍니다. <b>🔍 꼼꼼히 만들기</b>를 켜고 생성하면 평소 3개 만들어 고르던 것을 9개 만들어 고릅니다 — 위반이 남는 달에
 켜 보세요(일반 생성보다 오래 걸리고, 빠듯한 달은 1~2분. 진행 중 '여기까지 결과로 멈추기' 가능).</li>
-<li><b>🌙 야간 먼저 짜기(N only)</b> — 생성 버튼 아래 '만드는 방법'에서 고르면 두 단계로 만듭니다. 1단계는 야간(N·NK)만 보이고 야간을 넣거나 빼는 것만 됩니다(다른 근무로 바꾸기·맞교환은 확정 뒤에).
+<li><b>🌙 야간 먼저 고치기(N only)</b> — 근무표를 만든 뒤 표 위의 <b>'🌙 야간만 보기'</b>를 누르면 두 단계로 고칩니다. 1단계는 야간(N·NK)만 보이고 야간을 넣거나 빼는 것만 됩니다(다른 근무로 바꾸기·맞교환은 확정 뒤에).
 위반 숫자·'필수 위반'·'추가 검토' 탭도 야간 관련 항목만, 형평성은 '야간 균등'만 셉니다(이 단계에서는 출력①②를 받을 수 없습니다). 야간을 고친 뒤 표 위의 <b>야간 확정 → 나머지 짜기</b>를
 누르면 야간과 그 뒤 쉬는 이틀·수면오프(S/)를 고정하고 나머지를 짭니다. 확정 뒤에는 재생성·편집 적용에도 야간이 그대로이고,
 지워서 모자란 야간은 다른 사람으로 메우지 않고 빨간 필수 위반으로 남습니다('야간 다시 고치기'로 돌아가 직접 채웁니다).</li>
@@ -2223,15 +2223,12 @@ async function runGenerate(btn, statusEl) {
       showToast(lastStaffing.designated.message, true);
     }
     ST = await api("/api/generate", genOpts());
-    // 야간 먼저: 같은 생성 결과를 야간만 보이게 연다. 생성 자체는 같다 — 1단계 야간은 엔진이 평소에 놓는 그 야간이다.
-    const nightFirst = !!($("#genModeNight") && $("#genModeNight").checked);
-    if (nightFirst) ST = await api("/api/night_stage", { method: "POST", body: JSON.stringify({ on: true }) });
+    // '야간 먼저'는 여기서 고르지 않는다 — 결과 화면의 '🌙 야간만 보기'로 들어간다(enterNightStage). 예전엔 생성 버튼 아래
+    // '만드는 방법'에서 골랐는데, 어차피 전체를 만든 뒤 야간만 드러내는 것이라 만들기 전에 정하게 할 이유가 없었다(사용자 2026-11-20).
     SWAP = null;
     render();
-    showToast(nightFirst
-      ? "🌙 야간만 먼저 보여 드립니다 — 야간을 고친 뒤 표 위의 [야간 확정 → 나머지 짜기]를 누르세요"
-      : (lastConfigWarning || "근무표 생성 완료 — 파일은 표 위에서 받고, 확인할 문제는 오른쪽(폰은 아래)에 있습니다"),
-      !nightFirst && !!lastConfigWarning);
+    showToast(lastConfigWarning || "근무표 생성 완료 — 파일은 표 위에서 받고, 확인할 문제는 오른쪽(폰은 아래)에 있습니다",
+      !!lastConfigWarning);
     refreshFragile();
     noteFirstUse("gen");
   } catch (e) {
@@ -3027,7 +3024,7 @@ function renderGrid() {
   // 모바일에서 페이지 전체를 옆으로 밀어버려(#gridPane이 모바일 화면에서는 overflow:visible이라
   // 표 폭이 그대로 새어나감) 사용법 팝업 같은 position:fixed 요소의 위치가 틀어지는 부작용이 있었다.
   const holCount = ST.days.filter(d => d.weekend).length;
-  html += `<div class="grid-scroll"><table class="grid${ST.night_stage ? " night-only" : ""}"><thead><tr><th class="nm">이름</th>` +
+  html += `<div class="grid-scroll"><table class="grid${ST.night_stage ? " night-only" : ""}"><thead><tr><th class="nm">이름${nightEnterBtn()}</th>` +
     '<th class="stat-col">잔휴<br>전월</th><th class="stat-col">잔휴<br>이후</th>';
   ST.days.forEach((d, i) => { html += `<th class="day-head ${d.weekend ? "we" : ""}" data-day="${i}" role="button" tabindex="0" title="누르면 그날 병동 보기">${d.n}<br>${d.dow}</th>`; });
   // 듀티별 횟수 — D·E·N만이 아니라 이 달 표에 나온 모든 근무 코드를 열로 붙인다.
@@ -3179,11 +3176,25 @@ function setResultView(on) {
 // 서버가 nights_fixed라 어떤 재생성으로도 새 야간이 생기지 않는다. 버튼 값은 data-night에만(인라인 핸들러 금지).
 const NIGHT_CODES = new Set(["N", "NK"]);
 
+// 야간 먼저(N only)로 들어가는 단추 — 표의 '이름' 머리 칸 안에 둔다. 처음엔 제목 줄(범례·수정주의근무 옆)에 두었는데 노트북 폭에서
+// 파일 받기 줄이 아래로 밀렸다(ui_smoke가 잡았다). 이 칸은 가로·세로 스크롤에도 늘 보이고 줄을 더 쓰지 않는다. 야간 단계이거나
+// 야간을 확정한 뒤에는 표 위의 띠가 그 일을 하므로 숨긴다. 누르면 지금 표에서 야간만 보인다(값은 그대로) — 확정이 무엇을 바꾸는지는
+// 들어간 뒤 띠가 말한다.
+function nightEnterBtn() {
+  if (ST.night_stage || ST.nights_fixed) return "";
+  return `<button type="button" class="night-enter" id="nightEnterBtn" ` +
+    `title="야간(N·NK)만 보이게 합니다. 야간을 고쳐 확정하면 그 야간은 그대로 두고 나머지 근무를 다시 짭니다. 확정하지 않고 '전체 보기'로 돌아올 수 있습니다.">` +
+    `🌙 야간만 보기</button>`;
+}
+
 function nightStageBar() {
   if (ST.night_stage) {
     const pend = (ST.pending || []).length;
     return `<div class="night-stage-bar" id="nightStageBar"><span class="grow"><b>🌙 야간 먼저 — 1단계</b>` +
       `야간만 보입니다. 칸을 눌러 야간을 넣고·빼고·옮긴 뒤 확정하세요(다른 근무로 바꾸기는 확정 뒤에).` +
+      // 전체 표를 본 뒤에 들어오는 길이라(2026-11-20) 확정이 무엇을 바꾸는지 여기서 말한다 — 안 적으면 방금 본 낮번·저녁번이
+      // 그대로 남는 줄 알고 확정한다.
+      ` <b>확정하면 야간과 그 뒤 휴식만 두고 나머지 근무는 다시 짭니다</b> — 방금 보던 낮번·저녁번은 바뀝니다(고정해 둔 칸은 그대로).` +
       `${pend ? ` 고친 칸 ${pend}개는 확정할 때 함께 고정됩니다.` : ""}` +
       ` 야간이 모자란 날은 2단계에서 채우지 않고 빨강(필수 위반)으로 남습니다.` +
       ` 위반 숫자와 '필수 위반'·'추가 검토' 탭은 <b>야간 관련 규칙만</b> 셉니다` +
@@ -3216,6 +3227,17 @@ async function confirmNightsThenFill() {
     hideGenOverlay();
   }
 }
+
+// 결과 화면 머리줄의 '🌙 야간만 보기' — 야간 단계로 들어간다. 적용 안 한 편집이 있으면 서버가 사유와 함께 거절한다(api()가 띄운다).
+async function enterNightStage() {
+  try {
+    ST = await api("/api/night_stage", { method: "POST", body: JSON.stringify({ on: true }) });
+    SWAP = null;
+    render({ keepScroll: true });
+    showToast("🌙 야간만 보입니다 — 야간을 고친 뒤 표 위의 [야간 확정 → 나머지 짜기]를, 그만두려면 [전체 보기]를 누르세요");
+  } catch (e) { /* 오류 문구는 api()가 띄웠다 */ }
+}
+delegateClick(document.getElementById("gridContent"), "#nightEnterBtn", () => enterNightStage());
 
 delegateClick(document.getElementById("gridContent"), "#nightStageBar button[data-night]", async (b) => {
   const what = b.dataset.night;
@@ -4244,10 +4266,10 @@ function vocClientInfo() {
 function vocFormSnapshot() {
   try {
     const cfg = buildCfgFromForm();
-    // opts: 생성 버튼 옆의 선택. cfg에는 없지만 결과를 바꾼다(꼼꼼히는 9회, 야간 먼저는 두 단계) — 이게 빠지면
-    // 관리자 모드의 입력 화면에서 다시 생성했을 때 보낸 사람과 다른 표가 나온다.
-    const night = document.getElementById("genModeNight");
-    return { cfg, unreadable: minStaffErrors.slice(), opts: { thorough: thoroughOn(), night_first: !!(night && night.checked) } };
+    // opts: 생성 버튼 옆의 선택. cfg에는 없지만 결과를 바꾼다(꼼꼼히는 9회) — 이게 빠지면 관리자 모드의 입력 화면에서
+    // 다시 생성했을 때 보낸 사람과 다른 표가 나온다. '야간 먼저'는 2026-11-20부터 생성 때의 선택이 아니다(결과 화면의 단추) —
+    // 야간 단계에 들어간 것은 작업 기록의 /api/night_stage로 재현되므로 여기 적을 것이 없다.
+    return { cfg, unreadable: minStaffErrors.slice(), opts: { thorough: thoroughOn() } };
   } catch (e) {
     return { error: String((e && e.message) || e) };
   }
@@ -4451,11 +4473,11 @@ function applyVocForm(cfg, staffTableLoaded_, opts) {
   staffTableLoaded = !!staffTableLoaded_;
   // 만드는 방법 — 문의에 적혀 있을 때만(2026-11-12 이전 문의에는 없다: 그때는 내 선택 그대로 두고 띠에 알린다)
   if (opts && typeof opts === "object") {
-    const chk = $("#thoroughChk"), all = $("#genModeAll"), night = $("#genModeNight");
+    // 예전 문의의 opts.night_first는 읽지 않는다 — 그 선택 칸이 없어졌고(2026-11-20), 야간 단계는 작업 기록이 재현한다.
+    const chk = $("#thoroughChk");
     if (chk) chk.checked = !!opts.thorough;
-    if (night && all) { night.checked = !!opts.night_first; all.checked = !opts.night_first; }
   } else if (VOC_VIEW) {
-    VOC_VIEW.formNote = "이 문의 파일에는 '꼼꼼히 만들기'·'야간 먼저' 선택이 적혀 있지 않아 그 둘은 내 선택 그대로입니다.";
+    VOC_VIEW.formNote = "이 문의 파일에는 '꼼꼼히 만들기' 선택이 적혀 있지 않아 그것은 내 선택 그대로입니다.";
   }
   for (const id of ["wantedStatus", "staffTableStatus"]) { const el = $("#" + id); if (el) { clearUploadError(el); el.textContent = ""; } }
   $("#wantedStatus").textContent = `관리자 모드 — 문의 파일의 명단 ${formStaff.length}명 · 신청 ${formRequests.length}건이 들어 있습니다.`;

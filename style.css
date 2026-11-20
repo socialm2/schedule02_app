@@ -899,11 +899,11 @@ button.small { font-size: .75rem; padding: 5px 11px; margin-top: 6px; }
 .prn-mix-row label { display: inline-flex; gap: 4px; align-items: center; font-size: .8125rem; }
 .prn-mix-row input { width: 56px; }
 .prn-mix-row .hint { flex-basis: 100%; }
-.gen-mode-opt { border: 1px solid var(--line); border-radius: 8px; margin: 10px 0 0; padding: 6px 10px 8px; font-size: .8125rem; display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; }
-.gen-mode-opt legend { font-size: .75rem; padding: 0 4px; }
-.gen-mode-opt label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
-.gen-mode-opt input { margin: 0; accent-color: var(--accent); }
-.gen-mode-opt .hint { flex-basis: 100%; }
+/* 표의 '이름' 머리 칸 안의 '🌙 야간만 보기' — 야간 먼저(N only)로 들어가는 작은 단추. 칸 높이를 늘리지 않게 한 줄, 작은 글씨 */
+.night-enter { display: block; margin: 2px auto 0; font: inherit; font-size: .6875rem; font-weight: 600; line-height: 1.3; color: var(--sub);
+  background: var(--card, transparent); border: 1px solid var(--line); border-radius: 999px; padding: 0 7px; cursor: pointer; white-space: nowrap; }
+.night-enter:hover, .night-enter:focus-visible { color: var(--ink); border-color: var(--accent); }
+@media print { .night-enter { display: none; } }
 .night-stage-bar { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 0 0 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--code-bg); font-size: .8125rem; }
 .night-stage-bar b { margin-right: 4px; }
 .night-stage-bar .grow { flex: 1 1 260px; }
