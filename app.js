@@ -4870,8 +4870,19 @@ function feasibilityBanner(r) {
   const total = r.hard.length;
   if (r.hard_count > 0) {
     // 두 문장만 — 무엇이 남았고 무엇을 하면 되는지. 규칙 이름 나열은 설명서에(패널의 글이 많아지면 안 읽힌다).
-    return `<p class="status-banner bad">⚠ <b>필수 위반 ${r.hard_count}건</b> — 이대로 확정하면 안 됩니다.
-      아래 빨간 칸을 직접 고치거나, 인원·근무인력 기준을 조정해 다시 생성하세요.</p>`;
+    // 처음 만든 표(1회차·손대기 전)에 필수 위반이 남았고 '꼼꼼히 만들기'를 안 켰으면 그 길을 알려 준다 — 평소 3개에서는
+    // 전부 필수 1건인데 4번째 시도가 0건인 입력이 실제로 있었고(2026-11-19 독립 검증 D2), 안내가 "직접 고치거나 기준을
+    // 조정"뿐이라 파트장은 그 표를 받아 손으로 고쳤다. 인원 구조상 못 지우는 달(하한 안내가 바로 위에 뜬다)·야간 먼저 단계·
+    // 이미 고친 표·받은 문의에는 붙이지 않는다 — 다시 만들어도 안 되거나, 다시 만들면 고친 것이 사라진다.
+    const fresh = (ST.round || 1) === 1 && !(ST.pending || []).length && !(ST.locked || []).length &&
+      !ST.night_stage && !ST.nights_fixed && !VOC_VIEW;
+    const structural = !!(lastStaffing && lastStaffing.bounds && lastStaffing.bounds.message);
+    const thorough = (window.__genMode || "").includes("thorough");
+    const hint = fresh && !structural && !thorough
+      ? ` 아직 손대기 전이라면 입력 화면에서 <b>🔍 꼼꼼히 만들기</b>를 켜고 다시 생성해 보세요 — 3개 대신 9개를 만들어 골라, 필수 위반이 없는 표를 찾기도 합니다.`
+      : "";
+    return `<p class="status-banner bad" id="hardBanner"${hint ? ' data-thorough-hint="1"' : ""}>⚠ <b>필수 위반 ${r.hard_count}건</b> — 이대로 확정하면 안 됩니다.
+      아래 빨간 칸을 직접 고치거나, 인원·근무인력 기준을 조정해 다시 생성하세요.${hint}</p>`;
   }
   if (total > 0) {
     // 예전엔 여기서 "추가 검토 N건은 원칙이지만…"까지 한 문단이었다 — 같은 수와 같은 설명이 바로 아래 '추가 검토' 머리줄에 있다.
