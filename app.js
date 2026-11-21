@@ -4349,6 +4349,9 @@ function openVocDialog() {
       '<label class="voc-lab" for="vocName">이름</label><input type="text" id="vocName" autocomplete="off" maxlength="40" placeholder="보내는 분 이름">' +
       '<label class="voc-lab" for="vocText">내용</label><textarea id="vocText" rows="6" placeholder="예: 12일 N이 3명이어야 하는데 2명으로 나와요"></textarea>' +
       '<p class="hint voc-note">지금 입력·근무표·고친 기록이 파일에 함께 들어갑니다. 이 기기에 저장만 되고 자동으로 보내지지 않습니다.</p>' +
+      // 이름 가리기(2026-11-21) — 무엇이 가려지고 무엇이 안 가려지는지를 받기 전에 말한다. 못 가리는 것을 숨기면 가려진 줄 알고 보낸다.
+      '<p class="hint voc-note" id="vocAnonNote"><b>직원 이름은 가명(직원001나 …)으로 바뀌어 들어갑니다</b>(내용에 적은 이름 포함). ' +
+      '보내는 분 이름은 그대로이고, 엑셀의 다른 시트·메모에 따로 적은 이름은 가려지지 않습니다.</p>' +
       '<p class="voc-msg" id="vocMsg" role="status"></p>' +
       '<div class="voc-actions"><button class="primary" data-voc="make">문의 파일 받기</button></div>' +
       '</div></div>';
@@ -4373,7 +4376,7 @@ async function makeVocFile() {
   msg.textContent = "만드는 중…";
   try {
     const file = await apiDownloadVoc({ report: { name, text }, client: vocClientInfo() });
-    msg.textContent = `받았습니다 — ${file} · 이 파일을 메일에 붙여 보내 주세요.`;
+    msg.textContent = `받았습니다 — ${file} · 직원 이름은 가명으로 바꿨습니다. 이 파일을 메일에 붙여 보내 주세요.`;
   } catch (e) {
     msg.textContent = "문의 파일을 만들지 못했습니다: " + ((e && e.message) || e);
   }
