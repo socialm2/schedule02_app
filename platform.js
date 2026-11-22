@@ -497,6 +497,55 @@ async function downloadAppFile(path, filename) {
   } catch (e) { return false; }
 }
 
+// ---------------------------------------------------------------- 보고서 묶음(reports.enc) — '도움말 · 기타 › 보고서 받기'
+// 묶음은 비밀번호에서 뽑은 열쇠로 잠겨 있다(tools/build_reports.py: PBKDF2-SHA256 → AES-256-GCM). 화면에서 비밀번호만 묻고
+// 파일을 그대로 두면, 앱이 공개 주소에 있으므로 주소를 아는 사람은 비밀번호 없이 받는다 — 그래서 여기서 실제로 푼다.
+// 비밀번호는 어디에도 적혀 있지 않다: 풀리면 맞는 것이고, 틀리면 AES-GCM의 인증이 실패한다.
+async function openReportsBundle(password) {
+  let r;
+  try { r = await fetch("reports.enc", { cache: "no-store" }); }
+  catch (e) { throw new Error("보고서 묶음을 받지 못했습니다 — 네트워크를 확인해 주세요."); }
+  if (!r.ok) throw new Error("보고서 묶음이 아직 올라와 있지 않습니다.");
+  if (!(window.crypto && crypto.subtle)) throw new Error("이 주소에서는 보고서를 열 수 없습니다 — https 주소로 열어 주세요.");
+  const b = await r.json(), un = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: un(b.salt), iterations: b.iter, hash: "SHA-256" },
+    base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  let plain;
+  try { plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: un(b.iv) }, key, un(b.data)); }
+  catch (e) { throw new Error("비밀번호가 다릅니다."); }
+  return JSON.parse(new TextDecoder().decode(plain)).files;      // [{name, title, html}]
+}
+// 여러 파일을 zip 하나로 — 압축 없이 담기만 한다(보고서는 글이라 작다). 한글 파일 이름은 UTF-8 표시(0x0800)를 켠다.
+function zipStored(entries) {
+  const T = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; T[n] = c >>> 0; }
+  const crc32 = (u8) => { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = T[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  const enc = new TextEncoder(), parts = [], central = [], now = new Date();
+  const dt = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  const tm = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+  let off = 0;
+  for (const [name, text] of entries) {
+    const nm = enc.encode(name), data = enc.encode(text), crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true);
+    h.setUint16(10, tm, true); h.setUint16(12, dt, true); h.setUint32(14, crc, true);
+    h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, nm.length, true);
+    parts.push(new Uint8Array(h.buffer), nm, data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true);
+    c.setUint16(12, tm, true); c.setUint16(14, dt, true); c.setUint32(16, crc, true);
+    c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, nm.length, true); c.setUint32(42, off, true);
+    central.push(new Uint8Array(c.buffer), nm);
+    off += 30 + nm.length + data.length;
+  }
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, entries.length, true); e.setUint16(10, entries.length, true);
+  e.setUint32(12, central.reduce((a, x) => a + x.length, 0), true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...central, new Uint8Array(e.buffer)], { type: "application/zip" });
+}
+function downloadReportsZip(files, filename) { triggerDownload(zipStored(files.map((f) => [f.name, f.html])), filename, "application/zip"); }
+
 // ---------------------------------------------------------------- 화면이 쓰는 다섯 가지
 
 // 올리기는 고른 순서대로 하나씩 한다. 파일을 읽는 시간(arrayBuffer)이 파일마다 달라, 큰 파일을 고르고 곧바로 다른 파일을

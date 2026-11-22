@@ -1074,6 +1074,13 @@ body.voc-admin #app::after { content: ""; position: absolute; inset: 0; pointer-
 .voc-view-note { margin: 4px 0 0; color: rgba(255, 255, 255, .85); }
 .modal.voc-view-modal { max-width: 720px; }
 .modal.voc-gate-modal { max-width: 340px; }
+/* 보고서 받기 — 비밀번호를 풀면 같은 창에 목록이 선다(제목 한 줄 + 받기) */
+.modal.voc-gate-modal.reports-modal { max-width: 460px; }
+.reports-list { list-style: none; margin: 0 0 10px; padding: 0; }
+.reports-list li { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: .875rem; }
+.reports-list li:first-child { border-top: 0; }
+.reports-list li span { flex: 1; min-width: 0; }
+.reports-list li button { flex: none; min-height: 32px; }
 .voc-body input[type="password"] { width: 100%; box-sizing: border-box; font: inherit; padding: 8px 10px; min-height: 40px;
   border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); }
 .voc-view-text { margin: 8px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--code-bg); color: var(--ink);

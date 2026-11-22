@@ -4044,6 +4044,65 @@ async function makeVocFile() {
   }
 }
 
+// ================================================================ 보고서 받기(실험 기능)
+// '도움말 · 기타 › 보고서 받기' — 비밀번호를 넣으면 보고서 묶음(reports.enc)을 풀어 목록을 보여 주고, 하나씩 또는 zip 하나로
+// 내려 준다(사용자 2026-11-22: "실험 기능 기타 쪽에 보고서 다운로드 만들어 놓고 비번 …"). 비밀번호가 맞는지는 여기서 견주지 않는다 —
+// 묶음이 그 비밀번호로 풀리는가가 곧 확인이다(platform.js openReportsBundle). 그래서 비밀번호도, 그 해시도 코드에 없다.
+// 한 번 푼 목록은 탭을 닫을 때까지 메모리에만 둔다(다시 열 때 또 묻지 않게). 기기에는 아무것도 저장하지 않는다.
+let REPORTS = null;
+function openReportsGate() {
+  let bd = document.getElementById("reportsBackdrop");
+  if (!bd) {
+    bd = document.createElement("div");
+    bd.className = "modal-backdrop"; bd.id = "reportsBackdrop";
+    bd.innerHTML = '<div class="modal voc-gate-modal reports-modal" role="dialog" aria-modal="true" aria-labelledby="reportsTitle">' +
+      '<div class="modal-head"><h2 id="reportsTitle">보고서 받기</h2><button data-reports="close" aria-label="닫기">✕</button></div>' +
+      '<div class="modal-body voc-body">' +
+      '<div id="reportsGate"><label class="voc-lab" for="reportsPw">비밀번호</label><input type="password" id="reportsPw" autocomplete="off">' +
+      '<div class="voc-actions"><button class="primary" data-reports="open">열기</button></div></div>' +
+      '<p class="voc-msg" id="reportsMsg" role="status"></p><div id="reportsList"></div>' +
+      '</div></div>';
+    document.body.appendChild(bd);
+    const close = () => bd.classList.remove("show");
+    bd.addEventListener("click", (e) => { if (e.target === bd) close(); });
+    bd.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") close();
+      if (e.key === "Enter" && e.target.id === "reportsPw") { e.preventDefault(); submitReportsPw(); }
+    });
+    delegateClick(bd, "button[data-reports]", (b) => {
+      if (b.dataset.reports === "close") close();
+      else if (b.dataset.reports === "open") submitReportsPw();
+      else if (b.dataset.reports === "zip" && REPORTS) downloadReportsZip(REPORTS, "SMC_FairShift_보고서.zip");
+    });
+    delegateClick(bd, "button[data-report]", (b) => { const f = REPORTS && REPORTS[+b.dataset.report]; if (f) downloadText(f.html, f.name); });
+  }
+  bd.classList.add("show");
+  renderReports("");
+  if (!REPORTS) document.getElementById("reportsPw").focus();
+}
+function renderReports(msg) {
+  document.getElementById("reportsGate").style.display = REPORTS ? "none" : "";
+  document.getElementById("reportsMsg").textContent = msg;
+  // 제목은 묶음에서 온 글자다 — esc로만 넣고, 누를 것은 번호(data-report)만 든다
+  document.getElementById("reportsList").innerHTML = !REPORTS ? "" :
+    `<ul class="reports-list">${REPORTS.map((f, i) => `<li><span>${esc(f.title)}</span><button type="button" class="small" data-report="${i}">받기</button></li>`).join("")}</ul>` +
+    `<div class="voc-actions"><button class="primary" data-reports="zip">모두 받기(zip)</button></div>`;
+}
+async function submitReportsPw() {
+  const pw = document.getElementById("reportsPw");
+  if (!pw.value) { renderReports("비밀번호를 넣어 주세요."); pw.focus(); return; }
+  renderReports("여는 중…");
+  try {
+    REPORTS = await openReportsBundle(pw.value);
+    pw.value = "";
+    renderReports(`보고서 ${REPORTS.length}종 — 받은 HTML 파일은 브라우저에서 열립니다.`);
+  } catch (e) {
+    pw.value = "";
+    renderReports((e && e.message) || "보고서를 열지 못했습니다.");
+    pw.focus();
+  }
+}
+
 // ================================================================ 관리자 모드 — 문의 파일 다시 보기(숨은 길)
 // 받은 문의 zip을 올리면 그 사람이 보던 화면을 다시 만든다(bridge.api_voc_load — 기록된 요청을 같은 순서로 다시 밟는다).
 // 문의를 읽는 사람만 쓰는 길이라 화면에 크게 두지 않았다: 설명서(📘) 창 맨 아래 '도움' 줄(또는 출력 패널 맨 아래 '도움말 · 기타')의
@@ -4863,6 +4922,11 @@ function renderSide() {
     `<a class="exp-item" id="expManualLink" href="manual.html#out" target="_blank" rel="noopener" ` +
       `title="입력·출력 화면 따라하기, 사용 순서, 전입·파견·전출·임신·B팀 처리, 문의 방법 — 새 탭에서 열립니다">` +
       `<span class="exp-name">📘 사용자 매뉴얼</span><span class="exp-go" aria-hidden="true">↗</span></a>` +
+    // 보고서 받기(실험 기능) — 개발·검증 보고서 묶음을 비밀번호로 풀어 내려 준다(openReportsGate). 파트장이 쓰는 것이 아니라
+    // 담당자·관리자가 받아 가는 자리라 설명은 관리자 모드 설명서(그 묶음 안)에 둔다.
+    `<button class="exp-item" id="expReportsBtn" onclick="openReportsGate()" ` +
+      `title="개발·검증 보고서 묶음(HTML) — 비밀번호가 필요합니다">` +
+      `<span class="exp-name">보고서 받기</span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
     // 문의 파일 받기·관리자 모드 — 설명서(📘) 창 맨 아래 '도움' 줄과 같은 창을 연다. 문의는 적용 안 한 편집이 있어도 받을 수
     // 있다(그 편집까지 담긴다). 관리자 모드는 여기서도 비밀번호를 묻는다.
     `<button class="exp-item" id="expVocBtn" onclick="openVocDialog()" ` +
