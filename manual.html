@@ -96,9 +96,9 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 
 <nav class="toc" aria-label="목차">
   <a class="key" href="#in">① 입력 따라하기</a><a class="key" href="#out">② 출력 따라하기</a><a class="key" href="#flow">사용 순서</a>
-  <a href="#first">처음 쓰는 달</a><a href="#movein">전입</a><a href="#dispatch">파견</a><a href="#moveout">전출</a><a href="#preg">임신</a><a href="#teamb">B팀(신입)</a><a href="#leave">휴직·병가</a>
-  <a href="#wanted">원티드</a><a href="#ref">출력 화면 보기</a><a href="#fix">칸 고치기</a><a href="#swap">맞교환</a><a href="#night">야간부터 만들기</a><a href="#reup">되올리기</a><a href="#download">출력 받기</a><a href="#notice">변경 안내</a><a href="#locked">안 눌릴 때</a>
-  <a href="#files">다음 달</a><a href="#help">문의·오류</a><a href="#rules">규칙·표기</a><a href="#security">보안</a>
+  <a href="#start">접속</a><a href="#first">처음 쓰는 달</a><a href="#input">입력 화면</a><a href="#movein">전입</a><a href="#dispatch">파견</a><a href="#moveout">전출</a><a href="#preg">임신</a><a href="#teamb">B팀(신입)</a><a href="#leave">휴직·병가</a><a href="#wanted">원티드</a>
+  <a href="#ref">출력 화면 보기</a><a href="#hard">위반이 남을 때</a><a href="#fix">칸 고치기</a><a href="#swap">맞교환</a><a href="#night">야간부터 만들기</a><a href="#reup">되올리기</a><a href="#download">출력 받기</a><a href="#notice">변경 안내</a><a href="#locked">안 눌릴 때</a>
+  <a href="#files">다음 달</a><a href="#help">문의·오류</a><a href="#faq">자주 묻는 것</a><a href="#rules">규칙·표기</a><a href="#terms">용어</a><a href="#security">보안</a>
 </nav>
 
 <h2 id="in">① 입력 화면 따라하기</h2>
@@ -136,6 +136,24 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 <li><b>이름이 한 글자라도 다르면 다른 사람</b>으로 봅니다(공백·오타 포함). 입력①과 입력②의 이름을 똑같이 적습니다.</li>
 </ul></div>
 
+<h3 id="monthly">매달 하는 일 — 한눈에</h3>
+<div class="card"><ol>
+<li>연월 확인 → 지난달 <b>출력②</b>를 입력②에 올리기</li>
+<li>입력① <b>양식(다운로드)</b>을 받아 이번 달 신청·인사 변동(전입·전출·임부 등)을 적어 올리기</li>
+<li>입력② 아래의 <b>전입·전출 대조</b> 확인 → <b>근무표 생성</b></li>
+<li><b>필수 위반 0</b> 확인 → 추가 검토·원티드 훑어보기 → 필요한 칸 고치기</li>
+<li><b>출력①②</b> 받기 → 출력①은 부서 배포, 출력②는 다음 달을 위해 보관</li>
+</ol></div>
+
+<h2 id="start">시작하기 — 접속</h2>
+<ul>
+<li>받은 링크를 브라우저(크롬 권장)로 엽니다. 설치는 없습니다. 주소는 꼭 <code>https</code>로 엽니다.</li>
+<li>처음 접속할 때 <b>비밀번호</b>를 묻습니다(안내받은 접속 비밀번호). 같은 브라우저에서는 다음부터 묻지 않습니다.</li>
+<li><b>최신 화면인지</b>는 화면 맨 위 버전 옆의 <b>시각</b>으로 봅니다. 안내받은 시각보다 이르면 새로고침을 한 번 합니다.</li>
+<li>화면 맨 위에 <b>"새 버전이 있습니다"</b> 띠가 뜨면 [새로 고침]. 만들던 표와 올린 파일은 사라지니, 쓸 근무표는 먼저 출력①②로 받아 둡니다.</li>
+<li>폰에서는 브라우저 메뉴의 <b>'홈 화면에 추가'</b>로 아이콘을 만들어 두면 편합니다(iPhone: 공유 → 홈 화면에 추가 · Android: ⋮ → 홈 화면에 추가).</li>
+</ul>
+
 <h2 id="first">처음 쓰는 달</h2>
 <p>화면은 처음에 샘플 병동(40명)으로 채워져 있습니다. 우리 병동으로 바꾸는 일은 세 가지입니다.</p>
 <ol class="how">
@@ -144,6 +162,13 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 <li><b>근무정보·근무인력</b>을 우리 병동 값으로 고칩니다. 한 번 고치면 이 브라우저에 저장돼 다음 달부터는 연월만 확인하면 됩니다.</li>
 </ol>
 <p>입력②는 첫 달에는 없어도 됩니다. OCS의 지난달 근무표가 있으면 그것을 올려도 됩니다 — 연속근무·야간블록·잔휴가 이어집니다(누적 통계는 이 달부터 0에서 시작).</p>
+<p><small>칸마다의 뜻과 올린 결과 읽는 법은 바로 아래 <a href="#input">입력 화면 사용법</a>에 있습니다.</small></p>
+
+<h2 id="input">입력 화면 사용법</h2>
+<p class="lead">화면에서 넣는 것은 근무정보·근무인력뿐입니다. 명단과 신청은 입력①, 지난달 실적은 입력② 파일로 넣습니다.</p>
+
+<h3 id="settings">근무정보 · 근무인력</h3>
+<figure class="shot" data-shot="in/min"><figcaption>근무인력 — 요일별 최소 인원. 근무표는 이 숫자를 채우려 합니다</figcaption></figure>
 <div class="wrap"><table>
 <tr><th>칸</th><th>뜻</th></tr>
 <tr><td class="k">월최대야간</td><td>한 사람이 한 달에 설 수 있는 야간(N) 최대 횟수</td></tr>
@@ -152,7 +177,72 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 <tr><td class="k">근무인력</td><td>평일·토요일·일요일/공휴일마다 D·E·N·prn 최소 인원. 맨 아랫줄 '지정'은 지정 가능자가 그날 몇 명 있어야 하는지(안 쓰면 0)</td></tr>
 <tr><td class="k">prn 시간 구성</td><td>prn 자리를 8A·9A·10A로 나눠 쓰는 병동만. 비워 두면 모두 prn</td></tr>
 </table></div>
-<p><small>공용 PC라면 다 쓴 뒤 근무정보 맨 아래 <span class="btn">저장한 설정 지우기</span>를 누릅니다. 저장되는 것은 근무정보·근무인력뿐이고, 명단·신청·근무표는 저장되지 않습니다.</small></p>
+<ul>
+<li>한 번 고치면 <b>이 브라우저에 저장</b>돼 다음 달에도 그대로 뜹니다. 저장되는 것은 근무정보·근무인력뿐입니다(명단·신청·근무표는 저장되지 않습니다 — 지난달 것이 남으면 틀린 근무표가 나오기 때문입니다).</li>
+<li>연월은 저장하지 않고, 열 때마다 다음 달로 잡힙니다. 공휴일·대체공휴일은 프로그램의 달력으로 자동 반영됩니다.</li>
+<li>칸을 비운 채 생성을 누르면 어느 칸이 비었는지 알려 주고 첫 빈 칸으로 데려갑니다.</li>
+<li><span class="btn">저장한 설정 지우기</span>는 모든 칸을 비웁니다(공용 PC에서 다 쓴 뒤). <span class="btn">샘플 값으로 되돌리기</span>는 샘플 병동(40명) 값으로 되돌립니다. 둘 다 한 번 묻습니다.</li>
+<li><b>prn 시간 구성</b> — prn 자리를 8A·9A·10A로 나눠 쓰는 병동은 몇 명씩인지 적습니다(예: prn 2에 8A 1 · 9A 1). 인원 수는 그대로이고, 가능근무에 그 코드가 적힌 사람에게만 들어갑니다. 못 맞춘 날은 '추가 검토'에 뜨고 그 자리는 prn으로 남습니다.</li>
+</ul>
+
+<h3 id="in1">입력① 원티드표 채우기</h3>
+<figure class="shot" data-shot="in/tpl"><figcaption>'양식(다운로드)' — 화면 연월과 지금 명단으로 그때그때 새로 만들어집니다</figcaption></figure>
+<p>양식의 '원티드표' 시트에 사람마다 한 줄씩 적습니다. 표기 규칙은 같은 파일의 '안내' 시트에도 있습니다.</p>
+<div class="wrap"><table>
+<tr><th>열</th><th>적는 것</th></tr>
+<tr><td class="k">이름</td><td>입력②(지난달 파일)와 <b>한 글자도 다르지 않게</b>. 다르면 전출 + 전입으로 봅니다</td></tr>
+<tr><td class="k">직급</td><td>파트장 · 리더 · 간호사. 파트장은 한 명이어야 합니다</td></tr>
+<tr><td class="k">숙련도</td><td><code>Lv1</code>~<code>Lv5</code>. 4 이상이 '고연차'로 조마다 한 명은 있어야 합니다</td></tr>
+<tr><td class="k">가능근무</td><td>설 수 있는 근무를 쉼표로 — <code>D,E,N</code> · <code>D,E,N,prn</code> · <code>8A</code>. 여기에 <a href="#flags">지정 · 2N · 3N</a> 표시를 함께 적습니다</td></tr>
+<tr><td class="k">야간리더</td><td>밤을 맡길 수 있는 분만 <code>O</code></td></tr>
+<tr><td class="k">비고</td><td><code>임부</code> · <code>야간금지</code> · <code>야간전담</code> (해당자만)</td></tr>
+<tr><td class="k">전입 · 전입일</td><td>새로 온 사람만 — <a href="#movein">전입</a></td></tr>
+<tr><td class="k">날짜 칸</td><td>이번 달 신청 — <code>X</code>(쉬는 날), <code>D*</code>(근무 신청), 휴가·휴직 표기. 빈칸은 신청 없음. <a href="#wanted">원티드 신청</a></td></tr>
+</table></div>
+<ul>
+<li>직급·숙련도·가능근무·비고를 <b>한 사람이라도 적으면 전원에게 직급과 숙련도가 있어야</b> 합니다(비어 있으면 파일 전체 반려). 네 칸을 전원 비우면 신청만 반영되고 인원 정보는 안 바뀝니다.</li>
+<li>명단이나 달이 바뀌었으면 양식을 다시 받습니다. 예전에 받아 둔 파일을 다른 달에 쓰면 연월이 어긋납니다(파일의 연월은 A1 칸의 'YYYY년 M월'입니다).</li>
+<li>날짜 칸은 OCS 화면에서 그대로 복사해 붙여 넣어도 됩니다. 말일 오른쪽에 딸려 온 칸은 읽지 않습니다.</li>
+</ul>
+
+<h3 id="upload">올린 결과 읽기</h3>
+<figure class="shot" data-shot="in/res1"><figcaption>단추 아래 한 줄이 그 칸의 상태입니다</figcaption></figure>
+<p>아무것도 안 올렸으면 "올린 파일 없음 — 예시 명단 40명 …으로 만듭니다". 올리면 "✓ 입력① 반영 — 연월 · 인원 · 원티드 n건"처럼 무엇이 들었는지 뜹니다.</p>
+<div class="wrap"><table>
+<tr><th>올린 뒤 표시</th><th>뜻</th><th>할 일</th></tr>
+<tr><td><span class="tag g">✔ 초록</span></td><td>알아서 읽었습니다(<code>d</code>→<code>D</code> 등)</td><td>없음</td></tr>
+<tr><td><span class="tag y">⚠ 노랑</span></td><td>그 칸만 뜻을 정하지 못해 안 들어갔습니다</td><td>그 칸만 고쳐 다시 올리기</td></tr>
+<tr><td><span class="tag r">✕ 빨강</span></td><td>파일을 쓸 수 없습니다(양식·연월·칸이 다름)</td><td>적힌 대로 고쳐 다시 올리기 — 안 고치면 생성이 막힙니다</td></tr>
+</table></div>
+<ul>
+<li>정상으로 반영된 상태에는 단추가 없습니다 — 다른 파일을 올리면 통째로 바뀝니다.</li>
+<li>빨간 오류인데 그 전에 올려 둔 파일이 있으면 "새 파일은 반영되지 않았습니다 — 이전에 올린 파일을 계속 씁니다"가 붙고, <span class="btn">오류 지우기(이전 파일 유지)</span>와 <span class="btn">이전 파일도 해제</span> 중에 고릅니다.</li>
+<li>두 칸을 서로 바꿔 올리면(원티드표를 입력② 칸에) "올린 칸이 잘못됐다"고 반려합니다.</li>
+</ul>
+
+<h3 id="in2">입력② 연간근무표</h3>
+<figure class="shot" data-shot="in/res2"><figcaption>입력②를 올리면 입력①과 명단을 견줘 전입·전출을 바로 아래에 보여 줍니다</figcaption></figure>
+<div class="wrap"><table>
+<tr><th>언제</th><th>무엇을 올리나</th></tr>
+<tr><td class="k">둘째 달부터</td><td>지난달에 여기서 받은 <b>출력②</b>를 그대로</td></tr>
+<tr><td class="k">처음 쓰는 달</td><td>비워 두거나, OCS의 지난달 근무표(연속근무·야간블록·잔휴는 이어지고 누적 통계는 0에서 시작)</td></tr>
+<tr><td class="k">써 보는 중</td><td>옆의 <span class="btn">예시(다운로드)</span> — 화면 연월의 바로 전달까지 이어진 예시 파일</td></tr>
+</table></div>
+<ul>
+<li>올린 파일이 <b>만드는 달의 바로 전달까지</b>가 아니면 노란 ⚠와 <span class="btn">이 파일 빼기</span>가 뜹니다. 그대로 만들면 이월정보 없이 만들어집니다.</li>
+<li>입력②가 없으면 지난달을 모르므로, 지난달 말에 야간을 선 사람에게 이번 달 초에 야간이 들어갈 수 있습니다.</li>
+<li>'전입'·'전입일' 열이 없는 예전 양식은 받지 않습니다 — 지금 양식(지난달 출력②)을 올립니다.</li>
+</ul>
+
+<h3 id="gen">근무표 생성</h3>
+<figure class="shot" data-shot="in/wait"><figcaption>만드는 중 — 진행 게이지와 '여기까지 결과로 멈추기'</figcaption></figure>
+<ul>
+<li><b>🔍 꼼꼼히 만들기</b>가 처음부터 켜져 있어 근무표 9개를 만들어 가장 좋은 것을 고릅니다. 40명대 병동에서 수십 초, 인원이 빠듯한 달은 1~2분 넘게 걸릴 수 있습니다. 급하면 끄세요 — 3개만 만들어 10초 안팎입니다. 켜 둔 상태에서는 재생성·편집 적용도 9개를 만듭니다.</li>
+<li>오래 걸리는 것은 인원이 많아서가 아니라 최소인력이 빠듯해서입니다. 기다리는 동안 창을 닫지 않습니다. <span class="btn">여기까지 결과로 멈추기</span>를 누르면 그때까지 만든 것 중 가장 좋은 표를 받습니다.</li>
+<li>같은 입력·같은 설정이면 어느 기기에서 만들어도 <b>같은 표</b>가 나옵니다.</li>
+<li>생성이 <b>반려</b>되면 이유가 생성 단추 아래 빨간 줄로 남습니다(예: "파트장은 1명이어야 하는데 2명입니다 — '직급' 칸을 확인하세요"). 고쳐서 다시 누르면 사라집니다.</li>
+<li>지정 가능자나 고연차가 빠듯하면 생성할 때 알림이 뜨고 결과 화면 표 위에도 ⚠로 남습니다 — 다시 만들어도 줄지 않는 몫이라 인원 표시를 손봐야 합니다(<a href="#hard">필수 위반이 남을 때</a>).</li>
+</ul>
 
 <h2 id="cases">사람이 들어오고 나갈 때</h2>
 <p class="lead">입력①은 <b>이번 달 명단</b>, 입력②는 <b>지난달 실적</b>입니다. 두 파일의 차이로 인사이동을 판정합니다 — 입력①에만 있으면 전입, 입력②에만 있으면 전출. 둘 다 올리면 입력② 아래에 대조 결과가 뜨니 생성 전에 확인합니다.</p>
@@ -244,13 +334,6 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 <li><b>같은 날에 신청이 몰리면</b> 명단 순서가 아니라 ① 그 달에 원티드를 적게 적은 분부터, ② 같으면 그날 조의 숙련도가 고르게 되는 쪽으로 받습니다. 밀린 신청에는 사유가 붙습니다.</li>
 <li><b>만드는 달은 화면의 연월</b>입니다. 파일의 연월이 다르면 노란 ⚠와 <span class="btn">화면을 ○월로 맞추기</span>가 뜹니다.</li>
 </ul>
-<div class="wrap"><table>
-<tr><th>올린 뒤 표시</th><th>뜻</th><th>할 일</th></tr>
-<tr><td><span class="tag g">✔ 초록</span></td><td>알아서 읽었습니다(<code>d</code>→<code>D</code> 등)</td><td>없음</td></tr>
-<tr><td><span class="tag y">⚠ 노랑</span></td><td>그 칸만 뜻을 정하지 못해 안 들어갔습니다</td><td>그 칸만 고쳐 다시 올리기</td></tr>
-<tr><td><span class="tag r">✕ 빨강</span></td><td>파일을 쓸 수 없습니다(양식·연월·칸이 다름)</td><td>적힌 대로 고쳐 다시 올리기 — 안 고치면 생성이 막힙니다</td></tr>
-</table></div>
-
 <h2 id="edit">출력 화면 사용법</h2>
 <p class="lead">근무표가 만들어진 뒤에 하는 일입니다 — 보고, 고치고, 받습니다. 그림은 실제 화면이고 노란 테두리가 그 설명의 자리입니다.</p>
 
@@ -284,10 +367,10 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 <tr><td class="k">이름 옆 지 · 밤</td><td>지정 가능자 · 야간리더</td></tr>
 </table></div>
 <p>근무 색의 뜻은 화면의 <span class="btn">범례</span>가 이달 표에 나온 코드만 보여 줍니다.</p>
-<h4>표 오른쪽 열</h4>
+<h4>집계 열 — 이름 옆과 표 오른쪽</h4>
 <div class="wrap"><table>
 <tr><th>열</th><th>뜻</th></tr>
-<tr><td class="k">잔휴전월 · 잔휴이후</td><td>이월된 잔여 휴무와 이번 달 뒤의 잔여 휴무</td></tr>
+<tr><td class="k">잔휴전월 · 잔휴이후</td><td>(이름 바로 옆) 이월된 잔여 휴무와 이번 달 뒤의 잔여 휴무</td></tr>
 <tr><td class="k">D · E · N …</td><td>이번 달 그 근무 횟수(이달 표에 나온 코드만 열로 붙습니다)</td></tr>
 <tr><td class="k">주말 · 연속 · 야간</td><td>주말·공휴일 근무 날 수 · 가장 길게 이어진 근무(상한을 넘으면 빨강) · 야간/개인 목표(다르면 노랑). 화면에만 있습니다</td></tr>
 <tr><td class="k">® · ⓡ</td><td>병원 HR 항목이라 늘 빈칸입니다(OCS 원본도 같음)</td></tr>
@@ -305,6 +388,29 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 <p>이 달이 얼마나 고른지를 100점 만점 한 숫자로 보여 줍니다(75 이상 좋음 · 40 이상 보통 · 그 아래는 살펴볼 것). 축은 다섯 — 근무횟수 균등 · 주말 균등 · 야간 균등 · 원티드 반영 · 숙련 분산. 탭을 펴면 축마다 근거가 한 줄씩 붙습니다. 칸을 고치는 동안에는 "원래 → 수정 후"로 보입니다. 참고용이라 낮아도 막지 않습니다 — 병동 사정은 파트장이 압니다.</p>
 <p>이름을 누르면 그 사람의 한 달(여정)과, 본인에게 보낼 '내 달 요약' 한 줄이 나옵니다. 날짜를 누르면 그날 누가 어느 조에 서는지 보입니다.</p>
 
+
+<h3 id="hard">필수 위반 · 추가 검토가 남을 때</h3>
+<p>필수 위반이 남는 것은 프로그램 오류가 아니라 <b>"이 입력으로는 규칙을 다 지킬 수 없었다"</b>는 뜻입니다. 먼저 꼼꼼히 만들기가 켜져 있는지 보고, 종류에 따라 아래처럼 합니다.</p>
+<div class="wrap"><table>
+<tr><th>남은 필수 위반</th><th>흔한 까닭</th><th>할 일</th></tr>
+<tr><td class="k">그날 인력 미달</td><td>그날 휴가·휴직이 몰렸거나 인원 자체가 모자람</td><td>'필수 위반' 탭이 그날 <b>넣어도 되는 사람</b>을 적어 줍니다 — 그 칸을 고칩니다. 안 되면 신청을 조정하거나 근무인력 기준을 낮춰 다시 생성</td></tr>
+<tr><td class="k">조에 숙련도 4 이상이 없음</td><td>고연차가 두세 명뿐이라 매일 D·E·N 세 조를 덮을 수 없음</td><td>밤은 <a href="#flags">야간리더</a> 표시(<code>O</code>)로 채울 수 있습니다. 낮·저녁은 고연차를 더 두는 수밖에 없습니다 — 다시 만들어도 줄지 않습니다</td></tr>
+<tr><td class="k">지정 인원 미달</td><td>가능근무에 '지정'을 적은 사람이 적음</td><td>지정 가능자를 더 표시하거나 근무인력 표의 '지정' 값을 낮춤</td></tr>
+<tr><td class="k">확정한 야간이 모자람</td><td>야간만 보는 화면에서 야간을 지웠음</td><td><span class="btn">야간 다시 고치기</span>로 돌아가 직접 채움</td></tr>
+<tr><td class="k">칸을 고친 뒤 생긴 위반</td><td>'고친 칸만 바꾸기'는 위반을 막지 않음</td><td>맞교환으로 바꾸거나, <span class="btn">↶ 되돌리기</span> 뒤 '위반 없게 재생성'</td></tr>
+</table></div>
+<p>남은 채로도 받을 수는 있습니다(한 번 더 묻습니다). 알고 받는 것은 막지 않지만, 그 근무표를 쓰는 책임은 파트장에게 있습니다.</p>
+<div class="wrap"><table>
+<tr><th>추가 검토(노랑)에 뜨는 것</th><th>뜻</th></tr>
+<tr><td class="k">기준보다 인원이 많은 날(과배치)</td><td>그날 그 근무가 최소인력보다 한 명 이상 많음 — 대개 그대로 둬도 됩니다</td></tr>
+<tr><td class="k">근무 블록 길이가 3~4일이 아님</td><td>주간 근무가 1~2일로 끊기거나 5일로 이어짐</td></tr>
+<tr><td class="k">월 야간 횟수가 목표와 다름</td><td>그 사람의 야간이 야간목표 범위 밖</td></tr>
+<tr><td class="k">월 휴무일 수 부족</td><td>그 달 휴일수만큼 쉬지 못함</td></tr>
+<tr><td class="k">원하지 않은 5일 이상 연속 휴무</td><td>신청하지 않았는데 길게 쉼</td></tr>
+<tr><td class="k">야간 6회 이상인데 수면오프 없음</td><td>수면오프(S/)를 넣을 자리가 없었음</td></tr>
+<tr><td class="k">prn 시간 구성을 못 맞춘 날</td><td>8A·9A·10A 가능자가 그날 없었음 — 그 자리는 prn으로 남음</td></tr>
+</table></div>
+<p><small>추가 검토는 지키는 게 원칙이지만 인원 사정상 못 맞출 수 있는 항목입니다. 한 번 훑어보고, 마음에 걸리는 것만 고칩니다.</small></p>
 
 <h3 id="fix">칸 고치기</h3>
 <ol class="how">
@@ -454,6 +560,23 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 <b>이름</b> — 직원 이름은 가명(직원001 …)으로 바뀌어 들어갑니다. 보내는 분 이름은 그대로이고, 엑셀의 다른 시트·메모에 따로 적은 이름은 가려지지 않습니다. 근무 내용은 그대로이니 사내 메일로, 받는 사람을 확인하고 보냅니다.</div>
 <p><small>같은 줄의 '관리자 모드'는 받은 문의 파일을 다시 보는 담당자용입니다(비밀번호 필요).</small></p>
 
+<h2 id="faq">자주 묻는 것</h2>
+<div class="wrap"><table>
+<tr><th>물음</th><th>답</th></tr>
+<tr><td class="k">다시 생성하면 결과가 달라지나요?</td><td>같은 입력·같은 설정(꼼꼼히 켬/끔 포함)이면 같은 표가 나옵니다. 달라졌다면 입력이나 설정이 달라진 것입니다</td></tr>
+<tr><td class="k">신청했는데 안 들어갔어요</td><td>'원티드' 탭의 미반영 목록에 사유가 있습니다. 같은 날 신청이 몰리면 그 달에 적게 신청한 분부터 받습니다</td></tr>
+<tr><td class="k">야간이 한 사람에게 몰린 것 같아요</td><td>표 오른쪽 '야간' 열(횟수/목표)과 상세 자료 › 직원별 집계의 야간편차를 봅니다. 입력②를 올렸으면 형평성 탭에 최근 몇 달의 누적도 나옵니다</td></tr>
+<tr><td class="k">D만(E만) 서는 사람이 있어요</td><td>D와 E는 사람마다 비슷하게 나누지만, 신청한 칸과 고정한 칸은 건드리지 않습니다 — 한쪽을 많이 신청하면 그만큼 치우칩니다</td></tr>
+<tr><td class="k">지난달 말에 야간을 섰는데 월초에 또 야간이에요</td><td>입력②(지난달 출력②)를 올려야 지난달부터 이어서 셉니다</td></tr>
+<tr><td class="k">파트장 근무는 어떻게 되나요?</td><td>평일 8A가 자동으로 들어가고 최소인력에는 세지 않습니다. 연차·교육 등은 칸을 눌러 넣습니다(D·E·N·NK·prn은 넣을 수 없음)</td></tr>
+<tr><td class="k">주말에 8A·9A를 넣고 싶어요</td><td>자동으로 들어가는 것은 평일뿐입니다. 칸을 눌러 넣거나 원티드표에 적습니다</td></tr>
+<tr><td class="k">수면오프(S/)는 어떻게 넣나요?</td><td>신청하지 않습니다. 월 야간이 6회 이상이면 프로그램이 하루 넣어 줍니다</td></tr>
+<tr><td class="k">다른 PC에서 이어서 할 수 있나요?</td><td>근무정보·근무인력은 기기마다 따로 저장됩니다. 근무표는 받아 둔 출력①을 <a href="#reup">되올리기</a>로, 지난달 실적은 출력②를 입력②로 이어 갑니다</td></tr>
+<tr><td class="k">폰에서도 되나요?</td><td>됩니다. 탭 다섯은 화면 맨 위 띠에, 패널은 표 아래에 있습니다. 칸을 고치면 "적용하러 가기 ↓"가 뜹니다</td></tr>
+<tr><td class="k">여러 병동이 같은 링크를 써도 되나요?</td><td>됩니다. 데이터는 각자의 브라우저 안에만 있어 서로 보이지 않습니다</td></tr>
+<tr><td class="k">부서원도 접속해야 하나요?</td><td>아니요. 부서원은 출력① 엑셀만 받으면 됩니다</td></tr>
+</table></div>
+
 <h2 id="rules">규칙과 표기</h2>
 <h3>필수 규칙 — 못 지키면 빨갛게 남습니다</h3>
 <ul>
@@ -475,8 +598,21 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 <tr><td class="k">휴가</td><td><code>연</code> <code>연1</code>~<code>연4</code> <code>조</code> <code>경</code> <code>공</code> <code>병</code> <code>휴</code> <code>승</code> <code>군</code></td></tr>
 <tr><td class="k">직급 · 숙련도</td><td>파트장 · 리더 · 간호사 / <code>Lv1</code>~<code>Lv5</code></td></tr>
 </table></div>
-<h3>생성에 걸리는 시간</h3>
-<p>'꼼꼼히 만들기'가 켜져 있으면(기본) 9개를 만들어 고르므로 40명대 병동에서 수십 초, 인원이 빠듯한 달은 1~2분이 걸릴 수 있습니다. 끄면 3개만 만들어 10초 안팎입니다. 켜 둔 상태에서는 재생성·편집 적용도 9개를 만듭니다. 오래 걸리는 것은 인원이 많아서가 아니라 최소인력이 빠듯해서입니다.</p>
+<h3 id="terms">용어</h3>
+<div class="wrap"><table>
+<tr><td class="k">원티드</td><td>이번 달 근무·휴무 신청. 반영된 칸은 노란색</td></tr>
+<tr><td class="k">필수 위반 · 추가 검토</td><td>반드시 지켜야 하는 규칙을 못 지킨 것(빨강) · 지키려 했지만 인원 사정상 못 맞춘 것(노랑)</td></tr>
+<tr><td class="k">고정 칸</td><td>사람이 정한 칸(고쳐서 적용·되올리기·확정한 야간). 재생성해도 바뀌지 않습니다</td></tr>
+<tr><td class="k">회차</td><td>이 입력으로 표를 짜거나 고쳐 적용한 횟수. 파일 이름 끝의 <code>_r2</code></td></tr>
+<tr><td class="k">이월정보</td><td>지난달 말의 마지막 근무·연속근무일·야간블록·잔휴. 입력②로 이어집니다</td></tr>
+<tr><td class="k">잔휴</td><td>남은 휴무일(잔여 휴무). 표 왼쪽의 잔휴전월·잔휴이후</td></tr>
+<tr><td class="k">야간 블록</td><td>이어서 서는 야간 묶음(기본 2일, 3N은 3일)</td></tr>
+<tr><td class="k">조</td><td>그날 같은 근무(D·E·N)를 서는 사람들</td></tr>
+<tr><td class="k">고연차 · 저연차</td><td>숙련도 4~5 · 1~3</td></tr>
+<tr><td class="k">지정 · 야간리더</td><td>근무인력의 '지정' 인원으로 세는 사람 · 선 밤이 고연차 조건을 채운 것으로 보는 사람</td></tr>
+<tr><td class="k">B팀</td><td>신입. 프로그램이 배정하지 않고 파트장이 직접 채웁니다</td></tr>
+<tr><td class="k">NK · prn</td><td>야간전담의 야간 · 정규 낮 근무 자리(8A·9A·10A도 prn으로 셉니다)</td></tr>
+</table></div>
 
 <h2 id="security">보안 · 개인정보</h2>
 <ul>
