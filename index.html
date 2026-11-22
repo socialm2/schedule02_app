@@ -57,7 +57,7 @@
   <header>
     <!-- 배지·빌드시각은 스크린리더가 제목으로 읽지 않게 감싼다(aria-hidden). .build-time span 자체는
          CI(deploy.yml)가 정규식으로 찾아 바꾸므로 그 태그에는 속성을 더하지 말 것. -->
-    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.89</span><span class="build-time">Updated 2026-11-22 17:55:40</span></span></h1>
+    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.89</span><span class="build-time">Updated 2026-11-22 19:38:26</span></span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 입력정보 설명서</button>
@@ -237,13 +237,14 @@
               <span id="genStatus" class="hint"></span>
             </div>
             <!-- 꼼꼼히 만들기 — 같은 규칙으로 3회 대신 9회 찾아 점수표로 고른다. 기준선 201개 달 실측에서
-                 4곳 중 3곳이 더 좋은 표를 얻었고, 시간은 약 3배다. 재생성·편집 적용에도 같이 적용된다. -->
-            <label class="thorough-opt" title="근무표를 평소 3개 대신 9개 만들어 가장 좋은 것을 고릅니다. 일반 생성보다 오래 걸리고, 인원이 빠듯한 달은 1~2분이 걸릴 수 있습니다. 재생성과 편집 적용에도 같이 적용됩니다.">
-              <input type="checkbox" id="thoroughChk">
+                 4곳 중 3곳이 더 좋은 표를 얻었고, 시간은 약 3배다. 재생성·편집 적용에도 같이 적용된다.
+                 기본이 켜짐이다(사용자 결정 2026-11-22 — 그 전에는 꺼짐). 급한 사람이 끄는 쪽이다. -->
+            <label class="thorough-opt" title="근무표를 9개 만들어 가장 좋은 것을 고릅니다. 끄면 3개만 만들어 더 빨리 끝납니다. 켜 두면 인원이 빠듯한 달은 1~2분이 걸릴 수 있습니다. 재생성과 편집 적용에도 같이 적용됩니다.">
+              <input type="checkbox" id="thoroughChk" checked>
               <span class="thorough-title"><span aria-hidden="true">🔍</span> 꼼꼼히 만들기</span>
-              <span class="hint thorough-hint">9개를 만들어 가장 좋은 것을 고릅니다 — 더 오래 걸립니다. 필수 위반이 남는 달에 권장.</span>
+              <span class="hint thorough-hint">9개를 만들어 가장 좋은 것을 고릅니다. 급하면 끄세요 — 3개만 만들어 더 빨리 끝납니다.</span>
             </label>
-            <!-- '야간 먼저(N only)'는 여기서 고르지 않는다 — 다 만든 뒤 결과 화면의 '🌙 야간만 보기' 단추로 들어간다(2026-11-20).
+            <!-- '야간 먼저(N only)'는 여기서 고르지 않는다 — 다 만든 뒤 결과 화면의 '🌙 야간만 보고 근무 만들기' 단추로 들어간다(2026-11-20).
                  어차피 전체를 먼저 만들고 야간만 드러내는 것이라, 만들기 전에 고르게 할 이유가 없었다. -->
           </div>
         </div>
