@@ -20,7 +20,7 @@
 // index.html의 빌드시각만 새것으로 바뀌니 "최신 버전인데 고친 게 하나도 안 보인다"가
 // 된다. 하루치 수정이 통째로 안 보인 채 나갔었다.
 
-const CACHE_NAME = "ns-sched-20261122-193826-f9161ae";
+const CACHE_NAME = "ns-sched-20261122-201139-793fbbd";
 
 // py_app.zip은 엔진 코드라 배포마다 바뀌므로 APP_FILES(네트워크 우선)로 둔다 —
 // HEAVY_FILES(캐시 우선)에 있으면, 서비스워커가 갱신되는 그 페이지 로드에서조차
@@ -54,8 +54,9 @@ const APP_FILES = ["./", "index.html", "app.js", "platform.js", "a11y.js", "genv
                    "templates/입력2_연간근무표_예시_2027-10.xlsx",
                    "templates/입력2_연간근무표_예시_2027-11.xlsx",
                    "templates/입력2_연간근무표_예시_2027-12.xlsx",
-                   "templates/입력1_원티드표_샘플.xlsx",
-                   "guide/quick-start.html", "guide/one-pager.html", "guide/security.html"];
+                   "templates/입력1_원티드표_샘플.xlsx"];
+// 사용자 매뉴얼(manual.html)은 여기 넣지 않는다 — 화면 그림 70여 장이 든 5MB 파일이라, 넣으면 배포 때마다 모든 기기가 설치하면서
+// 다시 받는다(addAll은 있든 없든 새로 받는다). 한 번 열면 아래 fetch 처리가 캐시에 넣어 두므로 그 뒤로는 오프라인에서도 열린다.
 
 const HEAVY_FILES = [
   "vendor/pyodide/pyodide.js", "vendor/pyodide/pyodide.mjs",
