@@ -343,16 +343,22 @@ function delegateClick(root, selector, handler) {
 // 도움 줄은 표를 못 만든 입력 화면에서도 문의 파일을 받을 길이라 여기 있어야 한다(index.html).
 // 보는 화면에 맞는 절로 연다: 입력 화면에서는 '입력 화면 따라하기', 결과 화면에서는 '출력 화면 따라하기'.
 function infoHtml(isOutput) {
-  const at = isOutput ? "out" : "in";
-  return `<p class="manual-open"><a href="manual.html#${at}" target="_blank" rel="noopener">📘 사용자 매뉴얼 열기 — ${isOutput ? "출력" : "입력"} 화면 따라하기부터</a></p>
-<p>설명서는 이 한 장입니다. 실제 화면을 한 단계씩 따라 하는 <b>입력·출력 따라하기</b>, <b>사용 순서</b>, 상황별 처리와 문의 방법이 들어 있습니다(새 탭에서 열립니다).</p>
-<ul class="manual-jump">
-<li><a href="manual.html#first" target="_blank" rel="noopener">처음 쓰는 달</a></li>
-<li><a href="manual.html#movein" target="_blank" rel="noopener">전입</a> · <a href="manual.html#dispatch" target="_blank" rel="noopener">파견</a> · <a href="manual.html#moveout" target="_blank" rel="noopener">전출</a></li>
-<li><a href="manual.html#preg" target="_blank" rel="noopener">임신</a> · <a href="manual.html#teamb" target="_blank" rel="noopener">B팀(신입)</a> · <a href="manual.html#leave" target="_blank" rel="noopener">휴직·병가</a></li>
-<li><a href="manual.html#locked" target="_blank" rel="noopener">단추가 안 눌리거나 파일이 반려될 때</a></li>
-<li><a href="manual.html#help" target="_blank" rel="noopener">문의 · 오류가 났을 때</a></li>
-</ul>`;
+  // 바로가기는 보는 화면의 것만 — 출력 화면에서 열었는데 '처음 쓰는 달'·'전입'이 먼저 나오면, 정작 찾는 '칸 고치기'·'출력 받기'가
+  // 매뉴얼 아래쪽에 있는 줄 모른다(사용자 2026-11-22: "출력 쪽 설명서 클릭하면 추가된 거 나온다고? 안 보이는데").
+  const a = (id, t) => `<a href="manual.html#${id}" target="_blank" rel="noopener">${t}</a>`;
+  const jumps = isOutput
+    ? [a("ref", "출력 화면 보는 법") + " · " + a("hard", "필수 위반이 남을 때"),
+       a("fix", "칸 고치기") + " · " + a("swap", "맞교환"),
+       a("night", "야간부터 정하고 나머지 만들기"),
+       a("reup", "엑셀에서 고쳐 되올리기") + " · " + a("download", "출력 받기"),
+       a("locked", "단추가 안 눌리거나 파일이 반려될 때") + " · " + a("help", "문의 · 오류")]
+    : [a("first", "처음 쓰는 달") + " · " + a("input", "입력 화면 사용법"),
+       a("movein", "전입") + " · " + a("dispatch", "파견") + " · " + a("moveout", "전출"),
+       a("preg", "임신") + " · " + a("teamb", "B팀(신입)") + " · " + a("leave", "휴직·병가"),
+       a("wanted", "원티드 신청") + " · " + a("help", "문의 · 오류")];
+  return `<p class="manual-open"><a href="manual.html#${isOutput ? "edit" : "in"}" target="_blank" rel="noopener">📘 사용자 매뉴얼 열기 — ${isOutput ? "출력 화면 사용법" : "입력 화면 따라하기"}부터</a></p>
+<p>${isOutput ? "이 화면에서 하는 일을 바로 찾아가세요" : "설명서는 이 한 장입니다"}(새 탭에서 열립니다).</p>
+<ul class="manual-jump">${jumps.map(x => `<li>${x}</li>`).join("")}</ul>`;
 }
 $("#infoBtn").onclick = () => {
   $("#infoBody").innerHTML = infoHtml($("#intake").style.display === "none");

@@ -1472,7 +1472,7 @@ header #infoBtn, header .sign-out {
 .modal-body .manual-open a:hover, .modal-body .manual-open a:focus-visible { filter: brightness(1.08); }
 .modal-body ul.manual-jump { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 2px; }
 .modal-body ul.manual-jump li { padding: 6px 0; border-top: 1px solid var(--line); font-size: .875rem; }
-.modal-body ul.manual-jump a { font-weight: 600; }
+.modal-body ul.manual-jump a { font-weight: 600; color: var(--accent); }
 
 /* 맞교환 후보 비교 카드(GPT 11/2 보고서 X01) — 두 사람의 야간·주말 전→후, 공평성 말로 */
 .swap-list.swap-cards li { display: block; padding: 7px 0; }
