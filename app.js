@@ -339,12 +339,14 @@ function delegateClick(root, selector, handler) {
 // 설명서는 manual.html 한 파일이다(사용자 결정 2026-11-22: "설명서 통합해서 하나로 … 그냥 사용자 매뉴얼로"). 그 전에는 이 창에
 // 입력정보 설명서·출력정보 설명서 두 벌의 긴 글이 들어 있었고(app.js 안에 300줄), 같은 내용이 상세 사용가이드·한 장 요약·화면 따라하기·
 // 사용 순서에도 따로 있어서 단추 이름 하나가 바뀌면 다섯 곳을 고쳐야 했다 — 늘 한두 곳이 낡았다. 글은 전부 매뉴얼로 옮겼다
-// (tools/manual/body.html · tools/build_manual.py). 이 창은 매뉴얼을 여는 자리와 '도움' 줄(문의 파일 받기 · 관리자 모드)만 남긴다 —
-// 도움 줄은 표를 못 만든 입력 화면에서도 문의 파일을 받을 길이라 여기 있어야 한다(index.html).
+// (tools/manual/body.html · tools/build_manual.py). 이 창은 매뉴얼의 절로 가는 문만 남긴다.
+// 한동안 맨 아래에 '도움' 줄(문의 파일 받기 · 관리자 모드)이 있었는데 뺐다(사용자 2026-11-22: 매뉴얼 창에 도움 기능은 불필요) —
+// 둘은 결과 화면 '도움말 · 기타'에 있다. 표를 못 만든 입력 화면에서는 문의 파일을 받을 길이 없어진 것이다(알고 정한 것).
 // 보는 화면에 맞는 절로 연다: 입력 화면에서는 '입력 화면 따라하기', 결과 화면에서는 '출력 화면 따라하기'.
 function infoHtml(isOutput) {
-  // 바로가기는 보는 화면의 것만 — 출력 화면에서 열었는데 '처음 쓰는 달'·'전입'이 먼저 나오면, 정작 찾는 '칸 고치기'·'출력 받기'가
-  // 매뉴얼 아래쪽에 있는 줄 모른다(사용자 2026-11-22: "출력 쪽 설명서 클릭하면 추가된 거 나온다고? 안 보이는데").
+  // 맨 위는 보는 화면의 따라하기다 — 입력 화면에서는 '입력 화면 따라하기', 결과 화면에서는 '출력 화면 따라하기'(사용자 2026-11-22).
+  // '사용자 매뉴얼 열기' 같은 말은 붙이지 않는다: 창 제목이 이미 그것이고, 누를 것은 가려는 곳의 이름이면 된다.
+  // 그 아래 바로가기도 보는 화면의 것만 — 출력 화면에서 '처음 쓰는 달'·'전입'이 먼저 나오면 찾는 것이 아래쪽에 있는 줄 모른다.
   const a = (id, t) => `<a href="manual.html#${id}" target="_blank" rel="noopener">${t}</a>`;
   const jumps = isOutput
     ? [a("ref", "출력 화면 보는 법") + " · " + a("hard", "필수 위반이 남을 때"),
@@ -356,8 +358,7 @@ function infoHtml(isOutput) {
        a("movein", "전입") + " · " + a("dispatch", "파견") + " · " + a("moveout", "전출"),
        a("preg", "임신") + " · " + a("teamb", "B팀(신입)") + " · " + a("leave", "휴직·병가"),
        a("wanted", "원티드 신청") + " · " + a("help", "문의 · 오류")];
-  return `<p class="manual-open"><a href="manual.html#${isOutput ? "edit" : "in"}" target="_blank" rel="noopener">📘 사용자 매뉴얼 열기 — ${isOutput ? "출력 화면 사용법" : "입력 화면 따라하기"}부터</a></p>
-<p>${isOutput ? "이 화면에서 하는 일을 바로 찾아가세요" : "설명서는 이 한 장입니다"}(새 탭에서 열립니다).</p>
+  return `<p class="manual-open">${a(isOutput ? "out" : "in", isOutput ? "출력 화면 따라하기" : "입력 화면 따라하기")}</p>
 <ul class="manual-jump">${jumps.map(x => `<li>${x}</li>`).join("")}</ul>`;
 }
 $("#infoBtn").onclick = () => {
@@ -1447,11 +1448,14 @@ function renderStaffTableYmNote() {
   el.style.display = "";
   // 문제와 할 일만 짧게. 정상 상태의 '반영 해제' 단추는 숨겨져 있으므로(2026-11-10) 잘못 올린 파일을 빼는 단추를 여기 둔다 —
   // 한때 이 글이 "'반영 해제'하고 만드세요"라고 했는데 화면에 그 단추가 없었다.
-  const sameMonth = Number(m[2]) === pm, dd = /^\d{4}-\d{2}-(\d{2})/.exec(String(staffTableLastDate));
+  // 달만 견주면 전년도 같은 달 파일(2026년 11월까지인데 2027년 12월을 만든다)이 "11월 말일까지 이어져야"로 나왔다 —
+  // 파일은 말일까지 다 들어 있고 틀린 것은 해였다(2026-11-23 독립 검증). 해와 달이 다 맞을 때만 '며칠까지만'을 말한다.
+  const py = mo === 1 ? y - 1 : y;
+  const sameMonth = Number(m[2]) === pm && Number(m[1]) === py, dd = /^\d{4}-\d{2}-(\d{2})/.exec(String(staffTableLastDate));
   el.innerHTML = (sameMonth && dd
-      ? `⚠ <b>${pm}월 ${Number(dd[1])}일까지</b>만 들어 있는 근무표입니다 — ${pm}월 말일까지 이어져야 이월정보(연속근무·야간 뒤 휴식)를 씁니다. `
-      : `⚠ <b>${Number(m[1])}년 ${Number(m[2])}월까지</b>의 근무표입니다 — ${y}년 ${mo}월의 바로 전달(${pm}월)이 아니라 이월정보를 쓰지 못합니다. `) +
-    `${pm}월분 출력②(없으면 OCS ${pm}월 근무표)로 다시 올리세요. 써 보는 중이면 '예시(다운로드)'를 다시 받으면 맞는 예시가 옵니다. ` +
+      ? `⚠ <b>${pm}월 ${Number(dd[1])}일까지</b>만 들어 있는 근무표입니다 — ${pm}월 말일까지 이어져야 만들 수 있습니다(연속근무·야간 뒤 휴식을 이어받습니다). `
+      : `⚠ <b>${Number(m[1])}년 ${Number(m[2])}월까지</b>의 근무표입니다 — ${y}년 ${mo}월의 바로 전달(${py}년 ${pm}월)이 아니라 이대로는 만들 수 없습니다. `) +
+    `${py}년 ${pm}월분 출력②(없으면 OCS ${pm}월 근무표)로 다시 올리세요. 지난달 파일 없이 만들려면 이 파일을 빼세요. 써 보는 중이면 '예시(다운로드)'를 다시 받으면 맞는 예시가 옵니다. ` +
     `<button type="button" class="small note-btn" id="staffTableDropBtn">이 파일 빼기</button>`;
   $("#staffTableDropBtn").onclick = () => clearStaffTable();
   renderStaffTableSummary();
@@ -1769,6 +1773,7 @@ function showGenOverlay(msg, thorough, rain) {
   genDriven = null;
   const step = $("#genOverlayStep"), stopBtn = $("#genStopBtn");
   if (step) { step.style.display = thorough ? "" : "none"; step.textContent = thorough ? `근무표 0/${THOROUGH_ATTEMPTS}개 — 준비 중…` : ""; }
+  clearGenStop();   // 지난 생성에서 미리 눌러 둔 멈추기가 이번 생성에 남지 않게
   if (stopBtn) { stopBtn.style.display = thorough ? "" : "none"; stopBtn.disabled = false; stopBtn.textContent = "여기까지 결과로 멈추기"; }
   $("#genOverlay").style.display = "";
   const fill = $("#genProgressFill");
@@ -2828,7 +2833,9 @@ function renderGrid() {
     if (edited && !confirm(
         `손으로 고친 칸이 ${(ST.pending || []).length + (ST.locked || []).length}개 있습니다 — ` +
         `입력으로 돌아가면 이 수정은 사라지고, 다시 생성해도 돌아오지 않습니다.\n` +
-        ((ST.pending || []).length ? `남겨두려면 먼저 "고친 칸만 바꾸기"나 "위반 없게 재생성" 뒤 내려받아 두세요.`
+        // 야간만 보기에는 '고친 칸만 바꾸기'·'위반 없게 재생성'이 없다 — 그 화면에 있는 단추를 말한다(2026-11-23 독립 검증)
+        ((ST.pending || []).length ? (ST.night_stage ? `남겨두려면 먼저 "나머지 자동 생성"으로 확정하거나, "야간만 받기"로 지금 화면을 내려받아 두세요.`
+                                                       : `남겨두려면 먼저 "고친 칸만 바꾸기"나 "위반 없게 재생성" 뒤 내려받아 두세요.`)
                                     : `출력①②를 아직 안 받으셨다면 먼저 내려받아 두세요.`) +
         `\n\n그래도 돌아가시겠습니까?`)) return;
     ST = null;
@@ -2916,11 +2923,15 @@ function nightStageBar() {
       ` 위반 숫자와 '필수 위반'·'추가 검토' 탭은 <b>야간 관련 규칙만</b> 셉니다` +
       `${ST.report && ST.report.hidden_count ? `(주간 등 나머지 ${ST.report.hidden_count}건은 나머지를 짠 뒤 다시 셉니다)` : ""}.</span>` +
       `<button type="button" class="primary small" data-night="confirm">나머지 자동 생성</button>` +
-      `<button type="button" class="small" data-night="all">전체 보기(확정 안 함)</button></div>`;
+      // 확정한 표에서 다시 들어온 것이면 나가도 확정은 그대로다(고친 칸은 고치는 중인 칸으로 남는다)
+      `<button type="button" class="small" data-night="all"${ST.night_reentry ? ` title="야간 확정은 그대로 둔 채 전체 표로 돌아갑니다. 여기서 고친 칸은 '고치는 중'으로 남습니다"` : ""}>` +
+      `${ST.night_reentry ? "전체 보기(확정 유지)" : "전체 보기(확정 안 함)"}</button></div>`;
   }
   if (ST.nights_fixed) {
     return `<div class="night-stage-bar" id="nightStageBar"><span class="grow"><b>🌙 야간 확정됨</b>` +
-      `재생성·편집 적용을 해도 야간은 그대로이고, 새 야간이 생기지 않습니다.</span>` +
+      // '야간은 그대로'라고만 적혀 있었는데, 전체 표에서 야간 칸을 직접 고치면 고친 대로 바뀐다 — 막는 것은 프로그램이
+      // 야간을 옮기거나 새로 만드는 것이다(2026-11-23 독립 검증: 야간을 연차로 바꿔 적용해도 띠는 "그대로"라고 했다).
+      `재생성을 해도 프로그램은 야간을 옮기지 않고 새 야간도 만들지 않습니다. 야간 칸을 직접 고치면 고친 대로 바뀝니다 — 야간은 <b>야간 다시 고치기</b>에서 고치면 야간 위반만 모아 볼 수 있습니다.</span>` +
       `<button type="button" class="small" data-night="back">야간 다시 고치기</button></div>`;
   }
   return "";
@@ -4111,25 +4122,23 @@ async function submitReportsPw() {
 // 적은 내용이 보인다. 표뿐 아니라 입력 화면도 그 사람의 값으로 채운다(입력으로 돌아가도 관리자 모드는 이어진다).
 // 대신 이 기기에는 아무것도 저장하지 않고(saveSettings·saveNotice가 건너뛴다),
 // '끝내기'는 화면을 새로 고쳐 내 값으로 돌아간다.
-// 비밀번호는 실수로 눌린 것을 거르는 정도다(소스에 그대로 있다) — 문의 파일 자체가 없으면 볼 것이 없다.
-const VOC_ADMIN_PW = "my";
-// 같은 두 키를 어떤 상태로 쳐도 받는다(사용자 요청 2026-11-11): 대문자(MY)·소문자, 그리고 한글 자판 상태로 쳤을 때
-// 찍히는 글자(m→ㅡ, y→ㅛ). 비밀번호 칸은 글자가 가려져 있어 한/영·Caps Lock이 켜진 줄 모르고 "맞게 쳤는데 틀리다"가 된다.
-// NFKC로 맞추는 이유: 전각(ｍｙ)과, 자판에 따라 다르게 들어오는 한글 낱자(호환 자모·조합 자모)를 한 모양으로 본다.
-const VOC_ADMIN_PW_KO = "ㅡㅛ";
-function vocPwOk(value) {
-  const norm = (v) => String(v).normalize("NFKC").replace(/\s+/g, "").toLowerCase();
-  const typed = norm(value);
-  return typed !== "" && [VOC_ADMIN_PW, VOC_ADMIN_PW_KO].some(x => norm(x) === typed);
+// 비밀번호는 소스에 글자로 두지 않는다 — 소금 친 느린 해시만 둔다(2026-11-22. 그 전에는 글자 그대로 있었고, 이 파일은 공개 주소에
+// 올라가므로 누구나 읽을 수 있었다. 사용자: "그 비번 잘 노출 안 되게 해줘"). 넣은 값을 같은 방법으로 돌려 견준다(platform.js pbkdf2Hex).
+// 짧은 비밀번호는 해시여도 마음먹으면 찾아낸다 — 지켜야 할 것은 문의 파일 자체이고, 이것은 훑어보다 알게 되는 것을 막는 정도다.
+// 바꿀 때: python tools/set_admin_password.py <새 비밀번호> 가 아래 세 줄을 찍어 준다.
+const VOC_ADMIN_PW_SALT = "y8N8VBn3PvVlKTN4CLlo/w==";
+const VOC_ADMIN_PW_ITER = 150000;
+// 같은 키를 어떤 상태로 쳐도 받는다(사용자 요청 2026-11-11): 대문자·소문자, 그리고 한글 자판 상태로 쳤을 때 찍히는 글자.
+// 비밀번호 칸은 글자가 가려져 있어 한/영·Caps Lock이 켜진 줄 모르고 "맞게 쳤는데 틀리다"가 된다. 그래서 해시가 둘이다(영문 · 한글 자판).
+// NFKC로 맞추는 이유: 전각과, 자판에 따라 다르게 들어오는 한글 낱자(호환 자모·조합 자모)를 한 모양으로 본다.
+const VOC_ADMIN_PW_HASHES = ["358c5c53f4b507fddd8f912326c094d236a79b85ba6b52405ee879be652384ed", "eb44994e063d1f0d89eb4c49184656d2fc63bb075b71e61a82c534e6c93352fb"];
+async function vocPwOk(value) {
+  const typed = String(value).normalize("NFKC").replace(/\s+/g, "").toLowerCase();
+  if (typed === "") return false;
+  try { return VOC_ADMIN_PW_HASHES.includes(await pbkdf2Hex(typed, VOC_ADMIN_PW_SALT, VOC_ADMIN_PW_ITER)); }
+  catch (e) { return false; }
 }
 let VOC_VIEW = null;      // 다시 보는 중인 문의 {name, comment, time, text, replay, hadTable}
-(function initVocEgg() {
-  const voc = document.getElementById("eggVoc"), admin = document.getElementById("eggAdmin");
-  // 설명서(📘) 창 맨 아래 '도움' 줄 — 누르면 설명서 창을 닫고 그 창을 연다(창 위에 창이 겹치지 않게).
-  const closeInfo = () => { const bd = document.getElementById("infoModalBackdrop"); if (bd) bd.classList.remove("show"); };
-  if (voc) voc.addEventListener("click", () => { closeInfo(); openVocDialog(); });       // 문의 파일 받기
-  if (admin) admin.addEventListener("click", () => { closeInfo(); openVocGate(); });     // 관리자 모드(비밀번호)
-})();
 let vocGateUnlocked = false;      // 이번에 연 비밀번호 창에서 비밀번호가 맞았는가
 function openVocGate() {
   let bd = document.getElementById("vocGateBackdrop");
@@ -4148,10 +4157,10 @@ function openVocGate() {
     // 다만 Enter를 누르는 그 순간(keydown 안)에 바로 열면 크롬이 열 번에 한두 번 무시한다(실측 20번 중 3번). 한 박자
     // 늦추면 거의 다 열리지만(36번 중 35번) 0은 아니라서, 비밀번호가 맞은 뒤에도 창을 닫지 않고 '문의 파일 고르기'
     // 버튼을 남긴다 — 고르기 창이 안 떴을 때 누를 자리가 있어야 한다(버튼을 직접 누르면 늘 열린다). 파일을 고르면 닫힌다.
-    const submit = (viaKey) => {
+    const submit = async (viaKey) => {
       const pw = document.getElementById("vocGatePw");
       if (!vocGateUnlocked) {
-        if (!vocPwOk(pw.value)) {
+        if (!(await vocPwOk(pw.value))) {
           document.getElementById("vocGateMsg").textContent = "비밀번호가 다릅니다.";
           pw.value = ""; pw.focus();
           return;

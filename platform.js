@@ -354,7 +354,7 @@ async function generateParallel(path, opts) {
 // 결정성은 그대로다: 고르는 규칙은 엔진 한 벌(choose_attempt)이고 시드 집합이 같으면 같은 표다. 멈추기를
 // 눌렀을 때만 시드 집합이 그때까지 끝난 것으로 줄어들고, 점수표에 몇 개를 봤는지 남는다.
 const DEFAULT_ATTEMPTS = 3;
-const GEN = { stop: null };
+const GEN = { stop: null, early: false };
 
 function genAttemptsOf(opts) {
   try {
@@ -364,14 +364,18 @@ function genAttemptsOf(opts) {
 }
 
 // 화면의 '여기까지 결과로 멈추기'. 돌고 있는 시도가 끝나면 그때까지의 점수표로 고른다.
-function requestGenStop() { if (GEN.stop) GEN.stop.requested = true; return !!GEN.stop; }
+// 시도가 시작되기 전('준비 중')에 눌러도 받는다 — 예전엔 그때 누른 것이 버려져 단추는 그대로인데 9개를 다 만들었다
+// (2026-11-23 독립 검증). 미리 눌러 둔 것은 첫 표 하나만 만들고 멈춘다. 새 생성이 시작되면 화면이 clearGenStop()으로 지운다.
+function requestGenStop() { if (GEN.stop) GEN.stop.requested = true; else GEN.early = true; return true; }
+function clearGenStop() { GEN.early = false; }
 
 async function generateDriven(path, attempts, onProgress) {
   const mode = path === "/api/generate" ? "generate" : path === "/api/apply" ? "apply" : "regenerate";
   const plan = JSON.parse(await callWorker("/api/generate_plan", { body: JSON.stringify({ mode, attempts }) }).then(r => r.raw));
   if (plan.error) return JSON.stringify(plan);          // 입력 오류 — 호출부가 그대로 보여준다
   const seeds = plan.seeds, queue = seeds.slice(1), stats = [], t0 = Date.now();
-  const stop = { requested: false, stateMade: false };
+  const stop = { requested: GEN.early, stateMade: false };
+  GEN.early = false;
   GEN.stop = stop;
   const workers = 1 + PAR.helpers.length;
   const report = () => {
@@ -495,6 +499,16 @@ async function downloadAppFile(path, filename) {
     triggerDownload(await r.arrayBuffer(), filename, XLSX_MIME);
     return true;
   } catch (e) { return false; }
+}
+
+// 비밀번호를 소스에 글자로 두지 않으려고 쓰는 느린 해시(PBKDF2-SHA256). 앱은 공개 주소에 올라가므로 소스에 적힌 글자는
+// 누구나 읽는다 — 소금 친 해시만 두고, 넣은 값을 같은 방법으로 돌려 견준다. https(또는 localhost)가 아니면 쓸 수 없다.
+async function pbkdf2Hex(text, saltB64, iterations) {
+  if (!(window.crypto && crypto.subtle)) throw new Error("이 주소에서는 확인할 수 없습니다 — https 주소로 열어 주세요.");
+  const salt = Uint8Array.from(atob(saltB64), (c) => c.charCodeAt(0));
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(text), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations, hash: "SHA-256" }, base, 256);
+  return [...new Uint8Array(bits)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 // ---------------------------------------------------------------- 보고서 묶음(reports.enc) — '도움말 · 기타 › 보고서 받기'

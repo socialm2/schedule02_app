@@ -57,7 +57,7 @@
   <header>
     <!-- 배지·빌드시각은 스크린리더가 제목으로 읽지 않게 감싼다(aria-hidden). .build-time span 자체는
          CI(deploy.yml)가 정규식으로 찾아 바꾸므로 그 태그에는 속성을 더하지 말 것. -->
-    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.89</span><span class="build-time">Updated 2026-11-22 21:10:35</span></span></h1>
+    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.89</span><span class="build-time">Updated 2026-11-23 23:37:15</span></span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 사용자 매뉴얼</button>
@@ -261,11 +261,6 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="infoModalTitle">
     <div class="modal-head"><h2 id="infoModalTitle">사용자 매뉴얼</h2><button id="closeInfoBtn" aria-label="사용자 매뉴얼 창 닫기">✕</button></div>
     <div class="modal-body" id="infoBody"></div>
-    <!-- 문의 파일 받기·관리자 모드의 입구(app.js initVocEgg). 맨 아래 'SMC'·'Shift' 글자에 걸려 있던 것을, 그 글자를 빼면서
-         여기로 옮겼다 — 입력 화면에서도(표를 못 만든 경우) 문의 파일을 받을 길이 있어야 한다. 출력 패널 맨 아래에도 있다. -->
-    <div class="info-help"><span>도움</span>
-      <button type="button" class="linklike" id="eggVoc">문의 파일 받기</button>
-      <button type="button" class="linklike" id="eggAdmin">관리자 모드</button></div>
   </div>
 </div>
 
