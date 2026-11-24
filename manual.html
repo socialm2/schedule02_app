@@ -274,12 +274,16 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 <h3 id="dispatch">파견 — 잠시 나가거나 잠시 온 사람</h3>
 <div class="wrap"><table>
 <tr><th>경우</th><th>하는 일</th></tr>
-<tr><td class="k">우리 병동에서 나감</td><td>명단에 그대로 두고, <b>나가 있는 날마다 <code>휴</code></b>를 적습니다. 한 칸씩 적어야 합니다(이어서 채워지지 않습니다)</td></tr>
+<tr><td class="k">우리 병동에서 나감</td><td>명단에 그대로 두고, <b>나가 있는 날마다 날짜 칸에 <code>P-D/S13</code></b>처럼 적습니다 — <code>P-</code> 뒤에 그날 파견 가서 서는 근무, <code>/</code> 뒤에 간 부서(<code>P-E/S13</code>은 S13에서 이브닝). 한 칸씩 적어야 합니다(이어서 채워지지 않습니다). 어디서 무슨 근무인지 모르면 <code>휴</code>를 적어도 됩니다</td></tr>
 <tr><td class="k">다른 병동에서 옴</td><td>따로 된 칸은 없습니다. <a href="#movein">전입</a>처럼 명단에 넣고, 돌아가는 날부터는 <code>휴</code>를 날마다 적습니다. 다음 달 명단에서 뺍니다</td></tr>
 </table></div>
 <ul>
+<li><code>P-D/S13</code>을 적은 날은 <b>우리 병동 인원에서 빠집니다</b>(<code>휴</code>와 같이 셉니다). 입력①을 올리면 "P-D/S13 → 휴"로 읽었다고 초록 글로 알려 줍니다. 결과 화면의 근무표에는 그날이 <code>휴</code>로 보입니다.</li>
+<li>내려받은 <b>출력①·출력②에는 <code>P-D/S13</code>이 그대로 찍힙니다.</b> 출력①의 듀티별 횟수 끝에 <b>'파견'</b> 열이 생겨 파견한 날 수를 셉니다. 출력②의 누적 근무일·누적D 같은 통계는 파견한 날을 실제 근무로 셉니다.</li>
+<li>출력②를 다음 달 입력②로 올리면 그날은 <b><code>P-</code>와 <code>/</code> 사이의 근무(D)로 읽혀</b> 연속근무·야간 뒤 휴식이 끊기지 않고 이어집니다. 병원 근무표(OCS)에 <code>P-D/S13</code>이 있으면 입력②에서 고칠 것이 없습니다.</li>
+<li>'가능근무'는 평소 근무(<code>D,E,N</code>) 그대로 둡니다. 가능근무 칸에 <code>파견</code>을 적으면 반려되고, '비고'에 적은 <code>파견</code>은 메모일 뿐 아무 일도 하지 않습니다.</li>
 <li><code>휴</code>는 '쉬고 싶다'가 아니라 <b>병동에 없는 날</b>입니다. 인원이 모자라도 근무로 되돌리지 않고, 모자란 날은 빨갛게 남습니다.</li>
-<li>한 달에 5일 이상 비우면 그 사람의 야간 횟수와 휴무 몫이 <b>있던 날 수에 비례</b>해 줄어듭니다.</li>
+<li>한 달에 5일 이상 비우면 그 사람의 야간 횟수와 휴무 몫이 <b>있던 날 수에 비례</b>해 줄어듭니다(형평성을 견줄 때 — 잔휴는 <a href="#offbal">따로 셉니다</a>).</li>
 </ul>
 
 <h3 id="moveout">전출 — 나가는 사람</h3>
@@ -316,7 +320,8 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 
 <h3 id="leave">휴직 · 병가 · 긴 휴가</h3>
 <ul>
-<li>쉬는 날마다 한 칸씩 적습니다 — <code>휴</code>(휴직) <code>병</code>(병가) <code>공</code>(공가) <code>경</code>(경조사) <code>조</code>(조사) <code>승</code>(승급교육) <code>군</code>(군공가). 첫날만 적으면 그 하루만 빠집니다.</li>
+<li>쉬는 날마다 한 칸씩 적습니다 — <code>휴</code>(휴직) <code>병</code>(병가) <code>공</code>(공가) <code>경</code> <code>경*</code>(경조사) <code>조</code> <code>조*</code>(조사) <code>승</code>(승급교육) <code>군</code>(군공가). 첫날만 적으면 그 하루만 빠집니다.</li>
+<li>별표가 붙은 <code>조*</code>·<code>경*</code>은 별표 없는 <code>조</code>·<code>경</code>과 <b>다른 코드</b>입니다 — 잔휴에 주는 영향이 다릅니다(<a href="#offbal">잔휴 계산</a>). 별표를 지우고 읽지 않습니다.</li>
 <li>이 표기들은 병동에 없는 날이라 밀리지 않습니다. <code>X</code>와 <code>연</code>(연차)은 희망이라 그날 인원이 모자라면 밀릴 수 있습니다.</li>
 <li><code>X</code>·연차를 14일 넘게 이어 적으면 15일째부터 반려됩니다. 이 반려는 파일을 올릴 때가 아니라 <b>[근무표 생성]을 누른 뒤</b> '원티드' 탭의 미반영 목록에 뜹니다. 더 쉬어야 하면 구간을 나눠 적습니다.</li>
 </ul>
@@ -369,7 +374,7 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 </table></div>
 <div class="wrap"><table>
 <tr><th>집계 열</th><th>뜻</th></tr>
-<tr><td class="k">잔휴 전월 · 이후</td><td>이월된 잔여 휴무 · 이번 달 뒤의 잔여 휴무</td></tr>
+<tr><td class="k">잔휴 전월 · 이후</td><td>이월된 잔여 휴무 · 이번 달 뒤의 잔여 휴무(<a href="#offbal">계산법</a>)</td></tr>
 <tr><td class="k">D · E · N …</td><td>이번 달 그 근무 횟수</td></tr>
 <tr><td class="k">주말 · 연속 · 야간</td><td>주말·공휴일 근무 날 수 · 가장 길게 이어진 근무(상한을 넘으면 빨강) · 야간/개인 목표(다르면 노랑)</td></tr>
 <tr><td class="k">® · ⓡ</td><td>병원 HR 항목이라 늘 빈칸입니다</td></tr>
@@ -580,8 +585,24 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 <tr><th>표기</th><th>코드</th></tr>
 <tr><td class="k">근무</td><td><code>D</code> <code>E</code> <code>N</code> <code>NK</code>(야간전담) <code>8A</code> <code>9A</code> <code>10A</code> <code>prn</code> <code>T</code>(교육) <code>TW</code>(반근무+반교육)</td></tr>
 <tr><td class="k">쉼</td><td><code>X</code>(원티드오프) <code>/</code>(오프) <code>S/</code>(수면오프 — 자동)</td></tr>
-<tr><td class="k">휴가</td><td><code>연</code> <code>연1</code>~<code>연4</code> <code>조</code> <code>경</code> <code>공</code> <code>병</code> <code>휴</code> <code>승</code> <code>군</code></td></tr>
+<tr><td class="k">휴가</td><td><code>연</code> <code>연1</code>~<code>연4</code> <code>조</code> <code>조*</code> <code>경</code> <code>경*</code> <code>공</code> <code>병</code> <code>휴</code> <code>승</code> <code>군</code></td></tr>
+<tr><td class="k">파견</td><td><code>P-근무/부서</code> — 예: <code>P-D/S13</code> <code>P-E/S13</code>. 이번 달에는 우리 병동 인원에서 빠지고(<code>휴</code>처럼), 지난 기록(입력②)에서는 <code>P-</code>와 <code>/</code> 사이의 근무로 읽습니다(<a href="#dispatch">파견</a>)</td></tr>
 </table></div>
+</details>
+<details class="fold" id="offbal"><summary>잔휴 계산</summary>
+<p>출력①·② 왼쪽의 <b>'잔휴 이후'</b>는 다음과 같이 셉니다. 다음 달 입력②의 '잔휴 전월'이 이 값입니다.</p>
+<p class="lead"><b>잔휴 이후 = 잔휴 전월 + 이번 달 휴일수(토·일·공휴일) − 쉰 날(<code>X</code>·<code>/</code>) − 주말·공휴일의 <code>조</code>·<code>경</code> − 병가 몫</b></p>
+<div class="wrap"><table>
+<tr><th>코드·경우</th><th>잔휴에 주는 영향</th></tr>
+<tr><td class="k"><code>X</code> · <code>/</code></td><td>하루씩 뺍니다</td></tr>
+<tr><td class="k"><code>조</code> · <code>경</code></td><td><b>토·일·공휴일에 걸린 날만</b> 쉰 날로 보고 하루씩 뺍니다. 평일은 영향이 없습니다</td></tr>
+<tr><td class="k"><code>조*</code> · <code>경*</code></td><td>영향이 없습니다(근무로 인정되는 휴가)</td></tr>
+<tr><td class="k"><code>병</code>(병가) 5일 이상</td><td>그 달 휴일수를 병가 날 수만큼 나눠 뺍니다 — 휴일수 × 병가 날 ÷ 그 달 날 수(반올림). 예: 30일 중 13일 병가, 휴일 9일이면 4일을 뺍니다. 4일 이하는 영향이 없습니다</td></tr>
+<tr><td class="k">야간만 선 달</td><td>그 달 근무가 모두 <code>N</code>·<code>NK</code>이면 잔휴를 <b>그대로</b> 둡니다(쌓지도 빼지도 않습니다)</td></tr>
+<tr><td class="k">그 밖의 휴가 · <code>S/</code> · 파견</td><td><code>연</code>·<code>공</code>·<code>휴</code>·<code>승</code>·<code>군</code>·수면오프·파견한 날은 영향이 없습니다</td></tr>
+<tr><td class="k">월중 전입</td><td>휴일수·쉰 날을 전입일부터 셉니다</td></tr>
+</table></div>
+<p>병원 근무표의 잔휴와 하루 이틀 다르면 <code>ⓡ</code> 같은 병원 HR 항목이 섞인 달인지 먼저 봅니다 — 앱은 그 항목을 세지 않습니다.</p>
 </details>
 <details class="fold" id="terms"><summary>용어</summary>
 <div class="wrap"><table>
