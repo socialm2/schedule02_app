@@ -591,7 +591,7 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 </details>
 <details class="fold" id="offbal"><summary>잔휴 계산</summary>
 <p>출력①·② 왼쪽의 <b>'잔휴 이후'</b>는 다음과 같이 셉니다. 다음 달 입력②의 '잔휴 전월'이 이 값입니다.</p>
-<p class="lead"><b>잔휴 이후 = 잔휴 전월 + 이번 달 휴일수(토·일·공휴일) − 쉰 날(<code>X</code>·<code>/</code>) − 주말·공휴일의 <code>조</code>·<code>경</code> − 병가 몫</b></p>
+<p class="lead"><b>잔휴 이후 = 잔휴 전월 + 이번 달 휴일수(토·일·공휴일) − 쉰 날(<code>X</code>·<code>/</code>, 파견 가서 쉰 날 포함) − 주말·공휴일의 <code>조</code>·<code>경</code> − 병가 몫</b></p>
 <div class="wrap"><table>
 <tr><th>코드·경우</th><th>잔휴에 주는 영향</th></tr>
 <tr><td class="k"><code>X</code> · <code>/</code></td><td>하루씩 뺍니다</td></tr>
@@ -599,7 +599,8 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 <tr><td class="k"><code>조*</code> · <code>경*</code></td><td>영향이 없습니다(근무로 인정되는 휴가)</td></tr>
 <tr><td class="k"><code>병</code>(병가) 5일 이상</td><td>그 달 휴일수를 병가 날 수만큼 나눠 뺍니다 — 휴일수 × 병가 날 ÷ 그 달 날 수(반올림). 예: 30일 중 13일 병가, 휴일 9일이면 4일을 뺍니다. 4일 이하는 영향이 없습니다</td></tr>
 <tr><td class="k">야간만 선 달</td><td>그 달 근무가 모두 <code>N</code>·<code>NK</code>이면 잔휴를 <b>그대로</b> 둡니다(쌓지도 빼지도 않습니다)</td></tr>
-<tr><td class="k">그 밖의 휴가 · <code>S/</code> · 파견</td><td><code>연</code>·<code>공</code>·<code>휴</code>·<code>승</code>·<code>군</code>·수면오프·파견한 날은 영향이 없습니다</td></tr>
+<tr><td class="k">파견</td><td>파견 가서 쉰 날(<code>P-X/S13</code>·<code>P-//S13</code>)은 쉰 날로 하루씩 뺍니다. 파견 가서 근무한 날(<code>P-D/S13</code> 등)은 영향이 없습니다</td></tr>
+<tr><td class="k">그 밖의 휴가 · <code>S/</code></td><td><code>연</code>·<code>공</code>·<code>휴</code>·<code>승</code>·<code>군</code>·수면오프는 영향이 없습니다</td></tr>
 <tr><td class="k">월중 전입</td><td>휴일수·쉰 날을 전입일부터 셉니다</td></tr>
 </table></div>
 <p>병원 근무표의 잔휴와 하루 이틀 다르면 <code>ⓡ</code> 같은 병원 HR 항목이 섞인 달인지 먼저 봅니다 — 앱은 그 항목을 세지 않습니다.</p>
