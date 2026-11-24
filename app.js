@@ -4061,7 +4061,7 @@ async function makeVocFile() {
 }
 
 // ================================================================ 보고서 받기(실험 기능)
-// '도움말 · 기타 › 보고서 받기' — 비밀번호를 넣으면 보고서 묶음(reports.enc)을 풀어 목록을 보여 주고, 하나씩 또는 zip 하나로
+// '도움말 · 기타 › 보고서 받기'(관리자 비밀번호를 통과한 뒤에만 보이는 줄) — 비밀번호를 넣으면 보고서 묶음(reports.enc)을 풀어 목록을 보여 주고, 하나씩 또는 zip 하나로
 // 내려 준다(사용자 2026-11-22: "실험 기능 기타 쪽에 보고서 다운로드 만들어 놓고 비번 …"). 비밀번호가 맞는지는 여기서 견주지 않는다 —
 // 묶음이 그 비밀번호로 풀리는가가 곧 확인이다(platform.js openReportsBundle). 그래서 비밀번호도, 그 해시도 코드에 없다.
 // 한 번 푼 목록은 탭을 닫을 때까지 메모리에만 둔다(다시 열 때 또 묻지 않게). 기기에는 아무것도 저장하지 않는다.
@@ -4145,6 +4145,10 @@ async function vocPwOk(value) {
 }
 let VOC_VIEW = null;      // 다시 보는 중인 문의 {name, comment, time, text, replay, hadTable}
 let vocGateUnlocked = false;      // 이번에 연 비밀번호 창에서 비밀번호가 맞았는가
+// 이 탭에서 관리자 비밀번호를 한 번이라도 통과했는가 — '도움말 · 기타'에 '보고서 받기' 줄을 내는 조건이다(사용자 2026-11-24: 보고서 받기는
+// 관리자 모드에 들어간 뒤에만 보이게). 문의 파일까지 열어야 보이게 하면 보고서만 받으려는 사람이 문의 zip을 하나 구해 와야 한다 — 그래서
+// 비밀번호 통과가 기준이다. 메모리에만 둔다: 새로 고치거나 '끝내기'를 누르면 다시 숨는다.
+let ADMIN_OK = false;
 function openVocGate() {
   let bd = document.getElementById("vocGateBackdrop");
   if (!bd) {
@@ -4172,7 +4176,9 @@ function openVocGate() {
         }
         vocGateUnlocked = true;
         pw.disabled = true;
-        document.getElementById("vocGateMsg").textContent = "확인됐습니다 — 받은 문의 파일(zip)을 골라 주세요.";
+        // 보고서만 받으러 온 사람은 문의 파일이 없다 — 창을 닫으면 어디에 무엇이 생겼는지 여기서 말해 둔다.
+        document.getElementById("vocGateMsg").textContent = "확인됐습니다 — 받은 문의 파일(zip)을 골라 주세요. 보고서만 받으시려면 이 창을 닫고 '도움말 · 기타'의 '보고서 받기'를 누르세요.";
+        if (!ADMIN_OK) { ADMIN_OK = true; if (ST && ST.report) renderSide(); }
         document.getElementById("vocGateOk").textContent = "문의 파일 고르기";
         document.getElementById("vocGateOk").focus();
       }
@@ -4929,32 +4935,29 @@ function renderSide() {
   // 도움말 · 기타 — '상세 자료' 탭 맨 아래. 한 줄 전체가 누르는 자리다(작은 글씨 한 문단에 '·'로 이어 붙였더니 폰에서 무엇이
   // 버튼인지 알 수 없었다, 2026-11-11). 월간 보고서는 실험 기능이라 표 위 파일 줄이 아니라 여기 둔다(사용자 2026-11-13 —
   // 한나절 파일 줄에 있었다). 적용 안 한 편집이 있으면 못 받는 것은 출력①②와 같다.
+  // 줄은 셋이다 — 문의 파일 받기 · 월간 보고서 받기 · 관리자 모드(사용자 2026-11-24). '📘 사용자 매뉴얼' 줄은 뺐다: 화면 오른쪽 위에
+  // 늘 같은 단추가 있어 같은 것이 두 번 보였다. '보고서 받기'(개발·검증 보고서 묶음)는 파트장이 쓰는 것이 아니라서 관리자 비밀번호를
+  // 통과한 뒤에만 넷째 줄로 나온다(ADMIN_OK — 아래 openVocGate). 줄 끝 표시는 그 줄이 하는 일을 말한다(사용자 2026-11-13): 받는 것은 ⬇,
+  // 관리자 모드는 표시 없음 — 꺾쇠(›)는 '다음 화면으로'로 읽히는데 관리자 모드는 비밀번호를 묻는 숨은 길이라 이끌 것이 없다.
   html += `<div class="side-sec side-exp"><h3>도움말 · 기타</h3><div class="exp-list">` +
+    // 문의는 적용 안 한 편집이 있어도 받을 수 있다(그 편집까지 담긴다).
+    `<button class="exp-item" id="expVocBtn" onclick="openVocDialog()" ` +
+      `title="이름과 내용을 적으면 지금 입력·출력·고친 기록이 파일 하나(zip)로 받아집니다 — 이 기기에 저장만 됩니다">` +
+      `<span class="exp-name">문의 파일 받기</span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
     `<button class="exp-item" id="expMagBtn" onclick="if (confirmDownloadWithViolations()) downloadMagazine()"${hasPending || ST.night_stage ? " disabled" : ""} ` +
       `title="${hasPending ? "고치는 중인 칸이 있어 잠겼습니다 — 적용하거나 전체 취소한 뒤에 받을 수 있습니다"
         : ST.night_stage ? "야간만 보는 중이라 잠겼습니다 — '나머지 자동 생성'이나 '전체 보기' 뒤에 받을 수 있습니다"
         : "검증·일별 인원·주말 명단·사람별 집계·부담·원티드·고정 칸·야간·점수표·처리 기록을 한 파일(HTML)에 — 열어서 인쇄하면 PDF"}">` +
       `<span class="exp-name">월간 보고서 받기${hasPending || ST.night_stage ? ' <small class="exp-lock">잠김</small>' : ""}</span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
-    // 사용자 매뉴얼 — 새 탭으로 열어 옆에 띄워 두고 본다. 예전엔 이 자리가 '사용 순서 보기'(여덟 단계가 화살표를 따라 뜨는 따로 된 그림 파일)였는데
-    // 그 그림은 매뉴얼의 '사용 순서' 절이 됐다(2026-11-22 설명서 통합). 결과 화면에서 여는 것이라 출력 화면 따라하기부터 보인다.
-    `<a class="exp-item" id="expManualLink" href="manual.html#out" target="_blank" rel="noopener" ` +
-      `title="입력·출력 화면 따라하기, 사용 순서, 전입·파견·전출·임신·B팀 처리, 문의 방법 — 새 탭에서 열립니다">` +
-      `<span class="exp-name">📘 사용자 매뉴얼</span><span class="exp-go" aria-hidden="true">↗</span></a>` +
-    // 보고서 받기(실험 기능) — 개발·검증 보고서 묶음을 비밀번호로 풀어 내려 준다(openReportsGate). 파트장이 쓰는 것이 아니라
-    // 담당자·관리자가 받아 가는 자리라 설명은 관리자 모드 설명서(그 묶음 안)에 둔다.
-    `<button class="exp-item" id="expReportsBtn" onclick="openReportsGate()" ` +
-      `title="개발·검증 보고서 묶음(HTML) — 비밀번호가 필요합니다">` +
-      `<span class="exp-name">보고서 받기</span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
-    // 문의 파일 받기·관리자 모드 — 설명서(📘) 창 맨 아래 '도움' 줄과 같은 창을 연다. 문의는 적용 안 한 편집이 있어도 받을 수
-    // 있다(그 편집까지 담긴다). 관리자 모드는 여기서도 비밀번호를 묻는다.
-    `<button class="exp-item" id="expVocBtn" onclick="openVocDialog()" ` +
-      `title="이름과 내용을 적으면 지금 입력·출력·고친 기록이 파일 하나(zip)로 받아집니다 — 이 기기에 저장만 됩니다">` +
-      // 줄 끝 표시는 그 줄이 하는 일을 말한다(사용자 2026-11-13): 받는 것(월간 보고서·문의 파일)은 ⬇, 관리자 모드는 표시 없음 —
-      // 꺾쇠(›)는 '다음 화면으로'로 읽히는데 문의 파일은 파일이 내려오고, 관리자 모드는 비밀번호를 묻는 숨은 길이라 이끌 것이 없다.
-      `<span class="exp-name">문의 파일 받기</span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
     `<button class="exp-item" id="expAdminBtn" onclick="openVocGate()" ` +
       `title="받은 문의 파일(zip)을 올려 그 사람이 보던 화면을 다시 봅니다 — 비밀번호가 필요합니다">` +
       `<span class="exp-name">관리자 모드</span></button>` +
+    // 보고서 받기 — 개발·검증 보고서 묶음을 비밀번호로 풀어 내려 준다(openReportsGate). 묶음 자체가 따로 잠겨 있어 여기서도 그 비밀번호를 묻는다.
+    (ADMIN_OK || VOC_VIEW
+      ? `<button class="exp-item" id="expReportsBtn" onclick="openReportsGate()" ` +
+        `title="개발·검증 보고서 묶음(HTML) — 보고서 비밀번호가 필요합니다">` +
+        `<span class="exp-name">보고서 받기</span><span class="exp-go" aria-hidden="true">⬇</span></button>`
+      : "") +
     `</div></div>`;
   const cur = sideTab();
   const pane = (name, inner) => `<div class="tab-pane${name === cur ? " on" : ""}" data-pane="${name}" role="tabpanel">${inner}</div>`;
