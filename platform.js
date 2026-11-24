@@ -14,97 +14,16 @@
 //   apiDownloadWantedTemplate(payload, filename)   양식 받기
 //   bootPlatform()                        시작 준비          (Pyodide 부팅)
 //
-// 그 밖에: 접속 비밀번호 게이트와 서비스워커 등록(아래).
+// 그 밖에: 서비스워커 등록(아래).
 
-// ================================================================ 접속 비밀번호 게이트
-// 서버가 없는 정적 배포판이라 "진짜 로그인"이 아니라 억제 수준의 문 — 링크를 모르고
-// 우연히 들어오는 걸 막는 용도. 비밀번호를 바꾸려면 아래 새 해시로 교체하면 된다
-// (브라우저 콘솔에서 다음처럼 뽑을 수 있다:
-//   crypto.subtle.digest("SHA-256", new TextEncoder().encode("새비밀번호"))
-//     .then(b => console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")))
-// ).
-const AUTH_HASH = "2cbbfffee7c0a89ffa87b2320543fb71b4bc5443c5ccc4d04723e17c59367355";
-const AUTH_KEY = "ns_auth_ok";
-// Log-out 버튼(showSignOut)은 지금 숨겨 둔다 — 2026-10-10, 헤더에 버튼이 하나 더 있는 게
-// 보기 좋지 않다는 사용자 요청. 다시 보이게 하려면 이 값만 true로 바꾸면 된다(모양·위치는
-// style.css에 그대로 있다). 숨긴 동안 공용 PC에서 나가려면 브라우저 사이트 데이터를 지워야 한다.
-// 이 줄은 아래 initAuthGate()보다 위에 있어야 한다 — 그 함수가 즉시 실행되며 showSignOut()을
-// 부르는데, const는 선언 줄 전에 읽으면 오류가 나서 화면 부팅 전체가 멈춘다(실제로 멈췄다).
-const SHOW_SIGN_OUT_BUTTON = false;
-
-async function sha256Hex(text) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
-}
-
-(function initAuthGate() {
-  const gate = document.getElementById("authGate");
-  // 저장소 접근이 막힌 환경에서도 문(gate) 자체는 떠야 한다 — 예전엔 여기서 던진
-  // SecurityError가 초기화 전체를 멈춰 화면이 빈 채로 남았다.
-  let alreadyIn = false;
-  try { alreadyIn = localStorage.getItem(AUTH_KEY) === "1"; } catch (e) { alreadyIn = false; }
-  if (alreadyIn) {
-    gate.style.display = "none";
-    showSignOut();
-    return;
-  }
-  // crypto.subtle은 보안 컨텍스트(https 또는 localhost)에서만 존재한다. 사내망에 http로
-  // 올리는 경우 등 이게 없으면 비밀번호 확인 자체가 불가능하므로, 조용히 먹통되는 대신
-  // 폼을 아예 안 보여주고 이유를 바로 알려준다.
-  if (!window.crypto || !window.crypto.subtle) {
-    document.getElementById("authForm").style.display = "none";
-    document.getElementById("authUnsupported").style.display = "";
-    return;
-  }
-  document.getElementById("authForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const input = document.getElementById("authInput");
-    let hash;
-    try {
-      hash = await sha256Hex(input.value);
-    } catch (err) {
-      document.getElementById("authForm").style.display = "none";
-      document.getElementById("authUnsupported").style.display = "";
-      return;
-    }
-    if (hash === AUTH_HASH) {
-      try { localStorage.setItem(AUTH_KEY, "1"); } catch (err) { /* 다음에 또 물어볼 뿐 */ }
-      gate.style.display = "none";
-      showSignOut();
-    } else {
-      document.getElementById("authError").style.display = "";
-      input.value = "";
-      input.focus();
-    }
-  });
-})();
-
-// 한 번 들어오면 브라우저 데이터를 지우기 전까지 계속 들어와 있다 — 공용 PC에서
-// 다음 사람이 그대로 열 수 있다는 뜻이다. 나갈 방법을 화면에 둔다.
-// (인증 자체가 이 브라우저 안에서만 이뤄지므로 이건 '조심해서 쓰는 길'이지 접근통제가
-//  아니다. 진짜 통제는 서버·엣지 쪽에서 해야 한다 — 보안 안내에 그렇게 적혀 있다.)
-function showSignOut() {
-  if (!SHOW_SIGN_OUT_BUTTON) return;
-  if (document.getElementById("signOutBtn")) return;
-  // 헤더 맨 오른쪽, 설명서 버튼 바로 뒤에 붙인다 — 가로·세로 어느 화면에서든
-  // [설명서][Log-out] 순서로 나란히 선다. 예전엔 h1 '안'에 넣었다가 세로 폰에서 이
-  // 버튼만 다음 줄 왼쪽으로 툭 떨어졌고, 그 뒤 h1 '옆'으로 옮겼더니 넓은 화면에서는
-  // 제목 바로 옆에 홀로 떨어져 있었다. 설명서 버튼이 없으면(화면 구조가 바뀐 경우)
-  // 헤더 끝에, 헤더도 없으면 body 끝에 붙인다.
-  const anchor = document.getElementById("infoBtn");
-  const header = document.querySelector("header");
-  const b = document.createElement("button");
-  b.id = "signOutBtn";
-  b.type = "button";
-  b.className = "sign-out";
-  b.textContent = "Log-out";
-  b.title = "이 브라우저에서 나갑니다 — 다음에 열면 비밀번호를 다시 묻습니다";
-  b.onclick = () => {
-    try { localStorage.removeItem(AUTH_KEY); } catch (e) { /* 아래에서 새로고침 */ }
-    location.reload();
-  };
-  if (anchor) anchor.after(b); else (header || document.body).appendChild(b);
-}
+// ================================================================ 접속 비밀번호 — 없앴다
+// 예전엔 앱을 열면 먼저 접속 비밀번호를 물었다(링크를 모르고 우연히 들어오는 것을 막는 억제 수준의 문 — 서버가 없어 진짜
+// 로그인은 아니었다). 사용자 결정 2026-11-25: "최초 화면 비번 단계 … 빼". 문(index.html의 #authGate)과 확인 코드(해시·제출
+// 처리·숨겨 둔 Log-out 단추)를 전부 걷어냈다 — 숨기기만 하면 아무도 안 쓰는 코드에 수정이 계속 들어간다.
+// 앱 안에는 병동의 자료가 없다(명단·근무표는 올린 사람의 브라우저에만 있다가 탭을 닫으면 사라진다). 관리자 모드와 보고서
+// 받기의 비밀번호는 이것과 별개로 app.js에 그대로 있다.
+// 예전에 통과한 브라우저에 남아 있는 표시는 읽는 곳이 없으니 지운다.
+try { localStorage.removeItem("ns_auth_ok"); } catch (e) { /* 지우지 못해도 읽는 곳이 없다 */ }
 
 // ================================================================ 서비스워커 등록 · 새 버전 알림
 // sw.js는 설치되자마자 skipWaiting·clients.claim으로 넘겨받지만, **이 페이지의 app.js는 옛것 그대로**다 —

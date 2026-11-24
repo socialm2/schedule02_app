@@ -16,20 +16,8 @@
 </head>
 <body>
 <noscript><div style="padding:32px 20px;font-size:16px;line-height:1.7;text-align:center">이 프로그램은 자바스크립트가 켜져 있어야 동작합니다. 브라우저 설정에서 자바스크립트를 허용한 뒤 새로 고쳐 주세요.</div></noscript>
-<div id="authGate">
-  <div class="loading-box">
-    <p style="font-weight:700;font-size:15px">SMC Fair Shift</p>
-    <p class="loading-sub">이 병동 전용 앱입니다. 접속 비밀번호를 입력하세요.</p>
-    <form id="authForm" autocomplete="off">
-      <input type="password" id="authInput" placeholder="비밀번호" autocomplete="off">
-      <button type="submit" class="primary">입장</button>
-    </form>
-    <p class="loading-sub" id="authError" style="color:var(--hard);display:none">비밀번호가 올바르지 않습니다.</p>
-    <p class="loading-sub" id="authUnsupported" style="color:var(--hard);display:none">
-      이 연결(주소창이 https가 아닌 것으로 보입니다)에서는 비밀번호 확인 기능을 쓸 수 없습니다.
-      https 주소로 접속하거나 관리자에게 문의하세요.</p>
-  </div>
-</div>
+<!-- 접속 비밀번호 문(#authGate)은 없앴다(사용자 결정 2026-11-25: "최초 화면 비번 단계 … 빼"). 링크를 열면 바로 아래 로딩 화면에서
+     시작한다. 숨기지 않고 platform.js의 확인 코드·style.css의 모양까지 같이 걷어냈다. 관리자 모드와 보고서 받기의 비밀번호는 별개로 남아 있다(app.js). -->
 <div id="loadingOverlay" role="status" aria-live="polite">
   <div class="loading-box">
     <div class="spinner"></div>
@@ -61,7 +49,7 @@
   <header>
     <!-- 배지는 스크린리더가 제목으로 읽지 않게 감싼다(aria-hidden). .build-time span 자체는 CI(deploy.yml)와 platform.js가
          정규식으로 찾으므로 그 태그에는 속성을 더하지 말 것(hidden도 안 된다 — 여는 태그가 달라지면 배포가 멈춘다). -->
-    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.90</span><span class="build-time">Updated 2026-11-25 05:39:33</span></span></h1>
+    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.90</span><span class="build-time">Updated 2026-11-25 06:07:56</span></span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 사용자 매뉴얼</button>
@@ -277,8 +265,9 @@
 <input type="file" id="baselineInput" accept=".xlsx" class="file-input-hidden" tabindex="-1">
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <!-- 옛 브라우저 안내 — 아래 스크립트들(platform.js · app.js)과 Pyodide는 2020년 뒤의 문법(?. · ?? · ??=)을 쓴다. 그 문법을 모르는
-     브라우저(인터넷 익스플로러 · 엣지의 IE 모드 · 몇 해 동안 업데이트가 멈춘 크롬)는 스크립트를 통째로 못 읽어서, 비밀번호 칸만 보이고
-     '입장'을 눌러도 아무 일도 일어나지 않았다 — 무엇이 문제인지 알 길이 없다(배포 전 PC 점검 2026-11-24, 배포 대상이 병원 PC).
+     브라우저(인터넷 익스플로러 · 엣지의 IE 모드 · 몇 해 동안 업데이트가 멈춘 크롬)는 스크립트를 통째로 못 읽어서, "불러오는 중입니다"만
+     떠 있는 채로 영영 멈춘다(접속 비밀번호 문이 있던 때에는 비밀번호 칸만 보이고 '입장'이 먹지 않았다) — 무엇이 문제인지 알 길이
+     없다(배포 전 PC 점검 2026-11-24, 배포 대상이 병원 PC).
      여기서 먼저 알아보고 무엇으로 열면 되는지 말한다. **이 조각은 ES5로만 쓴다**(const · let · 화살표 · 백틱 금지) — 옛 브라우저에서
      도는 유일한 코드다(tests/test_pyodide_sync.py가 지킨다). 문법 확인 글자는 앱·Pyodide가 쓰는 가장 새 문법에 맞춘다. -->
 <script>
@@ -291,7 +280,7 @@
   if (!why && typeof WebAssembly !== "object") why = "nowasm";
   if (!why) return;
   window.__oldBrowser = why;
-  var hide = ["authGate", "loadingOverlay"], i, el;
+  var hide = ["loadingOverlay"], i, el;
   for (i = 0; i < hide.length; i++) { el = document.getElementById(hide[i]); if (el) el.style.display = "none"; }
   var ua = navigator.userAgent || "", m, now = "알 수 없음";
   if (/MSIE |Trident\//.test(ua)) now = "인터넷 익스플로러(또는 엣지의 IE 모드)";

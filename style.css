@@ -60,17 +60,6 @@ html, body {
    그보다 길어서 티가 안 나고, 설치한 앱에서만 보이던 이유가 이것이다. */
 #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 
-/* ---------------------------------------------------------------- 접속 비밀번호 게이트 */
-#authGate {
-  position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-  background: var(--paper); z-index: 1000;
-}
-#authForm { display: flex; gap: 8px; margin-top: 14px; justify-content: center; }
-#authForm input {
-  font-family: inherit; font-size: .875rem; border: 1.5px solid var(--line);
-  border-radius: 7px; padding: 6px 10px; width: 160px; background: var(--card); color: var(--ink);
-}
-
 /* ---------------------------------------------------------------- 로딩 오버레이 (Pyodide 부팅) */
 #loadingOverlay {
   position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
@@ -132,9 +121,9 @@ header #infoBtn {
   border-color: transparent; background: var(--accent-soft); color: var(--accent);
 }
 /* 손가락 대상 — 26px은 작았다(검토 C 1-9, 폰 권장 36 이상). 높이를 숫자로 고정하는 규칙
-   (파일 끝 'header #infoBtn, header .sign-out')보다 위에 있어도 이기게 button 태그로 특이성을 올렸다. */
-header button#infoBtn, header button.sign-out { height: 32px; }
-@media (max-width: 680px) { header button#infoBtn, header button.sign-out { height: 36px; } }
+   (파일 끝 'header #infoBtn')보다 위에 있어도 이기게 button 태그로 특이성을 올렸다. */
+header button#infoBtn { height: 32px; }
+@media (max-width: 680px) { header button#infoBtn { height: 36px; } }
 
 button {
   appearance: none; -webkit-appearance: none;
@@ -1166,7 +1155,7 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
   @page { size: A4 landscape; margin: 8mm; }
   html, body, #app, #main, #gridPane { height: auto !important; min-height: 0 !important; overflow: visible !important; }
   html, body { background: #fff !important; color: #000; }   /* html의 --paper가 마지막 쪽 빈 곳을 회색으로 칠했다 */
-  #authGate, #loadingOverlay, #genOverlay, .toast, .picker, .modal-backdrop,
+  #loadingOverlay, #genOverlay, .toast, .picker, .modal-backdrop,
   header button, header .spacer, #sidePane, #backToInputBtn, .file-bar-wrap, .legend-toggle, .legend-fold,
   .carry-warning, .tap-hint, #monthInput { display: none !important; }
   header { border-bottom: 1px solid #000; padding: 0 0 4px; background: none; }
@@ -1299,17 +1288,9 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
   word-break: keep-all;
 }
 
-/* 접속 잠금 버튼 — 브라우저판에만 뜬다(platform.js가 인증 뒤에 붙인다).
-   공용 PC에서 다음 사람이 그대로 열리는 것을 막을 유일한 수단이다. */
-/* 바로 옆 설명서 버튼과 높이·모양(둥근 사각형)을 맞춘다. 글자 크기·여백만 같게 해서는
-   높이가 1px 어긋났다 — 설명서 버튼의 📘 그림 글자가 줄 높이를 키운다. 그래서 두 버튼
-   모두 높이를 숫자로 고정하고 글자를 가운데 세운다(header의 같은 규칙).
-   색만 다르게 두어(설명서는 연한 파랑 채움, 이쪽은 흰 바탕 테두리) 누르면 비밀번호를
-   다시 물어야 하는 버튼임을 구분한다. */
-button.sign-out {
-  margin-left: 0; padding: 0 10px; font-size: .71875rem; font-weight: 700;
-}
-header #infoBtn, header .sign-out {
+/* 설명서 버튼 — 높이를 숫자로 고정하고 글자를 가운데 세운다(📘 그림 글자가 줄 높이를 키운다). 옆에 서던 접속 잠금
+   버튼(Log-out)은 접속 비밀번호를 없애며 같이 걷어냈다(2026-11-25). */
+header #infoBtn {
   height: 26px; padding-top: 0; padding-bottom: 0; line-height: 1;
   display: inline-flex; align-items: center;
 }
