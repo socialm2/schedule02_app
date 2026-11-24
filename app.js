@@ -1153,7 +1153,10 @@ $("#staffTableExampleBtn").onclick = async () => {
   if (!ok) { showToast("예시 파일을 받지 못했습니다 — 인터넷 연결을 확인하고 다시 눌러 주세요", true); return; }
   showToast(got.exact
     ? `${got.y}년 ${got.m}월까지의 예시를 받았습니다 — ${y}년 ${mo}월 근무표를 만들 때 입력②로 올리는 파일입니다`
-    : `화면 연월에 맞는 예시가 없어 ${got.y}년 ${got.m}월까지의 예시를 받았습니다 — 그대로 올리면 이월정보 없이 만들어집니다`, !got.exact);
+    // 예전 문구는 "… 그대로 올리면 이월정보 없이 만들어집니다"였다. 2026-11-23부터는 화면 연월의 바로 전달까지가 아닌 입력②를
+    // 올리면 만들지 않는다(이어지지 않는 이월을 말없이 버리지 않게) — 문구만 옛 동작을 말하고 있었다.
+    : `화면 연월에 맞는 예시가 없어 ${got.y}년 ${got.m}월까지의 예시를 받았습니다 — 이 파일은 ` +
+      `${got.m === 12 ? got.y + 1 : got.y}년 ${got.m === 12 ? 1 : got.m + 1}월 근무표를 만들 때만 입력②로 쓸 수 있습니다`, !got.exact);
 };
 
 // 실제로 쓸 인원 명단을 한 곳에서 정한다 — 입력①(이번 달 명단) > 입력②(지난달 명단) > 관리자 모드의 문의 명단.
@@ -1306,10 +1309,19 @@ $("#monthInput").onchange = async () => {
   if (f) await applyUploadedMonth(f);
 };
 
+// 읽는 중인 입력 파일(입력①②) — 다 읽기 전에 '근무표 생성'을 누르면 runGenerate가 이것들이 끝나기를 기다린다.
+// 예전(파일 없이도 샘플로 만들어지던 때)에는 그 틈에 누르면 앞서 있던 명단으로 그냥 만들어졌고, 2026-11-24부터는
+// "입력 파일이 없습니다"가 떴다가 파일이 반영되는 순간 사라져 — 눌렀는데 표도 안내도 없이 아무 일도 안 일어난 것처럼 보였다.
+const inflightUploads = new Set();
+function trackUpload(p) {
+  inflightUploads.add(p);
+  p.catch(() => {}).then(() => inflightUploads.delete(p));
+  return p;
+}
 $("#wantedInput").onchange = async () => {
   const f = $("#wantedInput").files[0];
   if (!f) return;
-  try { await handleWantedFile(f); } finally { $("#wantedInput").value = ""; }
+  try { await trackUpload(handleWantedFile(f)); } finally { $("#wantedInput").value = ""; }
 };
 
 // 입력① 파일 하나를 읽어 화면 상태에 반영한다. 파일 칸(onchange)이 부른다 — 올린 파일을 반영하는 길은 이 함수 하나로 둔다
@@ -1552,7 +1564,7 @@ async function clearStaffTable() {
 $("#staffTableInput").onchange = async () => {
   const f = $("#staffTableInput").files[0];
   if (!f) return;
-  try { await handleStaffTableFile(f); } finally { $("#staffTableInput").value = ""; }
+  try { await trackUpload(handleStaffTableFile(f)); } finally { $("#staffTableInput").value = ""; }
 };
 
 // 입력② 파일 하나를 읽어 반영한다 — 반영하는 길은 이 함수 하나다(입력①과 같은 이유).
@@ -1835,7 +1847,18 @@ function showGenError(statusEl, text) {
   statusEl.insertAdjacentElement("afterend", p);
 }
 
+let genWaitingUploads = false;
 async function runGenerate(btn, statusEl) {
+  // 파일을 읽는 중이면 다 읽은 뒤에 이어서 만든다 — 올리고 곧바로 누르는 것이 가장 흔한 순서다(위 inflightUploads).
+  // 기다리는 동안 또 누른 것은 흘려보낸다(둘이 같이 깨어나면 생성이 두 번 겹쳐 돈다).
+  if (genWaitingUploads) return;
+  if (inflightUploads.size) {
+    genWaitingUploads = true;
+    clearGenError(statusEl);
+    if (statusEl) statusEl.textContent = "올린 파일을 읽는 중입니다 — 끝나면 이어서 만듭니다…";
+    try { await Promise.allSettled([...inflightUploads]); }
+    finally { genWaitingUploads = false; if (statusEl) statusEl.textContent = ""; }
+  }
   clearGenError(statusEl);
   const unresolved = unresolvedUploadErrors();
   if (unresolved.length) {
