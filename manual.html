@@ -200,6 +200,7 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 <li>직급·숙련도·가능근무·비고를 <b>한 사람이라도 적었으면 전원에게 직급과 숙련도가 있어야</b> 합니다. 비어 있는 사람이 있으면 파일 전체를 반려합니다.</li>
 <li>파일이 몇 월분인지는 시트 <b>A1 칸</b>의 'YYYY년 M월'로 읽습니다. 근무표는 <b>화면의 연월</b>로 만듭니다. 둘이 다르면 노란 ⚠와 <span class="btn">화면을 ○년 ○월로 맞추기</span>가 뜹니다.</li>
 <li>날짜 칸은 OCS 화면에서 그대로 복사해 붙여도 됩니다. 말일 오른쪽에 딸려 온 칸은 읽지 않습니다.</li>
+<li><b>OCS에서 내려받은 근무표 파일을 그대로 입력①에 올리면 반려됩니다</b>(지난달 근무표로 봅니다). 그 파일에는 숙련도·가능근무·야간리더·비고가 없고, 잔휴 칸이 고치기 전 값일 수 있습니다. 원티드표 양식(<span class="btn">양식(다운로드)</span>)을 받아 날짜 칸만 OCS에서 복사해 붙입니다. OCS에 없는 사람(예: 출산휴가 중)도 양식에서 지우지 말고 날마다 <code>출산</code>처럼 적습니다 — 지우면 전출로 봅니다.</li>
 </ul>
 <details class="fold" id="flags"><summary>가능근무 · 야간리더 · 비고에 적는 표시</summary>
 <div class="wrap"><table>
@@ -332,7 +333,7 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 <tr><th>신청</th><th>날짜 칸에 적는 것</th></tr>
 <tr><td class="k">쉬는 날</td><td><code>X</code></td></tr>
 <tr><td class="k">근무</td><td><code>D*</code> <code>E*</code> <code>N*</code> <code>8A*</code> <code>prn*</code> — 별표는 없어도 읽습니다</td></tr>
-<tr><td class="k">휴가</td><td><code>연</code>(연차) · <code>연1</code>~<code>연4</code>(시간제·반차) · 휴직·병가 등은 <a href="#leave">위 절</a></td></tr>
+<tr><td class="k">휴가</td><td><code>연</code>(연차) · <code>연1</code>~<code>연4</code>(시간제·반차) · 휴직·병가·리차징(<code>R</code>) 등은 <a href="#leave">위 절</a> — 병원 근무표 표기 그대로 적습니다</td></tr>
 </table></div>
 <ul>
 <li><b>뜻이 하나뿐인 표기는 알아서 읽습니다</b> — <code>d</code>→D, <code>off</code>·<code>오프</code>→X, 데이·이브닝·나이트→D·E·N. 무엇을 무엇으로 읽었는지 올린 자리 아래에 초록 글로 알려 줍니다.</li>
@@ -594,6 +595,7 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 <tr><td class="k">근무</td><td><code>D</code> <code>E</code> <code>N</code> <code>NK</code>(야간전담) <code>8A</code> <code>9A</code> <code>10A</code> <code>prn</code> <code>T</code>(교육) <code>TW</code>(반근무+반교육)</td></tr>
 <tr><td class="k">쉼</td><td><code>X</code>(원티드오프) <code>/</code>(오프) <code>S/</code>(수면오프 — 자동)</td></tr>
 <tr><td class="k">휴가</td><td><code>연</code> <code>연1</code>~<code>연4</code> <code>조</code> <code>조*</code> <code>경</code> <code>경*</code> <code>공</code> <code>병</code> <code>휴</code> <code>승</code> <code>군</code></td></tr>
+<tr><td class="k">휴직 · 긴 휴가</td><td><code>R</code>(리차징) <code>상</code>(상병휴직) <code>사</code> <code>산전</code> <code>출산</code> <code>육법</code> <code>육법*</code> <code>육연</code> <code>출</code> <code>유</code> <code>근</code> <code>특</code> — 병원 근무표의 표기 그대로 입력①·② 모두 읽습니다</td></tr>
 <tr><td class="k">파견</td><td><code>P-근무/부서</code> — 예: <code>P-D/S13</code> <code>P-E/S13</code>. 이번 달에는 우리 병동 인원에서 빠지고(<code>휴</code>처럼), 지난 기록(입력②)에서는 <code>P-</code>와 <code>/</code> 사이의 근무로 읽습니다(<a href="#dispatch">파견</a>)</td></tr>
 </table></div>
 </details>
