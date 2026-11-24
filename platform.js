@@ -624,6 +624,27 @@ async function apiDownloadVoc(payload) {
   return filename;
 }
 
+// Pyodide(파이썬 실행 환경)가 시험하는 가장 옛 크롬·엣지 — 2023년 봄 버전. 그보다 옛 버전도 85부터는 Pyodide의 스크립트
+// (pyodide.asm.js의 ||= · ??=)를 읽지만(그 아래는 index.html의 옛 브라우저 안내가 먼저 막는다) 돈다고 확인된 범위가 아니다.
+const PYODIDE_TESTED_CHROMIUM = 112;
+// 크로미움 계열(크롬 · 엣지 · 웨일)의 엔진 버전 — 아니거나 모르면 0
+function chromiumMajor() {
+  const m = /Chrome\/(\d+)/.exec(navigator.userAgent || "");
+  return m ? +m[1] : 0;
+}
+
+// 지금 브라우저의 이름과 버전("크롬 109") — 부팅 실패 안내에 적는다. 모르면 "알 수 없음".
+function browserLabel() {
+  const ua = navigator.userAgent || "";
+  let m;
+  if ((m = /Edg(?:e|A|iOS)?\/(\d+)/.exec(ua))) return "엣지 " + m[1];
+  if ((m = /(?:Whale|SamsungBrowser)\/(\d+)/.exec(ua))) return (ua.includes("Whale") ? "웨일 " : "삼성 인터넷 ") + m[1];
+  if ((m = /Chrome\/(\d+)/.exec(ua))) return "크롬 " + m[1];
+  if ((m = /Firefox\/(\d+)/.exec(ua))) return "파이어폭스 " + m[1];
+  if ((m = /Version\/(\d+)[\d.]* .*Safari/.exec(ua))) return "사파리 " + m[1];
+  return "알 수 없음";
+}
+
 // 브라우저 안에서 Python을 돌리므로 화면을 열기 전에 Pyodide를 부팅해야 한다.
 // 실패하면 false를 돌려주고 로딩 화면에 이유를 띄운다 — app.js는 그 뒤를 진행하지 않는다.
 async function bootPlatform() {
@@ -640,13 +661,23 @@ async function bootPlatform() {
     console.error(e);
     // 영어 오류 원문("Failed to fetch")만 떠 있으면 할 수 있는 일이 없다(2026-10-31 검토 §3 실패 화면 점검).
     // 무슨 일인지·무엇을 하면 되는지를 한국어로, 바로 누를 수 있는 '새로 고침'과 함께.
-    document.getElementById("loadingMsg").textContent =
-      "실행 환경을 불러오지 못했습니다 — 네트워크가 끊겼거나 차단됐을 수 있습니다.";
+    // 원인은 둘 중 하나다 — 파일을 못 받았거나(네트워크·차단), 받았는데 이 브라우저가 못 돌리거나(오래된 크롬·엣지). 병원 PC는
+    // 브라우저 업데이트가 막혀 몇 해 전 버전인 경우가 있어, 둘을 갈라 말하고 지금 브라우저가 무엇인지도 적는다 — 문의를 받는 쪽이
+    // 그 한 줄로 원인을 안다(배포 전 PC 점검 2026-11-24). 오류 글자로는 가르지 않는다: 병원의 웹 필터가 파일 대신 차단 안내
+    // (HTML)를 돌려주면 그것도 CompileError·SyntaxError로 보인다. 그래서 브라우저 버전으로 가른다.
+    const detail = (e && e.message) ? e.message : String(e);
+    const cm = chromiumMajor();
+    const old = cm > 0 && cm < PYODIDE_TESTED_CHROMIUM;
+    document.getElementById("loadingMsg").textContent = old
+      ? "실행 환경을 시작하지 못했습니다 — 이 브라우저가 오래된 버전일 수 있습니다."
+      : "실행 환경을 불러오지 못했습니다 — 네트워크가 끊겼거나 차단됐을 수 있습니다.";
     const sub = document.querySelector("#loadingOverlay .loading-sub");
     if (sub) {
-      sub.innerHTML = "새로 고침해 다시 시도해주세요. 계속 안 되면 다른 네트워크(또는 크롬)로 열어보세요. " +
+      sub.innerHTML = (old
+        ? "먼저 새로 고침해 보시고, 그래도 안 되면 크롬이나 엣지를 최신 버전으로 업데이트한 뒤 다시 열어주세요(업데이트가 막혀 있는 PC라면 전산 담당 부서에 문의). "
+        : "새로 고침해 다시 시도해주세요. 계속 안 되면 다른 네트워크로 열어보거나, 크롬·엣지를 최신 버전으로 업데이트해 보세요. ") +
         '<span class="boot-err-detail"></span><br><button type="button" id="bootRetryBtn" class="small primary">새로 고침</button>';
-      sub.querySelector(".boot-err-detail").textContent = "(기술 정보: " + (e && e.message ? e.message : String(e)) + ")";
+      sub.querySelector(".boot-err-detail").textContent = "(기술 정보: " + detail + " · 브라우저: " + browserLabel() + ")";
       document.getElementById("bootRetryBtn").onclick = () => { window.__allowUnload = true; location.reload(); };
     }
     document.querySelector(".loading-box").classList.add("err");

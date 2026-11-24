@@ -190,7 +190,7 @@ input[type=file] { font-size: .78125rem; max-width: 220px; }
    자리를 먹고 나면 표 상자가 한두 줄만 남거나 화면 밖으로 밀렸다 — 그런데 #gridPane이 overflow:hidden이라 내려갈 수도 없었다
    (2026-11-14 화면 훑기). 키가 작으면 폰 세로처럼 #gridPane이 스크롤하고 표 상자는 화면 높이만큼만 갖는다. */
 @media (min-width: 681px) and (max-height: 520px) {
-  .grid-scroll { max-height: calc(100dvh - 20px); }
+  .grid-scroll { max-height: calc(100vh - 20px); max-height: calc(100dvh - 20px); }
 }
 @media (min-width: 681px) and (min-height: 521px) {
   #gridPane.out-on { overflow: hidden; display: flex; flex-direction: column; }
@@ -691,6 +691,9 @@ td.swap-origin { outline: 2.5px solid var(--accent); outline-offset: -2.5px; }
 .upload-section h3 .hint { display: block; font-weight: 400; margin: 3px 0 0; }
 .upload-item { margin-bottom: 14px; }
 .upload-item:last-child { margin-bottom: 0; }
+/* 파일을 끌어다 이 칸 위에 올려놓은 동안(PC) — 여기에 놓으면 올라간다는 표시. 안쪽 그림자라 칸의 크기가 안 바뀌고 옆이 잘리지 않는다
+   (outline은 위 안내 글자를 가로지르고 좌우가 상자에 잘렸다). */
+.upload-item.drop-on { box-shadow: inset 0 0 0 2px var(--accent); background: rgba(15, 110, 107, .08); border-radius: 6px; }
 .upload-item-label { font-weight: 700; font-size: .78125rem; margin-bottom: 6px; }
 .upload-item-label .hint { font-weight: 400; margin-left: 6px; }
 /* 파일선택 input은 화면에서 숨기고, upload-btn(<button>)이 대신 클릭을 받아 input.click()으로 연다 */
@@ -1216,7 +1219,7 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
   #gridPane { overflow: visible; padding: 10px; contain: none; }
   /* 표는 한 화면 높이 안에서 스스로 스크롤한다 — 그래야 날짜 머리칸이 붙는다(위 #gridPane 주석).
      56px은 헤더 한 줄 몫. 표 끝에 닿으면 페이지 스크롤로 이어진다. */
-  .grid-scroll { max-height: calc(100dvh - 72px); overflow: auto; }   /* 72px = 위에 붙는 탭 띠 몫 */
+  .grid-scroll { max-height: calc(100vh - 72px); max-height: calc(100dvh - 72px); overflow: auto; }   /* 72px = 위에 붙는 탭 띠 몫 */
   #sidePane { width: auto; border-left: none; border-top: 2px solid var(--accent); }
 
   header { padding: 8px 12px; }
@@ -1326,7 +1329,7 @@ header #infoBtn, header .sign-out {
 
 /* 근무 선택기 — 화면 밖으로 안 나가게 높이를 제한하고(넘치면 안에서 스크롤), 폰(≤680px)은 아래에 붙는
    바텀시트. 머리에는 어느 칸인지(이름 · n일)와 ✕. (2026-10-31 검토 P8) */
-.picker { max-height: calc(100dvh - 16px); overflow: auto; }
+.picker { max-height: calc(100vh - 16px); max-height: calc(100dvh - 16px); overflow: auto; }   /* vh는 dvh를 모르는 옛 크롬·엣지(108 미만)용 — 없으면 그 줄이 통째로 버려져 낮은 창에서 아래 단추가 화면 밖으로 나간다 */
 .picker .picker-head {
   flex-basis: 100%; display: flex; align-items: center; gap: 6px; font-size: 12px;
   padding: 0 2px 4px; border-bottom: 1px solid var(--line); margin-bottom: 2px;
@@ -1337,7 +1340,7 @@ header #infoBtn, header .sign-out {
 }
 .picker.sheet {
   left: 0 !important; right: 0; top: auto !important; bottom: 0; max-width: none;
-  border-radius: 12px 12px 0 0; max-height: 70dvh; padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+  border-radius: 12px 12px 0 0; max-height: 70vh; max-height: 70dvh; padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
   box-shadow: 0 -6px 24px rgba(0,0,0,.22);
 }
 .picker.sheet button { min-width: 52px; padding: 8px 10px; font-size: 13px; }

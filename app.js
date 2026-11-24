@@ -458,7 +458,7 @@ window.downloadWantedTemplate = async function () {
 let uploadedMonthRound = -1;
 const monthUploadJustApplied = () => ST && ST.round === uploadedMonthRound;
 
-window.uploadMonth = () => $("#monthInput").click();
+window.uploadMonth = () => openFileInput($("#monthInput"));
 
 window.downloadBothOutputs = async function () {
   // 기존 다운로드 버튼 두 개는 필수 위반이 남아 있으면 한 번 묻는다. 이 분기만
@@ -1121,8 +1121,58 @@ function buildCfgFromForm() {
 // <label>/<a>로 만들었던 이전 버전은 오히려 투명하게 보이는 문제가 있었다. <button>
 // 끼리는 브라우저가 뭘 하든 최소한 서로 똑같이 처리되므로, 둘 다 <button>으로
 // 맞추는 쪽이 "둘이 서로 다르게 보이는" 문제를 가장 확실하게 막는다.
+// 파일 고르기를 연다 — 키보드(Enter)로 누른 것은 한 박자 늦춘다. 키를 누르는 그 순간에 열면 크롬이 가끔 무시한다(점검기 실측: Enter
+// 20번 중 17번만 열렸고, 늦추면 40번 다 열린다 — 관리자 모드의 '문의 파일 열기'에서 먼저 겪은 것과 같은 일이다). 눌렀는데 아무 일도
+// 없으면 PC에서 키보드로 쓰는 사람은 고장으로 안다. 마우스·손가락으로 누른 것(detail ≥ 1)은 그 자리에서 연다 — 늦추면 사파리가 막는다.
+function openFileInput(input, ev) {
+  const e = ev || window.event;
+  const open = () => input.click();
+  if (e && e.type === "click" && e.detail === 0) setTimeout(open, 0); else open();
+}
 document.querySelectorAll(".upload-btn[data-target]").forEach(btn => {
-  btn.onclick = () => $("#" + btn.dataset.target).click();
+  btn.onclick = (e) => openFileInput($("#" + btn.dataset.target), e);
+});
+
+// ---------------------------------------------------------------- 파일을 끌어다 놓기(PC)
+// PC에서는 탐색기의 파일을 화면에 끌어다 놓는 사람이 많다. 받는 곳이 없으면 브라우저가 그 파일을 '연다' — 엑셀이면 같은 파일이
+// 다운로드 줄에 하나 더 생기고(올라간 줄 안다), PDF·그림·글자 파일이면 **앱 화면이 그 파일로 바뀌어** 만들던 표가 사라진다
+// (배포 전 PC 점검 2026-11-24). 그래서 입력①·② 칸 위에 놓으면 '업로드' 단추로 고른 것과 같은 길로 올리고(숨은 파일 칸에 넣고
+// change를 알린다 — 읽기·반려·안내가 전부 그 길 하나다), 다른 곳에 놓으면 아무것도 열지 않고 어디에 놓는지만 알린다.
+function dragHasFiles(e) {
+  const t = e.dataTransfer && e.dataTransfer.types;
+  return !!t && Array.from(t).includes("Files");
+}
+function dropSlot(el) {
+  const item = el && el.closest ? el.closest(".upload-item") : null;
+  return item && item.querySelector('input[type="file"]') ? item : null;
+}
+function markDropSlot(item) {
+  document.querySelectorAll(".upload-item.drop-on").forEach(n => { if (n !== item) n.classList.remove("drop-on"); });
+  if (item) item.classList.add("drop-on");
+}
+window.addEventListener("dragover", (e) => {
+  if (!dragHasFiles(e)) return;
+  e.preventDefault();
+  const item = dropSlot(e.target);
+  e.dataTransfer.dropEffect = item ? "copy" : "none";
+  markDropSlot(item);
+});
+window.addEventListener("dragleave", (e) => { if (!e.relatedTarget) markDropSlot(null); });
+window.addEventListener("drop", (e) => {
+  if (!dragHasFiles(e)) return;
+  e.preventDefault();
+  markDropSlot(null);
+  const item = dropSlot(e.target);
+  const files = e.dataTransfer.files;
+  if (!item) {
+    showToast("파일은 입력 화면의 입력① · 입력② 칸 위에 놓아 주세요 — 엑셀에서 고친 근무표는 '엑셀 수정본 되올리기' 단추로 올립니다");
+    return;
+  }
+  if (!files || !files.length) return;
+  if (files.length > 1) { showToast("파일은 한 번에 하나씩 놓아 주세요", true); return; }
+  const input = item.querySelector('input[type="file"]');
+  try { input.files = files; } catch (_) { showToast("이 브라우저에서는 끌어다 놓기로 올릴 수 없습니다 — '업로드' 단추를 눌러 주세요", true); return; }
+  input.dispatchEvent(new Event("change", { bubbles: true }));
 });
 
 // ---------------------------------------------------------------- 입력② 예시 — 화면 연월에 맞는 파일을 내준다
@@ -3531,7 +3581,7 @@ delegateClick(document.getElementById("sidePane"), "button.undo-edit",
 delegateClick(document.getElementById("sidePane"), "button.swap-pick",
   (b) => stageSwap(b.dataset.sid, Number(b.dataset.day), b.dataset.partner));
 delegateClick(document.getElementById("sidePane"), "button.notice-set-screen", () => setNoticeFromScreen());
-delegateClick(document.getElementById("sidePane"), "button.notice-set-file", () => $("#baselineInput").click());
+delegateClick(document.getElementById("sidePane"), "button.notice-set-file", (b, ev) => openFileInput($("#baselineInput"), ev));
 delegateClick(document.getElementById("sidePane"), "button.notice-clear", () => {
   if (!confirm("공지 기준본을 지울까요? 안내 초안과 '전달함' 표시도 함께 사라집니다.")) return;
   NOTICE = null; saveNotice(); renderSide();
