@@ -430,15 +430,21 @@ function setFormYearMonth(year, month) {
 // 연/월을 그대로 쓴다 — 원티드표는 늘 같은 달 것이라 따로 고를 필요가 없다. 인원의
 // 직급·숙련도·가능근무·비고까지 현재 값으로 미리 채워 내려줘서, 다시 올릴 때 필요한
 // 부분만 고치면 된다.
-window.downloadWantedTemplate = async function () {
+// 두 가지(사용자 결정 2026-11-24): '원티드만' = 인원 칸을 비운 양식(명단은 입력②에서 — 평소 달),
+// '명단 포함' = 지금 명단으로 인원 칸을 채운 양식(첫 달·전입·숙련도 변경이 있는 달). 명단 칸이 채워진 양식만
+// 있으면 평소 달에도 그 칸을 그대로 올리게 되고, 그 값이 입력②보다 우선해 최신 가능근무·숙련도가 무시된다.
+// 단추 둘은 index.html의 data-roster로 갈린다(값을 인라인 핸들러에 끼우지 않는다).
+window.downloadWantedTemplate = async function (withRoster = true) {
   const year = parseInt($("#f_year").value, 10);
   const month = parseInt($("#f_month").value, 10);
   const staff = formStaff.map(s => ({ id: s.id, role: s.role, level: s.level,
                                       allowed_shifts: s.allowed, flags: s.flags }));
   await apiDownloadWantedTemplate(
-    { year, month, staff, team_b_names: teamBNamesFromForm() },
-    `입력1_원티드표_${year}-${String(month).padStart(2, "0")}.xlsx`);
+    { year, month, staff, team_b_names: teamBNamesFromForm(), with_roster: !!withRoster },
+    `입력1_원티드표_${year}-${String(month).padStart(2, "0")}${withRoster ? "_명단포함" : ""}.xlsx`);
 };
+document.querySelectorAll("button[data-wanted-template]").forEach(b =>
+  b.addEventListener("click", () => downloadWantedTemplate(b.dataset.wantedTemplate === "roster")));
 
 // 결과 화면의 다운로드 두 개 — 어느 판이냐에 따라 받는 방법이 다르다(platform.js).
 // 엑셀에서 고친 월간근무표를 되올린다 — 재생성 없이 그 값 그대로 화면에 반영.
@@ -1128,7 +1134,7 @@ function buildCfgFromForm() {
 }
 
 // ================================================================ 업로드 / 생성
-// "업로드"·"양식(다운로드)" 둘 다 일부러 진짜 <button>으로 통일했다 — 삼성인터넷
+// "업로드"·"양식(원티드만/명단 포함)" 모두 일부러 진짜 <button>으로 통일했다 — 삼성인터넷
 // 등에서 헤더의 "프로그램 정보·사용법"(진짜 <button>)은 다크모드에서 색이 살아있는데
 // <label>/<a>로 만들었던 이전 버전은 오히려 투명하게 보이는 문제가 있었다. <button>
 // 끼리는 브라우저가 뭘 하든 최소한 서로 똑같이 처리되므로, 둘 다 <button>으로
@@ -2292,7 +2298,7 @@ function renderFirstUseCard() {
     `<div class="first-use-head"><b>처음이면 이 순서로</b> <button type="button" class="linklike" id="firstUseClose">닫기</button></div>` +
     `<ol class="first-use-steps">` +
     step(firstUse.gen, "① 그대로 <b>[근무표 생성]</b>을 눌러 결과 화면을 한 번 보기 — 샘플 병동(40명) 값으로 만들어집니다") +
-    step(firstUse.wanted, "② 입력①의 <b>양식(다운로드)</b>을 받아 우리 명단·신청을 넣고 <b>업로드</b>") +
+    step(firstUse.wanted, "② 입력①의 <b>양식(명단 포함)</b>을 받아 우리 명단·신청을 넣고 <b>업로드</b>(다음 달부터는 <b>양식(원티드만)</b>)") +
     step(firstUse.settings, "③ <b>근무정보·근무인력</b>을 우리 병동 값으로 고치기 — 한 번 고치면 이 브라우저에 저장됩니다") +
     `</ol>` +
     `<p class="hint">막히면 <a href="manual.html#in" target="_blank" rel="noopener">📘 사용자 매뉴얼의 입력 화면 따라하기</a>를 옆에 띄워 두고 그대로 누르세요 — 실제 화면에 누를 자리가 표시됩니다.</p>` +
@@ -4984,7 +4990,7 @@ function renderNextMonthCard() {
   box.innerHTML = `<div class="next-month-card"><b>다음 달 준비</b><ol>` +
     `<li>연월을 <b>${ny}년 ${nm}월</b>로</li>` +
     `<li>지금 받은 <b>출력②(연간근무표)</b>를 <b>입력②</b> 칸에</li>` +
-    `<li>새 <b>입력①</b> — 양식(다운로드)을 받아 ${nm}월 신청을 채워 올리기</li></ol>` +
+    `<li>새 <b>입력①</b> — <b>양식(원티드만)</b>을 받아 ${nm}월 신청을 채워 올리기(전입자가 있거나 숙련도·가능근무가 바뀌었으면 <b>양식(명단 포함)</b>)</li></ol>` +
     `<p class="hint">입력①·②를 올리고 생성하면 잔휴·연속근무·야간블록이 이어집니다.</p></div>`;
 }
 
