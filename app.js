@@ -498,7 +498,12 @@ window.applyUploadedMonth = async function (f) {
   const before = (ST && ST.grid) || {};
   try {
     const beforeB = (ST && ST.team_b_grid) || {};
-    const next = await apiUpload("/api/upload_month", f);
+    let next = await apiUpload("/api/upload_month", f);
+    if (next && next.needs_confirm) {
+      // 한 사람의 날짜 칸이 통째로 빈 파일 — 서버는 아직 아무것도 바꾸지 않았다. 확인을 받으면 같은 파일을 다시 올려 반영한다.
+      if (!confirm(`${next.message}\n\n그래도 이 파일대로 반영하시겠습니까?`)) { showToast("파일을 반영하지 않았습니다 — 표는 그대로입니다"); return; }
+      next = await apiUpload("/api/upload_month", f);
+    }
     let moved = 0;
     for (const sid in next.grid) {
       const a = before[sid];
