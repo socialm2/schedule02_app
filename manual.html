@@ -320,7 +320,8 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 
 <h3 id="leave">휴직 · 병가 · 긴 휴가</h3>
 <ul>
-<li>쉬는 날마다 한 칸씩 적습니다 — <code>휴</code>(휴직) <code>병</code>(병가) <code>공</code>(공가) <code>경</code> <code>경*</code>(경조사) <code>조</code> <code>조*</code>(조사) <code>승</code>(승급교육) <code>군</code>(군공가) <code>상</code>(상병휴직) <code>R</code>(리차지 휴직 — 한 달 내내). 첫날만 적으면 그 하루만 빠집니다.</li>
+<li>쉬는 날마다 한 칸씩 적습니다 — <code>휴</code>(휴직) <code>병</code>(병가) <code>공</code>(공가) <code>경</code> <code>경*</code>(경조사) <code>조</code> <code>조*</code>(조사) <code>승</code>(승급교육) <code>군</code>(군공가) <code>상</code>(상병휴직) <code>R</code>(리차징 — 한 달 내내). 첫날만 적으면 그 하루만 빠집니다.</li>
+<li>병원 근무표의 다른 휴직·휴가 코드도 그대로 적으면 됩니다 — <code>사</code> <code>산전</code> <code>출산</code> <code>육법</code> <code>육법*</code> <code>육연</code> <code>출</code> <code>유</code> <code>근</code> <code>특</code> 등. 그날은 배정에서 빠집니다.</li>
 <li>별표가 붙은 <code>조*</code>·<code>경*</code>은 별표 없는 <code>조</code>·<code>경</code>과 <b>다른 코드</b>입니다 — 잔휴에 주는 영향이 다릅니다(<a href="#offbal">잔휴 계산</a>). 별표를 지우고 읽지 않습니다.</li>
 <li>이 표기들은 병동에 없는 날이라 밀리지 않습니다. <code>X</code>와 <code>연</code>(연차)은 희망이라 그날 인원이 모자라면 밀릴 수 있습니다.</li>
 <li><code>X</code>·연차를 14일 넘게 이어 적으면 15일째부터 반려됩니다. 이 반려는 파일을 올릴 때가 아니라 <b>[근무표 생성]을 누른 뒤</b> '원티드' 탭의 미반영 목록에 뜹니다. 더 쉬어야 하면 구간을 나눠 적습니다.</li>
@@ -603,7 +604,7 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 <tr><th>코드·경우</th><th>잔휴에 주는 영향</th></tr>
 <tr><td class="k"><code>X</code> · <code>/</code></td><td>하루씩 뺍니다</td></tr>
 <tr><td class="k"><code>조</code> · <code>경</code> · <code>병</code>(병가) · <code>상</code>(상병휴직) · <code>T</code>(교육)</td><td><b>토·일·공휴일에 걸린 날만</b> 쉰 날로 보고 하루씩 뺍니다. 평일은 영향이 없습니다(공휴일의 교육은 쉬는 날입니다)</td></tr>
-<tr><td class="k"><code>R</code>(리차지)</td><td>한 달 내내 빠지는 휴직이라, 그 달은 휴일이 쌓이지도 빠지지도 않아 잔휴가 <b>그대로</b>입니다</td></tr>
+<tr><td class="k"><code>R</code>(리차징)</td><td>한 달 내내 빠지는 휴직이라, 그 달은 휴일이 쌓이지도 빠지지도 않아 잔휴가 <b>그대로</b>입니다</td></tr>
 <tr><td class="k"><code>조*</code> · <code>경*</code></td><td>영향이 없습니다(근무로 인정되는 휴가)</td></tr>
 <tr><td class="k">야간만 선 달</td><td>그 달 근무가 모두 <code>N</code>·<code>NK</code>이면 잔휴를 <b>그대로</b> 둡니다(쌓지도 빼지도 않습니다)</td></tr>
 <tr><td class="k">파견</td><td>파견 가서 쉰 날(<code>P-X/S13</code>·<code>P-//S13</code>)은 쉰 날로 하루씩 뺍니다. 파견 가서 근무한 날(<code>P-D/S13</code> 등)은 영향이 없습니다</td></tr>
