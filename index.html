@@ -57,7 +57,7 @@
   <header>
     <!-- 배지·빌드시각은 스크린리더가 제목으로 읽지 않게 감싼다(aria-hidden). .build-time span 자체는
          CI(deploy.yml)가 정규식으로 찾아 바꾸므로 그 태그에는 속성을 더하지 말 것. -->
-    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.89</span><span class="build-time">Updated 2026-11-24 16:49:50</span></span></h1>
+    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.89</span><span class="build-time">Updated 2026-11-24 17:27:48</span></span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 사용자 매뉴얼</button>
@@ -189,16 +189,15 @@
             <details class="form-sec" open>
               <summary>파일입력</summary>
               <!-- 양식 안내는 제목 바로 아래(사용자 2026-11-14) — 두 칸 가운데 먼저 읽는 글이다 -->
-              <p class="hint upload-how" id="wantedFormatHint">입력①은 평소엔 <b>양식(원티드만)</b>에 신청만 적어 올리면 됩니다(명단은 입력②에서). 첫 달·전입자가 있는 달·숙련도나 가능근무가 바뀐 달은 <b>양식(명단 포함)</b>을 받으세요. 날짜 칸은 OCS에서 그대로 붙여넣어도 됩니다.</p>
+              <p class="hint upload-how" id="wantedFormatHint"><b>양식(다운로드)</b>으로 받은 파일에 적어 올리세요 — 날짜 칸은 OCS에서 그대로 붙여넣어도 됩니다.</p>
               <div class="upload-item">
               <div class="upload-item-label">입력① 원티드표
-                <span class="hint">원티드 신청 — 명단(직급·숙련도·가능근무)은 첫 달·전입·변경이 있는 달만 함께</span>
+                <span class="hint">명단(직급·숙련도·가능근무·비고·전입)과 원티드 신청</span>
               </div>
               <div class="upload-row">
                 <input type="file" id="wantedInput" accept=".xlsx" class="file-input-hidden" tabindex="-1">
                 <button type="button" class="upload-btn" data-target="wantedInput" aria-label="입력① 원티드표 업로드">업로드</button>
-                <button type="button" class="upload-btn format-btn" data-wanted-template="wanted" aria-label="입력① 원티드표 양식 다운로드 — 원티드만(명단은 입력②에서)" title="인원 칸이 빈 양식 — 날짜 칸에 원티드만 적어 올립니다. 명단은 입력②(지난달 연간근무표)에서 가져옵니다">양식(원티드만)</button>
-                <button type="button" class="upload-btn format-btn" data-wanted-template="roster" aria-label="입력① 원티드표 양식 다운로드 — 명단 포함" title="지금 명단으로 인원 칸을 채운 양식 — 첫 달, 전입자가 있는 달, 숙련도·가능근무가 바뀐 달에 씁니다">양식(명단 포함)</button>
+                <button type="button" class="upload-btn format-btn" onclick="downloadWantedTemplate()" aria-label="입력① 원티드표 양식 다운로드">양식(다운로드)</button>
               </div>
               <!-- 올린 파일 요약(app.js renderStaffSummary): 없으면 "올린 파일 없음 — …", 있으면 "✓ 입력① 반영 — 연월 · 인원 · 원티드 n건" -->
               <p id="staffSummary" class="file-sum" role="status"></p>

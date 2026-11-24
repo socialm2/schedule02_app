@@ -722,8 +722,6 @@ details.form-sec > .upload-item + .upload-item { border-top: 1px dashed var(--li
   /* 좁으면 줄을 바꾼다 — nowrap+ellipsis로 "양식(다운…"이 되던 것(검토 C 1-5). 두 버튼은
      flex 아이템이라 한쪽이 두 줄이 되면 다른 쪽도 같은 높이로 늘어난다. */
   text-decoration: none; white-space: normal; overflow: visible; text-overflow: clip;
-  /* 꺾어도 낱말 중간에서는 꺾지 않는다 — 단추가 셋이 되자 폰에서 "양식(원티 / 드만)"처럼 끊겼다(2026-11-24) */
-  word-break: keep-all;
 }
 .upload-btn:hover { filter: brightness(.95); }
 .upload-btn.format-btn { font-weight: 500; }
