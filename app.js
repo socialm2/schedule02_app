@@ -3125,7 +3125,7 @@ function computeDailyLevelStats() {
 // 순서는 다운로드 엑셀(excel_export.duty_codes_present)과 같다: D·E·N·NK → 엔진 Shift 선언 순
 // → 그 외(표에 모르는 코드가 있을 때)는 글자순.
 // DUTY_ORDER는 엔진의 excel_export._DUTY_ORDER와 같아야 한다 — tests/test_pyodide_sync.py가 대조한다.
-const DUTY_ORDER = ["D", "E", "N", "NK", "8A", "9A", "10A", "prn", "OFF", "연차", "T", "조", "경", "연1", "연2", "연3", "연4", "공", "병", "휴", "승", "S/", "TW", "군", "5A", "5AH", "5M", "6A", "7A", "7A(10", "7A(11", "7H", "8A(10", "8A*", "8AH", "8A◎", "8H", "9AH", "9H", "9H*", "10H", "11A", "11*", "13H", "1P", "1P*", "MD", "DH", "EH", "TDH", "TEH", "TH", "DP", "EP", "RD", "RE", "RP", "D◎", "E◎", "8공연", "연6", "공4", "격", "원", "포", "힐", "가", "난", "생", "근", "유", "출", "특", "결*", "조*", "R", "사", "산전", "상", "육법", "육법*", "육연", "출산"];
+const DUTY_ORDER = ["D", "E", "N", "NK", "8A", "9A", "10A", "prn", "OFF", "연차", "T", "조", "경", "연1", "연2", "연3", "연4", "공", "병", "휴", "승", "S/", "TW", "군", "5A", "5AH", "5M", "6A", "7A", "7A(10", "7A(11", "7H", "8A(10", "8A*", "8AH", "8A◎", "8H", "9AH", "9H", "9H*", "10H", "11A", "11*", "13H", "1P", "1P*", "MD", "DH", "EH", "TDH", "TEH", "TH", "DP", "EP", "RD", "RE", "RP", "D◎", "E◎", "8공연", "연6", "공4", "격", "원", "포", "힐", "가", "난", "생", "근", "유", "출", "특", "결*", "조*", "경*", "R", "사", "산전", "상", "육법", "육법*", "육연", "출산"];
 function dutyColumns() {
   const seen = new Set(["D", "E", "N"]);
   for (const s of ST.staff) for (const v of (ST.grid[s.id] || [])) if (v) seen.add(v);
