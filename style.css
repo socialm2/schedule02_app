@@ -118,16 +118,10 @@ header .version-badge {
   color: var(--sub); background: var(--code-bg); padding: 1px 7px; border-radius: 999px;
   vertical-align: middle; margin-left: 4px;
 }
-/* 최근 수정 일시 — 눈에 띄지 않게 옅게, 배포 확인용(캐시가 최신인지 등)으로
-   신경 쓰면 보이는 정도로만. 수정할 때마다 index.html의 값을 KST(한국시간, UTC+9)
-   기준으로 갱신한다 — 이 저장소 작업 환경은 UTC라 `TZ='Asia/Seoul' date '+%Y-%m-%d %H:%M:%S'`
-   로 뽑아써야 한다(그냥 date는 UTC가 나와 9시간 어긋난다). */
-header .build-time {
-  font-family: "JetBrains Mono", monospace; font-size: .6875rem; font-weight: 500;
-  /* 옅게(opacity .5·9.5px) 죽였더니 대비 2.13:1 — 배포 확인용이라도 읽혀야 한다. 색은
-     --sub(5.9:1), 작기는 하되 11px 아래로는 내리지 않는다. */
-  color: var(--sub); vertical-align: middle; margin-left: 6px;
-}
+/* 배포 시각 — 화면에는 보이지 않는다(사용자 결정 2026-11-25: "배포 시간은 지워" — 머리줄에는 버전만). 값은 CI가 배포마다
+   index.html에 계속 박고, '새 버전이 있습니다' 띠(platform.js pageIsStale)·문의 파일·배포 확인이 그 글자를 읽는다 — 그래서
+   지우지 않고 감춘다. 보이던 때의 글꼴·색 규칙과 폰에서 제목 아래로 내리던 규칙(≤680px · ≤360px)은 같이 걷어냈다. */
+header .build-time { display: none; }
 header .ward-info { font-size: .78125rem; color: var(--sub); }
 header .spacer { flex: 1; }
 /* 앱 이름(제목)보다 절대 커 보이면 안 됨 — 제목은 16px/굵게인데 기본 button 스타일(13px)도
@@ -1223,13 +1217,12 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
   #sidePane { width: auto; border-left: none; border-top: 2px solid var(--accent); }
 
   header { padding: 8px 12px; }
-  /* 세로 폰: 왼쪽에 제목(아래 줄에 빌드시각), 오른쪽에 설명서 버튼 — 한 줄에 같이 선다.
+  /* 세로 폰: 왼쪽에 제목(버전 배지까지 한 줄), 오른쪽에 설명서 버튼 — 한 줄에 같이 선다.
      예전엔 제목이 한 줄을 다 차지해 버튼이 혼자 다음 줄로 내려가 머리 영역이 세 줄이 됐다(사용자).
-     빌드시각을 제목 아래로 내리면 제목 덩어리가 ~185px라 360px 폰에서도 버튼(~110px)이 옆에 들어간다.
+     제목 덩어리가 ~185px라 360px 폰에서도 버튼(~110px)이 옆에 들어간다(배포 시각은 2026-11-25부터 보이지 않는다).
      더 좁으면 버튼만 다음 줄 오른쪽으로 떨어진다(margin-left:auto). Log-out은 숨김(platform.js)이라
      버튼 묶음이 갈라질 일은 없고, 병동명 줄(.ward-info)은 있어도 맨 아래 한 줄로 보낸다. */
   header h1 { font-size: 1.125rem; flex: 0 1 auto; min-width: 0; }
-  header .build-time { display: block; margin: 2px 0 0; }
   header .ward-info { order: 5; flex-basis: 100%; }
   header .ward-info:empty { display: none; }
   header .spacer { display: none; }
@@ -1251,7 +1244,7 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
   table.grid td.nm .role { display: none; }
 
 }
-/* 320px·확대 200%(유효 폭 ~200px): 2열 폼은 라벨이 잘리고 빌드시각이 제목 안에서 두 줄로 꺾인다 */
+/* 320px·확대 200%(유효 폭 ~200px): 2열 폼은 라벨이 잘린다 */
 @media (max-width: 360px) {
   /* 1fr은 칸 안 입력칸의 고유 폭(≈220px)까지만 줄어 확대 200%(유효 195px)에서 카드 밖으로 넘쳤다 —
      minmax(0,1fr)로 칸을 끝까지 줄이고 입력칸은 칸 폭을 따른다. */
@@ -1260,7 +1253,6 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
   /* 연·월 두 칸이 한 줄에 안 들어가면 값("2026년")이 잘려 빈칸처럼 보인다 — 그때는 두 줄로 */
   .ym-picker { flex-wrap: wrap; }
   .ym-picker select { flex: 1 1 88px; }
-  header .build-time { display: block; margin: 2px 0 0; }
   .upload-item .upload-row { flex-wrap: wrap; }
   .upload-item .upload-row .upload-btn { flex: 1 1 100px; }   /* basis 0이면 줄을 안 바꾸고 33px 기둥이 됐다 */
   /* 근무인력 머리칸('일요일·공휴일')이 한 줄을 고집하면 320px에서 표가 몇 px 넘쳐 가로 스크롤이 생긴다 */
