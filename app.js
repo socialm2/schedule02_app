@@ -1713,7 +1713,7 @@ function genOpts() {
 // attempt_key와 같은 순서(운영 필수 → 숙련도 → 공평성 → 전체 → 앞 시드, 2026-10-30). 화면 표시(지금까지 최선·점수표
 // 접기)에만 쓴다 — 최종 선택은 엔진(choose_attempt) 한 벌이다.
 function attemptBetter(a, b) {
-  const key = x => [x.blocking, x.h15, Math.round((x.fairness || 0) * 100), x.hard, x.seed];
+  const key = x => [x.blocking, x.h15, -Math.round((x.one || 0) * 10), x.hard, x.seed];   // 3번째 = 형평성 점수(높을수록 좋다)
   const ka = key(a), kb = key(b);
   for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return ka[i] < kb[i];
   return false;
@@ -4887,13 +4887,13 @@ function renderSide() {
       `<span class="tap-hint">줄을 누르면 그 시드의 표로 바뀝니다(다운로드도 그 표)</span></h3>` +
       // 열이 열한 개라 좁은 패널(폰·307px)에서는 넘친다 — 가로 스크롤 상자에 넣는다(표가 잘려 마지막 열이 안 보였다)
       `<div class="attempt-scroll"><table class="mini-table attempt-table${attemptTableExpanded ? " expanded" : ""}"><tr><th>시드</th><th title="최소인력·지정·연속근무 등 그날 병동이 못 돌아가는 필수 위반">운영필수</th>` +
-      '<th title="조에 숙련도 4 이상이 없는 횟수(H1-5)">숙련도</th><th title="2×횟수+주말+조구성+단독+미반영 — 전체 하드보다 먼저 본다">공평성</th><th title="최선노력 규칙까지 포함한 전체 하드 위반">전체</th>' +
+      '<th title="조에 숙련도 4 이상이 없는 횟수(H1-5)">숙련도</th><th title="예전에 고르던 기준(2×횟수+주말+조구성+단독+미반영) — 지금은 참고용이고 고르는 기준은 맨 오른쪽 점수다">공평성 합</th><th title="최선노력 규칙까지 포함한 전체 하드 위반">전체</th>' +
       '<th title="같은 조건끼리 D·E·N 횟수가 가능일 비례 목표에서 벗어난 날수의 합(×2로 가장 무겁게)">횟수</th>' +
       '<th title="같은 조건끼리 주말 근무가 평균에서 벗어난 날수">주말</th>' +
       '<th title="날짜·조마다 레벨 띠(1-2·3·4-5) 구성이 병동 비율에서 벗어난 사람 수의 합">조구성</th>' +
       '<th title="혼자 Lv4+인 조에 선 횟수가 고연차 평균에서 벗어난 횟수의 합">단독</th>' +
       '<th title="반려된 원티드 신청 건수">미반영</th>' +
-      '<th title="화면 형평성 점수와 같은 산식(0~100, 높을수록 고름). 시드 선택 기준이 아니라 읽는 눈금 — 엔진이 고른 ✓와 다른 줄이 더 높을 수 있고, 그 표에는 대개 필수 위반이 있다" class="disp-col">점수</th></tr>' +
+      '<th title="형평성 점수(0~100, 높을수록 좋음) — 운영필수·숙련도가 같은 표끼리는 이 점수가 높은 표를 고른다. ✓보다 높은 줄이 있으면 그 표에는 필수 위반이 더 많다" class="disp-col">점수</th></tr>' +
       rows.map(a => {
         const cur = a.seed === ST.current_seed;
         const cls = (a.chosen ? "chosen " : "") + (cur ? "current " : "") + (shown.has(a.seed) ? "" : "attempt-fold");
@@ -4909,11 +4909,11 @@ function renderSide() {
       `<details class="attempt-cols"><summary>열 뜻</summary><dl class="def-list">` +
       [["시드", "같은 입력을 다른 출발점으로 돌린 번호(글자 W 주말 몫 우선 · S 고연차 먼저 · B 블록 이어가기 먼저)"],
        ["운영필수", "최소인력·지정·연속근무처럼 그날 병동이 못 돌아가는 필수 위반 수"], ["숙련도", "조에 숙련도 4 이상이 없는 횟수"],
-       ["공평성", "2×횟수 + 주말 + 조구성 + 단독 + 미반영(사람·일 단위, 낮을수록 고름)"], ["전체", "노란 추가 검토까지 더한 위반 수"],
+       ["공평성 합", "예전에 고르던 기준 — 2×횟수 + 주말 + 조구성 + 단독 + 미반영(낮을수록 고름). 지금은 참고용"], ["전체", "노란 추가 검토까지 더한 위반 수"],
        ["횟수", "D·E·N 횟수가 목표에서 벗어난 날수 합"], ["주말", "주말 근무가 평균에서 벗어난 날수"],
        ["조구성", "조의 숙련도 띠 구성이 병동 비율에서 벗어난 사람 수"], ["단독", "혼자 Lv4+인 조에 선 횟수의 쏠림"],
        ["미반영", "반려된 원티드 신청 수"],
-       ["점수", "화면 '형평성 점수'와 같은 0~100 눈금 — 고르는 기준이 아니라 읽는 눈금이라 ✓와 다른 줄이 더 높을 수 있다(그 표에는 대개 필수 위반이 있다)"]]
+       ["점수", "화면 '형평성 점수'와 같은 숫자(0~100) — 운영필수·숙련도가 같은 표끼리는 이 점수가 높은 표를 고른다. ✓보다 높은 줄이 있으면 그 표에는 필수 위반이 더 많다"]]
         .map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("") + `</dl></details>` +
       `<ul class="note-lines side-note"><li>앞 열부터 견줘 다르면 뒤 열은 보지 않습니다 — 운영 필수 → 숙련도 → 공평성 → 전체.</li>` +
       `<li>✓ = 점수가 가장 좋은 시드(기본값), ◀ = 지금 보는 표.</li><li><b>줄을 누르면 그 시드의 표로 바뀝니다</b>(다운로드도 그 표).</li>` +
@@ -5098,11 +5098,22 @@ function renderFairScore() {
     (fe ? `<span class="fair-edited">→ 수정 후 <b class="${fairGradeClass(fe.grade && fe.grade.key)}" data-fair-edited-total="${fairOneNumber(fe)}">${fairOneNumber(fe)}</b> <small>(${esc(fe.grade ? fe.grade.label : "")} · 미적용 편집 ${ST.pending.length}칸 반영)</small></span>` : "") +
     `</div>` +
     // 가장 낮은 축 — 가중 평균에 가려진 축을 한 글자로. 견준 사람이 10명 밑이면 '인원 적음'도 함께(백분위는 서도 뜻이 흔들린다).
-    (f.lowest ? `<p class="fair-lowest" data-fair-lowest="${escAttr(f.lowest.key)}">가장 낮은 축: <b class="${fairGradeClass((f.axes.find(a => a.key === f.lowest.key) || {}).grade && f.axes.find(a => a.key === f.lowest.key).grade.key)}">${esc(f.lowest.name)} ${Math.round(f.lowest.score)}</b>${f.few_people ? ` · <span class="warn-text">견준 사람 ${f.people}명 — 인원 적음</span>` : ""}</p>` : "") +
+    (f.lowest ? `<p class="fair-lowest" data-fair-lowest="${escAttr(f.lowest.key)}">가장 낮은 축: <b class="${fairGradeClass(f.lowest.grade && f.lowest.grade.key)}">${esc(f.lowest.name)} ${Math.round(f.lowest.score)}</b>${f.few_people ? ` · <span class="warn-text">견준 사람 ${f.people}명 — 인원 적음</span>` : ""}</p>` : "") +
     // 면책은 한 줄 — 접힘 끝의 "낮아도 파트장이 그대로 두거나 고칩니다"와 같은 말이라 합쳤다(사용자 2026-11-16)
     `<p class="side-note fair-ref">참고용 점수입니다 — 필수 규칙과 별개라, 낮아도 병동 사정에 따라 그대로 두거나 고치면 됩니다.</p>` +
     // 축별 막대·추가 지표·변경량·누적 형평은 접힘 안에 — 늘 펼쳐 두면 종합을 본 뒤에도 여러 문단을 지나야 다음 칸이 나온다.
-    `<details class="fair-detail" id="fairDetail"><summary>축별 점수 · 누적 형평 보기</summary><ul class="fair-axes">`;
+    `<details class="fair-detail" id="fairDetail"><summary>축별 점수 · 누적 형평 보기</summary>`;
+  // 형평성 점수(한 숫자)의 구성 — 프로그램이 표를 고르고 다듬는 기준과 같은 숫자다(2026-11-24). 축 점수의 무게 평균을 위반 감점으로 나눈다.
+  const one = f.one;
+  if (one && Array.isArray(one.axes)) {
+    html += `<ul class="fair-axes" id="fairOneAxes">` + one.axes.map(a => {
+      const sc = a.score == null ? null : Math.round(a.score), cls = fairGradeClass(a.grade && a.grade.key);
+      return `<li class="fair-axis" data-fair-score-axis="${escAttr(a.key)}"><div class="fair-axis-head"><span class="fair-axis-name">${esc(a.name)}${a.weight !== 1 ? ` <small>×${a.weight}</small>` : ""}</span><b class="${cls}">${sc == null ? "–" : sc}</b></div>` +
+        `<div class="fair-bar"><i class="${cls}" style="width:${sc == null ? 0 : sc}%"></i></div><div class="fair-axis-text">${phraseLines(a.text || "", " · ")}</div></li>`;
+    }).join("") + `</ul><p class="side-note" id="fairOnePenalty">${esc(one.penalty_text || "")}</p>` +
+      `<p class="side-note">${esc(f.selection_note || "")}</p><p class="fair-sub-head"><b>항목별 세부</b> — 기준 달들과 견준 눈금(종합과는 다른 셈)</p>`;
+  }
+  html += `<ul class="fair-axes">`;
   for (const a of f.axes) {
     const sc = a.score == null ? null : Math.round(a.score);
     const cls = fairGradeClass(a.grade && a.grade.key);

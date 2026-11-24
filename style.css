@@ -1523,6 +1523,7 @@ header #infoBtn, header .sign-out {
 .jour-mine { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,.18); font-size: .72rem; line-height: 1.45; color: #e5e7eb; }
 .jour-mine b { color: #fde68a; margin-right: 4px; }
 .fair-change { font-size: .72rem; color: var(--sub); margin: 6px 0 0; }
+.fair-sub-head { font-size: .74rem; color: var(--sub); margin: 12px 0 2px; padding-top: 8px; border-top: 1px dashed var(--line); }
 .fair-cum { margin-top: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: .74rem; }
 .fair-cum > b { color: var(--accent); margin-right: 4px; }
 /* 줄 나눔(2026-11-16) — 엔진 설명을 문장·지표·사람마다 한 줄로. 쏠린 사람은 작은 칸(chip)으로 늘어놓는다 */
