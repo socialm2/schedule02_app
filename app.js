@@ -756,12 +756,18 @@ function renderStaffSummary() {
   // "올린 파일 없음"이라고 먼저 말하고 그 대신 무엇으로 만드는지를 적는다. 예전 문구("현재 인원: 40명 — 샘플 명단 — …")는
   // 파일이 없다는 말이 없어서 올린 줄 아는 사람이 있었다(사용자 2026-11-14).
   const n = formStaff.length, req = formRequests.length, tb = teamBNamesFromForm().length;
-  const fromFile = staffFromWanted && wantedSource !== "sample";
+  // '올렸는가'는 파일을 올렸는가로 본다 — 명단을 읽었는가로 보면, 명단 칸이 빈 '양식(원티드만)'을 올렸을 때 신청이 들어갔는데도
+  // "올린 파일 없음"이 떠서 업로드가 안 된 줄 알았다(2026-11-24 사용자 "입력1 업로드가 안 됨").
+  const fromFile = wantedSource === "file";
   const bad1 = fromFile && !!wantedYM && ymMismatch();   // 문제가 있으면 초록 ✓가 아니라 노란 ⚠ — 아래 안내와 같은 말을 해야 한다
   el.classList.toggle("on", fromFile && !bad1);
   el.classList.toggle("warn", bad1);
   if (fromFile) {
-    el.textContent = `${bad1 ? "⚠" : "✓"} 입력① 반영 — ${wantedActiveTag ? wantedActiveTag + " · " : ""}인원 ${n}명 · 원티드 ${req}건${tb ? ` · B팀 ${tb}명` : ""}`;
+    const head = `${bad1 ? "⚠" : "✓"} 입력① 반영 — ${wantedActiveTag ? wantedActiveTag + " · " : ""}`;
+    el.textContent = staffFromWanted
+      ? `${head}인원 ${n}명 · 원티드 ${req}건${tb ? ` · B팀 ${tb}명` : ""}`
+      : `${head}원티드 ${req}건${tb ? ` · B팀 ${tb}명` : ""} · 명단은 ` +
+        (staffOfAnnual.length ? `입력②의 ${n}명` : `예시 ${n}명 — 입력②를 올리면 그 명단을 씁니다`);
   } else if (!n) {
     el.textContent = "올린 파일 없음";
   } else if (staffOfAnnual.length && !staffFromWanted) {
@@ -1350,13 +1356,14 @@ async function handleWantedFile(f) {
     wantedSource = "file";
     rebaseWantedToScreen();
     const staffUpdated = (data.staff || []).length > 0;
-    if (staffUpdated) {
-      staffOfWanted = data.staff.map(s => ({
-        id: s.id, role: s.role, level: s.level,
-        allowed: [...(s.allowed_shifts || [])], flags: [...(s.flags || [])],
-      }));
-      recomputeStaff();
-    }
+    // 명단이 없는 파일('양식(원티드만)')이면 앞서 올린 입력①의 명단도 걷는다 — 새 입력①이 통째로 이번 달 입력①이다(신청도
+    // 통째로 바뀐다). 예전엔 명단 포함 파일 뒤에 원티드만 파일을 올리면 앞 파일의 명단이 남아, '명단은 입력②에서'라는 그 양식의
+    // 뜻과 달리 앞 파일의 (옛) 명단으로 근무표가 만들어졌다(2026-11-24).
+    staffOfWanted = staffUpdated ? data.staff.map(s => ({
+      id: s.id, role: s.role, level: s.level,
+      allowed: [...(s.allowed_shifts || [])], flags: [...(s.flags || [])],
+    })) : [];
+    recomputeStaff();
     const teamB = data.team_b_names || [];
     // 명단을 준 입력①이면 그 파일의 B팀이 이번 달 B팀이다(0명이면 0명). 명단 없이 신청만 읽힌 파일은 B팀을 말하지 않은 것이다.
     if (staffUpdated || teamB.length) teamBOfWanted = [...teamB];
