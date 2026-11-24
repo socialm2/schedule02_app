@@ -207,6 +207,7 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 <tr><th>칸</th><th>표시</th><th>뜻</th></tr>
 <tr><td class="k">가능근무</td><td><code>2N</code> <code>3N</code></td><td>야간을 며칠씩 묶을지(안 적으면 2일). <code>3N</code>은 3일씩 묶고 월 야간이 상한으로 고정됩니다. 둘을 함께 적으면 반려</td></tr>
 <tr><td class="k">가능근무</td><td><code>지정</code></td><td>근무인력 표의 '지정' 인원으로 세는 사람. 근무와 함께 적습니다(<code>D,E,N,지정</code>). 이름 옆에 '지' 표</td></tr>
+<tr><td class="k">가능근무</td><td><code>파견</code></td><td>그 달 통째로 다른 부서에 파견 — 명단에는 남고 우리 병동 근무는 배정하지 않습니다. 출력에는 날마다 <code>파견</code>이 찍히고 잔휴는 그대로입니다. 돌아오면 <code>D,E,N</code>으로 되돌립니다 — <a href="#dispatch">파견</a></td></tr>
 <tr><td class="k">야간리더</td><td><code>O</code></td><td>이분이 선 밤은 '숙련도 4 이상 한 명' 조건을 채운 것으로 봅니다. 한 사람의 야간은 월 4~6회라 한두 명으로는 모든 밤을 덮지 못합니다. 이름 옆에 '밤' 표</td></tr>
 <tr><td class="k">비고</td><td><code>임부</code> <code>야간금지</code></td><td>야간을 넣지 않습니다</td></tr>
 <tr><td class="k">비고</td><td><code>야간전담</code></td><td>야간(NK)만 섭니다</td></tr>
@@ -275,14 +276,15 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 <h3 id="dispatch">파견 — 잠시 나가거나 잠시 온 사람</h3>
 <div class="wrap"><table>
 <tr><th>경우</th><th>하는 일</th></tr>
-<tr><td class="k">우리 병동에서 나감</td><td>명단에 그대로 두고, <b>나가 있는 날마다 날짜 칸에 <code>P-D/S13</code></b>처럼 적습니다 — <code>P-</code> 뒤에 그날 파견 가서 서는 근무, <code>/</code> 뒤에 간 부서(<code>P-E/S13</code>은 S13에서 이브닝). 한 칸씩 적어야 합니다(이어서 채워지지 않습니다). 어디서 무슨 근무인지 모르면 <code>휴</code>를 적어도 됩니다</td></tr>
+<tr><td class="k">한 달 통째로 나감</td><td>명단에 그대로 두고 <b>'가능근무' 칸에 <code>파견</code></b>을 적습니다(입력①·② 어느 쪽이든). 그 달은 배정하지 않고, 출력①·②의 날짜 칸에 <code>파견</code>이 찍힙니다. 잔휴는 그대로입니다. 근무·부서를 아는 날은 날짜 칸에 <code>P-D/S13</code>처럼 적으면 그 글자가 찍힙니다. 파견이 끝나면 가능근무를 <code>D,E,N</code>으로 되돌립니다</td></tr>
+<tr><td class="k">며칠만 나감</td><td>명단에 그대로 두고, <b>나가 있는 날마다 날짜 칸에 <code>P-D/S13</code></b>처럼 적습니다 — <code>P-</code> 뒤에 그날 파견 가서 서는 근무, <code>/</code> 뒤에 간 부서(<code>P-E/S13</code>은 S13에서 이브닝). 한 칸씩 적어야 합니다(이어서 채워지지 않습니다). 어디서 무슨 근무인지 모르면 <code>휴</code>를 적어도 됩니다</td></tr>
 <tr><td class="k">다른 병동에서 옴</td><td>따로 된 칸은 없습니다. <a href="#movein">전입</a>처럼 명단에 넣고, 돌아가는 날부터는 <code>휴</code>를 날마다 적습니다. 다음 달 명단에서 뺍니다</td></tr>
 </table></div>
 <ul>
 <li><code>P-D/S13</code>을 적은 날은 <b>우리 병동 인원에서 빠집니다</b>(<code>휴</code>와 같이 셉니다). 입력①을 올리면 "P-D/S13 → 휴"로 읽었다고 초록 글로 알려 줍니다. 결과 화면의 근무표에는 그날이 <code>휴</code>로 보입니다.</li>
 <li>내려받은 <b>출력①·출력②에는 <code>P-D/S13</code>이 그대로 찍힙니다.</b> 출력①의 듀티별 횟수 끝에 <b>'파견'</b> 열이 생겨 파견한 날 수를 셉니다. 출력②의 누적 근무일·누적D 같은 통계는 파견한 날을 실제 근무로 셉니다.</li>
 <li>출력②를 다음 달 입력②로 올리면 그날은 <b><code>P-</code>와 <code>/</code> 사이의 근무(D)로 읽혀</b> 연속근무·야간 뒤 휴식이 끊기지 않고 이어집니다. 병원 근무표(OCS)에 <code>P-D/S13</code>이 있으면 입력②에서 고칠 것이 없습니다.</li>
-<li>'가능근무'는 평소 근무(<code>D,E,N</code>) 그대로 둡니다. 가능근무 칸에 <code>파견</code>을 적으면 반려되고, '비고'에 적은 <code>파견</code>은 메모일 뿐 아무 일도 하지 않습니다.</li>
+<li>며칠만 나갈 때는 '가능근무'를 평소 근무(<code>D,E,N</code>) 그대로 둡니다 — 가능근무에 <code>파견</code>을 적으면 <b>그 달 전체</b>가 배정에서 빠집니다. '비고'에 적은 <code>파견</code>은 메모일 뿐 아무 일도 하지 않습니다.</li>
 <li><code>휴</code>는 '쉬고 싶다'가 아니라 <b>병동에 없는 날</b>입니다. 인원이 모자라도 근무로 되돌리지 않고, 모자란 날은 빨갛게 남습니다.</li>
 <li>한 달에 5일 이상 비우면 그 사람의 야간 횟수와 휴무 몫이 <b>있던 날 수에 비례</b>해 줄어듭니다(형평성을 견줄 때 — 잔휴는 <a href="#offbal">따로 셉니다</a>).</li>
 </ul>
@@ -609,7 +611,7 @@ footer { margin-top: 50px; padding-top: 12px; border-top: 1px solid var(--line);
 <tr><td class="k"><code>R</code>(리차징)</td><td>한 달 내내 빠지는 휴직이라, 그 달은 휴일이 쌓이지도 빠지지도 않아 잔휴가 <b>그대로</b>입니다</td></tr>
 <tr><td class="k"><code>조*</code> · <code>경*</code></td><td>영향이 없습니다(근무로 인정되는 휴가)</td></tr>
 <tr><td class="k">야간만 선 달</td><td>그 달 근무가 모두 <code>N</code>·<code>NK</code>이면 잔휴를 <b>그대로</b> 둡니다(쌓지도 빼지도 않습니다)</td></tr>
-<tr><td class="k">파견</td><td>파견 가서 쉰 날(<code>P-X/S13</code>·<code>P-//S13</code>)은 쉰 날로 하루씩 뺍니다. 파견 가서 근무한 날(<code>P-D/S13</code> 등)은 영향이 없습니다</td></tr>
+<tr><td class="k">파견</td><td>파견 가서 쉰 날(<code>P-X/S13</code>·<code>P-//S13</code>)은 쉰 날로 하루씩 뺍니다. 파견 가서 근무한 날(<code>P-D/S13</code> 등)은 영향이 없습니다. 가능근무 <code>파견</code>(그 달 통째로)이면 잔휴는 <b>그대로</b>입니다</td></tr>
 <tr><td class="k">그 밖의 휴가 · <code>S/</code></td><td><code>연</code>·<code>공</code>·<code>휴</code>·<code>승</code>·<code>군</code>·수면오프는 영향이 없습니다</td></tr>
 <tr><td class="k">월중 전입</td><td>휴일수·쉰 날을 전입일부터 셉니다</td></tr>
 </table></div>
