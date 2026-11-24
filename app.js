@@ -233,7 +233,13 @@ let formStaff = [];      // [{id, role, level, allowed:[...], flags:[...]}]
 // 정한다. 예전에는 파일마다 formStaff를 직접 덮어써서, 업로드·재업로드·반영 해제 순서에
 // 따라 "화면 설명과 실제 명단이 다른" 상태가 생겼다 — 예를 들어 입력① 반영을 해제해도
 // 명단은 그대로 남는 식이었다.
-let staffOfSample = [];  // 처음 열었을 때의 샘플 병동 명단(아무 파일도 없을 때만 쓰임)
+// 샘플 병동 명단·B팀은 근무표를 만드는 데 쓰지 않는다 — 입력①의 '양식(다운로드)'이 명단이 없을 때 예시로 채워 주는 데만 쓴다
+// (사용자 2026-11-24: "기본적으로 입력되어 있는 파일 입력1,2 빼놔. 파일 입력해야 돌아가게"). 그 전에는 아무것도 안 올려도 이 40명과
+// 예시 신청 41건으로 표가 만들어졌다 — 처음 보는 사람이 결과부터 보기엔 좋았지만, 파일을 올린 줄 알고(또는 올린 것이 반려된 줄 모르고)
+// 생성하면 남의 병동 표가 우리 표인 것처럼 나왔다.
+let staffOfSample = [];  // 샘플 병동 명단 — 양식 예시 전용
+let sampleTeamB = [];    // 샘플 병동 B팀 — 양식 예시 전용
+let staffOfVoc = [];     // 관리자 모드에서 연 문의의 명단(그 사람 화면의 값) — 관리자 모드에서만 채워진다
 let staffOfWanted = [];  // 입력① 원티드표에서 읽은 명단 — 이번 달 명단의 최종 기준
 let staffOfAnnual = [];  // 입력② 연간근무표에서 읽은 명단(지난달 실적)
 let staffFromWanted = false;   // 입력①이 명단을 채웠는가 (recomputeStaff가 갱신하는 파생값)
@@ -250,7 +256,7 @@ let wantedTransferInDates = {};
 let wantedActiveTag = "";
 // 마지막으로 성공한 입력①의 연월 — 화면 연월과 다르면 신청이 전부 다른 달 날짜가 된다.
 let wantedYM = null;     // {year, month} 또는 null
-let wantedSource = null; // "file"(입력① 업로드) | "sample"(기본값의 예시 신청) | null — 떠나기 확인·배지 문구가 가른다
+let wantedSource = null; // "file"(입력① 업로드) | null
 // 입력①에서 읽은 신청·전입일을 파일의 연월 그대로 둔 원본. 실제로 쓰는 formRequests·
 // wantedTransferInDates는 화면 연월에 맞춰 날짜를 다시 매긴 것이다(아래 rebaseWantedToScreen).
 let wantedRequestsRaw = [];
@@ -390,11 +396,7 @@ function noteYearMonthEdit() {
   if (wantedYM) rebaseWantedToScreen();
   renderSourceBadges();
   const y = $("#f_year").value, m = $("#f_month").value;
-  if (wantedSource === "sample") {
-    // 예시 신청은 파일이 아니다 — "입력① 파일의 신청을 옮깁니다" 대신 예시가 그 달로 따라간다고만 알린다
-    showToast(`연월 → ${y}년 ${m}월: 예시 신청 ${formRequests.length}건도 ${m}월 날짜로 옮깁니다` +
-              (wantedDropped.length ? ` (${m}월에 없는 날짜 ${wantedDropped.length}건은 뺌)` : ""));
-  } else if (ymMismatch()) {
+  if (ymMismatch()) {
     showToast(`연월 → ${y}년 ${m}월: 화면 연월로 만듭니다 — 입력① 파일(${wantedYM.year}년 ${wantedYM.month}월)의 ` +
               `신청 ${formRequests.length}건은 날짜의 '일'만 보고 ${m}월에 적용합니다` +
               (wantedDropped.length ? ` (${m}월에 없는 날짜 ${wantedDropped.length}건은 뺌)` : ""));
@@ -433,11 +435,17 @@ function setFormYearMonth(year, month) {
 window.downloadWantedTemplate = async function () {
   const year = parseInt($("#f_year").value, 10);
   const month = parseInt($("#f_month").value, 10);
-  const staff = formStaff.map(s => ({ id: s.id, role: s.role, level: s.level,
+  // 명단이 아직 없으면(파일을 하나도 안 올린 상태) 샘플 병동 명단을 예시로 채워 준다 — 빈 양식은 어느 칸에 무엇을 적는지 알 수 없다.
+  // 그 파일을 그대로 올리면 샘플 병동으로 표가 만들어진다(처음 보는 사람이 결과부터 볼 수 있는 길).
+  const example = !formStaff.length;
+  const staff = (example ? staffOfSample : formStaff).map(s => ({ id: s.id, role: s.role, level: s.level,
                                       allowed_shifts: s.allowed, flags: s.flags }));
   await apiDownloadWantedTemplate(
-    { year, month, staff, team_b_names: teamBNamesFromForm() },
+    { year, month, staff, team_b_names: example ? sampleTeamB : teamBNamesFromForm() },
     `입력1_원티드표_${year}-${String(month).padStart(2, "0")}.xlsx`);
+  if (example && staff.length) {
+    showToast(`양식에 샘플 병동 명단 ${staff.length}명이 예시로 들어 있습니다 — 우리 병동 명단으로 고쳐서 올려 주세요`);
+  }
 };
 
 // 결과 화면의 다운로드 두 개 — 어느 판이냐에 따라 받는 방법이 다르다(platform.js).
@@ -599,7 +607,7 @@ function nextMonth() {
   return { year: d.getFullYear(), month: d.getMonth() + 1 };
 }
 
-function fillForm(cfg) {
+function fillForm(cfg, asVoc) {
   $("#f_ward").value = cfg.ward_id || "";
   const nm = nextMonth();
   $("#f_year").value = nm.year;
@@ -618,15 +626,16 @@ function fillForm(cfg) {
   seedHolidaysForYear(nm.year);
   renderHolidayCalendar();
 
-  // 샘플 명단은 아무것도 안 올린 상태에서 '바로 생성'이 되게 하는 용도다. 입력①이
-  // 명단을 주면 그쪽이 항상 이긴다 — 판단은 recomputeStaff() 한 곳에서만 한다.
-  staffOfSample = (cfg.staff || []).map(s => ({
+  // cfg의 명단은 두 가지로 온다. 관리자 모드(asVoc)면 그 문의를 만든 사람 화면의 명단이라 그대로 쓴다(staffOfVoc).
+  // 그 밖(처음 열 때)은 샘플 병동 명단이다 — 근무표를 만드는 데는 쓰지 않고 양식의 예시로만 둔다.
+  // 실제로 쓸 명단은 recomputeStaff() 한 곳에서 정한다.
+  const roster = (cfg.staff || []).map(s => ({
     id: s.id, role: s.role, level: s.level,
     allowed: [...(s.allowed_shifts || [])], flags: [...(s.flags || [])],
   }));
+  if (asVoc) { staffOfVoc = roster; teamBBase = [...(p.team_b_names || [])]; }
+  else { staffOfSample = roster; sampleTeamB = [...(p.team_b_names || [])]; teamBBase = []; }
   recomputeStaff();
-
-  teamBBase = [...(p.team_b_names || [])];
   applyTeamB();
 
   const ms = p.min_staff || {};
@@ -747,21 +756,21 @@ function renderStaffSummary() {
   const el = $("#staffSummary");
   if (!el) return;
   // 단추 아래 한 줄 — 입력①이 올라가 있는지, 올라가 있으면 무엇이 들었는지(연월·인원·원티드 수·B팀). 아무것도 안 올렸으면
-  // "올린 파일 없음"이라고 먼저 말하고 그 대신 무엇으로 만드는지를 적는다. 예전 문구("현재 인원: 40명 — 샘플 명단 — …")는
-  // 파일이 없다는 말이 없어서 올린 줄 아는 사람이 있었다(사용자 2026-11-14).
+  // "입력 파일이 없습니다"라고 말한다(사용자 2026-11-24). 예전에는 이 줄이 "파일은 없고 샘플 병동 40명과 신청 41건으로 만든다"고 적었고
+  // 실제로 그렇게 표가 만들어졌다 — 지금은 파일이 없으면 만들지 않는다(runGenerate가 막는다).
   const n = formStaff.length, req = formRequests.length, tb = teamBNamesFromForm().length;
-  const fromFile = staffFromWanted && wantedSource !== "sample";
+  const fromFile = staffFromWanted;
   const bad1 = fromFile && !!wantedYM && ymMismatch();   // 문제가 있으면 초록 ✓가 아니라 노란 ⚠ — 아래 안내와 같은 말을 해야 한다
   el.classList.toggle("on", fromFile && !bad1);
   el.classList.toggle("warn", bad1);
   if (fromFile) {
     el.textContent = `${bad1 ? "⚠" : "✓"} 입력① 반영 — ${wantedActiveTag ? wantedActiveTag + " · " : ""}인원 ${n}명 · 원티드 ${req}건${tb ? ` · B팀 ${tb}명` : ""}`;
-  } else if (!n) {
-    el.textContent = "올린 파일 없음";
-  } else if (staffOfAnnual.length && !staffFromWanted) {
-    el.textContent = `올린 파일 없음 — 입력②의 명단 ${n}명으로 만듭니다(원티드 신청 없음)`;
+  } else if (VOC_VIEW && staffOfVoc.length) {
+    el.textContent = `관리자 모드 — 문의의 명단 ${n}명 · 신청 ${req}건`;
+  } else if (staffOfAnnual.length) {
+    el.textContent = `입력 파일이 없습니다 — 입력②의 명단 ${n}명으로 만듭니다(원티드 신청 없음)`;
   } else {
-    el.textContent = `올린 파일 없음 — 예시 명단 ${n}명${req ? ` · 예시 신청 ${req}건` : ""}으로 만듭니다`;
+    el.textContent = "입력 파일이 없습니다 — 올려야 근무표를 만들 수 있습니다";
   }
   renderWantedYmNote();
 }
@@ -772,7 +781,7 @@ function renderStaffSummary() {
 function renderWantedYmNote() {
   const el = $("#wantedYmNote");
   if (!el) return;
-  if (!wantedYM || wantedSource === "sample" || !ymMismatch()) { el.style.display = "none"; el.textContent = ""; return; }
+  if (!wantedYM || !ymMismatch()) { el.style.display = "none"; el.textContent = ""; return; }
   const sc = screenYM();
   el.style.display = "";
   el.innerHTML = `⚠ <b>${wantedYM.year}년 ${wantedYM.month}월</b> 표입니다 — 화면은 ${sc.year}년 ${sc.month}월입니다. ` +
@@ -793,7 +802,7 @@ function renderStaffTableSummary() {
   const bad2 = staffTableLoaded && staffTableLinked() === false;
   el.classList.toggle("on", staffTableLoaded && !bad2);
   el.classList.toggle("warn", bad2);
-  if (!staffTableLoaded) { el.textContent = "올린 파일 없음 — 이월정보 없이 만듭니다(처음 쓰는 달과 같습니다)"; return; }
+  if (!staffTableLoaded) { el.textContent = "입력 파일이 없습니다 — 없으면 이월정보 없이 만듭니다(처음 쓰는 달)"; return; }
   const m = /^(\d{4})-(\d{2})/.exec(String(staffTableLastDate || ""));
   const until = m ? `${Number(m[1])}년 ${Number(m[2])}월까지` : "";
   const info = staffTableInfo || {};
@@ -805,7 +814,7 @@ function renderStaffTableSummary() {
 // 거라 믿고 화면 값을 안 본 채 생성해, 연속근무제한 2로 전원 이틀씩 끊긴 12월 근무표가 나간 적이
 // 있다. 파일이 주는 것(연월·인원·신청)과 화면이 주는 것(설정·근무인력)을 갈라서 보여주고, 화면에서
 // 바꾸면 "그 값이 쓰인다"고 그 자리에서 말한다. 연월만은 둘 다 줄 수 있어 어긋나면 노랗게 켠다.
-let settingsSource = "sample";   // sample | saved | screen | empty
+let settingsSource = "sample";   // sample | saved | screen
 let lastScreenEdit = "";         // "연속근무제한 → 4"
 const FIELD_LABELS = { f_ward: "병동명", f_maxnights: "월 최대야간", f_maxconsecutive: "연속근무제한",
                        f_nightquota_low: "야간목표하한", f_nightquota_high: "야간목표상한" };
@@ -848,7 +857,7 @@ function rebaseWantedToScreen() {
 function renderYmNotice() {
   const box = $("#ymNotice");
   if (!box) return;
-  if (!wantedYM || wantedSource === "sample" || !ymMismatch()) { box.style.display = "none"; box.innerHTML = ""; return; }
+  if (!wantedYM || !ymMismatch()) { box.style.display = "none"; box.innerHTML = ""; return; }
   const s = screenYM();
   const dropped = wantedDropped.length
     ? `<p class="ym-notice-sub">⚠ ${s.month}월에 없는 날짜라 뺀 신청 ${wantedDropped.length}건: ${esc(wantedDropped.slice(0, 6).join(", "))}${wantedDropped.length > 6 ? " 외 " + (wantedDropped.length - 6) + "건" : ""}</p>`
@@ -871,30 +880,10 @@ function renderYmNotice() {
     showToast(`화면 연월을 입력①과 같은 ${wantedYM.year}년 ${wantedYM.month}월로 맞췄습니다`);
   };
 }
-// 기본값(샘플)의 예시 신청 — /api/sample_requests에서 화면 연월로 받아, 입력①을 올린 것처럼 원본·연월을 들고 있어야
-// 화면 연월을 바꿀 때 같이 옮겨진다. 사용자가 올린 파일은 아니므로 떠나기 확인과 '입력①과 같은 달' 배지는 걸지 않는다
-// (wantedSource="sample"). 입력①을 이미 올렸으면(wantedSource="file") 건드리지 않는다.
-async function loadSampleRequests() {
-  if (wantedSource === "file") return;
-  const s = screenYM();
-  try {
-    const data = await api("/api/sample_requests", { method: "POST", body: JSON.stringify({ year: s.year, month: s.month }) });
-    if (!data || !Array.isArray(data.requests) || !data.requests.length) return;
-    wantedRequestsRaw = data.requests.map(r => ({ ...r, priority: 1 }));
-    wantedYM = { year: data.year, month: data.month };
-    wantedSource = "sample";
-    rebaseWantedToScreen();
-    // 입력① 자리에 안내 문구는 띄우지 않는다(2026-11-10 사용자: "예시 신청 41건 샘플 문구 지워") — 신청은 그대로 실린다.
-    wantedActiveTag = "샘플";
-    renderSourceBadges();
-    updateClearButtons();
-  } catch (e) { /* 예시 신청은 없어도 된다 — 명단·설정만으로 만들어진다 */ }
-}
-
 function renderSourceBadges() {
   const ym = $("#ymSource");
   if (ym) {
-    if (!wantedYM || wantedSource === "sample") { ym.className = "src-badge"; ym.textContent = ""; }
+    if (!wantedYM) { ym.className = "src-badge"; ym.textContent = ""; }
     else if (ymMismatch()) {
       ym.className = "src-badge warn show";
       ym.textContent = `화면 연월로 만듭니다 — 입력① 파일은 ${wantedYM.year}년 ${wantedYM.month}월`;
@@ -905,7 +894,6 @@ function renderSourceBadges() {
   const text = {
     sample: head + "지금은 샘플 병동 기본값입니다. 우리 병동 값으로 고쳐 쓰세요.",
     saved: head + "지금은 이 브라우저에 저장해 둔 값(마지막으로 고친 값)입니다.",
-    empty: head + "지금은 비어 있습니다. 우리 병동 값을 채워 넣으세요.",
     screen: `화면에서 바꾼 값이 쓰입니다 — 마지막 변경: ${lastScreenEdit}` +
             " (이 브라우저에 저장됨)",
   }[settingsSource];
@@ -963,7 +951,7 @@ function updateTeamBCount() {
   const n = teamBNamesFromForm().length;
   $("#teamBCount").textContent = n ? `${n}명` : "";
 }
-// B팀(신입) 명단도 일반 명단과 같은 순서로 정한다 — 입력①(이번 달) > 입력②(지난달) > 기본값(샘플·저장된 설정).
+// B팀(신입) 명단도 일반 명단과 같은 순서로 정한다 — 입력①(이번 달) > 입력②(지난달) > 기본값(관리자 모드의 문의 값. 그 밖에는 비어 있다).
 // null = 그 파일이 없다(또는 B팀을 알 수 없는 파일이다), [] = 그 파일에 B팀이 0명이다. 둘을 가르지 않으면 "0명"이 "말 없음"으로
 // 읽힌다: 예전엔 두 업로드가 같은 칸(#f_team_b)을 '이름이 있을 때만' 덮어써서, B팀을 지운 입력①로 바꿔 올려도 지난 파일의
 // 신입이 남고, 이번 달 입력① 뒤에 지난달 입력②를 올리면 지난달 신입으로 덮였고, 입력②를 빼도 그 파일의 신입이 남았다 —
@@ -1109,8 +1097,8 @@ function buildCfgFromForm() {
     params: {
       nk_count: nkCount, min_staff: minStaff,
       leader_8a_as_prn: false,  // 웹 UI에 없는 설정이라 항상 기본값
-      // 비었을 때 조용히 기본값을 쓰지 않는다 — '저장한 설정 지우기'로 비운 뒤
-      // 그대로 생성하면, 우리 병동과 상관없는 숫자로 만든 근무표가 나온다.
+      // 비었을 때 조용히 기본값을 쓰지 않는다 — 칸을 지운 채 그대로 생성하면,
+      // 우리 병동과 상관없는 숫자로 만든 근무표가 나온다.
       off_max_per_month: readMinStaffCell("f_maxnights", "월 최대야간"),
       max_consecutive_work: readConsecutiveLimit(),
       night_quota_low: readMinStaffCell("f_nightquota_low", "야간목표하한"),
@@ -1168,13 +1156,14 @@ $("#staffTableExampleBtn").onclick = async () => {
     : `화면 연월에 맞는 예시가 없어 ${got.y}년 ${got.m}월까지의 예시를 받았습니다 — 그대로 올리면 이월정보 없이 만들어집니다`, !got.exact);
 };
 
-// 실제로 쓸 인원 명단을 한 곳에서 정한다 — 입력①(이번 달 명단) > 입력②(지난달 명단)
-// > 샘플 순. 파일을 올리거나 반영을 해제할 때마다 이 함수만 부르면 되고,
-// 그래서 업로드 순서에 따라 상태가 꼬이지 않는다.
+// 실제로 쓸 인원 명단을 한 곳에서 정한다 — 입력①(이번 달 명단) > 입력②(지난달 명단) > 관리자 모드의 문의 명단.
+// 어느 것도 없으면 빈 명단이다(샘플 명단으로 물러서지 않는다, 2026-11-24) — 그때는 생성이 막힌다.
+// 파일을 올리거나 반영을 해제할 때마다 이 함수만 부르면 되고, 그래서 업로드 순서에 따라 상태가 꼬이지 않는다.
 function recomputeStaff() {
   staffFromWanted = staffOfWanted.length > 0;
   formStaff = staffFromWanted ? staffOfWanted
-            : (staffOfAnnual.length ? staffOfAnnual : staffOfSample);
+            : (staffOfAnnual.length ? staffOfAnnual : staffOfVoc);
+  if (formStaff.length) document.querySelectorAll('.gen-error[data-kind="nofile"]').forEach(n => n.remove());
   renderStaffSummary();
   renderRosterDiff();
 }
@@ -1211,11 +1200,11 @@ function rosterWarnToast(key, msg) {
 function renderRosterDiff() {
   const box = $("#rosterDiff");
   if (!box) return;
-  // 입력②만 올린 경우 — 이번 달 명단을 줄 입력①이 없다. 말없이 넘어가면 지난달 명단(또는 예시 명단)으로 표가 나온다.
+  // 입력②만 올린 경우 — 이번 달 명단을 줄 입력①이 없다. 말없이 넘어가면 지난달 명단으로 표가 나온다.
   if (!staffFromWanted && prevRosterNames.length) {
     const how = staffOfAnnual.length
       ? `입력②의 명단 ${staffOfAnnual.length}명으로 만듭니다`
-      : "올린 입력②로는 명단을 정할 수 없어 예시 명단으로 만들어집니다";
+      : "올린 입력②로는 명단을 정할 수 없습니다 — 입력①을 올려야 근무표를 만들 수 있습니다";
     box.style.display = "";
     box.className = "roster-diff";
     box.innerHTML = `<div><b>⚠ 입력①(원티드표)이 없습니다</b> — ${how}.`
@@ -1394,7 +1383,6 @@ function wantedActiveSummary() {
   if (staffOfWanted.length) parts.push(`인원 ${staffOfWanted.length}명`);
   if (formRequests.length) parts.push(`신청 ${formRequests.length}건`);
   if (!parts.length) return "";
-  if (wantedSource === "sample") return `예시 신청(샘플) ${parts.join(", ")}이 그대로 쓰입니다.`;
   return `이전에 올린 입력①${wantedActiveTag ? ` (${wantedActiveTag})` : ""}을 계속 씁니다 — ` +
          `${parts.join(", ")}. 이 값으로 근무표가 만들어집니다.`;
 }
@@ -1419,7 +1407,7 @@ function updateClearButtons() {
       if (allBtn) allBtn.style.display = active ? "" : "none";
     } else {
       // 정상 반영 상태의 '반영 해제'는 숨긴다(2026-11-10 사용자) — 다른 파일을 올리면 통째로 바뀌므로 따로 지울 일이
-      // 드물고, 눌렀다가 명단·신청이 샘플로 돌아가 헷갈렸다. 오류 상태의 '오류 지우기'·'이전 파일도 해제'는 그대로 둔다.
+      // 드물고, 눌렀다가 명단·신청이 사라져 헷갈렸다. 오류 상태의 '오류 지우기'·'이전 파일도 해제'는 그대로 둔다.
       clearBtn.textContent = "반영 해제";
       clearBtn.style.display = "none";
       if (allBtn) allBtn.style.display = "none";
@@ -1501,8 +1489,8 @@ function clearWanted() {
   teamBOfWanted = null;     // 명단과 같이 입력②(없으면 기본값)의 B팀으로 돌아간다
   applyTeamB();
   statusEl.textContent = formStaff.length
-    ? `반영 해제했습니다 — 명단은 ${staffOfAnnual.length ? "입력②" : "샘플"}(${formStaff.length}명) 기준으로 돌아갔습니다.`
-    : "반영 해제했습니다 — 현재 인원 명단이 없습니다.";
+    ? `반영 해제했습니다 — 명단은 입력②(${formStaff.length}명) 기준으로 돌아갔습니다.`
+    : "반영 해제했습니다 — 입력 파일이 없습니다.";
   updateClearButtons();
   renderSourceBadges();
   showToast("입력① 반영을 해제했습니다");
@@ -1857,6 +1845,21 @@ async function runGenerate(btn, statusEl) {
     if (!isInViewport(statusEl.parentElement.querySelector(".gen-error"))) showToast(msg, true);
     return;
   }
+  // 명단을 줄 파일이 하나도 없으면 만들지 않는다(사용자 2026-11-24: "파일 입력해야 돌아가게"). 단추를 잠가 두지 않고 누르면 이유를
+  // 말한다 — 잠긴 단추는 왜 안 눌리는지 말이 없다. 예전에는 이때 샘플 병동 명단으로 표가 나왔다.
+  if (!formStaff.length) {
+    const msg = prevRosterNames.length
+      ? "입력① 원티드표가 없습니다 — 올린 입력②로는 명단을 정할 수 없습니다. 입력①을 올린 뒤 생성하세요."
+      : "입력 파일이 없습니다 — 입력① 원티드표를 올린 뒤 생성하세요. '양식(다운로드)'으로 받은 파일에 명단과 신청을 적어 올리면 됩니다.";
+    showGenError(statusEl, msg);
+    // 파일을 올리면 이 안내는 스스로 사라진다(recomputeStaff) — 올렸는데도 "파일이 없습니다"가 남아 있으면 안 올라간 줄 안다.
+    const shown = statusEl.parentElement.querySelector(".gen-error");
+    if (shown) shown.dataset.kind = "nofile";
+    const up = $("#wantedInput") && $("#wantedInput").closest(".upload-item");
+    if (up && !isInViewport(up)) up.scrollIntoView({ block: "center", behavior: "smooth" });
+    if (!isInViewport(statusEl.parentElement.querySelector(".gen-error"))) showToast(msg, true);
+    return;
+  }
   // 최소인력 칸을 먼저 읽어본다 — 못 읽는 칸이 있으면 생성하지 않는다. 대충 0으로 채워
   // 만들면 "그 근무가 아무도 없어도 되는 달"이 조용히 만들어진다.
   const preCfg = buildCfgFromForm();
@@ -1935,14 +1938,13 @@ if (generateBtnMid) {
   generateBtnMid.onclick = () => runGenerate(generateBtnMid, $("#genStatusMid"));
 }
 
-// 페이지 로드 시: 판별 준비(브라우저판은 Pyodide 부팅) → 샘플 데이터로 폼 기본 채움
-let sampleCfg = null;   // /api/sample 응답 — '샘플 값으로 되돌리기'가 다시 쓴다
+// 페이지 로드 시: 판별 준비(브라우저판은 Pyodide 부팅) → 근무정보·근무인력을 샘플 값(또는 저장해 둔 값)으로 채움.
+// 명단·신청은 채우지 않는다 — 입력①을 올려야 생긴다(샘플 명단은 양식의 예시로만 들고 있는다).
 (async function boot() {
   if (!(await bootPlatform())) return;   // 실패 사유는 platform.js가 화면에 띄운다
   let useSaved = false;
   try {
     const cfg = await api("/api/sample");
-    sampleCfg = cfg;
     // 샘플 기본값 위에 이 브라우저에 저장해둔 설정을 덮어쓴다 — 병동인력표 파일(옛 입력①)이 없어진
     // 뒤로는 이게 "지난번에 맞춰둔 값"을 되찾는 유일한 길이다.
     // 저장을 꺼둔 상태면 남아 있는 값이 있어도 쓰지 않는다(끈 사람에게 옛 값이
@@ -1950,12 +1952,12 @@ let sampleCfg = null;   // /api/sample 응답 — '샘플 값으로 되돌리기
     useSaved = !!loadSettings();
     fillForm(useSaved ? withSavedSettings(cfg) : cfg);
     settingsSource = useSaved ? "saved" : "sample";
-    await loadSampleRequests();
   } catch (e) {
     showToast("샘플 로드 실패 — 직접 입력해주세요", true);
   }
   settingsReady = true;
   renderSourceBadges();
+  renderIntakeHelp();
   // 근무정보·근무인력은 늘 펴 둔다(사용자 2026-11-13: "입력 화면 쪽 접어 두지 마"). 저장된 값으로 열릴 때 접어 두던 것을
   // 한나절 만에 뺐다 — 접혀 있으면 지금 무슨 값으로 만드는지가 한 번 더 눌러야 보인다. 손으로 접을 수는 있다.
   refreshStaffTableStatus();
@@ -1971,7 +1973,7 @@ let sampleCfg = null;   // /api/sample 응답 — '샘플 값으로 되돌리기
 // 병동명·연월·상한값·근무인력 표. 사람 명단·원티드 신청·전입 같은 '그 달의 내용'은
 // 절대 저장하지 않는다. 지난달 것이 남아 있으면 오류 하나 없이 틀린 근무표가 나온다.
 // 저장은 늘 켜져 있다. 예전엔 '마지막 설정값 저장' 단추로 끌 수 있었는데, 당연한 동작에 단추가 있으니
-// 오히려 "이게 뭐지"가 됐다(사용자 요청 2026-10-31). 공용 PC는 '저장한 설정 지우기'로 비운다.
+// 오히려 "이게 뭐지"가 됐다(사용자 요청 2026-10-31). 지우는 단추('저장한 설정 지우기')도 2026-11-24에 뺐다.
 // 숨긴 단추의 코드는 남기지 않고 걷어냈다(이 저장소 규칙: 숨길 거면 코드도 같이). 옛 끔 상태 키
 // (ns_settings_on)는 더 읽지 않는다 — 꺼 뒀던 기기도 이제 저장한다.
 const SETTINGS_KEY = "ns_settings_v1";
@@ -2060,42 +2062,8 @@ document.querySelector(".info-section")?.addEventListener("change", saveSettings
 })();
 
 
-// 지우기는 '샘플 값으로 되돌리기'가 아니라 말 그대로 '비우기'다. 샘플 숫자를 다시
-// 채워 넣으면 그게 우리 병동 값인 줄 알고 그대로 만들 수 있다 — 지운 뒤에는 빈 칸이
-// 보여야 무엇을 채워야 하는지 알 수 있다. 병동명처럼 회색 자리표시(0)만 남긴다.
-// 한 번 묻는다 — 첫 사용자가 근무정보 묶음에서 처음 만나는 버튼이 이것이었고, 눌러보면
-// 확인 없이 모든 칸이 비워져 시작점(샘플 값)을 잃었다(2026-10-31 검토 A-10). 되돌릴 길로
-// '샘플 값으로 되돌리기'를 바로 아래에 두고, 둘 다 근무정보 묶음 맨 아래로 내렸다.
-$("#resetSettingsBtn").onclick = () => {
-  if (!confirm("기억해 둔 값을 지우고 모든 칸을 비웁니다. 계속할까요?\n(샘플 값이 필요하면 바로 아래의 '샘플 값으로 되돌리기'를 누르세요)")) return;
-  try { localStorage.removeItem(SETTINGS_KEY); } catch (e) { settingsStorageFailed(e, "clear"); }
-  settingsReady = false;
-  $("#f_ward").value = "";
-  for (const el of document.querySelectorAll('.info-section input[type="number"]')) el.value = "";
-  const nm = nextMonth();
-  $("#f_year").value = nm.year;
-  $("#f_month").value = nm.month;
-  seedHolidaysForYear(nm.year);
-  renderHolidayCalendar();
-  settingsReady = true;
-  settingsSource = "empty";
-  renderSourceBadges();
-  showToast("저장한 설정을 지웠습니다 — 우리 병동 값으로 채워 넣어주세요");
-};
-// 샘플 병동 값으로 되돌린다 — 지우기와 반대 방향. 저장된 값도 지워서 '처음 연 상태'와 같게 한다
-// (저장해 두면 다음에 열 때 샘플이 "지난번에 맞춰둔 값"인 양 뜬다).
-$("#restoreSampleBtn").onclick = () => {
-  if (!sampleCfg) { showToast("샘플 값을 아직 받지 못했습니다 — 잠시 뒤 다시 눌러주세요", true); return; }
-  if (!confirm("근무정보·근무인력을 샘플 병동(40명) 값으로 되돌립니다. 지금 적힌 값은 사라집니다. 계속할까요?")) return;
-  try { localStorage.removeItem(SETTINGS_KEY); } catch (e) { settingsStorageFailed(e, "clear"); }
-  settingsReady = false;
-  fillForm(sampleCfg);
-  settingsReady = true;
-  settingsSource = "sample";
-  renderSourceBadges();
-  loadSampleRequests();
-  showToast("샘플 병동 값으로 되돌렸습니다 — 우리 병동 값으로 고쳐 쓰세요");
-};
+// '저장한 설정 지우기'·'샘플 값으로 되돌리기' 단추는 뺐다(사용자 2026-11-24) — 단추·처리 코드·점검을 같이 걷어냈다. 저장한 값을 지우려면
+// 브라우저의 사이트 데이터를 지운다(저장되는 것은 병동명·연월·상한값·근무인력 표뿐이다).
 
 // ================================================================ 직전 결과 보존 (세션 범위)
 // 새로고침·뒤로가기 한 번에 10초 걸린 표와 올린 입력①②가 통째로 사라졌다(2026-10-31 검토 P13·§3).
@@ -2245,7 +2213,7 @@ sessionDel("ns_session_result_v1"); sessionDel("ns_session_files_v1");
 // 새 버전 띠의 '새로 고침'처럼 우리가 시키는 이동은 묻지 않는다(window.__allowUnload).
 function unloadGuardNeeded() {
   if (window.__allowUnload) return false;
-  return !!ST || (wantedActive() && wantedSource !== "sample") || staffTableLoaded;
+  return !!ST || wantedActive() || staffTableLoaded;
 }
 window.addEventListener("beforeunload", (e) => {
   if (!unloadGuardNeeded()) return;
@@ -2291,9 +2259,9 @@ function renderFirstUseCard() {
   box.innerHTML =
     `<div class="first-use-head"><b>처음이면 이 순서로</b> <button type="button" class="linklike" id="firstUseClose">닫기</button></div>` +
     `<ol class="first-use-steps">` +
-    step(firstUse.gen, "① 그대로 <b>[근무표 생성]</b>을 눌러 결과 화면을 한 번 보기 — 샘플 병동(40명) 값으로 만들어집니다") +
-    step(firstUse.wanted, "② 입력①의 <b>양식(다운로드)</b>을 받아 우리 명단·신청을 넣고 <b>업로드</b>") +
-    step(firstUse.settings, "③ <b>근무정보·근무인력</b>을 우리 병동 값으로 고치기 — 한 번 고치면 이 브라우저에 저장됩니다") +
+    step(firstUse.wanted, "① 입력①의 <b>양식(다운로드)</b>을 받아 우리 명단·신청을 넣고 <b>업로드</b> — 받은 그대로 올리면 샘플 병동(40명)으로 먼저 해 볼 수 있습니다") +
+    step(firstUse.settings, "② <b>근무정보·근무인력</b>을 우리 병동 값으로 고치기 — 한 번 고치면 이 브라우저에 저장됩니다") +
+    step(firstUse.gen, "③ <b>[근무표 생성]</b> — 파일을 올려야 만들어집니다") +
     `</ol>` +
     `<p class="hint">막히면 <a href="manual.html#in" target="_blank" rel="noopener">📘 사용자 매뉴얼의 입력 화면 따라하기</a>를 옆에 띄워 두고 그대로 누르세요 — 실제 화면에 누를 자리가 표시됩니다.</p>` +
     (done ? `<p class="hint first-use-done">✓ 세 단계를 모두 마쳤습니다 — 다음 달부터는 입력①·②만 올리고 생성하면 됩니다.</p>` : "");
@@ -4149,6 +4117,24 @@ let vocGateUnlocked = false;      // 이번에 연 비밀번호 창에서 비밀
 // 관리자 모드에 들어간 뒤에만 보이게). 문의 파일까지 열어야 보이게 하면 보고서만 받으려는 사람이 문의 zip을 하나 구해 와야 한다 — 그래서
 // 비밀번호 통과가 기준이다. 메모리에만 둔다: 새로 고치거나 '끝내기'를 누르면 다시 숨는다.
 let ADMIN_OK = false;
+// 입력 화면 맨 아래 '도움말 · 기타'(접힘) — 문의 파일 받기 · 관리자 모드, 관리자 비밀번호를 통과한 뒤에는 보고서 받기.
+// 결과 패널의 같은 줄(renderSide)과 같은 창을 연다. 표가 있어야 받는 월간 보고서는 여기 없다. 왜 입력 화면에도 두는지는 index.html의 그 자리.
+function renderIntakeHelp() {
+  const box = document.getElementById("intakeHelpList");
+  if (!box) return;
+  box.innerHTML =
+    `<button type="button" class="exp-item" id="inVocBtn" onclick="openVocDialog()" ` +
+      `title="이름과 내용을 적으면 지금 입력·올린 파일·오류 기록이 파일 하나(zip)로 받아집니다 — 이 기기에 저장만 됩니다">` +
+      `<span class="exp-name">문의 파일 받기</span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
+    `<button type="button" class="exp-item" id="inAdminBtn" onclick="openVocGate()" ` +
+      `title="받은 문의 파일(zip)을 올려 그 사람이 보던 화면을 다시 봅니다 — 비밀번호가 필요합니다">` +
+      `<span class="exp-name">관리자 모드</span></button>` +
+    (ADMIN_OK || VOC_VIEW
+      ? `<button type="button" class="exp-item" id="inReportsBtn" onclick="openReportsGate()" ` +
+        `title="개발·검증 보고서 묶음(HTML) — 보고서 비밀번호가 필요합니다">` +
+        `<span class="exp-name">보고서 받기</span><span class="exp-go" aria-hidden="true">⬇</span></button>`
+      : "");
+}
 function openVocGate() {
   let bd = document.getElementById("vocGateBackdrop");
   if (!bd) {
@@ -4178,7 +4164,7 @@ function openVocGate() {
         pw.disabled = true;
         // 보고서만 받으러 온 사람은 문의 파일이 없다 — 창을 닫으면 어디에 무엇이 생겼는지 여기서 말해 둔다.
         document.getElementById("vocGateMsg").textContent = "확인됐습니다 — 받은 문의 파일(zip)을 골라 주세요. 보고서만 받으시려면 이 창을 닫고 '도움말 · 기타'의 '보고서 받기'를 누르세요.";
-        if (!ADMIN_OK) { ADMIN_OK = true; if (ST && ST.report) renderSide(); }
+        if (!ADMIN_OK) { ADMIN_OK = true; if (ST && ST.report) renderSide(); renderIntakeHelp(); }
         document.getElementById("vocGateOk").textContent = "문의 파일 고르기";
         document.getElementById("vocGateOk").focus();
       }
@@ -4272,7 +4258,7 @@ function applyVocForm(cfg, staffTableLoaded_, opts) {
   wantedRequestsRaw = []; wantedDropped = []; wantedSource = null; wantedActiveTag = ""; wantedYM = null;
   staffOfWanted = []; staffOfAnnual = []; prevRosterNames = []; transferredInNames = [];
   teamBOfWanted = null; teamBOfAnnual = null;      // 내 파일의 신입이 남의 문의 화면에 남지 않게 — B팀은 cfg의 것(fillForm이 기본값으로 넣는다)
-  fillForm(cfg);                                   // 병동·근무정보·근무인력·B팀·명단(cfg.staff)·신청·이월정보
+  fillForm(cfg, true);                             // 병동·근무정보·근무인력·B팀·명단(cfg.staff → staffOfVoc)·신청·이월정보
   $("#f_year").value = cfg.year;
   $("#f_month").value = cfg.month;
   const p = cfg.params || {};

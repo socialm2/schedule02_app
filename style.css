@@ -762,7 +762,7 @@ details.form-sec summary::-webkit-details-marker { display: none; }
 details.form-sec summary::before { content: "▸"; color: var(--accent); font-size: .6875rem; }
 details.form-sec[open] summary::before { content: "▾"; }
 details.form-sec > *:not(summary) { padding: 14px; }
-/* 근무정보 맨 위의 버튼(예전엔 '마지막 설정값 저장' 켜기/끄기도 있었다 — 10/31 걷어냄, '저장한 설정 지우기') —
+/* 근무정보 맨 위의 버튼(예전엔 '마지막 설정값 저장' 켜기/끄기도 있었다 — 10/31 걷어냄. '저장한 설정 지우기'·'샘플 값으로 되돌리기'도 2026-11-24에 뺐다) —
    둘 다 같은 한 가지(이 화면 값이 브라우저에 저장된다는 것)를 다루는 장치라 같은 모양·
    같은 폭으로 세로로 쌓고, 각자 오른쪽에 무엇을 하는 버튼인지 한 줄로 적는다.
    폭을 고정하는 이유: 글자 수가 달라도 두 버튼의 왼쪽·오른쪽 끝이 맞아야 한 세트로 보인다. */
@@ -908,11 +908,14 @@ button.small { font-size: .75rem; padding: 5px 11px; margin-top: 6px; }
 .generate-row > .hint:empty { display: none; }
 /* 꼼꼼히 찾기 토글 — 생성 버튼 바로 아래, 한 줄. 폰에서는 설명이 다음 줄로 내려간다. */
 /* 체크박스·제목 한 줄, 설명은 제목 아래 같은 들여쓰기 — 가로 모드에서 설명이 제목 옆에 붙어 줄이 어긋나던 것 */
-.prn-mix-row { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
-.prn-mix-row .prn-mix-label { font-weight: 600; font-size: .8125rem; }
-.prn-mix-row label { display: inline-flex; gap: 4px; align-items: center; font-size: .8125rem; }
-.prn-mix-row input { width: 56px; }
-.prn-mix-row .hint { flex-basis: 100%; }
+/* prn 시간 구성 — 근무인력 표 아래의 작은 표. 위 표와 같은 .form-table이라 칸의 폭·높이·색이 같고, 첫 칸 폭을 맞춰 세 칸이
+   위 표의 평일·토요일·공휴일 칸과 같은 자리에 선다(요일별로 나눈 표에서는 칸 수가 달라 맞지 않는다 — 그때는 그냥 세 칸). */
+.prn-mix { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.prn-mix-title { font-weight: 700; font-size: .8125rem; margin-bottom: 6px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.prn-mix-title .hint { font-weight: 400; margin: 0; }
+.prn-mix .hint { margin: 6px 0 0; }
+#minStaffTable th:first-child, .prn-mix-table th:first-child { width: 56px; }
+.prn-mix-table { table-layout: fixed; }
 /* 제목 줄의 셋(범례 · 수정주의근무 · 🌙 야간만 보고 근무 만들기)은 한 벌이다 — 같은 높이·같은 글자 크기의 알약으로 나란히 선다(사용자 2026-11-20:
    "야간만 보기 조금 줄이고 범례·수정근무도 비슷하게 평행하게"). 앞서는 단추만 크고 굵어서 옆의 체크 둘과 높이도 글자도 따로 놀았다.
    야간 단추는 누르면 화면이 바뀌는 단추라 테두리와 글자만 강조색으로 구분한다. */
@@ -1138,6 +1141,9 @@ details.side-sec[open] summary h3::before { content: "▾ "; }
 .exp-name { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .exp-go { flex: none; color: var(--accent); font-size: .8125rem; line-height: 1; }
 #sidePane .side-exp h3 { margin-bottom: 4px; }
+/* 입력 화면 맨 아래의 '도움말 · 기타' — 결과 패널의 같은 줄과 같은 모양. 패널의 작은 글씨(.6875rem)는 입력 화면 본문 옆에서는 너무 작다. */
+.intake-exp { margin-top: 14px; }
+.intake-exp .exp-item { font-size: .8125rem; }
 .exp-item:disabled .exp-go { color: var(--sub); }
 button.linklike { background: none; border: 0; padding: 8px 0; min-height: 36px; font-size: .6875rem; color: var(--accent); text-decoration: underline; cursor: pointer; }  /* 136×15였다 */
 button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: default; }
@@ -1172,7 +1178,9 @@ button.linklike:disabled { color: var(--sub); text-decoration: none; cursor: def
   #gridPane.out-on, #gridPane.out-on #gridContent { display: block !important; }   /* 화면용 '표만 스크롤' 배치는 인쇄에서 푼다 */
   .result-strip { display: none !important; }
   .grid-scroll { overflow: visible !important; max-height: none !important; max-width: none; }
-  table.grid { font-size: 7.5pt; }
+  /* 7.5pt였는데 통계 열이 늘어(31일 달 · 근무 코드 열 11개 = 52열) 1,054px가 되어 A4 가로 인쇄 폭(1,047px)을 7px 넘었다 —
+     오른쪽 끝 'Lv' 열이 잘린다(2026-11-24 배포 전 점검). 7pt면 984px로 여유가 있다. */
+  table.grid { font-size: 7pt; }
   table.grid th, table.grid td { position: static !important; }   /* sticky는 쪽마다 겹쳐 찍힌다 */
   /* 위반 표시(삼각형·점)는 칸에 매달려 있어야 한다 — static이 되면 전부 쪽 오른쪽 위 한 점으로 모인다 */
   table.grid td.viol-hard, table.grid td.viol-soft { position: relative !important; }
@@ -1373,10 +1381,6 @@ header #infoBtn, header .sign-out {
   .generate-row .gen-error { max-height: 30vh; overflow: auto; }
 }
 
-/* 근무정보 묶음 맨 아래로 내린 지우기·되돌리기 줄 — 위 입력 칸과 점선으로 떼어 놓는다 */
-.setting-actions-bottom { margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--line); }
-/* '저장한 설정 지우기'는 보조 톤 — 첫 사용자가 처음 만나는 버튼이 위험해 보이지 않았다(A-10) */
-#resetSettingsBtn { font-weight: 500; color: var(--sub); }
 
 /* 패널 탭 — 형평성 · 필수 위반 · 추가 검토 · 원티드 · 상세 자료. 같은 단추가 두 자리에 있다:
    ① 오른쪽 패널 맨 위(.side-tabs) — 패널을 내려도 붙어 있다. ② 표 위 띠(.result-strip) — 폰 전용(패널이 표 아래 멀리 있다). */
