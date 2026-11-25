@@ -48,7 +48,7 @@
   <header>
     <!-- 배지·고친 시각은 스크린리더가 제목으로 읽지 않게 감싼다(aria-hidden). .build-time span 자체는 CI(deploy.yml)가
          정규식으로 찾아 바꾸므로 그 태그에는 속성을 더하지 말 것(여는 태그가 달라지면 배포가 멈춘다). -->
-    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.90</span><span class="build-time">Updated 2026-11-25 17:39:50</span></span></h1>
+    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.90</span><span class="build-time">Updated 2026-11-26 05:52:47</span></span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 사용자 매뉴얼</button>
@@ -176,9 +176,6 @@
               <summary>파일입력</summary>
               <!-- 양식 안내는 제목 바로 아래(사용자 2026-11-14) — 두 칸 가운데 먼저 읽는 글이다 -->
               <p class="hint upload-how" id="wantedFormatHint"><b>양식(다운로드)</b>으로 받은 파일에 적어 올리세요 — 날짜 칸은 OCS에서 그대로 붙여넣어도 됩니다.</p>
-              <!-- 예제 값을 쓰는 동안 내내 떠 있는 안내(app.js renderSampleNote) — 올린 파일이 하나도 없으면 샘플 병동 명단·예제 신청으로
-                   만들어진다(사용자 2026-11-25: "생성 누르면 뭐라도 나오게. 예제값이 들어 있고 본인 파일 넣어야 합니다라는 안내 문구는 떠 있게"). -->
-              <p id="sampleNote" class="sample-note" role="status" style="display:none"></p>
               <div class="upload-item">
               <div class="upload-item-label">입력① 원티드표
                 <span class="hint">명단(직급·숙련도·가능근무·비고·전입)과 원티드 신청</span>

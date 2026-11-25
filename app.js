@@ -239,7 +239,7 @@ let formStaff = [];      // [{id, role, level, allowed:[...], flags:[...]}]
 // 병원 PC에서는 문서보안이 암호화한 엑셀이 올라가지 않아, 파일 없이는 아무것도 볼 수 없었다. 11-24 이전과 다른 점 둘:
 //  ① 파일을 하나라도 올리면(입력①이든 ②든) 예제 값은 통째로 빠진다. 예전에는 입력②만 올린 병동에 샘플 명단·샘플 B팀이 섞여
 //     '이름40'·'이름41'이 출력에 실려 나갔다.
-//  ② 예제 값이라는 안내가 입력 화면(#sampleNote)과 결과 화면(표 위 파일 줄 아래)에 떠 있다 — 뺐던 이유가 "남의 병동 표가 우리
+//  ② 예제 값이라는 안내가 입력 화면(입력①·② 단추 아래 줄)과 결과 화면(표 위 파일 줄 아래)에 떠 있다 — 뺐던 이유가 "남의 병동 표가 우리
 //     표인 것처럼 나온다"였다. 올린 파일이 반려된 채로는 생성이 막히는 것(unresolvedUploadErrors)도 그대로다.
 let staffOfSample = [];  // 샘플 병동 명단 — 올린 파일이 없을 때의 예제 값이자 양식(다운로드)의 예시
 let sampleTeamB = [];    // 샘플 병동 B팀 — 위와 같이 쓴다
@@ -824,8 +824,13 @@ function renderStaffTableSummary() {
   const el = $("#staffTableSummary");
   if (!el) return;
   const bad2 = staffTableLoaded && staffTableLinked() === false;
+  // 예제 값을 쓰는 중이면 이 칸도 그렇다고 말한다(사용자 2026-11-25: "예제 파일 들어 있다고 입력1에만 써 있음 … 입력2 밑에도 써 줘").
+  // 예제 값에는 전월 근무표가 없다 — 이월 없이(처음 쓰는 달로) 만든다. 없는 예시 파일이 들어 있는 것처럼 적지 않는다.
+  const sample = !staffTableLoaded && sampleOn();
+  el.classList.toggle("sample", sample);
   el.classList.toggle("on", staffTableLoaded && !bad2);
   el.classList.toggle("warn", bad2);
+  if (sample) { el.textContent = "예제 값 — 전월 근무표 없음 · 이월정보 없이 만듭니다 (본인 파일을 올리면 바뀝니다)"; return; }
   if (!staffTableLoaded) { el.textContent = "입력 파일이 없습니다 — 없으면 이월정보 없이 만듭니다(처음 쓰는 달)"; return; }
   const m = /^(\d{4})-(\d{2})/.exec(String(staffTableLastDate || ""));
   const until = m ? `${Number(m[1])}년 ${Number(m[2])}월까지` : "";
@@ -1265,20 +1270,14 @@ async function loadSampleRequests() {
     sampleYM = { year: data.year, month: data.month };
     syncSampleRequests(true);     // 받는 사이에 파일을 올렸으면 아무것도 하지 않는다(sampleOn이 거짓)
     renderStaffSummary();
-    renderSampleNote();
+    renderStaffTableSummary();
     renderSourceBadges();
     updateClearButtons();
   } catch (e) { /* 예제 신청은 없어도 된다 — 명단·설정만으로 만들어진다 */ }
 }
-// 파일 칸 위에 떠 있는 한 줄 — 예제 값을 쓰는 동안 내내 보인다(토스트가 아니다: 몇 초 뒤 사라지면 예제인 줄 모르고 만든다).
-function renderSampleNote() {
-  const el = $("#sampleNote");
-  if (!el) return;
-  if (!sampleOn()) { el.style.display = "none"; el.innerHTML = ""; return; }
-  el.style.display = "";
-  el.innerHTML = `<b>예제 값이 들어 있습니다.</b> 지금 생성하면 예제 병동(${staffOfSample.length}명)의 근무표가 나옵니다 — ` +
-    `본인 병동 근무표를 만들려면 <b>본인 파일(입력①)</b>을 넣어야 합니다.`;
-}
+// 예제 값이라는 안내는 두 파일 칸의 단추 아래 줄에 떠 있다(renderStaffSummary · renderStaffTableSummary — 예제 값을 쓰는 동안 내내
+// 보인다. 토스트가 아니다: 몇 초 뒤 사라지면 예제인 줄 모르고 만든다). 파일 칸 위에 따로 있던 노란 상자(#sampleNote)는 뺐다
+// (사용자 2026-11-25: "전체 공지 빼고 입력2 밑에도 써 줘" — 같은 말이 상자와 입력① 아래에 두 번 있었고, 입력② 아래에는 없었다).
 
 // 실제로 쓸 인원 명단을 한 곳에서 정한다 — 입력①(이번 달 명단) > 입력②(지난달 명단) > 예제 값(올린 파일이 하나도 없을 때만) >
 // 관리자 모드의 문의 명단. 어느 것도 없으면 빈 명단이고 그때는 생성이 막힌다.
@@ -1291,8 +1290,8 @@ function recomputeStaff() {
             : sampleOn() ? staffOfSample : staffOfVoc;
   if (formStaff.length) document.querySelectorAll('.gen-error[data-kind="nofile"]').forEach(n => n.remove());
   renderStaffSummary();
+  renderStaffTableSummary();   // 예제 값을 쓰는지에 따라 입력② 아래 줄도 바뀐다
   renderRosterDiff();
-  renderSampleNote();
 }
 
 // 입력①(이번 달 명단)와 입력②(지난달 명단)을 대조해 전입·전출을 화면에 명시한다.

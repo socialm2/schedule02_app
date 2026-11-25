@@ -700,10 +700,6 @@ details.form-sec > p.upload-how { margin: 0; padding: 10px 14px 0; }
 .upload-item .file-sum.warn { color: var(--warn); font-weight: 700; }
 /* 예제 값(샘플 병동 명단·예제 신청)을 쓰는 중 — 올린 파일이 아니라는 것이 한눈에 보여야 한다(사용자 2026-11-25) */
 .upload-item .file-sum.sample { color: var(--warn); font-weight: 700; }
-details.form-sec > p.sample-note { margin: 10px 14px 0; }
-.sample-note { padding: 8px 10px; border-radius: 6px; background: var(--warn-soft); color: var(--warn);
-  font-size: .8125rem; line-height: 1.5; word-break: keep-all; border-left: 4px solid var(--soft-mark); }
-.sample-note b { font-weight: 800; }
 /* 파일 칸 둘의 간격 — details의 직계 자식마다 사방 14px 안쪽 여백이 붙어 두 칸 사이가 60px 가까이 비었다 */
 details.form-sec > .upload-item { padding: 10px 14px 6px; margin-bottom: 0; }
 details.form-sec > .upload-item + .upload-item { border-top: 1px dashed var(--line); padding-top: 14px; margin-top: 6px; }
