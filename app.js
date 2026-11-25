@@ -355,7 +355,9 @@ function delegateClick(root, selector, handler) {
 // (tools/manual/body.html · tools/build_manual.py). 이 창은 매뉴얼의 절로 가는 문만 남긴다.
 // 한동안 맨 아래에 '도움' 줄(문의 파일 받기 · 관리자 모드)이 있었는데 뺐다(사용자 2026-11-22: 매뉴얼 창에 도움 기능은 불필요) —
 // 둘은 결과 화면 '도움말 · 기타'에 있다. 표를 못 만든 입력 화면에서는 문의 파일을 받을 길이 없어진 것이다(알고 정한 것 —
-// 2026-11-24에 입력 화면에도 한 번 넣었다가 2026-11-25에 사용자 결정으로 다시 뺐다. 관리자 모드만 입력 화면 맨 아래에도 있다).
+// 2026-11-24에 입력 화면 맨 아래에도 '도움말 · 기타'(문의 파일 받기 · 관리자 모드)를 넣었다가 2026-11-25에 사용자 결정으로 둘 다 뺐다 —
+// "숨겨놔", "입력화면 맨밑에 관리자모드 왜 생김 빼". 그 줄은 파일 없이는 생성이 안 되던 하루(11-24) 동안 관리자가 들어올 길이었는데,
+// 예제 값이 돌아와 누구든 그대로 생성해 결과 화면까지 갈 수 있다. 입력 화면에 되살리지 말 것 — 파트장 화면에 쓸 일 없는 단추가 생긴다).
 // 보는 화면에 맞는 절로 연다: 입력 화면에서는 '입력 화면 따라하기', 결과 화면에서는 '출력 화면 따라하기'.
 function infoHtml(isOutput) {
   // 맨 위는 보는 화면의 따라하기다 — 입력 화면에서는 '입력 화면 따라하기', 결과 화면에서는 '출력 화면 따라하기'(사용자 2026-11-22).
@@ -2117,7 +2119,6 @@ if (generateBtnMid) {
   }
   settingsReady = true;
   renderSourceBadges();
-  renderIntakeHelp();
   // 근무정보·근무인력은 늘 펴 둔다(사용자 2026-11-13: "입력 화면 쪽 접어 두지 마"). 저장된 값으로 열릴 때 접어 두던 것을
   // 한나절 만에 뺐다 — 접혀 있으면 지금 무슨 값으로 만드는지가 한 번 더 눌러야 보인다. 손으로 접을 수는 있다.
   refreshStaffTableStatus();
@@ -4252,7 +4253,7 @@ async function submitReportsPw() {
 
 // ================================================================ 관리자 모드 — 문의 파일 다시 보기(숨은 길)
 // 받은 문의 zip을 올리면 그 사람이 보던 화면을 다시 만든다(bridge.api_voc_load — 기록된 요청을 같은 순서로 다시 밟는다).
-// 문의를 읽는 사람만 쓰는 길이라 화면에 크게 두지 않았다: 설명서(📘) 창 맨 아래 '도움' 줄(또는 출력 패널 맨 아래 '도움말 · 기타')의
+// 문의를 읽는 사람만 쓰는 길이라 화면에 크게 두지 않았다: 결과 화면 패널 '상세 자료' 탭 맨 아래 '도움말 · 기타'의(입구는 거기 하나뿐이다)
 // **'관리자 모드'**를 누르면 비밀번호를 묻고,
 // 맞으면 바로 파일 고르기가 뜬다. 올라가면 '관리자 모드'다 — 창 둘레에 초록 테두리가 서고, 맨 위 띠에 보낸 사람과
 // 적은 내용이 보인다. 표뿐 아니라 입력 화면도 그 사람의 값으로 채운다(입력으로 돌아가도 관리자 모드는 이어진다).
@@ -4280,24 +4281,6 @@ let vocGateUnlocked = false;      // 이번에 연 비밀번호 창에서 비밀
 // 관리자 모드에 들어간 뒤에만 보이게). 문의 파일까지 열어야 보이게 하면 보고서만 받으려는 사람이 문의 zip을 하나 구해 와야 한다 — 그래서
 // 비밀번호 통과가 기준이다. 메모리에만 둔다: 새로 고치거나 '끝내기'를 누르면 다시 숨는다.
 let ADMIN_OK = false;
-// 입력 화면 맨 아래 '도움말 · 기타'(접힘) — 관리자 모드, 관리자 비밀번호를 통과한 뒤에는 보고서 받기.
-// 결과 패널의 같은 줄(renderSide)과 같은 창을 연다. 표가 있어야 받는 월간 보고서는 여기 없다.
-// **'문의 파일 받기'는 여기 없다 — 결과 화면에만 있다**(사용자 결정 2026-11-25: "숨겨놔". 2026-11-24에 기본 명단을 빼면서 내가
-// 여기에도 넣었던 것을 뺐다 — 2026-11-22의 결정으로 돌아간 것이다: 표를 못 만든 사람은 문의 파일을 받을 길이 없다, 알고 정한 것).
-// 관리자 모드는 남긴다 — 받은 문의를 다시 보는 사람은 표를 만들기 전(파일 없이)에 들어와야 한다. 왜 입력 화면에 두는지는 index.html의 그 자리.
-function renderIntakeHelp() {
-  const box = document.getElementById("intakeHelpList");
-  if (!box) return;
-  box.innerHTML =
-    `<button type="button" class="exp-item" id="inAdminBtn" onclick="openVocGate()" ` +
-      `title="받은 문의 파일(zip)을 올려 그 사람이 보던 화면을 다시 봅니다 — 비밀번호가 필요합니다">` +
-      `<span class="exp-name">관리자 모드</span></button>` +
-    (ADMIN_OK || VOC_VIEW
-      ? `<button type="button" class="exp-item" id="inReportsBtn" onclick="openReportsGate()" ` +
-        `title="개발·검증 보고서 묶음(HTML) — 보고서 비밀번호가 필요합니다">` +
-        `<span class="exp-name">보고서 받기</span><span class="exp-go" aria-hidden="true">⬇</span></button>`
-      : "");
-}
 function openVocGate() {
   let bd = document.getElementById("vocGateBackdrop");
   if (!bd) {
@@ -4327,7 +4310,7 @@ function openVocGate() {
         pw.disabled = true;
         // 보고서만 받으러 온 사람은 문의 파일이 없다 — 창을 닫으면 어디에 무엇이 생겼는지 여기서 말해 둔다.
         document.getElementById("vocGateMsg").textContent = "확인됐습니다 — 받은 문의 파일(zip)을 골라 주세요. 보고서만 받으시려면 이 창을 닫고 '도움말 · 기타'의 '보고서 받기'를 누르세요.";
-        if (!ADMIN_OK) { ADMIN_OK = true; if (ST && ST.report) renderSide(); renderIntakeHelp(); }
+        if (!ADMIN_OK) { ADMIN_OK = true; if (ST && ST.report) renderSide(); }
         document.getElementById("vocGateOk").textContent = "문의 파일 고르기";
         document.getElementById("vocGateOk").focus();
       }

@@ -49,7 +49,7 @@
   <header>
     <!-- 배지는 스크린리더가 제목으로 읽지 않게 감싼다(aria-hidden). .build-time span 자체는 CI(deploy.yml)와 platform.js가
          정규식으로 찾으므로 그 태그에는 속성을 더하지 말 것(hidden도 안 된다 — 여는 태그가 달라지면 배포가 멈춘다). -->
-    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.90</span><span class="build-time">Updated 2026-11-25 12:12:51</span></span></h1>
+    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.90</span><span class="build-time">Updated 2026-11-25 13:40:49</span></span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 사용자 매뉴얼</button>
@@ -234,14 +234,6 @@
               <span class="thorough-title"><span aria-hidden="true">🔍</span> 꼼꼼히 만들기</span>
               <span class="hint thorough-hint">9개를 만들어 가장 좋은 것을 고릅니다. 급하면 끄세요 — 3개만 만들어 더 빨리 끝납니다.</span>
             </label>
-            <!-- 도움말 · 기타(입력 화면) — 관리자 모드(비밀번호를 통과하면 보고서 받기까지). 결과 화면 '상세 자료' 맨 아래의 같은 이름 줄과 같은 창을 연다.
-                 받은 문의 파일을 다시 보는 사람은 표를 만들기 전에 들어와야 하는데, 2026-11-24부터 파일 없이는 생성이 안 돼 결과 화면까지 갈 수 없다 —
-                 그래서 입력 화면 맨 아래에 접힌 채로 둔다. '문의 파일 받기'는 여기 없다(사용자 결정 2026-11-25 — 결과 화면에만 있다. 파일이 반려돼
-                 표를 못 만든 사람은 문의 파일을 받을 수 없고, 빨간 글을 적어 보낸다). 줄은 app.js renderIntakeHelp가 채운다. -->
-            <details class="form-sec intake-exp" id="intakeHelp">
-              <summary>도움말 · 기타</summary>
-              <div class="exp-list" id="intakeHelpList"></div>
-            </details>
             <!-- '야간 먼저(N only)'는 여기서 고르지 않는다 — 다 만든 뒤 결과 화면의 '🌙 야간만 보고 근무 만들기' 단추로 들어간다(2026-11-20).
                  어차피 전체를 먼저 만들고 야간만 드러내는 것이라, 만들기 전에 고르게 할 이유가 없었다. -->
           </div>
