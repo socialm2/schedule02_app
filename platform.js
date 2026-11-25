@@ -25,77 +25,16 @@
 // 예전에 통과한 브라우저에 남아 있는 표시는 읽는 곳이 없으니 지운다.
 try { localStorage.removeItem("ns_auth_ok"); } catch (e) { /* 지우지 못해도 읽는 곳이 없다 */ }
 
-// ================================================================ 서비스워커 등록 · 새 버전 알림
-// sw.js는 설치되자마자 skipWaiting·clients.claim으로 넘겨받지만, **이 페이지의 app.js는 옛것 그대로**다 —
-// 새로 고치기 전까지는 화면이 옛 코드로 돈다. 그동안 배포톡은 "빌드시각을 확인하세요"로 사용자에게
-// 떠넘겼고, "최신이라 떠 있는데 고친 게 안 보인다" 사고가 실제로 났다(2026-10-31 검토 §3). 새 워커가
-// 설치되면(updatefound → installed, 이미 제어 중인 워커가 있을 때) 또는 제어 워커가 바뀌면
-// (controllerchange) 화면 맨 위에 띠를 하나 띄운다. 첫 설치(제어 워커 없음)에는 띄우지 않는다.
-function showUpdateBanner() {
-  if (document.getElementById("updateBanner")) return;
-  const bar = document.createElement("div");
-  bar.id = "updateBanner";
-  bar.className = "update-banner";
-  bar.setAttribute("role", "status");
-  bar.innerHTML = '<span>새 버전이 있습니다 — 새로 고치면 최신 화면으로 바뀝니다.</span>' +
-    '<button type="button" id="updateReloadBtn" class="small primary">새로 고침</button>' +
-    '<button type="button" id="updateLaterBtn" class="small">나중에</button>';
-  document.body.appendChild(bar);
-  document.getElementById("updateReloadBtn").onclick = () => {
-    // 새로 고치면 화면의 근무표와 올린 입력①②는 사라진다(되살리는 길은 없다) — 표나 올린 파일이 있으면 먼저 묻는다.
-    // 브라우저의 '사이트를 나가시겠습니까'는 무엇을 잃는지 말해 주지 않아서 우리 말로 묻고, 그 뒤에는 한 번 더 묻지 않게 한다.
-    if (typeof unloadGuardNeeded === "function" && unloadGuardNeeded() && !confirm(
-        "새로 고치면 지금 화면의 근무표와 올린 파일이 사라집니다.\n쓸 근무표는 먼저 출력①·②로 내려받아 두세요.\n\n지금 새로 고칠까요?")) return;
-    window.__allowUnload = true;
-    location.reload();
-  };
-  document.getElementById("updateLaterBtn").onclick = () => bar.remove();
-}
-window.showUpdateBanner = showUpdateBanner;   // 점검 스크립트(tools/ui_smoke.py)가 띠 모양을 확인하는 데 쓴다
-
-// 띠를 띄우기 전에 이 페이지가 정말 옛것인지 확인한다. 화면 파일(index.html·app.js·py_app.zip)은 네트워크 우선이라,
-// 새로 고치면 옛 서비스워커가 제어하는 중에도 페이지는 이미 최신 파일로 뜬다. 그 직후 브라우저가 새 sw.js를 받아
-// 설치·claim하면 controllerchange가 나는데, 예전엔 그것만 보고 띠를 띄워 "최신으로 새로 고쳤는데 또 새로 고치라고
-// 한다"가 됐다(2026-11-10 사용자). 지금 페이지의 빌드시각(.build-time, CI가 배포마다 박는다)과 서버의 index.html을
-// 견줘 같으면 띄우지 않는다. 확인을 못 하면(오프라인 등) 예전처럼 띄운다 — 옛 화면을 최신이라 믿게 두는 쪽이 더 나쁘다.
-function buildStampOf(html) {
-  const m = /<span class="build-time">([^<]*)<\/span>/.exec(html || "");
-  return m ? m[1].trim() : "";
-}
-async function pageIsStale() {
-  const mine = ((document.querySelector(".build-time") || {}).textContent || "").trim();
-  try {
-    const res = await fetch("index.html", { cache: "no-store" });
-    if (!res.ok) return true;
-    const latest = buildStampOf(await res.text());
-    if (!latest || !mine) return true;
-    return latest !== mine;
-  } catch (e) { return true; }
-}
-window.pageIsStale = pageIsStale;   // 점검 스크립트가 "갓 연 최신 페이지는 옛것이 아니다"를 확인한다
-function maybeShowUpdateBanner() {
-  pageIsStale().then((stale) => { if (stale) showUpdateBanner(); });
-}
-
+// ================================================================ 서비스워커 등록
+// 등록만 한다 — **'새 버전이 있습니다' 띠는 없다**(사용자 결정 2026-11-25: "새로운 버전 있으니 새로고침하세요 … 이런 알림 안 나오게 해 줘").
+// 그 띠는 열어 둔 화면이 옛 판일 때 맨 위에 떠서 '새로 고침'을 누르게 했다(2026-10-31 — "최신이라 떠 있는데 고친 게 안 보인다" 사고 뒤에
+// 넣었다). 띠와 그 판정(pageIsStale — 이 페이지의 배포 시각을 서버의 index.html과 견주던 것)·모양을 숨기지 않고 걷어냈다.
+// 띠가 없어도 옛 판에 갇히지 않는다: sw.js가 화면 파일(index.html·app.js·py_app.zip …)을 **네트워크 우선**으로 내주므로, 온라인에서
+// 앱을 열거나 새로 고치면 그 자리에서 최신 파일로 뜬다. 열어 둔 탭만 다음에 열 때까지 옛 화면으로 돈다 — 그것을 알리지 않기로 한 것이다.
+// 회사 도메인에서는 세션이 만료되면 index.html 자리에 로그인 화면이 와서 그 띠가 잘못 뜨기도 했다(가짜 관문 점검 S2).
+// 되살리지 말 것 — 최신인지 보는 단서는 머리줄의 버전 배지다.
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").then((reg) => {
-      const watchInstalling = (w) => {
-        if (!w) return;
-        w.addEventListener("statechange", () => {
-          if (w.state === "installed" && navigator.serviceWorker.controller) maybeShowUpdateBanner();
-        });
-      };
-      watchInstalling(reg.installing);
-      reg.addEventListener("updatefound", () => watchInstalling(reg.installing));
-    }).catch(() => {});
-    // 제어 워커가 바뀌면(새 sw.js가 claim) 그 순간 화면은 옛 app.js — 띠로 알린다.
-    let hadController = !!navigator.serviceWorker.controller;
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (hadController) maybeShowUpdateBanner();
-      hadController = true;
-    });
-  });
+  window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
 }
 
 // ================================================================ Pyodide 브릿지 (Web Worker)

@@ -2371,7 +2371,7 @@ sessionDel("ns_session_result_v1"); sessionDel("ns_session_files_v1");
 
 // 새로고침·뒤로가기·탭 닫기 전에 한 번 묻는다 — 표가 있거나, 손으로 고친 칸이 있거나, 입력①②를 올린
 // 상태면. 폰에서 뒤로가기를 습관적으로 누르는 사람이 10초 걸린 표를 통째로 잃었다(2026-10-31 검토 P13).
-// 새 버전 띠의 '새로 고침'처럼 우리가 시키는 이동은 묻지 않는다(window.__allowUnload).
+// 부팅 실패 화면의 '다시 시도'·관리자 모드 '끝내기'처럼 우리가 시키는 이동은 묻지 않는다(window.__allowUnload).
 function unloadGuardNeeded() {
   if (window.__allowUnload) return false;
   return !!ST || wantedActive() || staffTableLoaded;
