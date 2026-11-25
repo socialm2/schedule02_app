@@ -2976,6 +2976,7 @@ function renderGrid() {
                                     : `출력①②를 아직 안 받으셨다면 먼저 내려받아 두세요.`) +
         `\n\n그래도 돌아가시겠습니까?`)) return;
     ST = null;
+    HL_SID = null;   // 이름 강조는 이 표를 보는 동안의 것이다 — 입력으로 돌아갔다 새로 만든 표(다른 파일일 수도 있다)에 따라가지 않는다
     gridContent.style.display = "none";
     gridContent.innerHTML = "";
     gridPane.classList.remove("out-on");
@@ -3806,6 +3807,7 @@ function drawDiorama() {
 // 해·달이 뜨는 그림 위를 하루씩 걷는 것이라, 한 달을 한눈에 보려는 사람에게는 표를 가리는 창이었다. 창·그림·그 코드는 걷어냈다
 // (숨기지 않았다). 여정에 있던 것 중 '내 달 요약'(형평성 점수가 만든 그 사람의 한 줄)은 요약 줄로 옮겼다 — 볼 자리가 거기뿐이었다.
 // 한 번 더 누르거나 요약 줄의 '강조 끄기'를 누르면 풀린다. 표를 다시 그려도(칸 수정·재생성) 남고, 그 사람이 없는 표가 되면 풀린다.
+// 입력 화면으로 돌아가거나 문의 파일을 열면 푼다 — 그 뒤의 표는 다른 표다(2026-11-25 배포 전 점검: 돌아갔다 새로 만든 표에 따라왔다).
 // 숫자는 화면의 표(적용 안 한 편집 포함)에서 그 자리에서 센다 — 표 끝의 듀티별 횟수·주말 열과 같은 셈이다.
 let HL_SID = null;
 function personStripHtml(sid) {
@@ -4303,6 +4305,7 @@ async function loadVocFile(file) {
   showGenOverlay("문의 파일의 화면을 다시 만드는 중입니다 — 그 사람이 생성한 횟수만큼 다시 계산합니다…");
   try {
     const r = await apiUpload("/api/voc_load", file);
+    HL_SID = null;   // 문의의 표는 다른 사람의 표다 — 내 표에서 강조하던 이름이 같은 이름의 남에게 옮겨 붙지 않게
     VOC_VIEW = { name: (r.report && r.report.name) || "(이름 없음)", comment: (r.report && r.report.text) || "",
                  time: (r.client && r.client.time_local) || "", build: (r.client && r.client.build) || "",
                  text: r.text || "", replay: r.replay || {}, hadTable: !!r.had_table, formNote: "" };
