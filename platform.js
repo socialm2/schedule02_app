@@ -411,11 +411,16 @@ const XLSX_MIME =
 
 // 앱과 함께 배포된 엑셀 파일(templates/…)을 받아 지정한 이름으로 내려준다. 못 받으면(오프라인인데 아직 안 받아 본 파일 등)
 // false — 부르는 쪽이 다른 파일로 물러서거나 알린다. <a href download>로 바로 걸면 못 받았을 때 '다운로드 실패'만 남는다.
+// 받은 것이 엑셀(.xlsx=zip, 'PK'로 시작)이 아니면 저장하지 않는다 — 사내 로그인 뒤로 옮기면 세션이 만료됐을 때 서버가
+// 로그인 페이지(200 HTML)를 돌려줄 수 있는데, 그걸 .xlsx로 저장하면 '예시 파일'인 줄 알고 연다(사내 도메인 이전 점검).
 async function downloadAppFile(path, filename) {
   try {
     const r = await fetch(path);
     if (!r.ok) return false;
-    triggerDownload(await r.arrayBuffer(), filename, XLSX_MIME);
+    const buf = await r.arrayBuffer();
+    const head = new Uint8Array(buf.slice(0, 2));
+    if (head[0] !== 0x50 || head[1] !== 0x4B) return false;   // 'PK'가 아니면(로그인 페이지·오류 페이지 등) 저장하지 않는다
+    triggerDownload(buf, filename, XLSX_MIME);
     return true;
   } catch (e) { return false; }
 }

@@ -49,7 +49,7 @@
   <header>
     <!-- 배지는 스크린리더가 제목으로 읽지 않게 감싼다(aria-hidden). .build-time span 자체는 CI(deploy.yml)와 platform.js가
          정규식으로 찾으므로 그 태그에는 속성을 더하지 말 것(hidden도 안 된다 — 여는 태그가 달라지면 배포가 멈춘다). -->
-    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.90</span><span class="build-time">Updated 2026-11-25 10:39:43</span></span></h1>
+    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.90</span><span class="build-time">Updated 2026-11-25 11:46:35</span></span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 사용자 매뉴얼</button>
@@ -272,12 +272,14 @@
      떠 있는 채로 영영 멈춘다(접속 비밀번호 문이 있던 때에는 비밀번호 칸만 보이고 '입장'이 먹지 않았다) — 무엇이 문제인지 알 길이
      없다(배포 전 PC 점검 2026-11-24, 배포 대상이 병원 PC).
      여기서 먼저 알아보고 무엇으로 열면 되는지 말한다. **이 조각은 ES5로만 쓴다**(const · let · 화살표 · 백틱 금지) — 옛 브라우저에서
-     도는 유일한 코드다(tests/test_pyodide_sync.py가 지킨다). 문법 확인 글자는 앱·Pyodide가 쓰는 가장 새 문법에 맞춘다. -->
+     도는 유일한 코드다(tests/test_pyodide_sync.py가 지킨다).
+     옛 문법을 eval(new Function)로 떠보지 않는다 — 사내 서버가 CSP로 unsafe-eval을 막으면 new Function이 막혀, 멀쩡한 최신
+     브라우저에도 이 안내가 잘못 뜬다(사내 도메인 이전 점검). 대신 같은 세대의 API로 가른다: Promise.any는 크롬 85(2020-08)에
+     들어왔고 ?. · ?? · ??=도 그 판부터다 — 이게 있으면 앱·Pyodide의 문법을 읽는다(tests/test_pyodide_sync.py가 둘을 함께 지킨다). -->
 <script>
 (function () {
   var why = "";
-  try { new Function("var a = {}; a.x ??= 1; return (a?.x ?? 0) === 1;")(); } catch (e) { why = "old"; }
-  if (!why && (typeof Promise !== "function" || typeof Promise.allSettled !== "function" || typeof BigInt !== "function")) why = "old";
+  if (typeof Promise !== "function" || typeof Promise.allSettled !== "function" || typeof Promise.any !== "function" || typeof BigInt !== "function") why = "old";
   // 문법은 읽는데 WebAssembly만 없다 — 브라우저가 옛것이 아니라 보안 설정이 꺼 둔 것이다(엣지의 '향상된 보안 모드', JIT를 끄는
   // 회사 정책). "업데이트하세요"라고 하면 이미 최신인 사람은 할 일이 없다 — 무엇이 꺼져 있고 누구에게 말할지를 따로 적는다.
   if (!why && typeof WebAssembly !== "object") why = "nowasm";

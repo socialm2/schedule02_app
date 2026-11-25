@@ -1215,7 +1215,7 @@ function input2ExampleFor(y, mo) {
   const ym = `${want[0]}-${String(want[1]).padStart(2, "0")}`;
   // 2026-08은 예전부터 있던 고정 예시다(테스트·도구가 그 이름으로 쓴다) — 받는 이름만 다른 달과 같은 꼴로 맞춘다.
   return { y: want[0], m: want[1], exact, name: `입력2_연간근무표_예시_${ym}.xlsx`,
-           file: ym === "2026-08" ? "templates/입력2_연간근무표_2026-08.xlsx" : `templates/입력2_연간근무표_예시_${ym}.xlsx` };
+           file: ym === "2026-08" ? "templates/annual_2026-08.xlsx" : `templates/annual_example_${ym}.xlsx` };
 }
 $("#staffTableExampleBtn").onclick = async () => {
   const y = parseInt($("#f_year").value, 10), mo = parseInt($("#f_month").value, 10);
@@ -1223,7 +1223,7 @@ $("#staffTableExampleBtn").onclick = async () => {
   let got = ex, ok = await downloadAppFile(ex.file, ex.name);
   // 그 달 예시를 못 받으면(오프라인 — 달별 예시는 처음 누를 때 받는다) 늘 기기에 있는 2026년 8월분으로 물러선다.
   if (!ok && (ex.y !== 2026 || ex.m !== 8)) { got = { ...input2ExampleFor(2026, 9), exact: false }; ok = await downloadAppFile(got.file, got.name); }
-  if (!ok) { showToast("예시 파일을 받지 못했습니다 — 인터넷 연결을 확인하고 다시 눌러 주세요", true); return; }
+  if (!ok) { showToast("예시 파일을 받지 못했습니다 — 로그인이 끊겼거나 네트워크 문제일 수 있습니다. 새로 고친 뒤 다시 눌러 주세요", true); return; }
   showToast(got.exact
     ? `${got.y}년 ${got.m}월까지의 예시를 받았습니다 — ${y}년 ${mo}월 근무표를 만들 때 입력②로 올리는 파일입니다`
     // 예전 문구는 "… 그대로 올리면 이월정보 없이 만들어집니다"였다. 2026-11-23부터는 화면 연월의 바로 전달까지가 아닌 입력②를
