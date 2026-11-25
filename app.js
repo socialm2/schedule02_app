@@ -3329,7 +3329,8 @@ delegateClick(gridContent, "button[data-view]", (b) => setViewOpt(b.dataset.view
 
 // 표 위 파일 작업줄 — 엑셀 수정본 되올리기 · 출력① · 출력② · 입력으로. 예전엔 오른쪽 패널 세 번째 화면쯤에 있어
 // 스크롤해야 나왔다. 파일 동작은 한 곳에 둔다(GPT UI 검토 §03). 번호는 그대로다 — 출력②가 다음 달 입력②다.
-// 되올리기가 맨 앞이고(사용자 2026-11-13), 월간 보고서는 실험 기능이라 여기 두지 않고 패널 '도움말 · 기타'에 둔다(같은 날).
+// 되올리기가 맨 앞이고(사용자 2026-11-13), 월간 보고서는 실험 기능이라 여기 두지 않고 패널 '도움말 · 기타'에 둔다(같은 날 — 2026-11-25부터는
+// 관리자 비밀번호를 통과한 뒤에만 보인다).
 // 단추 높이는 옆의 제목 글자 줄에 맞춘다 — 두 줄 높이 상자가 제목보다 커서 머리줄이 표를 밀었다.
 // 적용 안 한 편집이 있으면 못 받는 것은 그대로.
 function fileBarHtml() {
@@ -3860,7 +3861,7 @@ function toggleHighlight(sid) { setHighlight(HL_SID === sid ? null : sid); }
 // 확정 뒤 파트장이 받는 한 장짜리 보고서 — 화면 오른쪽 패널에 흩어진 것(검증·일별 인원·주말 명단·사람별
 // 집계·부담·원티드·고정 칸·야간 분포·점수표·로그)을 한 파일에 모아 인쇄·전달할 수 있게. 숫자는 전부
 // 화면과 같은 계산(burdenOf·dutyColumns·report)이라 따로 맞춰 볼 필요가 없다. 파일 하나(HTML)라 카톡으로
-// 보내도 열리고, 브라우저에서 인쇄하면 PDF가 된다. 여는 자리는 패널 '상세 자료' 탭 맨 아래 '도움말 · 기타'의 '월간 보고서 받기'다
+// 보내도 열리고, 브라우저에서 인쇄하면 PDF가 된다. 여는 자리는 패널 '상세 자료' 탭 맨 아래 '도움말 · 기타'의 '월간 보고서 받기'다(2026-11-25부터 관리자 비밀번호를 통과한 뒤에만 보인다)
 // (2026-11-13에 표 위 파일 줄로 올렸다가 같은 날 사용자가 되돌렸다 — 실험 기능이라 파일 줄에 둘 것이 아니다).
 function magazineHtml() {
   const r = ST.report || {}, days = ST.days, nd = ST.num_days;
@@ -4257,7 +4258,7 @@ function openVocGate() {
         vocGateUnlocked = true;
         pw.disabled = true;
         // 보고서만 받으러 온 사람은 문의 파일이 없다 — 창을 닫으면 어디에 무엇이 생겼는지 여기서 말해 둔다.
-        document.getElementById("vocGateMsg").textContent = "확인됐습니다 — 받은 문의 파일(zip)을 골라 주세요. 보고서만 받으시려면 이 창을 닫고 '도움말 · 기타'의 '보고서 받기'를 누르세요.";
+        document.getElementById("vocGateMsg").textContent = "확인됐습니다 — 받은 문의 파일(zip)을 골라 주세요. 보고서만 받으시려면 이 창을 닫으세요 — '도움말 · 기타'에 '월간 보고서 받기'와 '보고서 받기'가 생겼습니다.";
         if (!ADMIN_OK) { ADMIN_OK = true; if (ST && ST.report) renderSide(); }
         document.getElementById("vocGateOk").textContent = "문의 파일 고르기";
         document.getElementById("vocGateOk").focus();
@@ -5014,28 +5015,32 @@ function renderSide() {
 
 
   // 도움말 · 기타 — '상세 자료' 탭 맨 아래. 한 줄 전체가 누르는 자리다(작은 글씨 한 문단에 '·'로 이어 붙였더니 폰에서 무엇이
-  // 버튼인지 알 수 없었다, 2026-11-11). 월간 보고서는 실험 기능이라 표 위 파일 줄이 아니라 여기 둔다(사용자 2026-11-13 —
-  // 한나절 파일 줄에 있었다). 적용 안 한 편집이 있으면 못 받는 것은 출력①②와 같다.
-  // 줄은 셋이다 — 문의 파일 받기 · 월간 보고서 받기 · 관리자 모드(사용자 2026-11-24). '📘 사용자 매뉴얼' 줄은 뺐다: 화면 오른쪽 위에
-  // 늘 같은 단추가 있어 같은 것이 두 번 보였다. '보고서 받기'(개발·검증 보고서 묶음)는 파트장이 쓰는 것이 아니라서 관리자 비밀번호를
-  // 통과한 뒤에만 넷째 줄로 나온다(ADMIN_OK — 아래 openVocGate). 줄 끝 표시는 그 줄이 하는 일을 말한다(사용자 2026-11-13): 받는 것은 ⬇,
-  // 관리자 모드는 표시 없음 — 꺾쇠(›)는 '다음 화면으로'로 읽히는데 관리자 모드는 비밀번호를 묻는 숨은 길이라 이끌 것이 없다.
+  // 버튼인지 알 수 없었다, 2026-11-11).
+  // **일반 사용자에게 보이는 줄은 둘이다 — 문의 파일 받기 · 관리자 모드.** 보고서 두 가지(월간 보고서 받기 · 보고서 받기)는 관리자
+  // 비밀번호를 통과한 뒤에만 그 아래에 나온다(ADMIN_OK — 아래 openVocGate. 문의 파일까지 열 필요는 없다). 잠가서 보이는 것이 아니라
+  // 줄 자체를 그리지 않는다(사용자 결정 2026-11-25: "도움말 기타에서 일반인에게 메뉴 자체가 안 보이게", 월간 보고서도 "예",
+  // 조건은 "비번 맞으면 보이게"). 그 전 경과: 11-13 월간 보고서를 표 위 파일 줄에서 이리로(실험 기능), 11-24 '📘 사용자 매뉴얼' 줄을
+  // 빼고 개발·검증 보고서 묶음('보고서 받기')만 비밀번호 뒤로 — 그때는 월간 보고서가 누구에게나 보였다. 일반 사용자 줄을 늘리지 말 것.
+  // 줄 끝 표시는 그 줄이 하는 일을 말한다(사용자 2026-11-13): 받는 것은 ⬇, 관리자 모드는 표시 없음 — 꺾쇠(›)는 '다음 화면으로'로
+  // 읽히는데 관리자 모드는 비밀번호를 묻는 숨은 길이라 이끌 것이 없다.
+  const adminOn = !!(ADMIN_OK || VOC_VIEW);
   html += `<div class="side-sec side-exp"><h3>도움말 · 기타</h3><div class="exp-list">` +
     // 문의는 적용 안 한 편집이 있어도 받을 수 있다(그 편집까지 담긴다).
     `<button class="exp-item" id="expVocBtn" onclick="openVocDialog()" ` +
       `title="이름과 내용을 적으면 지금 입력·출력·고친 기록이 파일 하나(zip)로 받아집니다 — 이 기기에 저장만 됩니다">` +
       `<span class="exp-name">문의 파일 받기</span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
-    `<button class="exp-item" id="expMagBtn" onclick="if (confirmDownloadWithViolations()) downloadMagazine()"${hasPending || ST.night_stage ? " disabled" : ""} ` +
-      `title="${hasPending ? "고치는 중인 칸이 있어 잠겼습니다 — 적용하거나 전체 취소한 뒤에 받을 수 있습니다"
-        : ST.night_stage ? "야간만 보는 중이라 잠겼습니다 — '나머지 자동 생성'이나 '전체 보기' 뒤에 받을 수 있습니다"
-        : "검증·일별 인원·주말 명단·사람별 집계·부담·원티드·고정 칸·야간·점수표·처리 기록을 한 파일(HTML)에 — 열어서 인쇄하면 PDF"}">` +
-      `<span class="exp-name">월간 보고서 받기${hasPending || ST.night_stage ? ' <small class="exp-lock">잠김</small>' : ""}</span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
     `<button class="exp-item" id="expAdminBtn" onclick="openVocGate()" ` +
       `title="받은 문의 파일(zip)을 올려 그 사람이 보던 화면을 다시 봅니다 — 비밀번호가 필요합니다">` +
       `<span class="exp-name">관리자 모드</span></button>` +
-    // 보고서 받기 — 개발·검증 보고서 묶음을 비밀번호로 풀어 내려 준다(openReportsGate). 묶음 자체가 따로 잠겨 있어 여기서도 그 비밀번호를 묻는다.
-    (ADMIN_OK || VOC_VIEW
-      ? `<button class="exp-item" id="expReportsBtn" onclick="openReportsGate()" ` +
+    (adminOn
+      // 월간 보고서 — 적용 안 한 편집이 있거나 야간만 보는 중이면 못 받는 것은 출력①②와 같다(그때는 잠긴 채로 이유를 적는다).
+      ? `<button class="exp-item" id="expMagBtn" onclick="if (confirmDownloadWithViolations()) downloadMagazine()"${hasPending || ST.night_stage ? " disabled" : ""} ` +
+        `title="${hasPending ? "고치는 중인 칸이 있어 잠겼습니다 — 적용하거나 전체 취소한 뒤에 받을 수 있습니다"
+          : ST.night_stage ? "야간만 보는 중이라 잠겼습니다 — '나머지 자동 생성'이나 '전체 보기' 뒤에 받을 수 있습니다"
+          : "검증·일별 인원·주말 명단·사람별 집계·부담·원티드·고정 칸·야간·점수표·처리 기록을 한 파일(HTML)에 — 열어서 인쇄하면 PDF"}">` +
+        `<span class="exp-name">월간 보고서 받기${hasPending || ST.night_stage ? ' <small class="exp-lock">잠김</small>' : ""}</span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
+        // 보고서 받기 — 개발·검증 보고서 묶음을 비밀번호로 풀어 내려 준다(openReportsGate). 묶음 자체가 따로 잠겨 있어 여기서도 그 비밀번호를 묻는다.
+        `<button class="exp-item" id="expReportsBtn" onclick="openReportsGate()" ` +
         `title="개발·검증 보고서 묶음(HTML) — 보고서 비밀번호가 필요합니다">` +
         `<span class="exp-name">보고서 받기</span><span class="exp-go" aria-hidden="true">⬇</span></button>`
       : "") +
