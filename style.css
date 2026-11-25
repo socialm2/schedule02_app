@@ -972,7 +972,7 @@ button.big { font-size: .9375rem; padding: 11px 26px; }
 }
 .modal-backdrop.show { display: flex; }
 /* 그날 병동(디오라마) — 날짜 머리칸을 누르면 뜬다. DOM으로 그려 화면 폭에 맞춰 접힌다. */
-.modal.dio-modal, .modal.jour-modal { max-width: min(96vw, 1040px); }
+.modal.dio-modal { max-width: min(96vw, 1040px); }
 .dio-nav { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .dio-nav button { min-width: 44px; font-size: .875rem; }
 .dio-body { padding: 14px 16px; }
@@ -1008,19 +1008,27 @@ button.big { font-size: .9375rem; padding: 11px 26px; }
   .dio-person { width: 50px; } .dio-name { max-width: 48px; font-size: .6875rem; }
   .modal-backdrop { padding: 10px; }
 }
-/* 여정 — 한 사람의 한 달 */
-.jour-body { padding: 12px 14px; }
-.jour-stage { position: relative; border-radius: 10px; overflow: hidden; background: #0b1020; }
-.jour-stage canvas { display: block; width: 100%; }
-.jour-card { position: absolute; right: 12px; top: 12px; width: min(300px, 46%); background: rgba(10,13,22,.72);
-  backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 10px 12px;
-  color: #eef2f7; font-size: .75rem; line-height: 1.55; }
-.jour-day { font-family: Georgia, "Noto Serif KR", serif; font-weight: 300; font-size: 1.375rem; }
-.jour-day small { font-size: .6875rem; color: #fca5a5; font-family: system-ui, sans-serif; margin-left: 4px; }
-.jour-why { margin-top: 6px; }
-.jour-sum { margin-top: 8px; color: #9aa3b2; font-size: .6875rem; }
-@media (max-width: 560px) {
-  .jour-card { position: static; width: auto; margin-top: 8px; border-radius: 8px; }
+/* 이름 강조 — 표의 이름을 누르면 그 사람 줄에 청록 띠가 서고, 표 위에 한 달 요약 줄(.hl-strip)이 뜬다(app.js '이름 강조').
+   예전엔 그 자리에서 '여정' 창이 떴다(2026-11-25에 걷어냈다). 띠는 칸의 위·아래 테두리로 긋는다 — 칸의 색·원티드 테두리·위반 표식은
+   그대로 보여야 하므로 칸을 덮지 않는다. 표가 border-collapse라 굵은 쪽이 이웃 줄의 1px 선을 이긴다. */
+table.grid td.nm[data-person] { cursor: pointer; }
+table.grid tr.hl-row td { border-top: 2.5px solid var(--accent); border-bottom: 2.5px solid var(--accent); }
+table.grid tr.hl-row td.nm { background: var(--accent); color: var(--on-accent); }
+table.grid tr.hl-row td.nm .role { color: var(--on-accent); opacity: .85; }
+.hl-strip { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin: 0 0 6px; padding: 6px 12px;
+  border: 1.5px solid var(--accent); border-radius: 8px; background: var(--accent-soft); font-size: .8125rem; }
+.hl-strip .hl-name { font-size: .875rem; }
+.hl-strip .hl-k { color: var(--sub); }
+.hl-strip .hl-n { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hl-strip .hl-chip { display: inline-block; min-width: 22px; margin-right: 3px; padding: 0 5px; border-radius: 4px; text-align: center; font-weight: 700; }
+.hl-strip .hl-off { margin-left: auto; padding: 2px 0; min-height: 0; font-size: .75rem; }
+.hl-strip .hl-mine { flex-basis: 100%; font-size: .75rem; line-height: 1.45; }
+.hl-strip .hl-mine b { color: var(--accent); margin-right: 4px; }
+@media (pointer: coarse) { .hl-strip .hl-off { min-height: 36px; } }
+@media print {
+  .hl-strip { display: none; }
+  table.grid tr.hl-row td { border-top-width: 1px; border-bottom-width: 1px; border-color: inherit; }
+  table.grid tr.hl-row td.nm, table.grid tr.hl-row td.nm .role { background: none; color: inherit; opacity: 1; }
 }
 table.grid th.day-head { cursor: pointer; }
 table.grid th.day-head:hover, table.grid th.day-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -1436,10 +1444,6 @@ header #infoBtn {
 .next-month-card ol { margin: 4px 0 2px; padding-left: 20px; }
 .next-month-card .hint { margin: 2px 0 0; }
 
-/* 여정 모달 머리 버튼 — 폰에서도 한 줄(A-16) */
-.jour-nav { flex-wrap: nowrap; }
-.jour-nav button { font-size: 12px; white-space: nowrap; padding: 4px 7px; }
-
 /* 새 버전 띠 — 화면 맨 위 고정 */
 .update-banner {
   position: fixed; top: 0; left: 0; right: 0; z-index: 120; display: flex; gap: 10px; align-items: center;
@@ -1506,8 +1510,6 @@ header #infoBtn {
 .fair-sec .good { color: var(--ok); }
 .fair-sec .bad { color: var(--hard); }
 .fair-axis-text { font-size: .7rem; color: var(--sub); margin-top: 2px; }
-.jour-mine { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,.18); font-size: .72rem; line-height: 1.45; color: #e5e7eb; }
-.jour-mine b { color: #fde68a; margin-right: 4px; }
 .fair-change { font-size: .72rem; color: var(--sub); margin: 6px 0 0; }
 .fair-sub-head { font-size: .74rem; color: var(--sub); margin: 12px 0 2px; padding-top: 8px; border-top: 1px dashed var(--line); }
 .fair-cum { margin-top: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: .74rem; }

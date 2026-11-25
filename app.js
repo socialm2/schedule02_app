@@ -2726,6 +2726,10 @@ function flashChanges(before) {
   });
 }
 
+// 근무 코드의 바탕색 — 범례의 보기 칸과 이름 강조의 요약 줄(personStripHtml)이 같이 쓴다. 표의 칸 색은 style.css(td.sd span …)가 정본이고
+// 여기는 그것을 옮겨 적은 것이다. 어두운 바탕(N·NK·조)에는 흰 글자.
+const CODE_COLOR = {D:"#BDD7EE", E:"#F8CBAD", N:"#1F3864", NK:"#7030A0", prn:"#C6E0B4", "8A":"#D9D9D9", "9A":"#BFBFBF", "10A":"#A6A6A6", T:"#B4C7E7", "연차":"#FFE699", "연1":"#FFF2CC", "연2":"#FFF2CC", "연3":"#FFF2CC", "연4":"#FFF2CC", "S/":"#9DC3E6", TW:"#A9D18E", "군":"#C9C9C9", "조":"#808080", "경":"#F4B6C2", "공":"#D0CECE", "병":"#F8C9C4", "휴":"#BFBFBF", "승":"#DDEBF7"};
+const DARK_CODES = new Set(["N", "NK", "조"]);
 function renderGrid() {
   const lockedSet = new Set(ST.locked);
   const pendingSet = new Set(ST.pending);
@@ -2798,17 +2802,13 @@ function renderGrid() {
   // (툴팁은 폰에서 볼 수 없다, A-17).
   html += nightStageBar();
   html += `<div class="legend legend-fold" id="legendFold">`;
-  const legendColor = {D:"#BDD7EE", E:"#F8CBAD", N:"#1F3864", NK:"#7030A0", prn:"#C6E0B4", "8A":"#D9D9D9", "9A":"#BFBFBF",
-                       "10A":"#A6A6A6", T:"#B4C7E7", "연차":"#FFE699", "연1":"#FFF2CC", "연2":"#FFF2CC", "연3":"#FFF2CC",
-                       "연4":"#FFF2CC", "S/":"#9DC3E6", TW:"#A9D18E", "군":"#C9C9C9", "조":"#808080", "경":"#F4B6C2",
-                       "공":"#D0CECE", "병":"#F8C9C4", "휴":"#BFBFBF", "승":"#DDEBF7"};
+  const legendColor = CODE_COLOR;
   const usedCodes = dutyColumns().filter(c => c !== "OFF" && legendColor[c]);
   // 범례는 줄마다 이름표가 붙은 작은 표다 — 근무 · 칸 표시 · 고칠 때 · 이름 옆 · 누르면. 보기 칸(.lg-s)은 표의 칸과 같은 CSS 규칙을
   // 같이 쓴다(style.css에서 td.viol-hard::after, .lg-hard::after처럼 묶었다) — 표식을 바꾸면 범례도 저절로 따라온다.
   // 예전엔 색 상자와 글을 한 줄에 줄줄이 이어 붙인 나열이라 무엇이 무엇의 설명인지 읽히지 않았다(사용자 2026-11-14: "안 예뻐, 안 깔끔").
   // 보기 칸에 표의 클래스(td.viol-soft 등)를 쓰지 않는 이유: paintFragile·paintSwapMarks가 #gridContent의 그 클래스를 지우고 다시
   // 붙이며, 화면 점검도 그 클래스로 표의 칸을 센다 — 범례의 보기가 섞이면 둘 다 틀린다.
-  const DARK_CODES = new Set(["N", "NK", "조"]);
   const sample = (txt, cls, bg) => `<span class="lg-s ${cls || ""}"${bg ? ` style="background:${bg};color:${DARK_CODES.has(txt) ? "#fff" : "#1C2523"}"` : ""}>${esc(txt)}</span>`;
   const item = (smp, label) => `<span class="lg-it">${smp}<span class="lg-t">${label}</span></span>`;
   const row = (head, body) => `<div class="lg-row"><span class="lg-h">${head}</span><div class="lg-items">${body}</div></div>`;
@@ -2824,7 +2824,7 @@ function renderGrid() {
     item(sample("D", "lg-want", D), "원티드 반영") + item(sample("D", "lg-lock", D), "확정(고정)") +
     item(sample("D", "lg-pend", D), "미적용 편집") + item(sample("D", "lg-hard", D), "필수 위반") +
     item(sample("D", "lg-soft", D), "추가 검토") +
-    `<span class="lg-note legend-tap">누르면 — <b>날짜</b> 그날 병동 · <b>이름</b> 한 달 여정 · <b>칸</b> 근무 바꾸기</span>`);
+    `<span class="lg-note legend-tap">누르면 — <b>날짜</b> 그날 병동 · <b>이름</b> 그 사람 한 달 강조 · <b>칸</b> 근무 바꾸기</span>`);
   html += row("고칠 때",
     item(sample("D", "lg-x", D), "바꿀 수 없음") + item(sample("D", "lg-sw", D), "맞교환만 가능") +
     item(sample("D", "lg-cand", D), "맞교환 상대") +
@@ -2878,8 +2878,10 @@ function renderGrid() {
     // 밤에 넣으면 풀리는지 찾을 단서가 이것뿐이다.
     const nlMark = s.is_night_leader
       ? '<span class="desig-mark nl-mark" title="야간리더 — 이 사람이 선 밤은 숙련도 4 이상 조건을 채운 것으로 봅니다">밤</span>' : "";
-    // 이름을 누르면 그 사람의 한 달을 '여정'으로 본다(개념 I에서 옮겨 옴). 값은 data-*에만.
-    html += `<tr><td class="nm" data-journey="${escAttr(s.id)}" tabindex="0" role="button" title="누르면 이 사람의 한 달을 여정으로 봅니다">${esc(s.id)}${desigMark}${nlMark}` +
+    // 이름을 누르면 그 사람 줄이 강조되고 표 위에 한 달 요약이 뜬다(아래 '이름 강조'). 값은 data-*에만.
+    const hl = s.id === HL_SID;
+    html += `<tr${hl ? ' class="hl-row"' : ""}><td class="nm" data-person="${escAttr(s.id)}" tabindex="0" role="button" aria-pressed="${hl}" ` +
+      `title="누르면 이 사람의 한 달이 강조됩니다 — 한 번 더 누르면 풀립니다">${esc(s.id)}${desigMark}${nlMark}` +
       `<span class="role">${s.role} Lv${s.level}</span></td>` +
       `<td class="stat-col">${offBefore}</td><td class="stat-col">${offAfter}</td>`;
     for (let d = 0; d < ST.num_days; d++) {
@@ -2958,6 +2960,7 @@ function renderGrid() {
   html += renderDailyLevelFootRows();
   html += "</tbody></table></div>";
   gridContent.innerHTML = html;
+  paintHighlight();    // 강조하던 사람이 있으면 표 위 요약 줄을 다시 단다(줄의 띠는 위에서 같이 그렸다). 그 사람이 표에 없으면 푼다
   paintSwapMarks();     // 표를 다시 그려도 찾는 중인 맞교환 상대 표시는 남는다(SWAP이 비었으면 아무것도 안 붙는다)
   $("#backToInputBtn").onclick = () => {
     // 손으로 고친 칸(미적용 편집·되올린 수정본의 고정 칸)은 돌아가는 순간 사라지고,
@@ -3605,13 +3608,16 @@ document.getElementById("gridContent").addEventListener("keydown", (ev) => {
 // 점수표의 줄을 누르면 그 시드의 표로 바꾼다. 미적용 편집은 버려지므로 먼저 묻는다 — 바꾼 표에는
 // 그 편집이 뜻이 없다(다른 표의 칸이다). 고정 칸(재생성 때 잠근 것)은 그대로 적용돼 있다.
 delegateClick(document.getElementById("gridPane"), "th.day-head[data-day]", (th) => openDiorama(Number(th.dataset.day)));
-delegateClick(document.getElementById("gridContent"), "td.nm[data-journey]", (td) => openJourney(td.dataset.journey));
+delegateClick(document.getElementById("gridContent"), "td.nm[data-person]", (td) => toggleHighlight(td.dataset.person));
+delegateClick(document.getElementById("gridContent"), "#hlOff", () => setHighlight(null));
 document.getElementById("gridContent").addEventListener("keydown", (ev) => {
+  const td = ev.target.closest("td.nm[data-person]");
+  // Esc는 이름 칸이나 요약 줄에 있을 때만 강조를 푼다 — 칸 고르기·창의 Esc와 겹치지 않게
+  if (ev.key === "Escape" && HL_SID && (td || ev.target.closest("#hlStrip"))) { ev.preventDefault(); setHighlight(null); return; }
   if (ev.key !== "Enter" && ev.key !== " ") return;
-  const td = ev.target.closest("td.nm[data-journey]");
   if (!td) return;
   ev.preventDefault();
-  openJourney(td.dataset.journey);
+  toggleHighlight(td.dataset.person);
 });
 document.getElementById("gridPane").addEventListener("keydown", (ev) => {
   if (ev.key !== "Enter" && ev.key !== " ") return;
@@ -3735,8 +3741,8 @@ function openDiorama(day) {
       if (b.dataset.dio === "close") closeDiorama();
       else if (DIO) { DIO.day = (DIO.day + (b.dataset.dio === "next" ? 1 : ST.num_days - 1)) % ST.num_days; drawDiorama(); }
     });
-    // 사람을 누르면 그 사람의 여정으로 — 디오라마는 닫는다(모달 둘이 겹치면 폰에서 길을 잃는다)
-    delegateClick(bd, ".dio-person[data-sid]", (el) => { const sid = el.dataset.sid; closeDiorama(); openJourney(sid, DIO_LAST_DAY); });
+    // 사람을 누르면 창을 닫고 표에서 그 사람 줄을 강조한다(줄이 안 보이면 보이는 데까지 민다)
+    delegateClick(bd, ".dio-person[data-sid]", (el) => { const sid = el.dataset.sid; closeDiorama(); setHighlight(sid, { scroll: true }); });
     bd.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeDiorama();
       if (e.key === "ArrowRight" && DIO) { DIO.day = (DIO.day + 1) % ST.num_days; drawDiorama(); }
@@ -3748,11 +3754,9 @@ function openDiorama(day) {
   const first = bd.querySelector("button[data-dio='next']");
   if (first) first.focus();
 }
-let DIO_LAST_DAY = 0;
 function closeDiorama() {
   const bd = document.getElementById("dioModalBackdrop");
   if (bd) bd.classList.remove("show");
-  if (DIO) DIO_LAST_DAY = DIO.day;
   DIO = null;
 }
 // 캔버스가 아니라 DOM으로 그린다 — 캔버스는 폰 가로·세로에서 방 네 개가 한 줄에 눌려 이름이
@@ -3783,7 +3787,7 @@ function drawDiorama() {
       groups[k].map(s => {
         const code = (ST.grid[s.id] || [])[day], lv = s.level || 1;
         const h = 18 + lv * 3;   // 키가 클수록 숙련도가 높다
-        return `<button type="button" class="dio-person" data-sid="${escAttr(s.id)}" title="${escAttr(`${s.id} · Lv${lv} · ${shiftText(code) || "쉼"} — 누르면 여정`)}">` +
+        return `<button type="button" class="dio-person" data-sid="${escAttr(s.id)}" title="${escAttr(`${s.id} · Lv${lv} · ${shiftText(code) || "쉼"} — 누르면 표에서 이 사람 줄 강조`)}">` +
           `<span class="dio-fig" style="--h:${h}px;--c:${dioCodeColor(code, dark)}">${lv >= 4 ? '<i class="dio-star">★</i>' : ""}<span class="dio-head"></span><span class="dio-torso"></span></span>` +
           `<span class="dio-name">${esc(s.id)}</span><span class="dio-code">${esc(shiftText(code) || "")}</span></button>`;
       }).join("") +
@@ -3792,121 +3796,65 @@ function drawDiorama() {
   }
   document.getElementById("dioRooms").innerHTML = html;
   document.getElementById("dioTitle").textContent = `${ST.month}월 ${d.n}일 (${d.dow})${d.weekend ? " · 주말·공휴일" : ""}`;
-  document.getElementById("dioHint").textContent = "키가 클수록 높은 숙련도, ★는 Lv4 이상. 사람을 누르면 그 사람의 한 달(여정). ◀ ▶ 또는 ←→로 날짜를 넘깁니다. 파트장은 뺐습니다.";
+  document.getElementById("dioHint").textContent = "키가 클수록 높은 숙련도, ★는 Lv4 이상. 사람을 누르면 표에서 그 사람의 한 달이 강조됩니다. ◀ ▶ 또는 ←→로 날짜를 넘깁니다. 파트장은 뺐습니다.";
 }
 
-// ================================================================ 여정(한 사람의 한 달)
-// 이름(표 첫 열)이나 디오라마의 사람을 누르면 그 사람의 한 달을 1인칭으로 걷는다 — 해·노을·달이 뜨고,
-// 카드에 그 칸이 왜 거기 놓였는지(이 칸은 왜와 같은 간단 판정) 적힌다. 개념 I '여정'에서 옮겨 옴.
-let JOUR = null;   // {sid, day, pos, play, last, raf}
-const JOUR_C = { D: "#60a5fa", E: "#fb923c", N: "#a78bfa", NK: "#f472b6", OFF: "#94a3b8", prn: "#4ade80", "8A": "#cbd5e1", "S/": "#2dd4bf" };
-const JOUR_NAME = { D: "낮(D)", E: "저녁(E)", N: "밤(N)", NK: "밤(야간전담)", OFF: "쉼", prn: "prn", "S/": "수면오프" };
-function jourSky(code) {
-  return code === "D" ? ["#8ec5ff", "#dff0ff"] : code === "E" ? ["#3b2a5a", "#f59e6b"]
-       : (code === "N" || code === "NK") ? ["#050816", "#1a2050"] : code === "S/" ? ["#1f2937", "#475569"]
-       : isWorkCode(code) ? ["#6b8fb3", "#d6e6f5"] : ["#5b6b84", "#c7d2e2"];
+// ================================================================ 이름 강조(한 사람의 한 달)
+// 표의 이름을 누르면 그 사람 줄에 청록 띠가 서고, 표 위에 그 사람의 한 달 요약 줄이 뜬다(사용자 결정 2026-11-25: "이름 클릭하면
+// 여정 뜨는데 그거 빼고 그 사람 한 달 근무가 하이라이트되게" — 시안 넷 중 넷째, 띠 + 요약 줄). 그 전에는 '여정'이라는 창이 떴다:
+// 해·달이 뜨는 그림 위를 하루씩 걷는 것이라, 한 달을 한눈에 보려는 사람에게는 표를 가리는 창이었다. 창·그림·그 코드는 걷어냈다
+// (숨기지 않았다). 여정에 있던 것 중 '내 달 요약'(형평성 점수가 만든 그 사람의 한 줄)은 요약 줄로 옮겼다 — 볼 자리가 거기뿐이었다.
+// 한 번 더 누르거나 요약 줄의 '강조 끄기'를 누르면 풀린다. 표를 다시 그려도(칸 수정·재생성) 남고, 그 사람이 없는 표가 되면 풀린다.
+// 숫자는 화면의 표(적용 안 한 편집 포함)에서 그 자리에서 센다 — 표 끝의 듀티별 횟수·주말 열과 같은 셈이다.
+let HL_SID = null;
+function personStripHtml(sid) {
+  const s = ST.staff.find(x => x.id === sid), row = ST.grid[sid] || [];
+  const chips = dutyColumns().filter(c => c !== "OFF").map(c => [c, row.filter(v => v === c).length]).filter(([, n]) => n > 0)
+    .map(([c, n]) => `<span class="hl-n"><span class="hl-chip" style="background:${CODE_COLOR[c] || "var(--code-bg)"};color:${DARK_CODES.has(c) ? "#fff" : "#1C2523"}">` +
+                     `${esc(shiftText(c))}</span>${n}</span>`).join("");
+  const offs = row.filter(v => v === "OFF").length, wk = s ? burdenOf(s, row).weekend : 0;
+  const p = ((ST.fair || {}).persons || []).find(x => x.id === sid);
+  return `<b class="hl-name">${esc(sid)}</b>` + (s ? `<span class="hl-k">${esc(s.role)} Lv${s.level}</span>` : "") + chips +
+    `<span class="hl-k">쉼 ${offs}일 · 주말·공휴일 근무 ${wk}일</span>` +
+    `<button type="button" class="linklike hl-off" id="hlOff" title="이름을 한 번 더 눌러도 풀립니다">강조 끄기</button>` +
+    (p && p.line ? `<span class="hl-mine"><b>내 달 요약</b> ${esc(p.line)}</span>` : "");
 }
-function jourRnd(i) { const x = Math.sin(i * 9301 + 49297) * 233280; return x - Math.floor(x); }
-function openJourney(sid, day) {
-  if (!ST || !ST.grid[sid]) return;
-  const row = ST.grid[sid];
-  let d0 = Number.isInteger(day) ? day : row.findIndex(v => isWorkCode(v));
-  if (d0 < 0) d0 = 0;
-  JOUR = { sid, day: d0, pos: d0, play: false, last: 0, raf: 0 };
-  let bd = document.getElementById("jourModalBackdrop");
-  if (!bd) {
-    bd = document.createElement("div");
-    bd.className = "modal-backdrop"; bd.id = "jourModalBackdrop";
-    bd.innerHTML = '<div class="modal jour-modal" role="dialog" aria-modal="true" aria-label="여정">' +
-      // '걷기(자동 재생)'와 '다음날'이 같은 ▶라 구분이 안 됐고 폰에서 두 줄로 꺾였다(2026-10-31 검토 A-16) —
-      // 재생은 ⏵ 글자와 '자동', 날짜 이동은 ◀ 전날 · 다음날 ▶로 적는다. 한 줄 배치는 .jour-modal .dio-nav(CSS).
-      '<div class="modal-head"><h2 id="jourTitle"></h2><div class="dio-nav jour-nav"><button data-jour="prev" title="전날">◀ 전날</button><button data-jour="play" title="자동으로 하루씩 걷기">⏵ 자동</button><button data-jour="next" title="다음날">다음날 ▶</button><button data-jour="close" title="닫기">✕</button></div></div>' +
-      '<div class="modal-body jour-body"><div class="jour-stage"><canvas id="jourCanvas"></canvas><div class="jour-card" id="jourCard"></div></div><p class="hint" id="jourHint">◀ ▶·←→·휠로 날짜를 넘깁니다. 해는 낮, 노을은 저녁, 달은 밤. 카드에 그 칸이 왜 거기 놓였는지 적힙니다.</p></div></div>';
-    document.body.appendChild(bd);
-    bd.addEventListener("click", (e) => { if (e.target === bd) closeJourney(); });
-    delegateClick(bd, "button[data-jour]", (b) => {
-      if (!JOUR) return;
-      const k = b.dataset.jour;
-      if (k === "close") closeJourney();
-      else if (k === "play") { JOUR.play = !JOUR.play; b.textContent = JOUR.play ? "⏸ 멈춤" : "⏵ 자동"; }
-      else { JOUR.day = Math.max(0, Math.min(ST.num_days - 1, JOUR.day + (k === "next" ? 1 : -1))); JOUR.play = false; bd.querySelector("button[data-jour='play']").textContent = "⏵ 자동"; }
-    });
-    bd.addEventListener("keydown", (e) => {
-      if (!JOUR) return;
-      if (e.key === "Escape") closeJourney();
-      if (e.key === "ArrowRight") { JOUR.day = Math.min(ST.num_days - 1, JOUR.day + 1); JOUR.play = false; }
-      if (e.key === "ArrowLeft") { JOUR.day = Math.max(0, JOUR.day - 1); JOUR.play = false; }
-    });
-    bd.querySelector("#jourCanvas").addEventListener("wheel", (e) => {
-      if (!JOUR) return; e.preventDefault();
-      JOUR.day = Math.max(0, Math.min(ST.num_days - 1, JOUR.day + Math.sign(e.deltaY))); JOUR.play = false;
-    }, { passive: false });
+// 줄의 띠와 표 위 요약 줄을 HL_SID에 맞춘다. 표를 다시 그리지 않는다(이름을 누를 때마다 40명 × 31칸을 다시 그릴 일이 아니다).
+// 요약 줄이 생기거나 사라지면 표가 그 높이만큼 밀리므로, 누른 줄이 화면의 같은 자리에 남게 스크롤을 그만큼 따라 옮긴다.
+function paintHighlight(opts) {
+  const t = gridContent.querySelector("table.grid");
+  if (!t) return;
+  if (HL_SID && !(ST && ST.grid[HL_SID])) HL_SID = null;
+  const names = [...t.querySelectorAll("td.nm[data-person]")];
+  const td = HL_SID ? names.find(e => e.dataset.person === HL_SID) : null;
+  if (!td) HL_SID = null;
+  const anchor = td || t.querySelector("tr.hl-row td.nm"), y0 = anchor ? anchor.getBoundingClientRect().top : 0;
+  t.querySelectorAll("tr.hl-row").forEach(r => r.classList.remove("hl-row"));
+  for (const e of names) e.setAttribute("aria-pressed", e === td ? "true" : "false");
+  let strip = document.getElementById("hlStrip");
+  if (!td) { if (strip) strip.remove(); }
+  else {
+    td.parentElement.classList.add("hl-row");
+    if (!strip) {
+      strip = document.createElement("div");
+      strip.id = "hlStrip"; strip.className = "hl-strip"; strip.setAttribute("role", "status");
+      const sc = gridContent.querySelector(".grid-scroll");
+      sc.parentElement.insertBefore(strip, sc);
+    }
+    strip.innerHTML = personStripHtml(HL_SID);
   }
-  bd.classList.add("show");
-  bd.querySelector("button[data-jour='play']").textContent = "⏵ 자동";
-  const s = ST.staff.find(x => x.id === sid);
-  document.getElementById("jourTitle").textContent = `${sid} · ${s ? `${s.role} Lv${s.level}` : ""} — ${ST.year}년 ${ST.month}월의 여정`;
-  const first = bd.querySelector("button[data-jour='next']");
-  if (first) first.focus();
-  cancelAnimationFrame(JOUR.raf);
-  JOUR.raf = requestAnimationFrame(drawJourney);
+  // 그날 병동 창에서 사람을 골라 온 경우: 그 이름 칸으로 포커스를 옮기고 줄을 화면 가운데로 민다. 포커스를 안 옮기면 a11y.js가 창을 닫은 뒤
+  // 포커스를 연 자리(맨 위에 붙어 있는 날짜 머리칸)로 되돌리면서 표를 다시 맨 위로 끌어올려, 강조한 줄이 화면 밖에 남는다.
+  if (opts && opts.scroll && td) { td.focus({ preventScroll: true }); td.parentElement.scrollIntoView({ block: "center", inline: "nearest" }); return; }
+  if (!anchor || !anchor.isConnected) return;
+  let d = anchor.getBoundingClientRect().top - y0;
+  if (!d) return;
+  const sc = anchor.closest(".grid-scroll");
+  if (sc) { const s0 = sc.scrollTop; sc.scrollTop += d; d -= sc.scrollTop - s0; }
+  if (d) window.scrollBy(0, d);
 }
-function closeJourney() {
-  const bd = document.getElementById("jourModalBackdrop");
-  if (bd) bd.classList.remove("show");
-  if (JOUR) cancelAnimationFrame(JOUR.raf);
-  JOUR = null;
-}
-function drawJourney(now) {
-  if (!JOUR || !ST) return;
-  const cv = document.getElementById("jourCanvas"), ctx = cv.getContext("2d");
-  const W = Math.max(280, cv.parentElement.clientWidth || 600), H = Math.max(220, Math.min(420, Math.round(W * 0.56)));
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + "px"; cv.style.height = H + "px"; }
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const row = ST.grid[JOUR.sid] || [], nd = ST.num_days;
-  if (JOUR.play && now - JOUR.last > 1500) { JOUR.last = now; JOUR.day = (JOUR.day + 1) % nd; }
-  JOUR.pos += (JOUR.day - JOUR.pos) * .1;
-  const pos = JOUR.pos, colW = Math.min(170, W * .3), cx = W * .42;
-  const k = Math.max(0, Math.min(nd - 1, Math.round(pos))), sky = jourSky(row[k]);
-  const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, sky[0]); g.addColorStop(1, sky[1]); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  const night = row[k] === "N" || row[k] === "NK";
-  for (let s = 0; s < 60; s++) { ctx.fillStyle = `rgba(255,255,255,${(night ? .8 : .08) * (0.3 + 0.7 * jourRnd(s + 9))})`; ctx.fillRect(((jourRnd(s) * W * 2 - pos * 30) % W + W) % W, jourRnd(s + 1) * H * .5, 1.5, 1.5); }
-  const ground = H * .72;
-  const hill = x => { const t = (x - cx) / colW + pos; return ground + Math.sin(t * 1.7) * 10 + Math.sin(t * .6) * 16; };
-  ctx.fillStyle = "rgba(10,14,24,.85)"; ctx.beginPath(); ctx.moveTo(0, H); for (let x = 0; x <= W; x += 8) ctx.lineTo(x, hill(x)); ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
-  ctx.textAlign = "center";
-  for (let d = 0; d < nd; d++) {
-    const x = cx + (d - pos) * colW; if (x < -colW || x > W + colW) continue;
-    const code = row[d], near = Math.max(0, 1 - Math.abs(d - pos)), yg = hill(x), yy = H * .22;
-    if (code === "D") { ctx.fillStyle = "#fde68a"; ctx.shadowBlur = 30; ctx.shadowColor = "#fde68a"; ctx.beginPath(); ctx.arc(x, yy, 20, 0, 7); ctx.fill(); ctx.shadowBlur = 0; }
-    else if (code === "E") { ctx.fillStyle = "#fb923c"; ctx.shadowBlur = 30; ctx.shadowColor = "#fb923c"; ctx.beginPath(); ctx.arc(x, yy + 48, 20, Math.PI, 0); ctx.fill(); ctx.shadowBlur = 0; }
-    else if (code === "N" || code === "NK") { ctx.fillStyle = "#e5e7eb"; ctx.shadowBlur = 24; ctx.shadowColor = "#c7d2fe"; ctx.beginPath(); ctx.arc(x, yy, 17, 0, 7); ctx.fill(); ctx.fillStyle = jourSky(code)[0]; ctx.beginPath(); ctx.arc(x + 7, yy - 3, 15, 0, 7); ctx.fill(); ctx.shadowBlur = 0; }
-    else if (isWorkCode(code)) { ctx.fillStyle = "#fef3c7"; ctx.shadowBlur = 16; ctx.shadowColor = "#fde68a"; ctx.beginPath(); ctx.arc(x, yy + 8, 14, 0, 7); ctx.fill(); ctx.shadowBlur = 0; }
-    else { ctx.fillStyle = "rgba(255,255,255,.75)"; for (let q = 0; q < 3; q++) { ctx.beginPath(); ctx.arc(x - 14 + q * 14, yy + 6 - (q % 2) * 8, 12, 0, 7); ctx.fill(); } }
-    ctx.strokeStyle = `rgba(255,255,255,${.25 + .5 * near})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, yg); ctx.lineTo(x, yg - 32 - 24 * near); ctx.stroke();
-    ctx.fillStyle = `rgba(255,255,255,${.5 + .5 * near})`; ctx.font = `300 ${14 + 14 * near}px Georgia, "Noto Serif KR", serif`; ctx.fillText(`${d + 1}`, x, yg - 40 - 24 * near);
-    ctx.fillStyle = JOUR_C[code] || (isWorkCode(code) ? "#e5e7eb" : "#94a3b8"); ctx.font = `600 ${11 + 3 * near}px system-ui, sans-serif`; ctx.fillText(JOUR_NAME[code] || code || "", x, yg + 18);
-    if (ST.days[d].weekend) { ctx.fillStyle = "rgba(252,165,165,.9)"; ctx.font = "10px system-ui, sans-serif"; ctx.fillText("주말", x, yg + 32); }
-  }
-  // 걷는 사람
-  const gy = hill(cx);
-  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(cx, gy - 22 + Math.sin(now / 250) * 2, 6, 0, 7); ctx.fill();
-  ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx, gy - 16); ctx.lineTo(cx, gy + 1); ctx.moveTo(cx, gy + 1); ctx.lineTo(cx - 6 + Math.sin(now / 250) * 5, gy + 13); ctx.moveTo(cx, gy + 1); ctx.lineTo(cx + 6 - Math.sin(now / 250) * 5, gy + 13); ctx.stroke();
-  // 카드 — '이 칸은 왜'와 같은 판정
-  if (JOUR.cardDay !== JOUR.day) {
-    JOUR.cardDay = JOUR.day;
-    const code = row[JOUR.day], why = explainCell(JOUR.sid, JOUR.day).lines;
-    const nights = row.filter(v => v === "N" || v === "NK").length, wk = row.filter((v, d) => isWorkCode(v) && ST.days[d].weekend).length, offs = row.filter(v => v === "OFF").length;
-    document.getElementById("jourCard").innerHTML =
-      `<div class="jour-day">${JOUR.day + 1}일 <span style="color:${JOUR_C[code] || "#e5e7eb"}">${esc(JOUR_NAME[code] || code || "—")}</span>${ST.days[JOUR.day].weekend ? ' <small>주말·공휴일</small>' : ""}</div>` +
-      `<div class="jour-why">${why.length ? why.map(esc).join("<br>") : "입력에서 정해진 칸이거나 쉬는 날입니다."}</div>` +
-      `<div class="jour-sum">이달 밤 ${nights}회 · 주말 ${wk}일 · 쉼 ${offs}일</div>` +
-      // 내 달 요약 — 당사자에게 보낼 한 줄(엔진 fairscore.py가 만든 문장 그대로). 집단 평균 대비·피로·원티드.
-      (() => { const p = ((ST.fair || {}).persons || []).find(x => x.id === JOUR.sid); return p ? `<div class="jour-mine" data-mine="${escAttr(JOUR.sid)}"><b>내 달 요약</b> ${esc(p.line)}</div>` : ""; })();
-  }
-  JOUR.raf = requestAnimationFrame(drawJourney);
-}
+function setHighlight(sid, opts) { HL_SID = sid || null; paintHighlight(opts); }
+function toggleHighlight(sid) { setHighlight(HL_SID === sid ? null : sid); }
 
 // ================================================================ 월간 보고(파트장용)
 // 확정 뒤 파트장이 받는 한 장짜리 보고서 — 화면 오른쪽 패널에 흩어진 것(검증·일별 인원·주말 명단·사람별
@@ -5283,7 +5231,7 @@ function renderFairScore() {
   // 뜻·산식·선택 기준은 접힘 하나에 — 늘 펼쳐 두면 점수보다 글이 많아 아무것도 안 읽힌다
   // 점수의 뜻·견준 사람·가중치 조정은 화면에서 걷어냈다(사용자 2026-11-16 "출력 정보 많은데 다 필요한 거야?") —
   // 산식은 설명서 몫이고, 가중치를 바꿔도 표는 그대로라 파트장이 할 일이 없었다. 종합 점수는 엔진 기본 가중치로만 센다.
-  html += `<p class="side-note">사람별 한 줄은 이름을 눌러 여정에서 봅니다.</p></details></div>`;
+  html += `<p class="side-note">사람별 한 줄은 표에서 이름을 누르면 표 위에 나옵니다.</p></details></div>`;
   return html;
 }
 

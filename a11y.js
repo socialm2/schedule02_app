@@ -1,13 +1,13 @@
 // ================================================================ 접근성 보강 (a11y.js)
 // app.js·platform.js를 건드리지 않고 **밖에서** 붙이는 보조기술·키보드 지원. 화면 로직과
-// 섞지 않는 이유: 모달이 셋(설명서·그날 병동·여정)이고 근무인력 표는 다시 그려질 때마다
+// 섞지 않는 이유: 모달이 여럿(설명서·그날 병동 …)이고 근무인력 표는 다시 그려질 때마다
 // 새 input이 생기는데, 각자 안에 같은 코드를 세 번 적으면 한 군데만 고쳐지는 사고가 난다
 // (이 저장소의 반복 사고). 여기서는 DOM만 보고(MutationObserver·이벤트 위임) 일을 한다.
 //
 // 하는 일(2026-10-31 검토 C 3-2·3-3·3-5):
 //   1. 모달이 열리면 포커스를 안으로 옮기고, Tab이 밖으로 못 나가게 가두고, 닫히면
 //      열었던 요소로 되돌린다 — 설명서는 열어도 포커스가 버튼에 남아 Tab 6번이 전부
-//      모달 밖으로 갔고, 디오라마·여정은 Esc 뒤 포커스가 body로 떨어져 키보드 사용자가
+//      모달 밖으로 갔고, 디오라마는 Esc 뒤 포커스가 body로 떨어져 키보드 사용자가
 //      표에서의 자리를 잃었다.
 //   2. 동적으로 만들어지는 모달에 aria-labelledby(제목)·버튼 aria-label(title에서)·
 //      장식 캔버스 aria-hidden을 붙인다.
@@ -49,7 +49,6 @@
   function keyOf(el) {
     if (!el || el === document.body) return null;
     if (el.matches && el.matches("th.day-head[data-day]")) return { sel: `th.day-head[data-day="${CSS.escape(el.dataset.day)}"]` };
-    if (el.matches && el.matches("td.nm[data-journey]")) return { sel: `td.nm[data-journey="${CSS.escape(el.dataset.journey)}"]` };
     if (el.id) return { sel: "#" + CSS.escape(el.id) };
     return null;
   }
@@ -58,19 +57,19 @@
     const modal = bd.querySelector(".modal");
     if (!modal) return;
     const active = document.activeElement;
-    // 모달 안에서 다른 모달로 넘어간 경우(디오라마 → 여정)는 원래 열었던 자리를 이어받는다.
+    // 모달 안에서 다른 모달로 넘어간 경우는 원래 열었던 자리를 이어받는다.
     const from = openModals().find(o => o !== bd && o.contains(active));
     const src = from ? (opener.get(from) || lastOutside) : (bd.contains(active) ? lastOutside : active);
     opener.set(bd, src);
     openerKey.set(bd, from ? openerKey.get(from) : keyOf(src));
     decorate(bd, modal);
-    // app.js가 스스로 첫 버튼에 포커스를 주는 모달(디오라마·여정)은 그대로 두고, 안 주는
+    // app.js가 스스로 첫 버튼에 포커스를 주는 모달(디오라마)은 그대로 두고, 안 주는
     // 설명서만 닫기 버튼으로 옮긴다. 한 프레임 뒤에 보는 이유: 열자마자 app.js가 focus()를
     // 부르는 순서보다 늦어야 한다.
     requestAnimationFrame(() => {
       if (!bd.classList.contains("show")) return;
       if (modal.contains(document.activeElement)) return;
-      const close = modal.querySelector("#closeInfoBtn, [data-dio='close'], [data-jour='close']");
+      const close = modal.querySelector("#closeInfoBtn, [data-dio='close']");
       const first = close || focusables(modal)[0] || modal;
       if (first === modal) modal.setAttribute("tabindex", "-1");
       first.focus();
@@ -81,7 +80,7 @@
     const src = opener.get(bd);
     const key = openerKey.get(bd);
     opener.delete(bd); openerKey.delete(bd);
-    // 다른 모달이 아직 열려 있으면(디오라마 → 여정) 그쪽이 포커스를 가진다.
+    // 다른 모달이 아직 열려 있으면 그쪽이 포커스를 가진다.
     if (openModals().length) return;
     requestAnimationFrame(() => {
       const still = openModals().length;
@@ -108,7 +107,7 @@
     for (const b of modal.querySelectorAll(".modal-head button, .dio-nav button")) {
       if (!b.getAttribute("aria-label") && b.title) b.setAttribute("aria-label", b.title);
     }
-    // 여정 캔버스는 장식(정보는 옆 카드에 글로 있다).
+    // 모달 안의 캔버스는 장식이다(정보는 글로 있다).
     const cv = modal.querySelector("canvas");
     if (cv && !cv.hasAttribute("aria-hidden")) cv.setAttribute("aria-hidden", "true");
   }
