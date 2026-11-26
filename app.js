@@ -2235,129 +2235,12 @@ document.querySelector(".info-section")?.addEventListener("change", saveSettings
 // 날아가므로 표만 그려 두면 다운로드·편집이 전부 "생성된 근무표가 없다"로 막힌다 — 그게 더 나쁘다. 같은
 // 입력·같은 시드면 같은 표가 나오고(엔진이 결정적), 고정 칸은 편집으로 다시 올려 적용한다. 그래도 다르면
 // 몇 칸이 다른지 그대로 말한다.
-// ================================================================ 변경 안내 초안 (GPT 11/2 보고서 N03)
-// 근무표를 공지한 뒤 칸이 바뀌면, 파트장은 바뀐 사람·날짜를 다시 찾아 안내문을 만들었다. 공지한 판을
-// '기준본'으로 정해 두면(이미 공지한 출력①을 올리거나, 지금 화면 표를 그대로) 지금 표와 비교해 바뀐
-// 사람만 모아 "12일(목) E→D" 꼴의 개인별 안내 초안을 만든다. 복사만 한다 — 보내는 것은 사람이 한다.
-//  - 기준본은 이 탭 안(sessionStorage)에만 둔다 — 기기에 남는 범위는 늘리지 않는다(보안 문서 1절).
-//  - 다른 달 기준본은 쓰지 않는다(날짜가 밀린 비교는 모두를 '바뀐 사람'으로 만든다). 파일은 API가 반려하고,
-//    화면 기준본은 연월이 다르면 버린다. 명단이 다르면 '새로 들어온/빠진 사람'으로 따로 적는다.
-//  - A→B→A로 돌아온 칸은 기준본과 같으므로 안내에서 빠진다. B팀(신입) 행도 비교한다.
-//  - '전달함' 표시는 그 사람의 바뀐 내용이 같을 때만 유지한다 — 다시 바뀌면 다시 '전달 필요'.
-const SESSION_NOTICE_KEY = "ns_session_notice_v1";
-let NOTICE = null;   // {year, month, label, at, grid, teamB, sent:{sid: fingerprint}}
-function loadNotice() {
-  // 관리자 모드의 표는 남의 것이다. 이 탭에 둔 내 기준본을 그 표에 얹으면 '내 공지 ↔ 남의 표'의 변경 안내가 뜨고,
-  // 달이 다르면 아래 줄이 내 기준본을 지워 버린다(2026-11-12 시나리오 검증). 읽지도 지우지도 않는다.
-  if (VOC_VIEW) return;
-  const n = sessionGet(SESSION_NOTICE_KEY);
-  NOTICE = (n && ST && n.year === ST.year && n.month === ST.month) ? n : null;
-  if (n && !NOTICE) sessionDel(SESSION_NOTICE_KEY);
-}
-function saveNotice() { if (VOC_VIEW) return; if (NOTICE) { if (!sessionSet(SESSION_NOTICE_KEY, NOTICE)) showToast("기준본을 이 탭에 보관하지 못했습니다 — 새로고침하면 다시 정해야 합니다", true); } else sessionDel(SESSION_NOTICE_KEY); }
-const noticeCode = v => (v === "/" ? "OFF" : (v || "빈칸"));
-function noticeDiff() {
-  if (!NOTICE || !ST) return null;
-  const out = [], days = ST.days || [];
-  const lab = d => `${d + 1}일${days[d] ? "(" + days[d].dow + ")" : ""}`;
-  const pend = new Set((ST.pending || []).map(k => k));
-  const cmp = (sid, a, b, team) => {
-    if (!a && b) { out.push({ sid, team, kind: "new", items: [] }); return; }
-    if (a && !b) { out.push({ sid, team, kind: "gone", items: [] }); return; }
-    const items = [];
-    for (let d = 0; d < Math.max(a.length, b.length); d++) {
-      const x = a[d] || "", y = b[d] || "";
-      if (x !== y) items.push({ d, from: x, to: y, pending: pend.has(`${sid}:${d}`), text: `${lab(d)} ${noticeCode(x)}→${noticeCode(y)}` });
-    }
-    if (items.length) out.push({ sid, team, kind: "changed", items });
-  };
-  const staffNow = ST.grid || {}, teamNow = ST.team_b_grid || {};
-  for (const sid of new Set([...Object.keys(NOTICE.grid), ...Object.keys(staffNow)])) cmp(sid, NOTICE.grid[sid], staffNow[sid], false);
-  for (const sid of new Set([...Object.keys(NOTICE.teamB || {}), ...Object.keys(teamNow)])) cmp(sid, (NOTICE.teamB || {})[sid], teamNow[sid], true);
-  return out;
-}
-const noticeFp = e => e.kind + ":" + e.items.map(i => i.text).join(",");
-function noticeText(e) {
-  const head = `[${ST.year}년 ${ST.month}월 근무 변경 안내] ${e.sid}님`;
-  if (e.kind === "new") return `${head}, 공지 뒤 근무표에 새로 들어오셨습니다 — 이번 달 근무를 확인해 주세요.`;
-  if (e.kind === "gone") return `${head}, 공지 뒤 이번 달 근무표에서 빠지셨습니다 — 확인 부탁드립니다.`;
-  return `${head}, 공지한 근무표에서 다음이 바뀌었습니다: ${e.items.map(i => i.text).join(", ")}.`;
-}
-function renderNotice() {
-  if (!ST) return "";
-  if (!NOTICE) loadNotice();   // 새로고침·복원 뒤 이 탭에 남은 기준본을 되찾는다
-  if (NOTICE && (NOTICE.year !== ST.year || NOTICE.month !== ST.month)) { NOTICE = null; saveNotice(); }
-  let html = `<details class="side-sec notice-sec" id="noticeSec"${NOTICE ? " open" : ""}><summary><h3 style="display:inline">변경 안내 초안</h3></summary>`;
-  if (!NOTICE) {
-    html += `<p class="hint">공지한 뒤 바뀐 칸을 사람별 안내 문구로 만듭니다. 먼저 <b>공지한 판</b>을 기준본으로.</p>
-      <div class="download-row">
-      <button class="notice-set-screen"><span>지금 표로</span><span>기준본 정하기</span></button>
-      <button class="notice-set-file"><span>공지한 출력①로</span><span>기준본 정하기</span></button>
-      </div>
-      <p class="hint">기준본은 이 탭에만 남고, 근무표는 바뀌지 않습니다.</p></details>`;
-    return html;
-  }
-  const diff = noticeDiff(), when = new Date(NOTICE.at);
-  const stamp = `${when.getMonth() + 1}/${when.getDate()} ${String(when.getHours()).padStart(2, "0")}:${String(when.getMinutes()).padStart(2, "0")}`;
-  html += `<p class="hint">기준본: <b>${esc(NOTICE.label)}</b> (${stamp}) · <button class="linklike notice-clear">기준본 지우기</button></p>`;
-  if (!diff.length) {
-    html += `<p class="hint">기준본과 지금 표가 같습니다 — 안내할 변경이 없습니다.</p></details>`;
-    return html;
-  }
-  const pendN = diff.reduce((n, e) => n + e.items.filter(i => i.pending).length, 0);
-  const sent = NOTICE.sent || {}, need = diff.filter(e => sent[e.sid] !== noticeFp(e)).length;
-  // 영향 요약 — 바뀐 칸 수와 '휴무→근무'(쉬기로 한 날에 나오라는 변경, 개인 일정에 가장 아픈 것)를 따로 센다
-  const cells = diff.reduce((n, e) => n + e.items.length, 0);
-  const restToWork = diff.reduce((n, e) => n + e.items.filter(i => !isWorkCode(i.from) && isWorkCode(i.to)).length, 0);
-  html += `<p class="notice-sum" data-notice-cells="${cells}" data-notice-r2w="${restToWork}">영향 <b>${diff.length}명</b> · 바뀐 칸 <b>${cells}</b> · 휴무→근무 <b class="${restToWork ? "warn-text" : ""}">${restToWork}</b> · 전달 필요 <b>${need}명</b></p>`;
-  // '재생성 적용'은 고정하지 않은 칸을 다시 짜서 공지 뒤 한두 칸 고친 것이 수십 명의 변경이 된다 — 안내가
-  // 길어진 이유를 알려 주고, 고친 칸만 바뀌는 길(엑셀에서 고쳐 되올리기)을 알려 준다.
-  if (diff.length > 5) html += `<p class="hint">바뀐 사람이 많습니다 — '위반 없게 재생성'은 고정하지 않은 칸을 다시 짭니다.
-    공지 뒤 몇 칸만 고치려면 칸을 고친 뒤 <b>고친 칸만 바꾸기</b>를 누르세요(엑셀에서 고쳐 되올려도 같습니다).</p>`;
-  if (pendN) html += `<p class="hint warn-text">적용 안 한 편집 ${pendN}칸이 섞여 있습니다(＊ 표시) — 적용한 뒤에 다시 보세요.</p>`;
-  html += '<ul class="notice-list">';
-  diff.forEach((e, k) => {
-    const done = sent[e.sid] === noticeFp(e);
-    const what = e.kind === "new" ? "새로 들어옴" : e.kind === "gone" ? "근무표에서 빠짐" : e.items.map(i => esc(i.text) + (i.pending ? "＊" : "")).join(", ");
-    html += `<li class="${done ? "sent" : ""}"><div class="notice-who"><b>${esc(e.sid)}</b>${e.team ? ' <span class="lv">B팀</span>' : ""}
-      <label class="notice-sent"><input type="checkbox" class="notice-done" data-k="${k}"${done ? " checked" : ""}> 전달함</label></div>
-      <div class="notice-what">${what}</div>
-      <button class="notice-copy" data-k="${k}">이 사람 안내 복사</button></li>`;
-  });
-  html += `</ul><div class="action-row"><button class="notice-copy-all">전체 목록 복사</button></div>
-    <p class="hint">복사만 합니다 — 카톡·문자로 보내는 것은 직접 하세요. '전달함'은 표시일 뿐 받았는지는 알 수 없습니다.</p></details>`;
-  return html;
-}
-async function noticeCopy(text) {
-  try { await navigator.clipboard.writeText(text); showToast("복사했습니다 — 붙여넣어 보내세요"); }
-  catch (e) {
-    // 클립보드가 막힌 브라우저(일부 http·인앱 브라우저) — 고를 수 있게 상자에 띄운다
-    const ta = document.createElement("textarea"); ta.value = text; ta.className = "notice-fallback";
-    document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); showToast("복사했습니다"); } catch (e2) { showToast("자동 복사가 막혀 있습니다 — 길게 눌러 복사하세요", true); }
-    setTimeout(() => ta.remove(), 4000);
-  }
-}
-function setNoticeFromScreen() {
-  NOTICE = { year: ST.year, month: ST.month, label: `화면 표 ${ST.round}회차`, at: Date.now(),
-             grid: JSON.parse(JSON.stringify(ST.grid)), teamB: JSON.parse(JSON.stringify(ST.team_b_grid || {})), sent: {} };
-  saveNotice(); renderSide(); showToast("지금 표를 공지 기준본으로 정했습니다 — 이제 칸을 바꾸면 안내 초안이 생깁니다");
-}
-async function setNoticeFromFile(f) {
-  try {
-    const b = await apiUpload("/api/baseline_month", f);
-    const teamB = {}, grid = {};
-    for (const [sid, row] of Object.entries(b.grid)) ((b.team_b_names || []).includes(sid) ? teamB : grid)[sid] = row;
-    NOTICE = { year: b.year, month: b.month, label: f.name, at: Date.now(), grid, teamB, sent: {} };
-    saveNotice(); renderSide();
-    const n = noticeDiff().length;
-    showToast(n ? `공지한 출력①을 기준본으로 정했습니다 — 바뀐 사람 ${n}명` : "공지한 출력①을 기준본으로 정했습니다 — 지금 표와 같습니다");
-    revealInSide($("#noticeSec"));
-  } catch (e) { /* apiUpload가 이유를 토스트로 띄운다 */ }
-}
 
-function sessionGet(key) { try { return JSON.parse(sessionStorage.getItem(key) || "null"); } catch (e) { return null; } }
-// 저장 성공 여부를 돌려준다 — 실패를 삼키면 보관이 안 됐는데도 된 것처럼 보인다(변경 안내 기준본이 쓴다).
-function sessionSet(key, val) { try { sessionStorage.setItem(key, JSON.stringify(val)); return true; } catch (e) { return false; } }
+// '변경 안내 초안'은 뺐다(사용자 결정 2026-11-26: "빼"). 공지한 판을 '기준본'으로 정해 두고 그 뒤 바뀐 칸을 사람별 안내 문구로
+// 만들어 복사하던 칸이다(결과 화면 › 상세 자료 맨 아래). 11-09에 "숨겨 두고"라 해 접어 두었는데, 11-16에 그 접힘이 없어지면서
+// 상세 자료 탭에 도로 나와 있었다 — 쓰지 않는 것이 화면에 있으면 "이게 왜 있냐"가 된다. 숨기지 않고 걷어냈다: 칸·기준본 올리기
+// (/api/baseline_month)·이 탭에 보관하던 기준본·모양·점검. 되살리지 말 것 — 필요하면 이 커밋 직전을 본다.
+// 열려 있던 탭에는 옛 판이 적어 둔 기준본(명단·근무표)이 세션에 남아 있을 수 있어 아래에서 한 번 지운다.
 function sessionDel(key) { try { sessionStorage.removeItem(key); } catch (e) { /* 없는 것과 같다 */ } }
 
 // '직전 근무표가 있습니다' 카드(새로고침 뒤 입력 화면 맨 위에 뜨던 복원 안내)는 뺐다(사용자 결정 2026-11-13).
@@ -2366,7 +2249,7 @@ function sessionDel(key) { try { sessionStorage.removeItem(key); } catch (e) { /
 // 만들기'라 야간 확정을 거친 표처럼 그대로 돌아오지 않는 경우도 있었다. 이제 새로고침하면 표는 사라진다 — 떠나기 전에
 // 브라우저가 한 번 묻는 것(platform.js beforeunload)과 출력①②가 보관 수단이다.
 // 이미 열려 있던 탭에는 옛 판이 적어 둔 명단·근무표가 세션에 남아 있을 수 있어 한 번 지운다.
-sessionDel("ns_session_result_v1"); sessionDel("ns_session_files_v1");
+sessionDel("ns_session_result_v1"); sessionDel("ns_session_files_v1"); sessionDel("ns_session_notice_v1");
 
 // 새로고침·뒤로가기·탭 닫기 전에 한 번 묻는다 — 표가 있거나, 손으로 고친 칸이 있거나, 입력①②를 올린
 // 상태면. 폰에서 뒤로가기를 습관적으로 누르는 사람이 10초 걸린 표를 통째로 잃었다(2026-10-31 검토 P13).
@@ -3150,7 +3033,7 @@ function sideTabItems() {
     { tab: "wanted", label: "원티드", v: (r.requests && r.requests.total) ? `${r.requests.accepted}<span class="st-of">/${r.requests.total}</span>` : "–",
       cls: (r.requests && r.requests.total) ? (r.requests.accepted < r.requests.total ? "warn" : "ok") : "",
       title: "원티드 신청 결과 — 반영된 건수/전체 신청 건수. 누르면 미반영부터 사유와 함께 나옵니다" },
-    { tab: "more", label: "상세 자료", v: "⋯", cls: "", title: "직원별 집계 · 주말 근무자 · 적용 조건 · 변경 안내 초안 · 도움말" },
+    { tab: "more", label: "상세 자료", v: "⋯", cls: "", title: "직원별 집계 · 주말 근무자 · 적용 조건 · 도움말" },
   ];
 }
 function sideTabsHtml() {
@@ -3173,14 +3056,6 @@ function showSideTab(name, pop) {
     p.classList.toggle("on", on); p.classList.remove("pop");
     if (on && pop) { void p.offsetWidth; p.classList.add("pop"); }
   });
-}
-// 패널 안의 어떤 칸으로 데려갈 때 — 그 칸이 든 탭을 먼저 열고, 접힌 칸이면 편다.
-function revealInSide(el) {
-  if (!el) return;
-  const pane = el.closest(".tab-pane");
-  if (pane && pane.dataset.pane !== SIDE_TAB) showSideTab(pane.dataset.pane, false);
-  for (let d = el.closest("details"); d; d = d.parentElement && d.parentElement.closest("details")) d.open = true;
-  el.scrollIntoView({ block: "nearest" });
 }
 // 패널 맨 위 탭: 그 내용이 위에서부터 보이게 패널을 맨 위로 올린다(PC — 패널이 따로 스크롤한다).
 delegateClick(sidePane, ".side-tabs .side-tab", (b) => {
@@ -3678,32 +3553,6 @@ delegateClick(document.getElementById("sidePane"), "button.undo-edit",
   (b) => undoEdit(b.dataset.sid, Number(b.dataset.day)));
 delegateClick(document.getElementById("sidePane"), "button.swap-pick",
   (b) => stageSwap(b.dataset.sid, Number(b.dataset.day), b.dataset.partner));
-delegateClick(document.getElementById("sidePane"), "button.notice-set-screen", () => setNoticeFromScreen());
-delegateClick(document.getElementById("sidePane"), "button.notice-set-file", (b, ev) => openFileInput($("#baselineInput"), ev));
-delegateClick(document.getElementById("sidePane"), "button.notice-clear", () => {
-  if (!confirm("공지 기준본을 지울까요? 안내 초안과 '전달함' 표시도 함께 사라집니다.")) return;
-  NOTICE = null; saveNotice(); renderSide();
-});
-delegateClick(document.getElementById("sidePane"), "button.notice-copy", (b) => {
-  const e = (noticeDiff() || [])[Number(b.dataset.k)]; if (e) noticeCopy(noticeText(e));
-});
-delegateClick(document.getElementById("sidePane"), "button.notice-copy-all", () => {
-  const d = noticeDiff() || []; if (!d.length) return;
-  noticeCopy(`[${ST.year}년 ${ST.month}월 근무 변경 — 공지 기준본 대비 ${d.length}명]\n` +
-    d.map(e => `· ${e.sid}${e.team ? "(B팀)" : ""}: ${e.kind === "new" ? "새로 들어옴" : e.kind === "gone" ? "근무표에서 빠짐" : e.items.map(i => i.text).join(", ")}`).join("\n"));
-});
-document.getElementById("sidePane").addEventListener("change", (ev) => {
-  if (!ev.target.classList || !ev.target.classList.contains("notice-done") || !NOTICE) return;
-  const e = (noticeDiff() || [])[Number(ev.target.dataset.k)]; if (!e) return;
-  NOTICE.sent = NOTICE.sent || {};
-  if (ev.target.checked) NOTICE.sent[e.sid] = noticeFp(e); else delete NOTICE.sent[e.sid];
-  saveNotice(); renderSide(); revealInSide($("#noticeSec"));
-});
-$("#baselineInput").onchange = async () => {
-  const el = $("#baselineInput"), f = el.files[0];
-  el.value = "";   // 같은 파일을 다시 골라도 걸리게
-  if (f) await setNoticeFromFile(f);
-};
 delegateClick(document.getElementById("sidePane"), "button.swap-more",
   () => { if (SWAP) { SWAP.showAll = !SWAP.showAll; renderSide(); const sec = $("#swapSec"); if (sec) sec.scrollIntoView({ block: "nearest" }); } });
 document.getElementById("sidePane").addEventListener("change", (ev) => {
@@ -4207,7 +4056,7 @@ async function submitReportsPw() {
 // **'관리자 모드'**를 누르면 비밀번호를 묻고,
 // 맞으면 바로 파일 고르기가 뜬다. 올라가면 '관리자 모드'다 — 창 둘레에 초록 테두리가 서고, 맨 위 띠에 보낸 사람과
 // 적은 내용이 보인다. 표뿐 아니라 입력 화면도 그 사람의 값으로 채운다(입력으로 돌아가도 관리자 모드는 이어진다).
-// 대신 이 기기에는 아무것도 저장하지 않고(saveSettings·saveNotice가 건너뛴다),
+// 대신 이 기기에는 아무것도 저장하지 않고(saveSettings가 건너뛴다),
 // '끝내기'는 화면을 새로 고쳐 내 값으로 돌아간다.
 // 비밀번호는 소스에 글자로 두지 않는다 — 소금 친 느린 해시만 둔다(2026-11-22. 그 전에는 글자 그대로 있었고, 이 파일은 공개 주소에
 // 올라가므로 누구나 읽을 수 있었다. 사용자: "그 비번 잘 노출 안 되게 해줘"). 넣은 값을 같은 방법으로 돌려 견준다(platform.js pbkdf2Hex).
@@ -4311,7 +4160,6 @@ async function loadVocFile(file) {
     window.__genMode = "voc-replay";
     // 입력 화면도 그 사람의 값으로 — 문의를 만든 순간의 입력 화면 값, 없으면(옛 문의 파일) 마지막으로 생성에 쓴 값.
     const formCfg = r.form_cfg || r.last_cfg;
-    NOTICE = null;                 // 내 공지 기준본을 남의 표에 얹지 않는다(이 탭에 보관해 둔 것은 그대로 둔다)
     try {
       if (formCfg) applyVocForm(formCfg, !!r.staff_table_loaded, r.form_opts);
       else VOC_VIEW.formNote = "이 문의 파일에는 입력 화면 값이 없어 입력 화면은 내 값 그대로입니다.";
@@ -4822,7 +4670,7 @@ function issueLi(v) {
 
 // 오른쪽 패널 — 위에서부터 '지금 확인하고 판단할 일' 순서다(GPT UI 검토 261113 + 사용자 "출력 쪽 너무 지저분하다"):
 //   편집 중(있을 때만) → 확인할 문제(필수 위반·인력 미달·추가 검토) → 형평성(종합·가장 낮은 축) → 조정 참고(3가지까지)
-//   → 상세 자료(직원별 집계·주말 근무자·적용 조건·변경 안내 초안 — 전부 접힘) → 도움말·기타. 원티드 결과는 자기 탭.
+//   → 상세 자료(직원별 집계·주말 근무자·적용 조건 — 전부 접힘) → 도움말·기타. 원티드 결과는 자기 탭.
 // 예전에는 18칸이 화면 네 장 분량으로 이어졌고, 위반 수가 세 군데·직원별 표가 두 군데(표 오른쪽 열과 같은 숫자)에 있었다.
 // 파일 받기는 표 위 작업줄(fileBarHtml)로 갔다. 숫자와 목록은 전부 그대로다 — 순서와 기본 펼침만 바꿨다.
 function renderSide() {
@@ -4959,11 +4807,10 @@ function renderSide() {
     월최대야간 ${ps.max_nights}일 · NK ${ps.nk_count}명 · 공휴일 ${holOnly}개(주말 ${satSun}일)</li>` +
   `</ul><p class="side-note">이 근무표를 만들 때 쓴 값입니다. 바꾸려면 '← 입력 이동'.</p></details>`;
 
-  // 변경 안내 초안 — 공지한 판을 기준본으로 두고 바뀐 사람에게 보낼 글. 공지 뒤 변경이 있는 달에만 쓰는 것이라 접힌 채 둔다.
-  // 예전엔 '상세 도구' 접힘 안에 야간 패턴·수정 전 확인·시도 점수표·처리 로그와 함께 있었다. 넷 다 파트장이 읽을 것이 아니라
-  // 걷어냈다(사용자 2026-11-16 "출력 정보 많은데 다 필요한 거야?" → "6개 정리"): 야간 패턴·처리 로그는 월간 보고서와 문의 파일에
-  // 남고, 수정 전 확인은 '수정주의근무' 체크의 풀이로 옮겼고, 시도 점수표는 관리자 모드에서만 보인다(아래).
-  html += renderNotice();
+  // 예전엔 '상세 도구' 접힘 안에 야간 패턴·수정 전 확인·시도 점수표·처리 로그·변경 안내 초안이 있었다. 앞의 넷은 파트장이 읽을 것이
+  // 아니라 걷어냈고(사용자 2026-11-16 "출력 정보 많은데 다 필요한 거야?" → "6개 정리"): 야간 패턴·처리 로그는 월간 보고서와 문의
+  // 파일에 남고, 수정 전 확인은 '수정주의근무' 체크의 풀이로 옮겼고, 시도 점수표는 관리자 모드에서만 보인다(아래).
+  // 변경 안내 초안도 뺐다(사용자 2026-11-26 — 위 '변경 안내 초안은 뺐다' 주석).
 
   // 시도 점수표 — 시드마다 어떤 숫자로 견줘 어느 것을 골랐는지. 앞 열이 다르면 뒤 열은 보지 않는다
   // (운영 필수 → 숙련도 → 공평성 → 전체 하드, 2026-10-30 결정). 공평성은 주말·야간·D/E·원티드 미반영의 합(사람·일 수).
