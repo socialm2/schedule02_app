@@ -39,12 +39,35 @@ async function fetchOk(path, label) {
   if (!r.ok) throw new Error(label + "을(를) 받지 못했습니다(HTTP " + r.status + ") — 보안 장비가 막았거나 서버에 없을 수 있습니다.");
   return r;
 }
+// 받기는 했는데(200) 그 파일이 아닌 경우 — 사내 로그인이 끊겼을 때 서버가 로그인 화면을 200으로 주면 엔진 zip·실행 파일 자리에
+// HTML이 온다. 그대로 넘기면 엔진 풀기에서 영어 원문(BadZipFile …)이 뜨거나 실행 환경이 "불러오는 중"에서 영영 멈춘다
+// (2026-11-26 GPT 종합검증). 파일 머리 몇 바이트로 가려 무엇이 왔는지 한국어로 말한다.
+function wrongContent(label) {
+  return new Error(label + " 자리에 다른 내용이 왔습니다 — 회사 로그인이 끊겼거나 보안 장비가 안내 화면을 대신 보낸 것일 수 있습니다. " +
+                   "로그인한 뒤 새로 고쳐 주세요.");
+}
+function startsWith(bytes, magic) {
+  if (bytes.length < magic.length) return false;
+  for (let i = 0; i < magic.length; i++) if (bytes[i] !== magic[i]) return false;
+  return true;
+}
+// 응답의 첫 조각만 읽어 본다(전체를 읽으면 10MB짜리 실행 파일을 두 번 받게 될 수 있다). 읽는 것은 복제본이라 원본은 그대로다.
+async function headBytes(r, n) {
+  try {
+    const reader = r.clone().body.getReader();
+    const first = await reader.read();
+    reader.cancel().catch(() => {});
+    return first.value ? first.value.subarray(0, n) : new Uint8Array(0);
+  } catch (e) { return null; }     // 스트림을 못 읽는 환경 — 검사를 건너뛴다(예전 동작 그대로)
+}
 
 async function boot() {
   // loadPyodide가 안에서 받는 핵심 실행 파일(.wasm)은 받기에 실패해도 Pyodide가 조용히 삼키고 "불러오는 중"에서 영영 멈춘다
   // (사내 도메인 이전 점검 — 병원 보안 장비가 .wasm을 막는 경우). 그래서 loadPyodide 전에 여기서 먼저 받아 막혔는지 본다.
   // 받아 둔 응답은 서비스워커가 캐시에 넣으므로(캐시 우선) loadPyodide가 다시 받을 때 네트워크를 또 쓰지 않는다.
-  await fetchOk("vendor/pyodide/pyodide.asm.wasm", "실행 환경(.wasm)");
+  const wasmHead = await headBytes(await fetchOk("vendor/pyodide/pyodide.asm.wasm", "실행 환경(.wasm)"), 4);
+  // 첫 조각이 4바이트가 안 되면(드문 일) 가릴 수 없다 — 그때는 예전처럼 그대로 넘긴다
+  if (wasmHead && wasmHead.length >= 4 && !startsWith(wasmHead, [0x00, 0x61, 0x73, 0x6d])) throw wrongContent("실행 환경(.wasm)");     // "\0asm"
 
   pyodide = await loadPyodide({ indexURL: "vendor/pyodide/" });
 
@@ -56,6 +79,7 @@ async function boot() {
 
   report("근무표 생성 엔진을 불러오는 중…");
   const zipBuf = await (await fetchOk("py_app.zip", "근무표 엔진")).arrayBuffer();
+  if (!startsWith(new Uint8Array(zipBuf, 0, Math.min(4, zipBuf.byteLength)), [0x50, 0x4b])) throw wrongContent("근무표 엔진");   // zip은 "PK"로 시작한다
   pyodide.unpackArchive(zipBuf, "zip");
 
   // 화면 첫 기본값(예제 값)의 '명단' — 파트장이 실제로 쓰는 양식(원티드표)과 같은 형식이다. 설정·최소인력은 파일이 아니라
@@ -84,6 +108,7 @@ function callBridge(path, opts) {
     case "/api/upload_wanted": return bridge.api_upload_wanted(opts._fileBytes);
     case "/api/upload_staff_table": return bridge.api_upload_staff_table(opts._fileBytes);
     case "/api/upload_month": return bridge.api_upload_month(opts._fileBytes);
+    case "/api/upload_month/cancel": return bridge.api_upload_month_cancel();
     case "/api/staff_table_status": return bridge.api_staff_table_status();
     case "/api/clear_staff_table": return bridge.api_clear_staff_table();
     case "/api/set_config": return bridge.api_set_config(opts.body);

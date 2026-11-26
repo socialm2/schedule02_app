@@ -10,7 +10,7 @@
 //
 //   api(path, opts)                       요청 보내기        (Worker에 보내고 받기)
 //   apiUpload(path, file)                 파일 올리기        (바이트로 바꿔 전달)
-//   apiDownload(kind)                     파일 받기          (바이트+파일명 → blob 저장)
+//   apiDownload(kind, {sample})           파일 받기          (바이트+파일명 → blob 저장. sample이면 이름에 '(예제)')
 //   apiDownloadWantedTemplate(payload, filename)   양식 받기
 //   bootPlatform()                        시작 준비          (Pyodide 부팅)
 //
@@ -461,14 +461,18 @@ function base64ToFile(b64, name) {
 // 다운로드는 JSON이 아니라 순수 바이너리를 그대로 돌려주므로,
 // JSON.parse를 하는 api() 대신 callWorker()로 원본 응답을 직접 받는다.
 // 파일명(병동명·회차 포함)은 bridge.py가 만들어 준다.
-async function apiDownload(kind) {
+async function apiDownload(kind, opts) {
   const { raw: bytes } = await callWorker(`/api/download/${kind}`);
   // bridge는 생성 전이면 None을 돌려준다 — 그대로 Blob에 넣으면 내용이 "null" 네 글자인
   // 엑셀 파일이 받아진다(열면 깨진 파일). 화면 버튼은 생성 뒤에만 있지만, 이 함수는
   // 다른 길로도 불리므로 여기서 막는다(2026-10-13 화면 훑기).
   if (!bytes) { showToast("아직 생성된 근무표가 없습니다 — 먼저 근무표를 생성해주세요", true); return; }
   const { raw: filename } = await callWorker(`/api/download_filename/${kind}`);
-  triggerDownload(bytes, filename, XLSX_MIME);
+  // 예제 값으로 만든 표(올린 파일이 하나도 없을 때)는 파일 이름에 '(예제)'를 붙인다. 화면에는 '예제 값으로 만든 근무표'라고 떠 있지만
+  // 받은 엑셀에는 그 말이 없어, 파일만 다시 열면 본인 병동 근무표와 가릴 수 없었다(2026-11-26 GPT 종합검증). 표 안의 글자는
+  // 바꾸지 않는다 — 양식은 그대로다. 출력1_월간근무표_… → 출력1_월간근무표(예제)_…
+  const name = (opts && opts.sample) ? String(filename).replace(/^([^_]+_[^_]+)/, "$1(예제)") : filename;
+  triggerDownload(bytes, name, XLSX_MIME);
 }
 
 async function apiDownloadWantedTemplate(payload, filename) {
@@ -531,12 +535,19 @@ async function bootPlatform() {
     const detail = (e && e.message) ? e.message : String(e);
     const cm = chromiumMajor();
     const old = cm > 0 && cm < PYODIDE_TESTED_CHROMIUM;
-    document.getElementById("loadingMsg").textContent = old
+    // 받기는 했는데 그 파일이 아닌 경우(pyworker.js의 wrongContent) — 사내 로그인이 끊겨 서버가 로그인 화면을 대신 준 것일 수 있다.
+    // "네트워크가 끊겼다"고 하면 할 일이 틀린다: 다시 로그인해야 한다(2026-11-26 GPT 종합검증 — 엔진 zip 자리에 200 HTML).
+    const swapped = detail.indexOf("자리에 다른 내용이 왔습니다") >= 0;
+    document.getElementById("loadingMsg").textContent = swapped
+      ? "실행에 필요한 파일 대신 다른 화면이 왔습니다 — 회사 로그인이 끊겼을 수 있습니다."
+      : old
       ? "실행 환경을 시작하지 못했습니다 — 이 브라우저가 오래된 버전일 수 있습니다."
       : "실행 환경을 불러오지 못했습니다 — 네트워크가 끊겼거나 차단됐을 수 있습니다.";
     const sub = document.querySelector("#loadingOverlay .loading-sub");
     if (sub) {
-      sub.innerHTML = (old
+      sub.innerHTML = (swapped
+        ? "회사 로그인을 다시 한 뒤 새로 고침해 주세요. 계속 안 되면 전산 담당 부서에 이 화면을 보여 주세요. "
+        : old
         ? "먼저 새로 고침해 보시고, 그래도 안 되면 크롬이나 엣지를 최신 버전으로 업데이트한 뒤 다시 열어주세요(업데이트가 막혀 있는 PC라면 전산 담당 부서에 문의). "
         : "새로 고침해 다시 시도해주세요. 계속 안 되면 다른 네트워크로 열어보거나, 크롬·엣지를 최신 버전으로 업데이트해 보세요. ") +
         '<span class="boot-err-detail"></span><br><button type="button" id="bootRetryBtn" class="small primary">새로 고침</button>';

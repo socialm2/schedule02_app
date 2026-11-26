@@ -457,6 +457,8 @@ td.disabled { cursor: default; opacity: .55; }
 .upload-branch button { margin-top: 2px; }
 .upload-branch .hint { margin: 4px 0 9px; }
 .upload-branch .hint:last-child { margin-bottom: 0; }
+/* 방금 올린 파일이 앞서 고쳐 둔 칸을 다른 값으로 바꿨을 때 — 예전에 받아 둔 사본일 수 있다. 위 .hint보다 뒤에 둔다(여백을 이긴다) */
+.upload-branch .hint.branch-warn { color: var(--warn); font-size: .78125rem; line-height: 1.6; margin: 0 0 10px; }
 
 button.wide { width: 100%; }
 

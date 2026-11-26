@@ -20,7 +20,7 @@
 // index.html의 빌드시각만 새것으로 바뀌니 "최신 버전인데 고친 게 하나도 안 보인다"가
 // 된다. 하루치 수정이 통째로 안 보인 채 나갔었다.
 
-const CACHE_NAME = "ns-sched-20261126-145544-b4a42b4";
+const CACHE_NAME = "ns-sched-20261126-155233-1109206";
 
 // py_app.zip은 엔진 코드라 배포마다 바뀌므로 APP_FILES(네트워크 우선)로 둔다 —
 // HEAVY_FILES(캐시 우선)에 있으면, 서비스워커가 갱신되는 그 페이지 로드에서조차
@@ -31,9 +31,8 @@ const CACHE_NAME = "ns-sched-20261126-145544-b4a42b4";
 // 화면 설명과 어긋나면 안 되는 파일이라, 온라인이면 항상 최신을 받게 하는 편이 안전하다.
 // (여기 있어도 설치 때 미리 받아두므로 오프라인에서도 그대로 열린다)
 //
-// 도움말 3종도 여기에 있어야 한다. 앱 안 '설명서'에서 링크로 여는 페이지인데, 목록에
-// 없으면 한 번도 열어본 적 없는 기기에서는 오프라인일 때 그냥 안 열린다 — 정작 도움말이
-// 가장 필요한 순간(비행기모드·병원 지하·데이터 없음)에 없는 셈이다. 합쳐 60KB 남짓이다.
+// 사용자 매뉴얼(manual.html)은 여기 넣지 않는다 — 그림이 든 5MB라 배포 때마다 모든 기기가 다시 받게 된다.
+// 대신 온라인에서 한 번 열어 보면 그때 **제 주소로** 캐시에 넣어 두고(아래 화면 이동 처리), 그 뒤로는 오프라인에서도 열린다.
 const APP_FILES = ["./", "index.html", "app.js", "platform.js", "a11y.js", "genviz.js", "style.css", "pyworker.js",
                    "manifest.json", "py_app.zip",
                    "templates/annual_2026-08.xlsx",
@@ -85,7 +84,12 @@ self.addEventListener("install", (event) => {
         }));
       })
       .then(() => self.skipWaiting())
-      .catch(() => {}) // 캐싱 실패해도 앱 자체는 계속 동작해야 하므로 조용히 무시
+      // 하나라도 못 받으면 **설치를 실패로 끝낸다**(삼키지 않는다). 예전에는 여기서 오류를 삼켜 설치가 '성공'으로 끝났고,
+      // 그 워커가 켜지면서(activate) 멀쩡하던 옛 캐시를 지웠다 — 서버에 파일 하나가 덜 올라간 배포 한 번에, 이미 쓰던 PC가
+      // 오프라인에서 아예 안 열리게 됐다(새 캐시 0개 · 2026-11-26 GPT 종합검증, 회사 서버로 옮겨 올릴 때 생길 수 있는 일).
+      // 실패로 끝내면 브라우저가 이 워커를 버리고 **옛 워커와 옛 캐시가 그대로 남는다.** 제대로 된 배포가 올라오면 그때 새로 설치된다.
+      // 처음 여는 기기는 워커 없이 온라인으로 그대로 열린다(다음에 열 때 다시 설치를 시도한다). 반쯤 찬 새 캐시는 지운다.
+      .catch((e) => caches.delete(CACHE_NAME).then(() => { throw e; }))
   );
 });
 
@@ -105,6 +109,22 @@ self.addEventListener("activate", (event) => {
 function cacheable(res) {
   return !!res && res.ok && res.type === "basic" && !res.redirected;
 }
+// 세션이 끊겼을 때 서버가 로그인 화면을 **200 HTML**로 주는 곳도 있다(리다이렉트 없이). 그것이 app.js·.whl·.wasm 자리에
+// 들어오면 위 검사를 통과한다 — 무거운 파일은 캐시 우선이라 한 번 들어가면 그 판이 끝날 때까지 로그인 화면이 '실행 파일'로
+// 남는다. HTML이 아닌 파일 자리에 온 HTML은 넣지 않는다.
+function wrongKind(path, res) {
+  const type = (res.headers.get("content-type") || "").toLowerCase();
+  return type.indexOf("text/html") === 0 && !/(\.html?|\/)$/.test(path);
+}
+// 오프라인인데 설명서를 아직 한 번도 열어 본 적이 없을 때 — 앱 화면을 대신 주지 않고 그렇다고 말한다.
+function manualOffline() {
+  return new Response('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<title>사용자 매뉴얼</title><body style="font-family:sans-serif;line-height:1.7;padding:24px">' +
+    '<h1 style="font-size:18px">지금은 설명서를 열 수 없습니다</h1>' +
+    '<p>인터넷이 끊겨 있고, 이 기기에서 설명서를 아직 열어 본 적이 없습니다. 인터넷이 되는 곳에서 한 번 열어 두면 그 뒤로는 끊겨도 열립니다.</p>' +
+    '<p>근무표 프로그램은 이 탭을 닫고 원래 화면에서 그대로 쓰실 수 있습니다.</p></body>',
+    { status: 503, headers: { "content-type": "text/html; charset=utf-8" } });
+}
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
@@ -116,11 +136,21 @@ self.addEventListener("fetch", (event) => {
   // 로그인 대신 401을 줄 수 있다) — 로그인 시스템이 302로 로그인 화면에 돌려주면 괜찮다(전산 체크리스트). 완전히 안 가로채면
   // 오프라인 실행이 깨져서 이렇게 둔다.
   if (req.mode === "navigate") {
+    // **주소마다 제 자리에 둔다.** 예전에는 어떤 화면 이동이든 성공한 응답을 'index.html' 자리에 넣었다 — 설명서(manual.html)를
+    // 한 번 열면 그것이 '앱 첫 화면'으로 저장돼, 인터넷이 끊긴 뒤 앱 주소를 열면 생성 단추 없는 설명서가 떴다. 로그인 화면을
+    // 200으로 주는 서버라면 그 화면도 같은 자리에 남았다(2026-11-26 GPT 종합검증).
+    //  · 앱 첫 화면은 여기서 캐시에 넣지 않는다 — 설치 때 받아 둔 것(APP_FILES의 index.html)을 쓴다. 그 판의 app.js·엔진과
+    //    한 벌이고, 화면 이동 중에 온 다른 응답(설명서·로그인 화면)이 끼어들 자리가 없다.
+    //  · 설명서는 사전목록에 없으므로(5MB) 온라인에서 열어 본 응답을 'manual.html' 자리에 넣어 둔다.
+    const nav = new URL(req.url);
+    const manual = nav.origin === location.origin && /\/manual\.html$/.test(nav.pathname);
     event.respondWith(
       fetch(req).then((res) => {
-        if (cacheable(res)) { const clone = res.clone(); caches.open(CACHE_NAME).then((c) => c.put("index.html", clone)); }
+        if (manual && cacheable(res)) { const clone = res.clone(); caches.open(CACHE_NAME).then((c) => c.put("manual.html", clone)); }
         return res;
-      }).catch(() => caches.match("index.html").then((r) => r || caches.match("./")))
+      }).catch(() => manual
+        ? caches.match("manual.html").then((r) => r || manualOffline())
+        : caches.match("index.html").then((r) => r || caches.match("./")))
     );
     return;
   }
@@ -137,7 +167,7 @@ self.addEventListener("fetch", (event) => {
   if (isHeavy) {
     event.respondWith(
       caches.match(req).then((cached) => cached || fetch(req).then((res) => {
-        if (cacheable(res)) { const clone = res.clone(); caches.open(CACHE_NAME).then((c) => c.put(req, clone)); }
+        if (cacheable(res) && !wrongKind(path, res)) { const clone = res.clone(); caches.open(CACHE_NAME).then((c) => c.put(req, clone)); }
         return res;
       }))
     );
@@ -147,7 +177,7 @@ self.addEventListener("fetch", (event) => {
     // fetch()가 브라우저 HTTP 캐시에 걸려 배포 직후에도 옛 파일이 나올 수 있다.
     event.respondWith(
       fetch(req, { cache: "reload" }).then((res) => {
-        if (cacheable(res)) { const clone = res.clone(); caches.open(CACHE_NAME).then((c) => c.put(req, clone)); }
+        if (cacheable(res) && !wrongKind(path, res)) { const clone = res.clone(); caches.open(CACHE_NAME).then((c) => c.put(req, clone)); }
         return res;
       }).catch(() => caches.match(req))
     );

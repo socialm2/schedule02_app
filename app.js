@@ -471,6 +471,8 @@ window.downloadWantedTemplate = async function () {
 // 늘 떠 있으면 '② 재생성'이 눌리기 쉬운데 그건 고정 칸 말고 표 전체를 다시 짜는,
 // 되돌릴 수 없는 동작이다.
 let uploadedMonthRound = -1;
+// 방금 올린 파일이 '앞서 고쳐 고정해 둔 칸'을 다른 값으로 바꿨으면 그 목록 — 반영 카드에 적어 둔다(예전에 받아 둔 사본을 올린 것일 수 있다).
+let uploadedOverwrote = [];
 const monthUploadJustApplied = () => ST && ST.round === uploadedMonthRound;
 
 window.uploadMonth = () => openFileInput($("#monthInput"));
@@ -480,11 +482,11 @@ window.downloadBothOutputs = async function () {
   // 그 확인을 안 거치면, 새로 생긴 길로는 못 채운 칸이 있는 근무표가 아무 경고 없이
   // 나간다 — 같은 파일을 받는 동작이 어느 버튼을 눌렀느냐로 갈리면 안 된다.
   if (!confirmDownloadWithViolations()) return;
-  await apiDownload("xlsx_ocs");
+  await apiDownload("xlsx_ocs", { sample: tableFromSample });
   // 두 번째를 곧바로 시작하지 않고 한 박자 쉰다. 브라우저에 따라 짧은 간격의 연속
   // 다운로드를 하나로 묶거나 두 번째를 막는다 — 그러면 출력①만 받고 끝난 줄 안다.
   await new Promise(r => setTimeout(r, 400));
-  await apiDownload("staff_table");
+  await apiDownload("staff_table", { sample: tableFromSample });
   nextMonthCardOn = true;
   renderNextMonthCard();
 };
@@ -524,7 +526,12 @@ window.applyUploadedMonth = async function (f) {
     let next = await apiUpload("/api/upload_month", f);
     if (next && next.needs_confirm) {
       // 한 사람의 날짜 칸이 통째로 빈 파일 — 서버는 아직 아무것도 바꾸지 않았다. 확인을 받으면 같은 파일을 다시 올려 반영한다.
-      if (!confirm(`${next.message}\n\n그래도 이 파일대로 반영하시겠습니까?`)) { showToast("파일을 반영하지 않았습니다 — 표는 그대로입니다"); return; }
+      if (!confirm(`${next.message}\n\n그래도 이 파일대로 반영하시겠습니까?`)) {
+        // 취소했다고 계산 쪽에 알린다. 안 알리면 이 파일이 '확인을 기다리는 파일'로 남아, 같은 파일을 다시 고르면
+        // 두 번째 올리기가 확인으로 읽혀 묻지 않고 반영된다(한 사람의 한 달이 통째로 쉼 — 2026-11-26 GPT 종합검증).
+        await api("/api/upload_month/cancel", { method: "POST" });
+        showToast("파일을 반영하지 않았습니다 — 표는 그대로입니다"); return;
+      }
       next = await apiUpload("/api/upload_month", f);
     }
     let moved = 0;
@@ -554,18 +561,31 @@ window.applyUploadedMonth = async function (f) {
       return;
     }
     uploadedMonthRound = moved ? next.round : -1;
+    uploadedOverwrote = moved ? (next.uploaded_overwrote || []) : [];
     render();
-    showToast(moved ? `${moved}칸을 화면에 반영했습니다` : "바뀐 칸이 없습니다 — 화면의 근무표와 같은 파일입니다");
+    showToast(moved ? `${moved}칸을 화면에 반영했습니다` + (uploadedOverwrote.length ? ` — ⚠ 그중 ${uploadedOverwrote.length}칸은 앞서 고쳐 둔 칸입니다(파일 줄 아래 안내를 봐 주세요)` : "")
+                    : "바뀐 칸이 없습니다 — 화면의 근무표와 같은 파일입니다", moved && uploadedOverwrote.length > 0);
   } catch (e) {
   } finally {
     hideGenOverlay();
   }
 };
 
-window.downloadXlsxOcs = () => apiDownload("xlsx_ocs");
+// 예전에 받아 둔 출력①(다른 사본)을 올리면 그 사이에 고친 칸이 옛 값으로 되돌아간다. 막지는 않고(알고 다시 고친 것일 수 있다)
+// 누구의 며칠이 무엇에서 무엇으로 바뀌었는지 반영 카드에 적는다 — 조용히 지나가면 앞 수정이 사라진 줄 모른다(2026-11-26 GPT 종합검증).
+function uploadOverwroteNote() {
+  if (!uploadedOverwrote.length || !ST) return "";
+  const nm = (v) => (v === "OFF" || v === "/" ? "쉼" : (v || "빈칸"));
+  const one = (o) => `${esc(o.staff_id)} ${o.day + 1}일 ${esc(nm(o.was))}→${esc(nm(o.now))}`;
+  const more = uploadedOverwrote.length > 5 ? ` 외 ${uploadedOverwrote.length - 5}칸` : "";
+  return `<p class="hint branch-warn" id="uploadOverwroteNote" role="status">⚠ <b>앞서 고쳐 고정해 둔 칸 ${uploadedOverwrote.length}개가 이 파일의 값으로 바뀌었습니다</b> — ` +
+    `${uploadedOverwrote.slice(0, 5).map(one).join(", ")}${more}. 알고 고치신 것이면 그대로 두시면 됩니다. ` +
+    `<b>예전에 받아 둔 파일</b>을 올리신 것이면 표 위의 '↶ 되돌리기'로 되돌린 뒤, 지금 화면에서 새로 받은 출력①을 고쳐 올려 주세요.</p>`;
+}
+window.downloadXlsxOcs = () => apiDownload("xlsx_ocs", { sample: tableFromSample });
 window.gotoPending = () => { const el = $("#pendingSec"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); };
 // 출력②를 받으면 '다음 달 준비' 카드를 켠다 — 그 파일이 다음 달 입력②라는 것을 받은 그 자리에서 말한다.
-window.downloadStaffTable = async () => { await apiDownload("staff_table"); nextMonthCardOn = true; renderNextMonthCard(); };
+window.downloadStaffTable = async () => { await apiDownload("staff_table", { sample: tableFromSample }); nextMonthCardOn = true; renderNextMonthCard(); };
 
 function renderHolidayCalendar() {
   const y = parseInt($("#f_year").value, 10);
@@ -3245,7 +3265,7 @@ function fileBarHtml() {
     // 올린 직후에만 두 갈래를 띄운다. 평소에 늘 떠 있으면 '재생성'이 눌리기 쉬운데,
     // 그건 고정 칸 말고는 표 전체를 다시 짜는 동작이라 되돌릴 수 없다.
     html += `<div class="upload-branch">
-      <p class="branch-title">수정본이 반영되었습니다 — 어떻게 할까요?</p>
+      <p class="branch-title">수정본이 반영되었습니다 — 어떻게 할까요?</p>${uploadOverwroteNote()}
       <button class="wide" onclick="downloadBothOutputs()">① 그대로 다운로드</button>
       <p class="hint">다시 계산하지 않습니다.</p>
       <button class="wide" onclick="regenerateThenDownload()">② 재생성 후 다운로드</button>
