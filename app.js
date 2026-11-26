@@ -2965,7 +2965,9 @@ function nightStageBar() {
       `<button type="button" class="primary small" data-night="confirm">나머지 자동 생성</button>` +
       // 확정한 표에서 다시 들어온 것이면 나가도 확정은 그대로다(고친 칸은 고치는 중인 칸으로 남는다)
       `<button type="button" class="small" data-night="all"${ST.night_reentry ? ` title="야간 확정은 그대로 둔 채 전체 표로 돌아갑니다. 여기서 고친 칸은 '고치는 중'으로 남습니다"` : ""}>` +
-      `${ST.night_reentry ? "전체 보기(확정 유지)" : "전체 보기(확정 안 함)"}</button></div>`;
+      // 처음 들어온 야간 화면에서 나가는 단추는 '전체 보기'다(사용자 2026-11-26 "전체 보기(확정 안 함)의 확정 안 함 지우기").
+      // 확정한 표에서 다시 들어온 경우만 '(확정 유지)'를 붙인다 — 나가도 확정이 그대로라는 것은 알려야 한다.
+      `${ST.night_reentry ? "전체 보기(확정 유지)" : "전체 보기"}</button></div>`;
   }
   if (ST.nights_fixed) {
     return `<div class="night-stage-bar" id="nightStageBar"><span class="grow"><b>🌙 야간 확정됨</b>` +
@@ -3930,7 +3932,9 @@ ${head}${toc}
 ${body}
 <div class="foot">SMC Fair Shift · 화면과 같은 계산 — 인쇄하면 PDF로 저장할 수 있다</div></div></body></html>`;
 }
-// ================================================================ 문의 파일 받기
+// ================================================================ 문의하기(문의 파일 받기)
+// 이름은 '문의하기'다 — 도움말 · 기타의 줄과 창의 제목. 창 안에서 파일을 받는 단추만 '문의 파일 받기'로 둔다(사용자 2026-11-26:
+// "문의 파일 받기 말고 문의하기로 … 파란 동그라미(창 안의 단추)만 문의 파일 받기로 그대로 둬").
 // 파트장이 "이거 이상해요"를 보낼 때: 이름과 내용만 적으면 지금 입력·출력·한 일(칸 수정·재생성 순서)을 앱이 zip 하나로
 // 묶어 준다(bridge.api_download_voc). 앱은 아무것도 보내지 않는다 — 받은 파일을 본인이 메일에 붙여 보내고,
 // 읽고 해결하는 것은 사람이 한다. 여는 길은 둘이다: 설명서(📘) 창 맨 아래 **'도움' 줄의 '문의 파일 받기'**, 그리고 출력 패널
@@ -3973,13 +3977,16 @@ function openVocDialog() {
     bd = document.createElement("div");
     bd.className = "modal-backdrop"; bd.id = "vocModalBackdrop";
     bd.innerHTML = '<div class="modal voc-modal" role="dialog" aria-modal="true" aria-labelledby="vocTitle">' +
-      '<div class="modal-head"><h2 id="vocTitle">문의 파일 받기</h2><button data-voc="close" aria-label="닫기">✕</button></div>' +
+      '<div class="modal-head"><h2 id="vocTitle">문의하기</h2><button data-voc="close" aria-label="닫기">✕</button></div>' +
       '<div class="modal-body voc-body">' +
       '<label class="voc-lab" for="vocName">이름</label><input type="text" id="vocName" autocomplete="off" maxlength="40" placeholder="보내는 분 이름">' +
       '<label class="voc-lab" for="vocText">내용</label><textarea id="vocText" rows="6" placeholder="예: 12일 N이 3명이어야 하는데 2명으로 나와요"></textarea>' +
-      '<p class="hint voc-note">지금 입력·근무표·고친 기록이 파일에 함께 들어갑니다. 이 기기에 저장만 되고 자동으로 보내지지 않습니다.</p>' +
+      '<p class="hint voc-note">지금 입력·근무표·고친 기록이 파일 하나(zip)에 담겨 이 기기에 받아집니다 — 자동으로 보내지지 않습니다. ' +
+      '<b>문의 파일을 받아서 관리자에게 그대로 전송하세요.</b></p>' +
       // 이름 가리기(2026-11-21) — 무엇이 가려지고 무엇이 안 가려지는지를 받기 전에 말한다. 못 가리는 것을 숨기면 가려진 줄 알고 보낸다.
-      '<p class="hint voc-note" id="vocAnonNote"><b>직원 이름은 가명(직원001나 …)으로 바뀌어 들어갑니다</b>(내용에 적은 이름 포함). ' +
+      // 어떻게 바뀌는지 그대로 적는다(사용자 2026-11-26 "직원 이름은 익명 — 정확히 어떻게 되는지 쓰기") — bridge.py _VocAnon이 하는 대로:
+      // 진짜 이름을 가나다(문자열) 순서로 늘어놓고 직원001·002…에 표식 한 글자(나·다·라…)를 붙인다. 같은 사람은 묶음 안 어디서나 같은 가명.
+      '<p class="hint voc-note" id="vocAnonNote"><b>직원 이름은 익명입니다</b> — 이름의 가나다순으로 직원001나 · 직원002다 · 직원003라 …로 바뀌어 들어가고(내용에 적은 이름 포함), 같은 사람은 파일 안 어디서나 같은 이름입니다. ' +
       '보내는 분 이름은 그대로이고, 엑셀의 다른 시트·메모에 따로 적은 이름은 가려지지 않습니다.</p>' +
       '<p class="voc-msg" id="vocMsg" role="status"></p>' +
       '<div class="voc-actions"><button class="primary" data-voc="make">문의 파일 받기</button></div>' +
@@ -4005,7 +4012,7 @@ async function makeVocFile() {
   msg.textContent = "만드는 중…";
   try {
     const file = await apiDownloadVoc({ report: { name, text }, client: vocClientInfo() });
-    msg.textContent = `받았습니다 — ${file} · 직원 이름은 가명으로 바꿨습니다. 이 파일을 메일에 붙여 보내 주세요.`;
+    msg.textContent = `받았습니다 — ${file} · 직원 이름은 익명(직원001나 …)으로 바꿨습니다. 이 파일을 관리자에게 그대로 전송해 주세요(메일 등).`;
   } catch (e) {
     msg.textContent = "문의 파일을 만들지 못했습니다: " + ((e && e.message) || e);
   }
@@ -4885,7 +4892,7 @@ function renderSide() {
 
   // 도움말 · 기타 — '상세 자료' 탭 맨 아래. 한 줄 전체가 누르는 자리다(작은 글씨 한 문단에 '·'로 이어 붙였더니 폰에서 무엇이
   // 버튼인지 알 수 없었다, 2026-11-11).
-  // **일반 사용자에게 보이는 줄은 둘이다 — 문의 파일 받기 · 관리자 모드.** 보고서 두 가지(월간 보고서 받기 · 보고서 받기)는 관리자
+  // **일반 사용자에게 보이는 줄은 둘이다 — 문의하기 · 관리자 모드.** 보고서 두 가지(월간 보고서 받기 · 보고서 받기)는 관리자
   // 비밀번호를 통과한 뒤에만 그 아래에 나온다(ADMIN_OK — 아래 openVocGate. 문의 파일까지 열 필요는 없다). 잠가서 보이는 것이 아니라
   // 줄 자체를 그리지 않는다(사용자 결정 2026-11-25: "도움말 기타에서 일반인에게 메뉴 자체가 안 보이게", 월간 보고서도 "예",
   // 조건은 "비번 맞으면 보이게"). 그 전 경과: 11-13 월간 보고서를 표 위 파일 줄에서 이리로(실험 기능), 11-24 '📘 사용자 매뉴얼' 줄을
@@ -4897,7 +4904,7 @@ function renderSide() {
     // 문의는 적용 안 한 편집이 있어도 받을 수 있다(그 편집까지 담긴다).
     `<button class="exp-item" id="expVocBtn" onclick="openVocDialog()" ` +
       `title="이름과 내용을 적으면 지금 입력·출력·고친 기록이 파일 하나(zip)로 받아집니다 — 이 기기에 저장만 됩니다">` +
-      `<span class="exp-name">문의 파일 받기</span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
+      `<span class="exp-name">문의하기</span><span class="exp-go" aria-hidden="true">⬇</span></button>` +
     `<button class="exp-item" id="expAdminBtn" onclick="openVocGate()" ` +
       `title="받은 문의 파일(zip)을 올려 그 사람이 보던 화면을 다시 봅니다 — 비밀번호가 필요합니다">` +
       `<span class="exp-name">관리자 모드</span></button>` +
