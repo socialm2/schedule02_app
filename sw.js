@@ -20,7 +20,7 @@
 // index.html의 빌드시각만 새것으로 바뀌니 "최신 버전인데 고친 게 하나도 안 보인다"가
 // 된다. 하루치 수정이 통째로 안 보인 채 나갔었다.
 
-const CACHE_NAME = "ns-sched-20261126-155233-1109206";
+const CACHE_NAME = "ns-sched-20261126-163854-f045de4";
 
 // py_app.zip은 엔진 코드라 배포마다 바뀌므로 APP_FILES(네트워크 우선)로 둔다 —
 // HEAVY_FILES(캐시 우선)에 있으면, 서비스워커가 갱신되는 그 페이지 로드에서조차
@@ -73,7 +73,11 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(async (cache) => {
-        await cache.addAll(APP_FILES);
+        // cache: "reload" — 브라우저의 일반 HTTP 캐시를 건너뛰고 서버에서 새로 받는다. 이게 없으면 서버가 max-age를 주는 곳(GitHub Pages는
+        // 600초)에서, 배포 직전에 열어 본 기기의 새 캐시에 **지난 판의 index.html**이 들어간다 — 새 판 sw.js는 늘 새로 받지만
+        // 설치가 받는 파일은 HTTP 캐시에서 나온다. 첫 화면은 이 설치 때 받은 것만 쓰므로(화면 이동 응답으로 덮지 않는다 — 아래)
+        // 그 판 내내 '옛 첫 화면 + 새 app.js'로 오프라인이 열렸다(2026-11-26 배포 전 검토에서 재현). 무거운 파일은 판마다 같아 그대로 둔다.
+        await cache.addAll(APP_FILES.map((f) => new Request(f, { cache: "reload" })));
         // 무거운 파일(Pyodide 런타임 등 14MB)은 이미 캐시에 있으면 다시 받지 않는다.
         // addAll은 있든 없든 전부 새로 받아오기 때문에, 이 파일들이 하나도 안 바뀐
         // 배포에서도 서비스워커만 고치면 14MB를 다시 내려받게 된다 — 폰 데이터로 쓰는
