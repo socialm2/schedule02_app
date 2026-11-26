@@ -41,14 +41,14 @@
   </div>
 </div>
 <div id="app" style="display:none">
-  <!-- 머리줄에는 버전과 앱을 고친 시각(.build-time)이 보인다. 시각은 2026-11-25 아침에 감췄다가 같은 날 되살렸다
-       (사용자: "앱 수정 시간 다시 표시해 줘" — '새 버전이 있습니다' 띠를 없앤 뒤 내 화면이 최신인지 볼 단서다).
-       값은 배포할 때마다 GitHub Actions가 실제 배포 시각(서울 기준)으로 박는다(.github/workflows/deploy.yml) — 손으로 고칠 필요 없다.
-       그 글자를 화면 말고도 둘이 읽는다: 문의 파일이 어느 판에서 만든 것인지 적을 때(app.js), 배포 확인(tools/verify_deploy.sh). -->
+  <!-- 머리줄에는 버전만 보인다. 배포 시각(.build-time)은 화면에서 뺐다(사용자 결정 2026-11-26: "앱에 개정된 시간 표시 다시 빼" —
+       11-25 아침에 감췄다가 오후에 되살렸고, 회사 도메인으로 옮기기 직전에 다시 감췄다). 값은 지우지 않았다 — 배포할 때마다
+       GitHub Actions가 실제 배포 시각(서울 기준)으로 계속 박고(.github/workflows/deploy.yml), 그 글자를 둘이 읽는다: 문의 파일이
+       어느 판에서 만든 것인지 적을 때(app.js), 배포 확인(tools/verify_deploy.sh). 감추는 것은 style.css의 한 줄이다. -->
   <header>
-    <!-- 배지·고친 시각은 스크린리더가 제목으로 읽지 않게 감싼다(aria-hidden). .build-time span 자체는 CI(deploy.yml)가
-         정규식으로 찾아 바꾸므로 그 태그에는 속성을 더하지 말 것(여는 태그가 달라지면 배포가 멈춘다). -->
-    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.90</span><span class="build-time">Updated 2026-11-26 05:52:47</span></span></h1>
+    <!-- 배지는 스크린리더가 제목으로 읽지 않게 감싼다(aria-hidden). .build-time span 자체는 CI(deploy.yml)가 정규식으로 찾아
+         바꾸므로 그 태그에는 속성을 더하지 말 것(hidden도 안 된다 — 여는 태그가 달라지면 배포가 멈춘다). -->
+    <h1>SMC Fair Shift <span class="h1-meta" aria-hidden="true"><span class="version-badge">v0.90</span><span class="build-time">Updated 2026-11-26 10:15:37</span></span></h1>
     <span class="ward-info" id="wardInfo"></span>
     <div class="spacer"></div>
     <button id="infoBtn">📘 사용자 매뉴얼</button>
